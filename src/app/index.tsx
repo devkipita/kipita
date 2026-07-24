@@ -206,7 +206,7 @@ function KipitaWordmark({ width, fill }: { width: number; fill: string }) {
 }
 
 /** Large ambient illustration anchored to a screen corner, bleeding off-edge. */
-const CORNER_OPACITY = 0.9;
+const CORNER_OPACITY = 0.5;
 
 function CornerArt({
   Art,
@@ -306,7 +306,7 @@ export default function SplashScreen() {
 
   const markSize = Math.min(168, width * 0.42);
   const wordmarkWidth = markSize * 0.95;
-  const cornerSize = Math.min(340, width * 0.62);
+  const cornerSize = Math.min(260, width * 0.5);
   const isReveal = phase === 'reveal';
 
   const enter = (delay: number, duration = 550) =>
@@ -323,14 +323,14 @@ export default function SplashScreen() {
             size={cornerSize}
             delay={300}
             reduceMotion={reduceMotion}
-            style={{ top: insets.top - cornerSize * 0.06, left: -cornerSize * 0.2 }}
+            style={{ top: insets.top - cornerSize * 0.18, left: -cornerSize * 0.32 }}
           />
           <CornerArt
             Art={PeopleRight}
             size={cornerSize}
             delay={420}
             reduceMotion={reduceMotion}
-            style={{ bottom: insets.bottom - cornerSize * 0.06, right: -cornerSize * 0.2 }}
+            style={{ bottom: insets.bottom - cornerSize * 0.18, right: -cornerSize * 0.32 }}
           />
         </>
       )}
@@ -542,8 +542,9 @@ const styles = StyleSheet.create({
   },
   actionArea: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    marginTop: spacing['2xl'],
   },
   badge: {
     flexDirection: 'row',
