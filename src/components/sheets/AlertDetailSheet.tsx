@@ -18,7 +18,7 @@ import { useAuthStore } from '@/store';
 import { fetchAlertComments, addAlertComment, reactToAlert } from '@/lib/api';
 import { queryKeys } from '@/lib/api';
 import { spacing, radius } from '@/theme';
-import { formatRelativeTime } from '@/lib/formatters';
+import { formatShortRelativeTime } from '@/lib/formatters';
 import type { Alert, AlertComment, AlertCategory } from '@/types';
 
 // ── Category badge colours ──
@@ -128,7 +128,7 @@ export const AlertDetailSheet = function AlertDetailSheet({ alert }: AlertDetail
           </Text>
         </View>
         <Text variant="caption" color={colors.textTertiary}>
-          {formatRelativeTime(alert.created_at)}
+          {formatShortRelativeTime(alert.created_at)}
         </Text>
 
         {/* Author row */}
@@ -216,7 +216,7 @@ export const AlertDetailSheet = function AlertDetailSheet({ alert }: AlertDetail
                 {comment.content}
               </Text>
               <Text variant="caption" color={colors.textTertiary}>
-                {formatRelativeTime(comment.created_at)}
+                {formatShortRelativeTime(comment.created_at)}
               </Text>
             </View>
           </View>

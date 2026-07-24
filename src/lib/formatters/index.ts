@@ -47,6 +47,36 @@ export function truncate(text: string, maxLength: number): string {
   return text.slice(0, maxLength - 1) + '…';
 }
 
+/** Word-based truncation for feed text. Returns whether it was clipped. */
+export function truncateWords(
+  text: string,
+  maxWords: number,
+): { text: string; truncated: boolean } {
+  const clean = text.trim();
+  const words = clean.split(/\s+/);
+  if (words.length <= maxWords) return { text: clean, truncated: false };
+  return { text: words.slice(0, maxWords).join(' ') + '…', truncated: true };
+}
+
+/**
+ * Compact, uniform relative time — "now", "36m ago", "4h ago", "2d ago".
+ * Avoids date-fns' inconsistent "about an hour ago" phrasing.
+ */
+export function formatShortRelativeTime(dateStr: string): string {
+  const date = parseISO(dateStr);
+  const diffMs = Date.now() - date.getTime();
+  const min = Math.floor(diffMs / 60000);
+  if (min < 1) return 'now';
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  const wk = Math.floor(day / 7);
+  if (wk < 5) return `${wk}w ago`;
+  return format(date, 'd MMM');
+}
+
 export function initials(name: string): string {
   return name
     .split(' ')

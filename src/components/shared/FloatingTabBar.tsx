@@ -12,8 +12,9 @@ import { spacing, radius, shadows } from '@/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-/** Space the floating bar occupies at the bottom — screens should pad by this. */
-export const FLOATING_TAB_BAR_SPACE = 108;
+/** Space the floating bar occupies at the bottom — screens should pad by this.
+ * Covers the bar height (64) + its bottom offset + safe-area on tall devices. */
+export const FLOATING_TAB_BAR_SPACE = 128;
 
 const BAR_HEIGHT = 64;
 

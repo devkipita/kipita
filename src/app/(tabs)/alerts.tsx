@@ -68,9 +68,12 @@ export default function AlertsScreen() {
     },
   });
 
-  const handleAlertPress = useCallback((alert: Alert) => {
-    // Could navigate to detail, for now just expand
-  }, []);
+  const handleAlertPress = useCallback(
+    (alert: Alert) => {
+      openSheet('alert_details', { alert });
+    },
+    [openSheet],
+  );
 
   const handleNotifPress = useCallback(
     (notif: AppNotification) => {
@@ -148,9 +151,8 @@ export default function AlertsScreen() {
           <FlashList
             data={alerts}
             renderItem={renderAlert}
-            estimatedItemSize={130}
             contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.md }} />}
+            ItemSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
           />
         )
       )}
@@ -171,7 +173,6 @@ export default function AlertsScreen() {
           <FlashList
             data={userNotifs}
             renderItem={renderNotif}
-            estimatedItemSize={72}
             contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
             ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
           />
@@ -187,7 +188,6 @@ export default function AlertsScreen() {
           <FlashList
             data={systemNotifs}
             renderItem={renderNotif}
-            estimatedItemSize={72}
             contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
             ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
           />

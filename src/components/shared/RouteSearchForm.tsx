@@ -16,7 +16,8 @@ import { Button } from "../core/Button";
 import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { useTheme, useLocale, useAppMode } from "@/hooks";
-import { spacing, radius } from "@/theme";
+import { spacing, radius, shadows } from "@/theme";
+import { format } from "date-fns";
 import { storage, STORAGE_KEYS } from "@/lib/utils/mmkv";
 import { DEFAULT_PREFERENCES } from "@/lib/constants";
 import { detectNearestTownByIp } from "@/lib/utils/location";
@@ -57,6 +58,10 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeField, setActiveField] = useState<"from" | "to">("to");
+  // A draft that already carries a date/time was scheduled for "later".
+  const [scheduleMode, setScheduleMode] = useState<"now" | "later">(
+    draft?.date || draft?.departure_time ? "later" : "now",
+  );
 
   const attemptedAutoFrom = useRef(false);
   const fromValueRef = useRef(from);
@@ -131,16 +136,45 @@ export const RouteSearchForm = memo(function RouteSearchForm({
     setTo(town.name);
   }, []);
 
+  // Pre-fill an empty schedule with the next quarter-hour so "Later" always
+  // lands on a concrete, editable departure instead of a blank picker.
+  const ensureSchedule = useCallback(() => {
+    const quarter = 1000 * 60 * 15;
+    const slot = new Date(Math.ceil(Date.now() / quarter) * quarter);
+    setDate((prev) => prev ?? format(slot, "yyyy-MM-dd"));
+    setTime((prev) => prev ?? format(slot, "HH:mm"));
+  }, []);
+
   const expandToPlanner = useCallback(() => {
     setIsExpanded(true);
     setActiveField("to");
   }, []);
 
   const openLater = useCallback(() => {
+    setScheduleMode("later");
+    ensureSchedule();
     setIsExpanded(true);
-    setShowAdvanced(true);
     setActiveField("to");
+  }, [ensureSchedule]);
+
+  const chooseNow = useCallback(() => {
+    setScheduleMode("now");
+    setDate(null);
+    setTime(null);
   }, []);
+
+  const chooseSchedule = useCallback(() => {
+    setScheduleMode("later");
+    ensureSchedule();
+  }, [ensureSchedule]);
+
+  // Compact label for the "Later" pill once a departure has been picked.
+  const scheduleLabel = useMemo(() => {
+    if (scheduleMode !== "later" || !date) return null;
+    const dt = new Date(`${date}T${time ?? "00:00"}`);
+    if (Number.isNaN(dt.getTime())) return null;
+    return time ? format(dt, "EEE d, HH:mm") : format(dt, "EEE d MMM");
+  }, [scheduleMode, date, time]);
 
   const fallbackSuggestions = useMemo(() => {
     const source = towns as KenyanTown[];
@@ -201,9 +235,10 @@ export const RouteSearchForm = memo(function RouteSearchForm({
           exiting={FadeOut.duration(120)}
           style={[
             styles.compactRow,
+            shadows.lg,
             {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder,
+              backgroundColor: colors.surface,
+              borderColor: colors.borderLight,
             },
           ]}
         >
@@ -227,25 +262,134 @@ export const RouteSearchForm = memo(function RouteSearchForm({
             onPress={openLater}
             style={[
               styles.laterButton,
-              {
-                backgroundColor: colors.surfaceElevated,
-                borderColor: colors.borderLight,
-              },
+              shadows.sm,
+              scheduleLabel
+                ? { backgroundColor: colors.primaryContainer }
+                : {
+                    backgroundColor: colors.surfaceElevated,
+                    borderWidth: 1,
+                    borderColor: colors.borderLight,
+                  },
             ]}
             accessibilityRole="button"
+            accessibilityLabel={
+              scheduleLabel ? `Scheduled for ${scheduleLabel}` : t("later")
+            }
           >
             <Icon
               name="calendar-outline"
               size={15}
-              color={colors.textSecondary}
+              color={scheduleLabel ? colors.primary : colors.textSecondary}
             />
-            <Text variant="labelMedium" color={colors.textSecondary}>
-              Later
+            <Text
+              variant="labelMedium"
+              color={scheduleLabel ? colors.primary : colors.textSecondary}
+              numberOfLines={1}
+            >
+              {scheduleLabel ?? t("later")}
             </Text>
           </Pressable>
         </Animated.View>
       ) : (
         <>
+          {/* ── When: leave now vs. schedule for later ── */}
+          <View
+            style={[
+              styles.segment,
+              { backgroundColor: colors.surfaceVariant },
+            ]}
+          >
+            <Pressable
+              onPress={chooseNow}
+              style={[
+                styles.segmentBtn,
+                scheduleMode === "now" && [
+                  styles.segmentBtnActive,
+                  { backgroundColor: colors.surface },
+                  shadows.sm,
+                ],
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scheduleMode === "now" }}
+            >
+              <Icon
+                name="flash-outline"
+                size={16}
+                color={
+                  scheduleMode === "now" ? colors.primary : colors.textSecondary
+                }
+              />
+              <Text
+                variant="labelMedium"
+                color={
+                  scheduleMode === "now" ? colors.primary : colors.textSecondary
+                }
+              >
+                {t("leave_now")}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={chooseSchedule}
+              style={[
+                styles.segmentBtn,
+                scheduleMode === "later" && [
+                  styles.segmentBtnActive,
+                  { backgroundColor: colors.surface },
+                  shadows.sm,
+                ],
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: scheduleMode === "later" }}
+            >
+              <Icon
+                name="calendar-outline"
+                size={16}
+                color={
+                  scheduleMode === "later"
+                    ? colors.primary
+                    : colors.textSecondary
+                }
+              />
+              <Text
+                variant="labelMedium"
+                color={
+                  scheduleMode === "later"
+                    ? colors.primary
+                    : colors.textSecondary
+                }
+              >
+                {t("schedule")}
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* ── Schedule pickers (only when booking for later) ── */}
+          {scheduleMode === "later" && (
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              exiting={FadeOut.duration(120)}
+              style={styles.dateTimeRow}
+            >
+              <View style={styles.dateTimeField}>
+                <DatePicker
+                  label={t("date")}
+                  value={date}
+                  onChange={setDate}
+                  placeholder="Pick date"
+                  minDate={new Date()}
+                />
+              </View>
+              <View style={styles.dateTimeField}>
+                <TimePicker
+                  label={t("departure_time")}
+                  value={time}
+                  onChange={setTime}
+                  placeholder="Pick time"
+                />
+              </View>
+            </Animated.View>
+          )}
+
           {/* ── From field ── */}
           <View style={styles.fieldGroup}>
             <TextInput
@@ -354,26 +498,6 @@ export const RouteSearchForm = memo(function RouteSearchForm({
           exiting={FadeOut.duration(150)}
           style={styles.advanced}
         >
-          <View style={styles.dateTimeRow}>
-            <View style={styles.dateTimeField}>
-              <DatePicker
-                label={t("date")}
-                value={date}
-                onChange={setDate}
-                placeholder="Pick date"
-                minDate={new Date()}
-              />
-            </View>
-            <View style={styles.dateTimeField}>
-              <TimePicker
-                label={t("departure_time")}
-                value={time}
-                onChange={setTime}
-                placeholder="Pick time"
-              />
-            </View>
-          </View>
-
           <View
             style={[
               styles.prefsCard,
@@ -442,8 +566,9 @@ const styles = StyleSheet.create({
   compactRow: {
     height: 58,
     borderRadius: radius.full,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: spacing.xs + 2,
+    paddingLeft: spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
@@ -459,12 +584,30 @@ const styles = StyleSheet.create({
   },
   laterButton: {
     borderRadius: radius.full,
-    borderWidth: 1,
-    height: 36,
+    height: 42,
+    maxWidth: 150,
     paddingHorizontal: spacing.md,
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+  },
+  segment: {
+    flexDirection: "row",
+    borderRadius: radius.full,
+    padding: 4,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    height: 40,
+    borderRadius: radius.full,
+  },
+  segmentBtnActive: {
+    borderRadius: radius.full,
   },
   fieldGroup: {
     gap: 0,

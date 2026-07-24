@@ -148,7 +148,40 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* ── Drawer panel — takes all remaining vertical space ── */}
+      {/* ── Available rides / requests — on the background, right under search ── */}
+      <View style={styles.availableSection}>
+        <Text
+          variant="titleMedium"
+          color={colors.text}
+          style={[styles.sectionTitle, styles.availableTitle]}
+        >
+          {t(config.homeCarouselTitle as any)}
+        </Text>
+
+        {itemsLoading ? (
+          <LoadingState size="small" />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={isDriver ? "hand-right-outline" : "car-outline"}
+            message={t(config.emptyResults as any)}
+          />
+        ) : (
+          <View style={styles.carouselWrap}>
+            <FlashList
+              data={items}
+              renderItem={renderCarouselItem}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: spacing.lg }}
+              ItemSeparatorComponent={() => (
+                <View style={{ width: spacing.md }} />
+              )}
+            />
+          </View>
+        )}
+      </View>
+
+      {/* ── Notifications panel — takes all remaining vertical space ── */}
       <View
         style={[
           styles.panel,
@@ -173,40 +206,7 @@ export default function HomeScreen() {
           ]}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Available rides / requests ── */}
-          <View style={styles.section}>
-            <Text
-              variant="titleMedium"
-              color={colors.text}
-              style={styles.sectionTitle}
-            >
-              {t(config.homeCarouselTitle as any)}
-            </Text>
-
-            {itemsLoading ? (
-              <LoadingState size="small" />
-            ) : items.length === 0 ? (
-              <EmptyState
-                icon={isDriver ? "hand-right-outline" : "car-outline"}
-                message={t(config.emptyResults as any)}
-              />
-            ) : (
-              <View style={styles.carouselWrap}>
-                <FlashList
-                  data={items}
-                  renderItem={renderCarouselItem}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ paddingHorizontal: spacing.lg }}
-                  ItemSeparatorComponent={() => (
-                    <View style={{ width: spacing.md }} />
-                  )}
-                />
-              </View>
-            )}
-          </View>
-
-          {/* ── Road alerts (vertical stack) ── */}
+          {/* ── Road alerts (vertical feed) ── */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text
@@ -256,7 +256,16 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
   },
 
-  /* ── Drawer panel: flex:1 so it fills whatever space remains ── */
+  /* ── Available rides: sits on the app background, above the panel ── */
+  availableSection: {
+    gap: spacing.md,
+    paddingBottom: spacing.lg,
+  },
+  availableTitle: {
+    paddingHorizontal: spacing.lg,
+  },
+
+  /* ── Notifications panel: flex:1 so it fills whatever space remains ── */
   panel: {
     flex: 1,
     borderTopLeftRadius: PANEL_RADIUS,
@@ -291,7 +300,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   carouselWrap: {
-    marginHorizontal: -spacing.lg,
     height: 220,
   },
   alertsList: {

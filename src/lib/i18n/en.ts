@@ -55,6 +55,10 @@ export const en = {
   search_rides: 'Search Rides',
   search_requests: 'Search Requests',
   advanced_options: 'More Options',
+  leave_now: 'Leave now',
+  later: 'Later',
+  schedule: 'Schedule',
+  when: 'When',
   date: 'Date',
   departure_time: 'Departure Time',
   ride_preferences: 'Ride Preferences',
@@ -69,6 +73,7 @@ export const en = {
   available_requests: 'Passenger Requests',
   road_alerts: 'Road Alerts',
   see_all: 'See All',
+  read_more: 'Read more',
 
   // Trips
   current: 'Current',

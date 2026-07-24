@@ -57,6 +57,10 @@ export const sw: Record<TranslationKey, string> = {
   search_rides: 'Tafuta Safari',
   search_requests: 'Tafuta Maombi',
   advanced_options: 'Chaguo Zaidi',
+  leave_now: 'Ondoka sasa',
+  later: 'Baadaye',
+  schedule: 'Ratiba',
+  when: 'Lini',
   date: 'Tarehe',
   departure_time: 'Saa ya Kuondoka',
   ride_preferences: 'Mapendeleo ya Safari',
@@ -71,6 +75,7 @@ export const sw: Record<TranslationKey, string> = {
   available_requests: 'Maombi ya Abiria',
   road_alerts: 'Tahadhari za Barabara',
   see_all: 'Ona Zote',
+  read_more: 'Soma zaidi',
 
   // Trips
   current: 'Sasa',
