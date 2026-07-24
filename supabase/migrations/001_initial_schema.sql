@@ -4,8 +4,17 @@
 -- ══════════════════════════════════════════
 -- EXTENSIONS
 -- ══════════════════════════════════════════
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- Supabase provides pgcrypto by default. Use its UUID function directly
+-- instead of uuid-ossp, which can be installed outside the search path.
+CREATE OR REPLACE FUNCTION public.uuid_generate_v4()
+RETURNS UUID
+LANGUAGE sql
+VOLATILE
+AS $$
+  SELECT gen_random_uuid();
+$$;
 
 -- ══════════════════════════════════════════
 -- USERS

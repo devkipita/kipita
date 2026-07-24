@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.full,
   },
   label: {
+    fontWeight: '900',
     marginLeft: spacing.xs,
   },
 });

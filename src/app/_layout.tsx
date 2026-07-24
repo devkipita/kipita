@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { AppState, Linking } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -61,13 +62,16 @@ function RootLayoutInner() {
           refresh_token: data.session.refresh_token,
         });
 
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", data.session.user.id)
-          .single();
+        const { data: profiles } = await supabase.rpc("current_user_profile");
+        const profile = profiles?.[0];
 
-        if (profile) setUser(profile as any);
+        if (profile) {
+          setUser({
+            ...profile,
+            email: data.session.user.email ?? null,
+            phone: data.session.user.phone ?? null,
+          } as any);
+        }
       }
 
       if (!mounted) return;
@@ -75,6 +79,27 @@ function RootLayoutInner() {
     };
 
     void bootstrapSession();
+
+    const exchangeAuthCode = async (url: string | null) => {
+      const code = url ? new URL(url).searchParams.get("code") : null;
+      if (code) await supabase.auth.exchangeCodeForSession(code);
+    };
+
+    void Linking.getInitialURL().then(exchangeAuthCode);
+    const linkingSubscription = Linking.addEventListener("url", ({ url }) => {
+      void exchangeAuthCode(url);
+    });
+
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      (state) => {
+        if (state === "active") {
+          void supabase.auth.startAutoRefresh();
+        } else {
+          void supabase.auth.stopAutoRefresh();
+        }
+      },
+    );
 
     const {
       data: { subscription },
@@ -84,12 +109,15 @@ function RootLayoutInner() {
           access_token: session.access_token,
           refresh_token: session.refresh_token,
         });
-        const { data: profile } = await supabase
-          .from("users")
-          .select("*")
-          .eq("id", session.user.id)
-          .single();
-        if (profile) setUser(profile as any);
+        const { data: profiles } = await supabase.rpc("current_user_profile");
+        const profile = profiles?.[0];
+        if (profile) {
+          setUser({
+            ...profile,
+            email: session.user.email ?? null,
+            phone: session.user.phone ?? null,
+          } as any);
+        }
       } else {
         setUser(null);
         setSession(null);
@@ -99,6 +127,9 @@ function RootLayoutInner() {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      linkingSubscription.remove();
+      appStateSubscription.remove();
+      void supabase.auth.stopAutoRefresh();
     };
   }, [setSession, setUser]);
 

@@ -1,53 +1,65 @@
-import React, { memo, useState, useCallback } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { Text } from '../core/Text';
-import { Button } from '../core/Button';
-import { Icon } from '../core/Icon';
-import { Divider } from '../core/Divider';
-import { TextInput } from '../forms/TextInput';
-import { useTheme, useLocale } from '@/hooks';
-import { useAuthStore, useUIStore } from '@/store';
-import { supabase } from '@/lib/supabase';
-import { spacing } from '@/theme';
+import React, { memo, useState, useCallback } from "react";
+import { View, StyleSheet, Pressable } from "react-native";
+import * as Linking from "expo-linking";
+import { Text } from "../core/Text";
+import { Button } from "../core/Button";
+import { Icon } from "../core/Icon";
+import { Divider } from "../core/Divider";
+import { TextInput } from "../forms/TextInput";
+import { useTheme, useLocale } from "@/hooks";
+import { supabase } from "@/lib/supabase";
+import { spacing } from "@/theme";
 
-type AuthStep = 'choice' | 'phone' | 'otp' | 'email';
+type AuthStep = "choice" | "phone" | "otp" | "sign_in" | "sign_up";
 
 interface AuthSheetProps {
   onSuccess?: () => void;
 }
 
-export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) {
+export const AuthSheet = memo(function AuthSheet({
+  onSuccess,
+}: AuthSheetProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
-  const [step, setStep] = useState<AuthStep>('choice');
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep] = useState<AuthStep>("choice");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const handlePhoneSubmit = useCallback(async () => {
     setLoading(true);
-    setError('');
-    const formattedPhone = phone.startsWith('+') ? phone : `+254${phone.replace(/^0/, '')}`;
-    const { error: err } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
+    setError("");
+    setNotice("");
+    const formattedPhone = phone.startsWith("+")
+      ? phone
+      : `+254${phone.replace(/^0/, "")}`;
+    const { error: err } = await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+    });
     setLoading(false);
     if (err) {
       setError(err.message);
     } else {
-      setStep('otp');
+      setStep("otp");
     }
   }, [phone]);
 
   const handleOtpVerify = useCallback(async () => {
     setLoading(true);
-    setError('');
-    const formattedPhone = phone.startsWith('+') ? phone : `+254${phone.replace(/^0/, '')}`;
+    setError("");
+    setNotice("");
+    const formattedPhone = phone.startsWith("+")
+      ? phone
+      : `+254${phone.replace(/^0/, "")}`;
     const { data, error: err } = await supabase.auth.verifyOtp({
       phone: formattedPhone,
       token: otp,
-      type: 'sms',
+      type: "sms",
     });
     setLoading(false);
     if (err) {
@@ -57,54 +69,80 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
     }
   }, [phone, otp, onSuccess]);
 
-  const handleEmailSubmit = useCallback(async () => {
+  const handleEmailSignIn = useCallback(async () => {
     setLoading(true);
-    setError('');
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+    setError("");
+    setNotice("");
+    const { data, error: err } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    setLoading(false);
+
     if (err) {
-      // Try sign up
-      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({ email, password });
-      setLoading(false);
-      if (signUpErr) {
-        setError(signUpErr.message);
-      } else if (signUpData.session) {
-        onSuccess?.();
-      }
-    } else {
-      setLoading(false);
-      if (data.session) {
-        onSuccess?.();
-      }
+      setError(err.message);
+    } else if (data.session) {
+      onSuccess?.();
     }
   }, [email, password, onSuccess]);
 
+  const handleEmailSignUp = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setNotice("");
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName.trim() },
+        emailRedirectTo: Linking.createURL("auth/callback"),
+      },
+    });
+    setLoading(false);
+
+    if (err) {
+      setError(err.message);
+    } else if (data.session) {
+      onSuccess?.();
+    } else {
+      setNotice(
+        "Check your email to confirm your account, then return to Kipita to sign in.",
+      );
+    }
+  }, [email, password, fullName, onSuccess]);
+
   const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
-    setError('');
+    setError("");
+    setNotice("");
     const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: 'kipita://auth/callback' },
+      provider: "google",
+      options: { redirectTo: Linking.createURL("auth/callback") },
     });
     setLoading(false);
     if (err) setError(err.message);
   }, []);
 
   // Choice screen
-  if (step === 'choice') {
+  if (step === "choice") {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
           <Text variant="headlineMedium" align="center">
-            {t('sign_in')}
+            {t("sign_in")}
           </Text>
-          <Text variant="bodyMedium" color={colors.textSecondary} align="center">
-            {t('welcome_back')}
+          <Text
+            variant="bodyMedium"
+            color={colors.textSecondary}
+            align="center"
+          >
+            {t("welcome_back")}
           </Text>
         </View>
 
         <Button
-          label={t('phone_number')}
-          onPress={() => setStep('phone')}
+          label={t("phone_number")}
+          onPress={() => setStep("phone")}
           variant="filled"
           icon="call-outline"
           size="lg"
@@ -112,8 +150,8 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
         />
 
         <Button
-          label={t('email')}
-          onPress={() => setStep('email')}
+          label={t("email")}
+          onPress={() => setStep("sign_in")}
           variant="outlined"
           icon="mail-outline"
           size="lg"
@@ -122,12 +160,14 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
 
         <View style={styles.dividerRow}>
           <Divider style={styles.dividerLine} />
-          <Text variant="labelSmall" color={colors.textTertiary}>{t('or')}</Text>
+          <Text variant="labelSmall" color={colors.textTertiary}>
+            {t("or")}
+          </Text>
           <Divider style={styles.dividerLine} />
         </View>
 
         <Button
-          label={t('continue_with_google')}
+          label={t("continue_with_google")}
           onPress={handleGoogleSignIn}
           variant="outlined"
           icon="logo-google"
@@ -135,21 +175,27 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
           fullWidth
           loading={loading}
         />
+
+        <Pressable onPress={() => setStep("sign_up")}>
+          <Text variant="labelMedium" color={colors.primary} align="center">
+            New to Kipita? Create an account
+          </Text>
+        </Pressable>
       </View>
     );
   }
 
   // Phone input
-  if (step === 'phone') {
+  if (step === "phone") {
     return (
       <View style={styles.container}>
-        <Pressable onPress={() => setStep('choice')} style={styles.backBtn}>
+        <Pressable onPress={() => setStep("choice")} style={styles.backBtn}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text variant="headlineMedium">{t('phone_number')}</Text>
+        <Text variant="headlineMedium">{t("phone_number")}</Text>
         <TextInput
-          label={t('phone_number')}
-          placeholder={t('enter_phone')}
+          label={t("phone_number")}
+          placeholder={t("enter_phone")}
           icon="call-outline"
           keyboardType="phone-pad"
           value={phone}
@@ -159,7 +205,7 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
           autoFocus
         />
         <Button
-          label={t('send_code')}
+          label={t("send_code")}
           onPress={handlePhoneSubmit}
           variant="filled"
           size="lg"
@@ -172,15 +218,15 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
   }
 
   // OTP
-  if (step === 'otp') {
+  if (step === "otp") {
     return (
       <View style={styles.container}>
-        <Pressable onPress={() => setStep('phone')} style={styles.backBtn}>
+        <Pressable onPress={() => setStep("phone")} style={styles.backBtn}>
           <Icon name="arrow-back" size={24} color={colors.text} />
         </Pressable>
-        <Text variant="headlineMedium">{t('verify')}</Text>
+        <Text variant="headlineMedium">{t("verify")}</Text>
         <Text variant="bodyMedium" color={colors.textSecondary}>
-          {t('enter_otp')}
+          {t("enter_otp")}
         </Text>
         <TextInput
           placeholder="000000"
@@ -193,7 +239,7 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
           autoFocus
         />
         <Button
-          label={t('verify')}
+          label={t("verify")}
           onPress={handleOtpVerify}
           variant="filled"
           size="lg"
@@ -205,15 +251,28 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
     );
   }
 
-  // Email
+  // Email sign-in and sign-up are deliberately separate. A mistyped
+  // password must never silently create a second account.
   return (
     <View style={styles.container}>
-      <Pressable onPress={() => setStep('choice')} style={styles.backBtn}>
+      <Pressable onPress={() => setStep("choice")} style={styles.backBtn}>
         <Icon name="arrow-back" size={24} color={colors.text} />
       </Pressable>
-      <Text variant="headlineMedium">{t('email')}</Text>
+      <Text variant="headlineMedium">
+        {step === "sign_up" ? "Create your account" : "Sign in with email"}
+      </Text>
+      {step === "sign_up" && (
+        <TextInput
+          label="Full name"
+          placeholder="Your name"
+          icon="person-outline"
+          autoCapitalize="words"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+      )}
       <TextInput
-        label={t('email')}
+        label={t("email")}
         placeholder="you@example.com"
         icon="mail-outline"
         keyboardType="email-address"
@@ -223,7 +282,7 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
         onChangeText={setEmail}
       />
       <TextInput
-        label={t('password')}
+        label={t("password")}
         placeholder="••••••••"
         icon="lock-closed-outline"
         secureTextEntry
@@ -231,15 +290,34 @@ export const AuthSheet = memo(function AuthSheet({ onSuccess }: AuthSheetProps) 
         onChangeText={setPassword}
         error={error}
       />
+      {notice ? (
+        <Text variant="bodySmall" color={colors.success}>
+          {notice}
+        </Text>
+      ) : null}
       <Button
-        label={t('continue')}
-        onPress={handleEmailSubmit}
+        label={step === "sign_up" ? "Create account" : t("continue")}
+        onPress={step === "sign_up" ? handleEmailSignUp : handleEmailSignIn}
         variant="filled"
         size="lg"
         fullWidth
         loading={loading}
-        disabled={!email || !password}
+        disabled={
+          !email ||
+          !password ||
+          (step === "sign_up" && fullName.trim().length < 2) ||
+          password.length < 8
+        }
       />
+      <Pressable
+        onPress={() => setStep(step === "sign_up" ? "sign_in" : "sign_up")}
+      >
+        <Text variant="labelMedium" color={colors.primary} align="center">
+          {step === "sign_up"
+            ? "Already have an account? Sign in"
+            : "Need an account? Create one"}
+        </Text>
+      </Pressable>
     </View>
   );
 });
@@ -254,12 +332,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   backBtn: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     padding: spacing.xs,
   },
   dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   dividerLine: {

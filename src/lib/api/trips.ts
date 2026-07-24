@@ -63,7 +63,7 @@ function isRequestImmediateOrScheduledInFuture(
 
 const TRIP_SELECT = `
   *,
-  driver:users!driver_id(id, full_name, avatar_url, is_verified, rating, total_trips, phone),
+  driver:users!driver_id(id, full_name, avatar_url, is_verified, rating, total_trips),
   vehicle:vehicles!vehicle_id(*),
   origin_city:cities!origin_city_id(*),
   destination_city:cities!destination_city_id(*)
@@ -71,7 +71,7 @@ const TRIP_SELECT = `
 
 const REQUEST_SELECT = `
   *,
-  passenger:users!passenger_id(id, full_name, avatar_url, is_verified, rating, total_trips, phone)
+  passenger:users!passenger_id(id, full_name, avatar_url, is_verified, rating, total_trips)
 `;
 
 export async function fetchTrips(params?: TripSearchParams): Promise<Trip[]> {

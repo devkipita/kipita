@@ -1,19 +1,38 @@
 /** Core domain types for Kipita — driver-created Trip model */
 
 // ── User Mode ──
-export type AppMode = 'passenger' | 'driver';
+export type AppMode = "passenger" | "driver";
 
 // ── Auth ──
-export type AuthProvider = 'phone' | 'email' | 'google';
+export type AuthProvider = "phone" | "email" | "google";
 
 // ── Enums ──
-export type Gender = 'male' | 'female' | 'other' | 'prefer_not_to_say';
-export type UserStatus = 'active' | 'suspended' | 'banned' | 'deleted';
-export type KycStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected';
-export type VehicleType = 'sedan' | 'suv' | 'van' | 'minibus' | 'pickup' | 'motorbike';
-export type WalletTxnType = 'credit' | 'debit' | 'refund' | 'payout' | 'topup' | 'fee';
-export type DiscountType = 'percentage' | 'fixed';
-export type MediaType = 'avatar' | 'license' | 'national_id' | 'selfie' | 'vehicle' | 'insurance' | 'other';
+export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
+export type UserStatus = "active" | "suspended" | "banned" | "deleted";
+export type KycStatus = "not_submitted" | "pending" | "approved" | "rejected";
+export type VehicleType =
+  | "sedan"
+  | "suv"
+  | "van"
+  | "minibus"
+  | "pickup"
+  | "motorbike";
+export type WalletTxnType =
+  | "credit"
+  | "debit"
+  | "refund"
+  | "payout"
+  | "topup"
+  | "fee";
+export type DiscountType = "percentage" | "fixed";
+export type MediaType =
+  | "avatar"
+  | "license"
+  | "national_id"
+  | "selfie"
+  | "vehicle"
+  | "insurance"
+  | "other";
 
 export interface User {
   id: string;
@@ -32,6 +51,7 @@ export interface User {
   email_verified?: boolean;
   phone_verified?: boolean;
   status?: UserStatus;
+  profile_prompt_dismissed_at?: string | null;
   rating: number;
   total_trips: number;
   created_at: string;
@@ -113,9 +133,24 @@ export interface City {
 }
 
 // ── Trips & Requests ──
-export type TripStatus = 'posted' | 'active' | 'in_progress' | 'completed' | 'cancelled';
-export type RequestStatus = 'pending' | 'matched' | 'confirmed' | 'cancelled' | 'expired';
-export type BookingStatus = 'pending_payment' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled';
+export type TripStatus =
+  | "posted"
+  | "active"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
+export type RequestStatus =
+  | "pending"
+  | "matched"
+  | "confirmed"
+  | "cancelled"
+  | "expired";
+export type BookingStatus =
+  | "pending_payment"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled";
 
 export interface RidePreferences {
   luggage: boolean;
@@ -218,8 +253,20 @@ export interface Booking {
 }
 
 // ── Payment ──
-export type PaymentMethod = 'mpesa' | 'card' | 'visa' | 'mastercard' | 'apple_pay' | 'google_pay' | 'cash';
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentMethod =
+  | "mpesa"
+  | "card"
+  | "visa"
+  | "mastercard"
+  | "apple_pay"
+  | "google_pay"
+  | "cash";
+export type PaymentStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "refunded";
 
 export interface Payment {
   id: string;
@@ -327,7 +374,13 @@ export interface Conversation {
 }
 
 // ── Alerts ──
-export type AlertCategory = 'traffic' | 'accident' | 'road_closure' | 'weather' | 'police' | 'general';
+export type AlertCategory =
+  | "traffic"
+  | "accident"
+  | "road_closure"
+  | "weather"
+  | "police"
+  | "general";
 
 export interface Alert {
   id: string;
@@ -356,15 +409,15 @@ export interface AlertComment {
 
 // ── Notifications ──
 export type NotificationType =
-  | 'ride_match'
-  | 'request_match'
-  | 'payment_success'
-  | 'payment_failed'
-  | 'trip_started'
-  | 'trip_completed'
-  | 'new_message'
-  | 'new_alert'
-  | 'system';
+  | "ride_match"
+  | "request_match"
+  | "payment_success"
+  | "payment_failed"
+  | "trip_started"
+  | "trip_completed"
+  | "new_message"
+  | "new_alert"
+  | "system";
 
 export interface AppNotification {
   id: string;
@@ -407,15 +460,16 @@ export interface RouteSearchForm {
 
 // ── Sheet Types ──
 export type SheetType =
-  | 'auth'
-  | 'ride_details'
-  | 'request_details'
-  | 'alert_details'
-  | 'person'
-  | 'payment'
-  | 'chat'
-  | 'trip_details'
-  | 'alert_post'
+  | "auth"
+  | "ride_details"
+  | "request_details"
+  | "alert_details"
+  | "person"
+  | "payment"
+  | "chat"
+  | "trip_details"
+  | "alert_post"
+  | "profile_completion"
   | null;
 
 export interface SheetPayload {
@@ -425,7 +479,10 @@ export interface SheetPayload {
   alert_details: { alert: Alert };
   person: { user: User };
   payment: { booking: Booking };
-  chat: { conversationId: string } | { tripId?: string; requestId?: string; participantId: string };
+  chat:
+    | { conversationId: string }
+    | { tripId?: string; requestId?: string; participantId: string };
   trip_details: { booking: Booking };
   alert_post: undefined;
+  profile_completion: undefined;
 }

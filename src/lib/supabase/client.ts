@@ -1,8 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
-import { MMKV } from 'react-native-mmkv';
-import Constants from 'expo-constants';
+import { createClient, processLock } from "@supabase/supabase-js";
+import { MMKV } from "react-native-mmkv";
+import Constants from "expo-constants";
 
-const storage = new MMKV({ id: 'supabase-auth' });
+const storage = new MMKV({ id: "supabase-auth" });
 
 /** MMKV-backed storage adapter for Supabase Auth persistence */
 const mmkvStorageAdapter = {
@@ -11,19 +11,28 @@ const mmkvStorageAdapter = {
   removeItem: (key: string) => storage.delete(key),
 };
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
-  ?? Constants.expoConfig?.extra?.supabaseUrl
-  ?? 'https://zrqpmbcxdupjkhhcfadw.supabase.co';
+const supabaseUrl =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ??
+  Constants.expoConfig?.extra?.supabaseUrl;
 
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_KEY
-  ?? Constants.expoConfig?.extra?.supabaseKey
-  ?? 'sb_publishable_379nJ1-qGhjKosvt9fO44A_dRjEVtRN';
+const supabasePublishableKey =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.EXPO_PUBLIC_SUPABASE_KEY ??
+  Constants.expoConfig?.extra?.supabaseKey;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    "Missing Supabase configuration. Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY.",
+  );
+}
+
+export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
   auth: {
     storage: mmkvStorageAdapter,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    flowType: "pkce",
+    lock: processLock,
   },
 });
