@@ -274,7 +274,6 @@ export default function SplashScreen() {
     return () => {
       cancelled = true;
       clearTimeout(timer);
-      // @ts-expect-error older RN typings return void
       sub?.remove?.();
     };
   }, []);

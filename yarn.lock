@@ -1081,17 +1081,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@expo-google-fonts/dm-sans@npm:^0.4.2":
+  version: 0.4.2
+  resolution: "@expo-google-fonts/dm-sans@npm:0.4.2"
+  checksum: 10c0/65ba636124377daebf8b6d8833cd3a3d9ef255812aaa3f764505c9133d49ae3d830e75c0cce9a9abdd9b76b3eb5dea64e47ee6be16f9dddab7938e86b0bf56c3
+  languageName: node
+  linkType: hard
+
 "@expo-google-fonts/material-symbols@npm:^0.4.1":
   version: 0.4.32
   resolution: "@expo-google-fonts/material-symbols@npm:0.4.32"
   checksum: 10c0/dd1d2e170966b3c45e23cb3982858aec0afec414143deb0e647c8ebfb7be80a07518c0a8f4a3234280f7cdfad8bc58ba35bf483e2af84e02156f223a1fe6efa0
-  languageName: node
-  linkType: hard
-
-"@expo-google-fonts/nunito@npm:*":
-  version: 0.4.2
-  resolution: "@expo-google-fonts/nunito@npm:0.4.2"
-  checksum: 10c0/b22712e9892d47561b0d96bfb625fea24eeda3f34531bee88e781827892740e063dcde1ddf4615b097ba0b436e765f5101fbc4788430574369b6e5f4c8860eb3
   languageName: node
   linkType: hard
 
@@ -5327,7 +5327,7 @@ __metadata:
   dependencies:
     "@babel/core": "npm:^7.26.0"
     "@babel/runtime": "npm:*"
-    "@expo-google-fonts/nunito": "npm:*"
+    "@expo-google-fonts/dm-sans": "npm:^0.4.2"
     "@expo/log-box": "npm:*"
     "@expo/vector-icons": "npm:^14.0.4"
     "@gorhom/bottom-sheet": "npm:^5.2.9"

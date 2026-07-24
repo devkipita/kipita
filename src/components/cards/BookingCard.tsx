@@ -1,21 +1,40 @@
-import React, { memo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Text } from '../core/Text';
-import { Icon } from '../core/Icon';
-import { Avatar } from '../core/Avatar';
-import { Chip } from '../core/Chip';
-import { useTheme, useAppMode } from '@/hooks';
-import { spacing, radius, shadows } from '@/theme';
-import { formatDate, formatTime, formatCurrency } from '@/lib/formatters';
-import type { Booking, BookingStatus } from '@/types';
-import type { IconName } from '../core/Icon';
+import React, { memo } from "react";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Text } from "../core/Text";
+import { Icon } from "../core/Icon";
+import { Avatar } from "../core/Avatar";
+import { Chip } from "../core/Chip";
+import { useTheme, useAppMode } from "@/hooks";
+import { spacing, radius, shadows } from "@/theme";
+import { formatDate, formatTime, formatCurrency } from "@/lib/formatters";
+import type { Booking, BookingStatus } from "@/types";
+import type { IconName } from "../core/Icon";
 
-const STATUS_CONFIG: Record<BookingStatus, { icon: IconName; color: string; label: string }> = {
-  pending_payment: { icon: 'time-outline', color: '#FF9800', label: 'Pending' },
-  confirmed: { icon: 'checkmark-circle-outline', color: '#4CAF50', label: 'Confirmed' },
-  in_progress: { icon: 'navigate-outline', color: '#2196F3', label: 'In Progress' },
-  completed: { icon: 'checkmark-done-outline', color: '#66BB6A', label: 'Completed' },
-  cancelled: { icon: 'close-circle-outline', color: '#F44336', label: 'Cancelled' },
+const STATUS_CONFIG: Record<
+  BookingStatus,
+  { icon: IconName; color: string; label: string }
+> = {
+  pending_payment: { icon: "time-outline", color: "#D4B896", label: "Pending" },
+  confirmed: {
+    icon: "checkmark-circle-outline",
+    color: "#2F6C4F",
+    label: "Confirmed",
+  },
+  in_progress: {
+    icon: "navigate-outline",
+    color: "#2196F3",
+    label: "In Progress",
+  },
+  completed: {
+    icon: "checkmark-done-outline",
+    color: "#9EC5A2",
+    label: "Completed",
+  },
+  cancelled: {
+    icon: "close-circle-outline",
+    color: "#D4B896",
+    label: "Cancelled",
+  },
 };
 
 interface BookingCardProps {
@@ -24,7 +43,11 @@ interface BookingCardProps {
   onAvatarPress?: () => void;
 }
 
-export const BookingCard = memo(function BookingCard({ booking, onPress, onAvatarPress }: BookingCardProps) {
+export const BookingCard = memo(function BookingCard({
+  booking,
+  onPress,
+  onAvatarPress,
+}: BookingCardProps) {
   const { colors } = useTheme();
   const { isDriver } = useAppMode();
   const status = STATUS_CONFIG[booking.status];
@@ -36,7 +59,11 @@ export const BookingCard = memo(function BookingCard({ booking, onPress, onAvata
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: colors.card, borderColor: colors.borderLight, opacity: pressed ? 0.92 : 1 },
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.borderLight,
+          opacity: pressed ? 0.92 : 1,
+        },
         shadows.sm,
       ]}
       accessibilityRole="button"
@@ -44,7 +71,7 @@ export const BookingCard = memo(function BookingCard({ booking, onPress, onAvata
       <View style={styles.topRow}>
         <Avatar
           uri={otherPerson?.avatar_url}
-          name={otherPerson?.full_name ?? '?'}
+          name={otherPerson?.full_name ?? "?"}
           size={36}
           onPress={onAvatarPress}
         />
@@ -54,7 +81,9 @@ export const BookingCard = memo(function BookingCard({ booking, onPress, onAvata
           </Text>
           <View style={styles.statusRow}>
             <Icon name={status.icon} size={14} color={status.color} />
-            <Text variant="caption" color={status.color}>{status.label}</Text>
+            <Text variant="caption" color={status.color}>
+              {status.label}
+            </Text>
           </View>
         </View>
         <Text variant="titleSmall" color={colors.primary}>
@@ -78,9 +107,15 @@ export const BookingCard = memo(function BookingCard({ booking, onPress, onAvata
 
       {ride && (
         <View style={styles.metaRow}>
-          <Chip label={formatDate(ride.departure_date)} icon="calendar-outline" />
+          <Chip
+            label={formatDate(ride.departure_date)}
+            icon="calendar-outline"
+          />
           <Chip label={formatTime(ride.departure_time)} icon="time-outline" />
-          <Chip label={`${booking.seats_booked} seat${booking.seats_booked > 1 ? 's' : ''}`} icon="people-outline" />
+          <Chip
+            label={`${booking.seats_booked} seat${booking.seats_booked > 1 ? "s" : ""}`}
+            icon="people-outline"
+          />
         </View>
       )}
     </Pressable>
@@ -95,8 +130,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   info: {
@@ -104,19 +139,19 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   routeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   flex: { flex: 1 },
   metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.xs,
   },
 });

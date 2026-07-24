@@ -1,117 +1,129 @@
-import { TextStyle } from "react-native";
+import { Platform, TextStyle } from "react-native";
 
 /**
- * Rounded app font family.
- * Uses loaded Nunito weights for native consistency.
+ * App font family.
+ * DM Sans is loaded during bootstrap and kept consistent across weights.
  */
+const webSansFallback =
+  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+
+const withWebFallback = (fontFamily: string) =>
+  Platform.select({
+    web: `"${fontFamily}", "DM Sans", ${webSansFallback}`,
+    default: fontFamily,
+  }) ?? fontFamily;
+
 export const fonts = {
-  regular: "Nunito_400Regular",
-  medium: "Nunito_500Medium",
-  semiBold: "Nunito_600SemiBold",
-  bold: "Nunito_700Bold",
-  extraBold: "Nunito_800ExtraBold",
+  regular: withWebFallback("DM Sans"),
+  medium: withWebFallback("DM Sans Medium"),
+  semiBold: withWebFallback("DM Sans SemiBold"),
+  bold: withWebFallback("DM Sans Bold"),
+  extraBold: withWebFallback("DM Sans ExtraBold"),
 };
 
 type TypographyVariant = {
   fontFamily: string;
   fontSize: number;
   lineHeight: number;
-  fontWeight: TextStyle["fontWeight"];
   letterSpacing?: number;
 };
+
+const fontWeightMap: Record<string, string> = {
+  normal: fonts.regular,
+  "400": fonts.regular,
+  "500": fonts.medium,
+  "600": fonts.semiBold,
+  "700": fonts.bold,
+  bold: fonts.bold,
+  "800": fonts.extraBold,
+  "900": fonts.extraBold,
+};
+
+export function resolveFontFamily(
+  fontWeight?: TextStyle["fontWeight"],
+  fallbackFamily: string = fonts.regular,
+) {
+  if (!fontWeight) return fallbackFamily;
+  return fontWeightMap[String(fontWeight)] ?? fallbackFamily;
+}
 
 export const typography = {
   displayLarge: {
     fontFamily: fonts.extraBold,
     fontSize: 32,
     lineHeight: 40,
-    fontWeight: "800" as const,
     letterSpacing: -0.3,
   },
   displayMedium: {
     fontFamily: fonts.bold,
     fontSize: 28,
     lineHeight: 36,
-    fontWeight: "700" as const,
     letterSpacing: -0.2,
   },
   headlineLarge: {
     fontFamily: fonts.bold,
     fontSize: 24,
     lineHeight: 32,
-    fontWeight: "700" as const,
   },
   headlineMedium: {
     fontFamily: fonts.bold,
     fontSize: 20,
     lineHeight: 28,
-    fontWeight: "700" as const,
   },
   headlineSmall: {
     fontFamily: fonts.semiBold,
     fontSize: 18,
     lineHeight: 24,
-    fontWeight: "600" as const,
   },
   titleLarge: {
     fontFamily: fonts.semiBold,
     fontSize: 16,
     lineHeight: 22,
-    fontWeight: "600" as const,
   },
   titleMedium: {
     fontFamily: fonts.semiBold,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: "600" as const,
   },
   titleSmall: {
     fontFamily: fonts.semiBold,
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: "600" as const,
   },
   bodyLarge: {
     fontFamily: fonts.regular,
     fontSize: 16,
     lineHeight: 24,
-    fontWeight: "400" as const,
   },
   bodyMedium: {
     fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: "400" as const,
   },
   bodySmall: {
     fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: "400" as const,
   },
   labelLarge: {
     fontFamily: fonts.medium,
     fontSize: 14,
     lineHeight: 20,
-    fontWeight: "500" as const,
   },
   labelMedium: {
     fontFamily: fonts.medium,
     fontSize: 12,
     lineHeight: 16,
-    fontWeight: "500" as const,
   },
   labelSmall: {
     fontFamily: fonts.medium,
     fontSize: 11,
     lineHeight: 14,
-    fontWeight: "500" as const,
   },
   caption: {
     fontFamily: fonts.regular,
     fontSize: 10,
     lineHeight: 14,
-    fontWeight: "400" as const,
   },
 } satisfies Record<string, TypographyVariant>;
 

@@ -1,21 +1,24 @@
-import React, { memo } from 'react';
-import { View, StyleSheet, Linking } from 'react-native';
-import { Text } from '../core/Text';
-import { Avatar } from '../core/Avatar';
-import { Button } from '../core/Button';
-import { Icon } from '../core/Icon';
-import { Divider } from '../core/Divider';
-import { useTheme, useLocale } from '@/hooks';
-import { spacing } from '@/theme';
-import { formatRating, formatPhone } from '@/lib/formatters';
-import type { User } from '@/types';
+import React, { memo } from "react";
+import { View, StyleSheet, Linking } from "react-native";
+import { Text } from "../core/Text";
+import { Avatar } from "../core/Avatar";
+import { Button } from "../core/Button";
+import { Icon } from "../core/Icon";
+import { Divider } from "../core/Divider";
+import { useTheme, useLocale } from "@/hooks";
+import { spacing } from "@/theme";
+import { formatRating, formatPhone } from "@/lib/formatters";
+import type { User } from "@/types";
 
 interface PersonSheetProps {
   user: User;
   onMessage?: () => void;
 }
 
-export const PersonSheet = memo(function PersonSheet({ user, onMessage }: PersonSheetProps) {
+export const PersonSheet = memo(function PersonSheet({
+  user,
+  onMessage,
+}: PersonSheetProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
 
@@ -34,12 +37,17 @@ export const PersonSheet = memo(function PersonSheet({ user, onMessage }: Person
           <Text variant="headlineSmall">{user.full_name}</Text>
           <View style={styles.verifiedRow}>
             <Icon
-              name={user.is_verified ? 'checkmark-circle' : 'alert-circle-outline'}
+              name={
+                user.is_verified ? "checkmark-circle" : "alert-circle-outline"
+              }
               size={16}
               color={user.is_verified ? colors.success : colors.warning}
             />
-            <Text variant="labelSmall" color={user.is_verified ? colors.success : colors.warning}>
-              {t(user.is_verified ? 'verified' : 'unverified')}
+            <Text
+              variant="labelSmall"
+              color={user.is_verified ? colors.success : colors.warning}
+            >
+              {t(user.is_verified ? "verified" : "unverified")}
             </Text>
           </View>
         </View>
@@ -50,14 +58,18 @@ export const PersonSheet = memo(function PersonSheet({ user, onMessage }: Person
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.stat}>
-          <Icon name="star" size={20} color="#FFC107" />
+          <Icon name="star" size={20} color={colors.warning} />
           <Text variant="titleMedium">{formatRating(user.rating)}</Text>
-          <Text variant="caption" color={colors.textTertiary}>{t('rating')}</Text>
+          <Text variant="caption" color={colors.textTertiary}>
+            {t("rating")}
+          </Text>
         </View>
         <View style={styles.stat}>
           <Icon name="car-outline" size={20} color={colors.primary} />
           <Text variant="titleMedium">{user.total_trips}</Text>
-          <Text variant="caption" color={colors.textTertiary}>{t('total_trips')}</Text>
+          <Text variant="caption" color={colors.textTertiary}>
+            {t("total_trips")}
+          </Text>
         </View>
       </View>
 
@@ -77,7 +89,7 @@ export const PersonSheet = memo(function PersonSheet({ user, onMessage }: Person
       <View style={styles.actions}>
         {user.phone && (
           <Button
-            label={t('call')}
+            label={t("call")}
             onPress={handleCall}
             variant="outlined"
             icon="call-outline"
@@ -86,7 +98,7 @@ export const PersonSheet = memo(function PersonSheet({ user, onMessage }: Person
         )}
         {onMessage && (
           <Button
-            label={t('message')}
+            label={t("message")}
             onPress={onMessage}
             variant="filled"
             icon="chatbubble-outline"
@@ -104,8 +116,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.lg,
   },
   headerInfo: {
@@ -113,25 +125,25 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   verifiedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
   },
   stat: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 4,
   },
   contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.md,
   },
 });

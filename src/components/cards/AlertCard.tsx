@@ -1,41 +1,41 @@
-import React, { memo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Text } from '../core/Text';
-import { Icon } from '../core/Icon';
-import { Avatar } from '../core/Avatar';
-import { useTheme, useLocale } from '@/hooks';
-import { spacing, radius, shadows } from '@/theme';
-import { formatShortRelativeTime, truncateWords } from '@/lib/formatters';
-import type { Alert, AlertCategory } from '@/types';
-import type { IconName } from '../core/Icon';
+import React, { memo } from "react";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { Text } from "../core/Text";
+import { Icon } from "../core/Icon";
+import { Avatar } from "../core/Avatar";
+import { useTheme, useLocale } from "@/hooks";
+import { spacing, radius, shadows } from "@/theme";
+import { formatShortRelativeTime, truncateWords } from "@/lib/formatters";
+import type { Alert, AlertCategory } from "@/types";
+import type { IconName } from "../core/Icon";
 
 const CATEGORY_ICONS: Record<AlertCategory, IconName> = {
-  traffic: 'car',
-  accident: 'warning',
-  road_closure: 'close-circle',
-  weather: 'rainy',
-  police: 'shield',
-  general: 'megaphone',
+  traffic: "car",
+  accident: "warning",
+  road_closure: "close-circle",
+  weather: "rainy",
+  police: "shield",
+  general: "megaphone",
 };
 
 const CATEGORY_COLORS: Record<AlertCategory, string> = {
-  traffic: '#FF9F0A',
-  accident: '#FF453A',
-  road_closure: '#FF2D55',
-  weather: '#3B9EFF',
-  police: '#BF5AF2',
-  general: '#64D2FF',
+  traffic: "#D4B896",
+  accident: "#D4B896",
+  road_closure: "#D4B896",
+  weather: "#9EC5A2",
+  police: "#2F6C4F",
+  general: "#9EC5A2",
 };
 
 const CATEGORY_LABELS: Record<AlertCategory, string> = {
-  traffic: 'Traffic',
-  accident: 'Accident',
-  road_closure: 'Road closed',
-  weather: 'Weather',
-  police: 'Police',
-  general: 'Update',
+  traffic: "Traffic",
+  accident: "Accident",
+  road_closure: "Road closed",
+  weather: "Weather",
+  police: "Police",
+  general: "Update",
 };
 
 const MAX_WORDS = 26;
@@ -60,9 +60,9 @@ function Engagement({
     <View style={engagement.group}>
       <View style={engagement.item}>
         <Icon
-          name={liked ? 'heart' : 'heart-outline'}
+          name={liked ? "heart" : "heart-outline"}
           size={22}
-          color={liked ? '#FF375F' : iconColor}
+          color={liked ? "#D4B896" : iconColor}
         />
         <Text variant="caption" color={countColor}>
           {alert.reactions_count}
@@ -78,7 +78,10 @@ function Engagement({
   );
 }
 
-export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardProps) {
+export const AlertCard = memo(function AlertCard({
+  alert,
+  onPress,
+}: AlertCardProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
   const catIcon = CATEGORY_ICONS[alert.category];
@@ -93,7 +96,11 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
     return (
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [styles.media, shadows.md, { opacity: pressed ? 0.95 : 1 }]}
+        style={({ pressed }) => [
+          styles.media,
+          shadows.md,
+          { opacity: pressed ? 0.95 : 1 },
+        ]}
         accessibilityRole="button"
       >
         <Image
@@ -103,7 +110,7 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
           transition={200}
         />
         <LinearGradient
-          colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.88)']}
+          colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.4)", "rgba(0,0,0,0.88)"]}
           locations={[0, 0.45, 1]}
           style={StyleSheet.absoluteFill}
         />
@@ -122,20 +129,32 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
             <Text variant="titleSmall" color="#fff" numberOfLines={1}>
               {alert.location}
             </Text>
-            <Text variant="bodySmall" color="rgba(255,255,255,0.92)" numberOfLines={2}>
+            <Text
+              variant="bodySmall"
+              color="rgba(255,255,255,0.92)"
+              numberOfLines={2}
+            >
               {body}
-              {truncated ? ` ${t('read_more')}` : ''}
+              {truncated ? ` ${t("read_more")}` : ""}
             </Text>
             <View style={styles.metaRow}>
               {alert.user && (
-                <Avatar uri={alert.user.avatar_url} name={alert.user.full_name} size={18} />
+                <Avatar
+                  uri={alert.user.avatar_url}
+                  name={alert.user.full_name}
+                  size={18}
+                />
               )}
               <Text variant="caption" color="rgba(255,255,255,0.7)">
                 {authorName} · {formatShortRelativeTime(alert.created_at)}
               </Text>
             </View>
           </View>
-          <Engagement alert={alert} iconColor="#fff" countColor="rgba(255,255,255,0.9)" />
+          <Engagement
+            alert={alert}
+            iconColor="#fff"
+            countColor="rgba(255,255,255,0.9)"
+          />
         </View>
       </Pressable>
     );
@@ -152,7 +171,12 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
 
       <View style={styles.body}>
         <View style={styles.authorLine}>
-          <Text variant="labelLarge" color={colors.text} numberOfLines={1} style={styles.author}>
+          <Text
+            variant="labelLarge"
+            color={colors.text}
+            numberOfLines={1}
+            style={styles.author}
+          >
             {authorName}
           </Text>
           <View style={[styles.catDot, { backgroundColor: catColor }]} />
@@ -161,7 +185,12 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
           </Text>
         </View>
 
-        <Text variant="labelSmall" color={colors.textSecondary} style={styles.location} numberOfLines={1}>
+        <Text
+          variant="labelSmall"
+          color={colors.textSecondary}
+          style={styles.location}
+          numberOfLines={1}
+        >
           {alert.location}
         </Text>
 
@@ -169,8 +198,8 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
           {body}
           {truncated && (
             <Text variant="bodyMedium" color={colors.primary}>
-              {'  '}
-              {t('read_more')}
+              {"  "}
+              {t("read_more")}
             </Text>
           )}
         </Text>
@@ -180,7 +209,11 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
         </Text>
       </View>
 
-      <Engagement alert={alert} iconColor={colors.textSecondary} countColor={colors.textTertiary} />
+      <Engagement
+        alert={alert}
+        iconColor={colors.textSecondary}
+        countColor={colors.textTertiary}
+      />
     </Pressable>
   );
 });
@@ -188,8 +221,8 @@ export const AlertCard = memo(function AlertCard({ alert, onPress }: AlertCardPr
 const styles = StyleSheet.create({
   // Clean feed row
   row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.md,
     paddingVertical: spacing.xs,
   },
@@ -198,13 +231,13 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   authorLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
   },
   author: {
     flexShrink: 1,
-    fontWeight: '700',
+    fontWeight: "700",
   },
   catDot: {
     width: 3,
@@ -226,17 +259,17 @@ const styles = StyleSheet.create({
   media: {
     height: 200,
     borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-    justifyContent: 'space-between',
+    overflow: "hidden",
+    backgroundColor: "#000",
+    justifyContent: "space-between",
   },
   mediaTop: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: spacing.md,
   },
   mediaBody: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
+    flexDirection: "row",
+    alignItems: "flex-end",
     padding: spacing.md,
     gap: spacing.sm,
   },
@@ -245,34 +278,34 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     marginTop: 2,
   },
   catChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
     gap: 4,
     paddingVertical: 3,
     paddingHorizontal: spacing.sm,
     borderRadius: radius.full,
   },
   catChipText: {
-    fontWeight: '700',
+    fontWeight: "700",
   },
 });
 
 const engagement = StyleSheet.create({
   group: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: spacing.md,
     paddingTop: 2,
     paddingLeft: spacing.xs,
   },
   item: {
-    alignItems: 'center',
+    alignItems: "center",
     gap: 2,
     minWidth: 28,
   },

@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@babel/runtime": "*",
-    "@expo-google-fonts/nunito": "*",
+    "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo/log-box": "*",
     "@expo/vector-icons": "^14.0.4",
     "@gorhom/bottom-sheet": "^5.2.9",

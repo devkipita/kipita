@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -7,12 +7,12 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import {
   useFonts,
-  Nunito_400Regular,
-  Nunito_500Medium,
-  Nunito_600SemiBold,
-  Nunito_700Bold,
-  Nunito_800ExtraBold,
-} from "@expo-google-fonts/nunito";
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+  DMSans_800ExtraBold,
+} from "@expo-google-fonts/dm-sans";
 import { useTheme } from "@/hooks";
 import { useAuthStore } from "@/store";
 import { supabase } from "@/lib/supabase";
@@ -35,41 +35,46 @@ function RootLayoutInner() {
   const setUser = useAuthStore((s) => s.setUser);
   const setSession = useAuthStore((s) => s.setSession);
   const setLoading = useAuthStore((s) => s.setLoading);
+  const [sessionReady, setSessionReady] = useState(false);
 
-  const [fontsLoaded] = useFonts({
-    Nunito_400Regular,
-    Nunito_500Medium,
-    Nunito_600SemiBold,
-    Nunito_700Bold,
-    Nunito_800ExtraBold,
+  const [fontsLoaded, fontsError] = useFonts({
+    "DM Sans": DMSans_400Regular,
+    "DM Sans Medium": DMSans_500Medium,
+    "DM Sans SemiBold": DMSans_600SemiBold,
+    "DM Sans Bold": DMSans_700Bold,
+    "DM Sans ExtraBold": DMSans_800ExtraBold,
   });
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    if (fontsError) throw fontsError;
+  }, [fontsError]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const bootstrapSession = async () => {
+      const { data } = await supabase.auth.getSession();
+
       if (data.session) {
         setSession({
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,
         });
-        supabase
+
+        const { data: profile } = await supabase
           .from("users")
           .select("*")
           .eq("id", data.session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            if (profile) setUser(profile as any);
-            if (fontsLoaded) {
-              setLoading(false);
-              SplashScreen.hideAsync();
-            }
-          });
-      } else {
-        if (fontsLoaded) {
-          setLoading(false);
-          SplashScreen.hideAsync();
-        }
+          .single();
+
+        if (profile) setUser(profile as any);
       }
-    });
+
+      if (!mounted) return;
+      setSessionReady(true);
+    };
+
+    void bootstrapSession();
 
     const {
       data: { subscription },
@@ -91,9 +96,22 @@ function RootLayoutInner() {
       }
     });
 
-    return () => subscription.unsubscribe();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fontsLoaded]);
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [setSession, setUser]);
+
+  useEffect(() => {
+    if (!fontsLoaded || !sessionReady) return;
+
+    setLoading(false);
+    void SplashScreen.hideAsync();
+  }, [fontsLoaded, sessionReady, setLoading]);
+
+  if (!fontsLoaded || !sessionReady) {
+    return null;
+  }
 
   return (
     <>
