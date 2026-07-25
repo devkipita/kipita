@@ -31,11 +31,18 @@ import towns from "@/assets/data/towns.json";
 interface RouteSearchFormProps {
   onSearch: (form: FormData) => void;
   loading?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
+
+const JUNGLE_GREEN = "#1F4734";
+const LIME_GREEN = "#96C93D";
 
 export const RouteSearchForm = memo(function RouteSearchForm({
   onSearch,
   loading,
+  expanded,
+  onExpandedChange,
 }: RouteSearchFormProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
@@ -55,8 +62,20 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   const [prefs, setPrefs] = useState<RidePreferences>(
     draft?.preferences ?? DEFAULT_PREFERENCES,
   );
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const isExpanded = expanded ?? internalExpanded;
+
+  const setExpanded = useCallback(
+    (value: boolean) => {
+      if (expanded === undefined) {
+        setInternalExpanded(value);
+      }
+      onExpandedChange?.(value);
+    },
+    [expanded, onExpandedChange],
+  );
+
   const [activeField, setActiveField] = useState<"from" | "to">("to");
   // A draft that already carries a date/time was scheduled for "later".
   const [scheduleMode, setScheduleMode] = useState<"now" | "later">(
@@ -146,16 +165,16 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   }, []);
 
   const expandToPlanner = useCallback(() => {
-    setIsExpanded(true);
+    setExpanded(true);
     setActiveField("to");
-  }, []);
+  }, [setExpanded]);
 
   const openLater = useCallback(() => {
     setScheduleMode("later");
     ensureSchedule();
-    setIsExpanded(true);
+    setExpanded(true);
     setActiveField("to");
-  }, [ensureSchedule]);
+  }, [ensureSchedule, setExpanded]);
 
   const chooseNow = useCallback(() => {
     setScheduleMode("now");
@@ -237,8 +256,9 @@ export const RouteSearchForm = memo(function RouteSearchForm({
             styles.compactRow,
             shadows.lg,
             {
-              backgroundColor: colors.surface,
-              borderColor: colors.borderLight,
+              backgroundColor: colors.inputBackground,
+              borderColor: colors.inputBorder,
+              shadowColor: colors.shadow,
             },
           ]}
         >
@@ -263,29 +283,19 @@ export const RouteSearchForm = memo(function RouteSearchForm({
             style={[
               styles.laterButton,
               shadows.sm,
-              scheduleLabel
-                ? { backgroundColor: colors.primaryContainer }
-                : {
-                    backgroundColor: colors.surfaceElevated,
-                    borderWidth: 1,
-                    borderColor: colors.borderLight,
-                  },
+              {
+                backgroundColor: JUNGLE_GREEN,
+                borderWidth: 1,
+                borderColor: JUNGLE_GREEN,
+              },
             ]}
             accessibilityRole="button"
             accessibilityLabel={
               scheduleLabel ? `Scheduled for ${scheduleLabel}` : t("later")
             }
           >
-            <Icon
-              name="calendar-outline"
-              size={15}
-              color={scheduleLabel ? colors.primary : colors.textSecondary}
-            />
-            <Text
-              variant="labelMedium"
-              color={scheduleLabel ? colors.primary : colors.textSecondary}
-              numberOfLines={1}
-            >
+            <Icon name="calendar-outline" size={15} color={LIME_GREEN} />
+            <Text variant="labelMedium" color={LIME_GREEN} numberOfLines={1}>
               {scheduleLabel ?? t("later")}
             </Text>
           </Pressable>
@@ -294,10 +304,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
         <>
           {/* ── When: leave now vs. schedule for later ── */}
           <View
-            style={[
-              styles.segment,
-              { backgroundColor: colors.surfaceVariant },
-            ]}
+            style={[styles.segment, { backgroundColor: colors.surfaceVariant }]}
           >
             <Pressable
               onPress={chooseNow}
@@ -334,7 +341,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
                 styles.segmentBtn,
                 scheduleMode === "later" && [
                   styles.segmentBtnActive,
-                  { backgroundColor: colors.surface },
+                  { backgroundColor: JUNGLE_GREEN },
                   shadows.sm,
                 ],
               ]}
@@ -345,17 +352,13 @@ export const RouteSearchForm = memo(function RouteSearchForm({
                 name="calendar-outline"
                 size={16}
                 color={
-                  scheduleMode === "later"
-                    ? colors.primary
-                    : colors.textSecondary
+                  scheduleMode === "later" ? LIME_GREEN : colors.textSecondary
                 }
               />
               <Text
                 variant="labelMedium"
                 color={
-                  scheduleMode === "later"
-                    ? colors.primary
-                    : colors.textSecondary
+                  scheduleMode === "later" ? LIME_GREEN : colors.textSecondary
                 }
               >
                 {t("schedule")}
@@ -566,7 +569,7 @@ const styles = StyleSheet.create({
   compactRow: {
     height: 58,
     borderRadius: radius.full,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1.25,
     paddingHorizontal: spacing.xs + 2,
     paddingLeft: spacing.md,
     flexDirection: "row",

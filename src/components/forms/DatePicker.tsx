@@ -27,6 +27,9 @@ interface DatePickerProps {
   minDate?: Date;
 }
 
+const JUNGLE_GREEN = "#1F4734";
+const LIME_GREEN = "#96C93D";
+
 const MONTHS = [
   "Jan",
   "Feb",
@@ -128,12 +131,16 @@ export const DatePicker = memo(function DatePicker({
       {/* Trigger */}
       <Pressable
         onPress={() => setOpen(true)}
-        style={[
+        style={({ pressed }) => [
           styles.trigger,
+          shadows.lg,
           {
-            backgroundColor: colors.inputBackground,
-            borderColor: open ? colors.primary : colors.inputBorder,
-            borderWidth: open ? 2 : 1.5,
+            shadowColor: colors.shadow,
+            backgroundColor: pressed
+              ? colors.surfaceContainerLow
+              : colors.inputBackground,
+            borderColor: open ? colors.inputFocusBorder : colors.inputBorder,
+            borderWidth: open ? 2 : 1.25,
           },
         ]}
         accessibilityRole="button"
@@ -142,11 +149,11 @@ export const DatePicker = memo(function DatePicker({
         <Icon
           name="calendar-outline"
           size={20}
-          color={open ? colors.primary : colors.placeholder}
+          color={open ? colors.inputFocusBorder : colors.placeholder}
         />
         <Text
           variant="bodyMedium"
-          color={displayLabel ? colors.text : colors.placeholder}
+          color={displayLabel ? colors.onSurface : colors.placeholder}
           style={styles.triggerText}
         >
           {displayLabel ?? placeholder}
@@ -187,7 +194,7 @@ export const DatePicker = memo(function DatePicker({
                 hitSlop={12}
                 style={styles.navBtn}
               >
-                <Icon name="chevron-back" size={22} color={colors.primary} />
+                <Icon name="chevron-back" size={22} color={JUNGLE_GREEN} />
               </Pressable>
               <Text variant="titleLarge">{format(viewMonth, "MMMM yyyy")}</Text>
               <Pressable
@@ -195,7 +202,7 @@ export const DatePicker = memo(function DatePicker({
                 hitSlop={12}
                 style={styles.navBtn}
               >
-                <Icon name="chevron-forward" size={22} color={colors.primary} />
+                <Icon name="chevron-forward" size={22} color={JUNGLE_GREEN} />
               </Pressable>
             </View>
 
@@ -226,13 +233,13 @@ export const DatePicker = memo(function DatePicker({
                     style={[
                       styles.dayCell,
                       sel && {
-                        backgroundColor: colors.primary,
+                        backgroundColor: JUNGLE_GREEN,
                         borderRadius: radius.full,
                       },
                       !sel &&
                         tod && {
                           borderWidth: 1.5,
-                          borderColor: colors.primary,
+                          borderColor: JUNGLE_GREEN,
                           borderRadius: radius.full,
                         },
                     ]}
@@ -241,11 +248,11 @@ export const DatePicker = memo(function DatePicker({
                       variant="bodyMedium"
                       color={
                         sel
-                          ? colors.onPrimary
+                          ? LIME_GREEN
                           : past
                             ? colors.textTertiary
                             : tod
-                              ? colors.primary
+                              ? JUNGLE_GREEN
                               : colors.text
                       }
                     >
@@ -280,6 +287,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
+    borderWidth: 1.25,
     gap: spacing.sm,
   },
   triggerText: { flex: 1 },

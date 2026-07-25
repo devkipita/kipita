@@ -1804,6 +1804,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@material/material-color-utilities@npm:^0.4.0":
+  version: 0.4.0
+  resolution: "@material/material-color-utilities@npm:0.4.0"
+  checksum: 10c0/cf4e6ea31ce4d357cd305efd2ef4f22f1830a2f3718f8da3f0968b6eb426290c86e148245530056311ff3d24d39aa9e7c931e5c5b345b3ed21294aa938976ea6
+  languageName: node
+  linkType: hard
+
 "@npmcli/agent@npm:^4.0.0":
   version: 4.0.0
   resolution: "@npmcli/agent@npm:4.0.0"
@@ -5331,6 +5338,7 @@ __metadata:
     "@expo/log-box": "npm:*"
     "@expo/vector-icons": "npm:^14.0.4"
     "@gorhom/bottom-sheet": "npm:^5.2.9"
+    "@material/material-color-utilities": "npm:^0.4.0"
     "@react-navigation/bottom-tabs": "npm:^7.2.0"
     "@react-navigation/native": "npm:^7.2.2"
     "@shopify/flash-list": "npm:^2.3.1"
@@ -5354,6 +5362,7 @@ __metadata:
     expo-status-bar: "npm:latest"
     expo-system-ui: "npm:latest"
     lottie-react-native: "npm:^7.3.6"
+    lucide-react-native: "npm:^1.26.0"
     react: "npm:19.2.0"
     react-dom: "npm:19.2.0"
     react-hook-form: "npm:^7.72.1"
@@ -5624,6 +5633,17 @@ __metadata:
   dependencies:
     yallist: "npm:^3.0.2"
   checksum: 10c0/89b2ef2ef45f543011e38737b8a8622a2f8998cddf0e5437174ef8f1f70a8b9d14a918ab3e232cb3ba343b7abddffa667f0b59075b2b80e6b4d63c3de6127482
+  languageName: node
+  linkType: hard
+
+"lucide-react-native@npm:^1.26.0":
+  version: 1.26.0
+  resolution: "lucide-react-native@npm:1.26.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-native: "*"
+    react-native-svg: ^12.0.0 || ^13.0.0 || ^14.0.0 || ^15.0.0
+  checksum: 10c0/873cbc4ff3894c2ad9ea381e75930695a98e29f7ed6a2cc6e0a7695565d3f75a251c740ce29086755db6da03db65a4a4e53d11cbacc719a244ed9d523a6e975e
   languageName: node
   linkType: hard
 

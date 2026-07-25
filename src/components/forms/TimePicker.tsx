@@ -9,7 +9,7 @@ import Animated, {
 import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { useTheme } from "@/hooks";
-import { spacing, radius } from "@/theme";
+import { spacing, radius, shadows } from "@/theme";
 
 interface TimePickerProps {
   label?: string;
@@ -17,6 +17,9 @@ interface TimePickerProps {
   onChange: (time: string) => void;
   placeholder?: string;
 }
+
+const JUNGLE_GREEN = "#1F4734";
+const LIME_GREEN = "#96C93D";
 
 const HOURS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTES = ["00", "15", "30", "45"];
@@ -81,12 +84,16 @@ export const TimePicker = memo(function TimePicker({
       {/* Trigger */}
       <Pressable
         onPress={() => setOpen(true)}
-        style={[
+        style={({ pressed }) => [
           styles.trigger,
+          shadows.lg,
           {
-            backgroundColor: colors.inputBackground,
-            borderColor: open ? colors.primary : colors.inputBorder,
-            borderWidth: open ? 2 : 1.5,
+            shadowColor: colors.shadow,
+            backgroundColor: pressed
+              ? colors.surfaceContainerLow
+              : colors.inputBackground,
+            borderColor: open ? colors.inputFocusBorder : colors.inputBorder,
+            borderWidth: open ? 2 : 1.25,
           },
         ]}
         accessibilityRole="button"
@@ -94,11 +101,11 @@ export const TimePicker = memo(function TimePicker({
         <Icon
           name="time-outline"
           size={20}
-          color={open ? colors.primary : colors.placeholder}
+          color={open ? colors.inputFocusBorder : colors.placeholder}
         />
         <Text
           variant="bodyMedium"
-          color={displayLabel ? colors.text : colors.placeholder}
+          color={displayLabel ? colors.onSurface : colors.placeholder}
           style={styles.triggerText}
         >
           {displayLabel ?? placeholder}
@@ -139,17 +146,17 @@ export const TimePicker = memo(function TimePicker({
               style={[
                 styles.displayRow,
                 {
-                  backgroundColor: colors.primaryContainer,
+                  backgroundColor: JUNGLE_GREEN,
                   borderRadius: radius.xl,
                 },
               ]}
             >
-              <Text variant="displayMedium" color={colors.primary}>
+              <Text variant="displayMedium" color={LIME_GREEN}>
                 {String(selectedH).padStart(2, "0")}:{selectedM}
               </Text>
               <Text
                 variant="headlineMedium"
-                color={colors.primary}
+                color={LIME_GREEN}
                 style={{ marginLeft: spacing.sm }}
               >
                 {selectedP}
@@ -180,7 +187,7 @@ export const TimePicker = memo(function TimePicker({
                         styles.optionCell,
                         {
                           backgroundColor: sel
-                            ? colors.primary
+                            ? JUNGLE_GREEN
                             : colors.surfaceVariant,
                           borderRadius: radius.md,
                         },
@@ -188,7 +195,7 @@ export const TimePicker = memo(function TimePicker({
                     >
                       <Text
                         variant="titleMedium"
-                        color={sel ? colors.onPrimary : colors.text}
+                        color={sel ? LIME_GREEN : colors.text}
                       >
                         {String(h).padStart(2, "0")}
                       </Text>
@@ -219,7 +226,7 @@ export const TimePicker = memo(function TimePicker({
                         styles.minuteCell,
                         {
                           backgroundColor: sel
-                            ? colors.primary
+                            ? JUNGLE_GREEN
                             : colors.surfaceVariant,
                           borderRadius: radius.md,
                         },
@@ -227,7 +234,7 @@ export const TimePicker = memo(function TimePicker({
                     >
                       <Text
                         variant="titleMedium"
-                        color={sel ? colors.onPrimary : colors.text}
+                        color={sel ? LIME_GREEN : colors.text}
                       >
                         :{m}
                       </Text>
@@ -258,7 +265,7 @@ export const TimePicker = memo(function TimePicker({
                         styles.periodCell,
                         {
                           backgroundColor: sel
-                            ? colors.primary
+                            ? JUNGLE_GREEN
                             : colors.surfaceVariant,
                           borderRadius: radius.md,
                         },
@@ -266,7 +273,7 @@ export const TimePicker = memo(function TimePicker({
                     >
                       <Text
                         variant="titleMedium"
-                        color={sel ? colors.onPrimary : colors.text}
+                        color={sel ? LIME_GREEN : colors.text}
                       >
                         {p}
                       </Text>
@@ -281,10 +288,10 @@ export const TimePicker = memo(function TimePicker({
               onPress={handleConfirm}
               style={[
                 styles.confirmBtn,
-                { backgroundColor: colors.primary, borderRadius: radius.lg },
+                { backgroundColor: JUNGLE_GREEN, borderRadius: radius.lg },
               ]}
             >
-              <Text variant="titleMedium" color={colors.onPrimary}>
+              <Text variant="titleMedium" color={LIME_GREEN}>
                 Confirm
               </Text>
             </Pressable>
@@ -304,6 +311,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
+    borderWidth: 1.25,
     gap: spacing.sm,
   },
   triggerText: { flex: 1 },

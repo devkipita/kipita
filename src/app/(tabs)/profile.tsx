@@ -14,7 +14,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "@/components/core/Text";
 import { Icon } from "@/components/core/Icon";
 import { Avatar } from "@/components/core/Avatar";
@@ -24,7 +23,7 @@ import { useAuthStore, useUIStore, useSettingsStore } from "@/store";
 import { supabase } from "@/lib/supabase";
 import { storage, STORAGE_KEYS } from "@/lib/utils/mmkv";
 import { haptic } from "@/lib/utils/haptics";
-import { spacing, radius, palette } from "@/theme";
+import { spacing, radius } from "@/theme";
 import { FLOATING_TAB_BAR_SPACE } from "@/components/shared/FloatingTabBar";
 import { formatRating, formatDate } from "@/lib/formatters";
 import {
@@ -76,8 +75,39 @@ function notify(title: string, message?: string) {
   Alert.alert(title, message);
 }
 
+// Row/badge color story. Kept deliberately small: most rows are neutral,
+// primary is reserved for the handful of genuinely key actions, secondary
+// and tertiary are used once each as supporting accents, and status colors
+// (success/warning/error) only ever mean status. See SKILL notes in chat
+// for the full mapping rationale.
+type Tone =
+  | "primary"
+  | "secondary"
+  | "tertiary"
+  | "success"
+  | "warning"
+  | "neutral";
+
+function toneColors(colors: Record<string, string>, tone: Tone, destructive?: boolean) {
+  if (destructive) return { bg: colors.errorContainer, fg: colors.onErrorContainer };
+  switch (tone) {
+    case "primary":
+      return { bg: colors.primaryContainer, fg: colors.onPrimaryContainer };
+    case "secondary":
+      return { bg: colors.secondaryContainer, fg: colors.onSecondaryContainer };
+    case "tertiary":
+      return { bg: colors.tertiaryContainer, fg: colors.onTertiaryContainer };
+    case "success":
+      return { bg: colors.successContainer, fg: colors.onSuccessContainer };
+    case "warning":
+      return { bg: colors.warningContainer, fg: colors.onWarningContainer };
+    default:
+      return { bg: colors.surfaceVariant, fg: colors.onSurfaceVariant };
+  }
+}
+
 export default function ProfileScreen() {
-  const { colors, themeMode, setThemeMode, isDark } = useTheme();
+  const { colors } = useTheme();
   const { t, locale, changeLocale } = useLocale();
   const { mode, toggle: toggleMode, isDriver } = useAppMode();
   const user = useAuthStore((s) => s.user);
@@ -180,14 +210,17 @@ export default function ProfileScreen() {
       {/* ── Hero ── */}
       {user ? (
         <Animated.View entering={FadeInDown.duration(400)}>
-          <LinearGradient
-            colors={[colors.primary, palette.green900] as const}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.hero}
+          <View
+            style={[
+              styles.hero,
+              {
+                backgroundColor: colors.surfaceContainerLow,
+                borderColor: colors.outlineVariant,
+              },
+            ]}
           >
             <View style={styles.heroTop}>
-              <View style={styles.avatarRing}>
+              <View style={[styles.avatarRing, { borderColor: colors.primary }]}>
                 <Avatar
                   uri={user.avatar_url}
                   name={user.full_name}
@@ -198,41 +231,70 @@ export default function ProfileScreen() {
               <View style={styles.heroInfo}>
                 <Text
                   variant="headlineSmall"
-                  color={palette.white}
+                  color={colors.onSurface}
                   numberOfLines={1}
                 >
                   {user.full_name}
                 </Text>
-                <View style={styles.badgesRow}>
-                  <View style={styles.heroBadge}>
-                    <Icon
-                      name={
-                        user.is_verified
-                          ? "checkmark-circle"
-                          : "alert-circle-outline"
-                      }
-                      size={13}
-                      color={palette.white}
-                    />
-                    <Text variant="labelSmall" color={palette.white}>
-                      {t(user.is_verified ? "verified" : "unverified")}
-                    </Text>
-                  </View>
+                <View
+                  style={[
+                    styles.statusChip,
+                    {
+                      backgroundColor: user.is_verified
+                        ? colors.successContainer
+                        : colors.warningContainer,
+                    },
+                  ]}
+                >
+                  <Icon
+                    name={
+                      user.is_verified
+                        ? "checkmark-circle"
+                        : "alert-circle-outline"
+                    }
+                    size={13}
+                    color={
+                      user.is_verified
+                        ? colors.onSuccessContainer
+                        : colors.onWarningContainer
+                    }
+                  />
+                  <Text
+                    variant="labelSmall"
+                    color={
+                      user.is_verified
+                        ? colors.onSuccessContainer
+                        : colors.onWarningContainer
+                    }
+                  >
+                    {t(user.is_verified ? "verified" : "unverified")}
+                  </Text>
                 </View>
-                <Text variant="caption" color="rgba(255,255,255,0.75)">
+                <Text variant="caption" color={colors.onSurfaceVariant}>
                   Member since {formatDate(user.created_at)}
                 </Text>
               </View>
               <Pressable
                 onPress={viewProfile}
                 hitSlop={10}
-                style={styles.heroEdit}
+                style={[
+                  styles.heroEdit,
+                  { backgroundColor: colors.surfaceContainerHigh },
+                ]}
                 accessibilityRole="button"
                 accessibilityLabel={t("edit_profile")}
               >
-                <Icon name="chevron-forward" size={20} color={palette.white} />
+                <Icon
+                  name="chevron-forward"
+                  size={20}
+                  color={colors.onSurfaceVariant}
+                />
               </Pressable>
             </View>
+
+            <View
+              style={[styles.heroDivider, { backgroundColor: colors.outlineVariant }]}
+            />
 
             {/* Stats strip */}
             <View style={styles.heroStats}>
@@ -240,56 +302,72 @@ export default function ProfileScreen() {
                 icon="star"
                 value={formatRating(user.rating)}
                 label={t("rating")}
+                iconColor={colors.tertiary}
+                valueColor={colors.onSurface}
+                labelColor={colors.onSurfaceVariant}
               />
-              <View style={styles.heroStatDivider} />
+              <View
+                style={[styles.heroStatDivider, { backgroundColor: colors.outlineVariant }]}
+              />
               <HeroStat
                 icon="car-sport"
                 value={String(user.total_trips)}
                 label={t("total_trips")}
+                iconColor={colors.secondary}
+                valueColor={colors.onSurface}
+                labelColor={colors.onSurfaceVariant}
               />
-              <View style={styles.heroStatDivider} />
+              <View
+                style={[styles.heroStatDivider, { backgroundColor: colors.outlineVariant }]}
+              />
               <HeroStat
                 icon={isDriver ? "car" : "person"}
                 value={isDriver ? t("driver") : t("passenger")}
                 label="Mode"
                 onPress={toggleMode}
+                iconColor={colors.primary}
+                valueColor={colors.onSurface}
+                labelColor={colors.onSurfaceVariant}
               />
             </View>
-          </LinearGradient>
+          </View>
         </Animated.View>
       ) : (
         <Animated.View entering={FadeInDown.duration(400)}>
-          <LinearGradient
-            colors={[colors.primary, palette.green900] as const}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.guestHero}
+          <View
+            style={[
+              styles.guestHero,
+              {
+                backgroundColor: colors.surfaceContainerLow,
+                borderColor: colors.outlineVariant,
+              },
+            ]}
           >
-            <View style={[styles.guestIconWrap]}>
-              <Icon name="person-outline" size={30} color={palette.white} />
+            <View style={[styles.guestIconWrap, { backgroundColor: colors.primaryContainer }]}>
+              <Icon name="person-outline" size={28} color={colors.onPrimaryContainer} />
             </View>
-            <Text variant="titleLarge" color={palette.white} align="center">
+            <Text variant="titleLarge" color={colors.onSurface} align="center">
               Welcome to {APP_NAME}
             </Text>
             <Text
               variant="bodySmall"
-              color="rgba(255,255,255,0.85)"
+              color={colors.onSurfaceVariant}
               align="center"
             >
               Sign in to book rides, message drivers and manage your trips.
             </Text>
             <Pressable
               onPress={() => openSheet("auth", {})}
-              style={styles.guestBtn}
+              style={[styles.guestBtn, { backgroundColor: colors.primary }]}
               accessibilityRole="button"
               accessibilityLabel={t("sign_in")}
             >
-              <Icon name="log-in-outline" size={18} color={colors.primary} />
-              <Text variant="labelLarge" color={colors.primary}>
+              <Icon name="log-in-outline" size={18} color={colors.onPrimary} />
+              <Text variant="labelLarge" color={colors.onPrimary}>
                 {t("sign_in")}
               </Text>
             </Pressable>
-          </LinearGradient>
+          </View>
         </Animated.View>
       )}
 
@@ -298,14 +376,14 @@ export default function ProfileScreen() {
         <SettingsGroup title="Account" delay={60}>
           <SettingsRow
             icon="person-circle-outline"
-            tint={colors.primary}
+            tone="neutral"
             label="View profile"
             subtitle="See how others see you"
             onPress={viewProfile}
           />
           <SettingsRow
             icon="shield-checkmark-outline"
-            tint={user.is_verified ? colors.success : colors.warning}
+            tone={user.is_verified ? "success" : "warning"}
             label={t("verification")}
             value={t(user.is_verified ? "verified" : "unverified")}
             onPress={
@@ -321,24 +399,20 @@ export default function ProfileScreen() {
       <SettingsGroup title="Preferences" delay={100}>
         <SettingsRow
           icon="color-palette-outline"
-          tint={colors.secondary}
+          tone="neutral"
           label={t("theme")}
-          trailing={
-            <ThemeToggle themeMode={themeMode} setThemeMode={setThemeMode} />
-          }
+          trailing={<ThemeToggle />}
         />
         <SettingsRow
           icon="language-outline"
-          tint={colors.primary}
+          tone="neutral"
           label={t("language")}
-          trailing={
-            <LanguageToggle locale={locale} changeLocale={changeLocale} />
-          }
+          trailing={<LanguageToggle locale={locale} changeLocale={changeLocale} />}
         />
         {user && (
           <SettingsRow
             icon="swap-horizontal-outline"
-            tint={colors.info}
+            tone="primary"
             label={t("switch_mode")}
             value={isDriver ? t("driver") : t("passenger")}
             onPress={toggleMode}
@@ -354,7 +428,7 @@ export default function ProfileScreen() {
       >
         <SettingsRow
           icon="notifications-outline"
-          tint={colors.warning}
+          tone="primary"
           label="Push notifications"
           subtitle="Master switch for all alerts"
           trailing={
@@ -366,7 +440,7 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="car-outline"
-          tint={colors.primary}
+          tone="neutral"
           label="Ride & trip updates"
           trailing={
             <RowSwitch
@@ -378,7 +452,7 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="chatbubble-ellipses-outline"
-          tint={colors.secondary}
+          tone="neutral"
           label="Chat messages"
           trailing={
             <RowSwitch
@@ -390,7 +464,7 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="megaphone-outline"
-          tint={colors.warning}
+          tone="warning"
           label="Road alerts"
           trailing={
             <RowSwitch
@@ -402,7 +476,7 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="pricetag-outline"
-          tint={colors.secondary}
+          tone="neutral"
           label="Promotions & tips"
           trailing={
             <RowSwitch
@@ -418,7 +492,7 @@ export default function ProfileScreen() {
       <SettingsGroup title="Experience" delay={180}>
         <SettingsRow
           icon="phone-portrait-outline"
-          tint={colors.primary}
+          tone="neutral"
           label="Haptic feedback"
           subtitle="Vibrate on taps and actions"
           trailing={
@@ -430,7 +504,7 @@ export default function ProfileScreen() {
         />
         <SettingsRow
           icon="volume-high-outline"
-          tint={colors.secondary}
+          tone="neutral"
           label="Sound effects"
           trailing={
             <RowSwitch
@@ -445,25 +519,25 @@ export default function ProfileScreen() {
       <SettingsGroup title="Support" delay={220}>
         <SettingsRow
           icon="help-buoy-outline"
-          tint={colors.primary}
+          tone="primary"
           label={t("contact_support")}
           onPress={() => openMail("Kipita support request")}
         />
         <SettingsRow
           icon="star-outline"
-          tint={colors.warning}
+          tone="tertiary"
           label={`Rate ${APP_NAME}`}
           onPress={() => openUrl(RATE_URL)}
         />
         <SettingsRow
           icon="share-social-outline"
-          tint={colors.secondary}
+          tone="secondary"
           label="Share the app"
           onPress={handleShare}
         />
         <SettingsRow
           icon="globe-outline"
-          tint={colors.primary}
+          tone="neutral"
           label="Visit website"
           onPress={() => openUrl(WEBSITE_URL)}
         />
@@ -473,25 +547,25 @@ export default function ProfileScreen() {
       <SettingsGroup title="Legal" delay={260}>
         <SettingsRow
           icon="document-text-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label={t("terms")}
           onPress={() => openUrl(TERMS_URL)}
         />
         <SettingsRow
           icon="lock-closed-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label={t("privacy")}
           onPress={() => openUrl(PRIVACY_URL)}
         />
         <SettingsRow
           icon="finger-print-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label={t("cookies")}
           onPress={() => openUrl(COOKIES_URL)}
         />
         <SettingsRow
           icon="information-circle-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label={t("about")}
           value={`v${APP_VERSION}`}
           onPress={() =>
@@ -504,20 +578,20 @@ export default function ProfileScreen() {
       <SettingsGroup title="Data" delay={300}>
         <SettingsRow
           icon="trash-bin-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label="Clear search cache"
           onPress={handleClearCache}
         />
         <SettingsRow
           icon="refresh-outline"
-          tint={colors.textSecondary}
+          tone="neutral"
           label="Reset settings"
           onPress={handleResetSettings}
         />
         {user && (
           <SettingsRow
             icon="log-out-outline"
-            tint={colors.error}
+            tone="neutral"
             label={t("sign_out")}
             destructive
             onPress={handleSignOut}
@@ -526,7 +600,7 @@ export default function ProfileScreen() {
         {user && (
           <SettingsRow
             icon="close-circle-outline"
-            tint={colors.error}
+            tone="neutral"
             label="Delete account"
             destructive
             onPress={handleDeleteAccount}
@@ -536,10 +610,10 @@ export default function ProfileScreen() {
 
       {/* ── Footer ── */}
       <View style={styles.footer}>
-        <Text variant="labelMedium" color={colors.textTertiary}>
+        <Text variant="labelMedium" color={colors.onSurfaceVariant}>
           {APP_NAME}
         </Text>
-        <Text variant="caption" color={colors.textTertiary}>
+        <Text variant="caption" color={colors.outline}>
           Version {APP_VERSION}
         </Text>
       </View>
@@ -554,11 +628,17 @@ const HeroStat = memo(function HeroStat({
   value,
   label,
   onPress,
+  iconColor,
+  valueColor,
+  labelColor,
 }: {
   icon: IconName;
   value: string;
   label: string;
   onPress?: () => void;
+  iconColor: string;
+  valueColor: string;
+  labelColor: string;
 }) {
   const Wrapper: any = onPress ? Pressable : View;
   return (
@@ -567,11 +647,11 @@ const HeroStat = memo(function HeroStat({
       style={heroStatStyles.cell}
       accessibilityRole={onPress ? "button" : undefined}
     >
-      <Icon name={icon} size={18} color={palette.white} />
-      <Text variant="titleMedium" color={palette.white} numberOfLines={1}>
+      <Icon name={icon} size={18} color={iconColor} />
+      <Text variant="titleMedium" color={valueColor} numberOfLines={1}>
         {value}
       </Text>
-      <Text variant="caption" color="rgba(255,255,255,0.7)">
+      <Text variant="caption" color={labelColor}>
         {label}
       </Text>
     </Wrapper>
@@ -598,7 +678,7 @@ const SettingsGroup = memo(function SettingsGroup({
     >
       <Text
         variant="labelMedium"
-        color={colors.textTertiary}
+        color={colors.onSurfaceVariant}
         style={groupStyles.title}
       >
         {title.toUpperCase()}
@@ -612,7 +692,7 @@ const SettingsGroup = memo(function SettingsGroup({
                 <View
                   style={[
                     groupStyles.divider,
-                    { backgroundColor: colors.divider },
+                    { backgroundColor: colors.outlineVariant },
                   ]}
                 />
               )}
@@ -623,7 +703,7 @@ const SettingsGroup = memo(function SettingsGroup({
       {footer && (
         <Text
           variant="caption"
-          color={colors.textTertiary}
+          color={colors.outline}
           style={groupStyles.footer}
         >
           {footer}
@@ -635,7 +715,7 @@ const SettingsGroup = memo(function SettingsGroup({
 
 const SettingsRow = memo(function SettingsRow({
   icon,
-  tint,
+  tone = "neutral",
   label,
   subtitle,
   value,
@@ -644,7 +724,7 @@ const SettingsRow = memo(function SettingsRow({
   destructive,
 }: {
   icon: IconName;
-  tint?: string;
+  tone?: Tone;
   label: string;
   subtitle?: string;
   value?: string;
@@ -653,23 +733,23 @@ const SettingsRow = memo(function SettingsRow({
   destructive?: boolean;
 }) {
   const { colors } = useTheme();
-  const iconColor = destructive ? colors.error : (tint ?? colors.primary);
+  const { bg: iconBg, fg: iconFg } = toneColors(colors, tone, destructive);
 
   const inner = (
     <>
-      <View style={[rowStyles.iconWrap, { backgroundColor: iconColor + "1F" }]}>
-        <Icon name={icon} size={18} color={iconColor} />
+      <View style={[rowStyles.iconWrap, { backgroundColor: iconBg }]}>
+        <Icon name={icon} size={18} color={iconFg} />
       </View>
       <View style={rowStyles.labelCol}>
         <Text
           variant="bodyMedium"
-          color={destructive ? colors.error : colors.text}
+          color={destructive ? colors.error : colors.onSurface}
           numberOfLines={1}
         >
           {label}
         </Text>
         {subtitle && (
-          <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
+          <Text variant="caption" color={colors.onSurfaceVariant} numberOfLines={1}>
             {subtitle}
           </Text>
         )}
@@ -677,7 +757,7 @@ const SettingsRow = memo(function SettingsRow({
       {value && (
         <Text
           variant="labelMedium"
-          color={colors.textTertiary}
+          color={colors.onSurfaceVariant}
           style={rowStyles.value}
         >
           {value}
@@ -685,7 +765,7 @@ const SettingsRow = memo(function SettingsRow({
       )}
       {trailing}
       {onPress && !trailing && (
-        <Icon name="chevron-forward" size={16} color={colors.textTertiary} />
+        <Icon name="chevron-forward" size={16} color={colors.outline} />
       )}
     </>
   );
@@ -700,7 +780,7 @@ const SettingsRow = memo(function SettingsRow({
       accessibilityRole="button"
       style={({ pressed }) => [
         rowStyles.row,
-        pressed && { backgroundColor: colors.ripple },
+        pressed && { backgroundColor: colors.surfaceContainerHigh },
       ]}
     >
       {inner}
@@ -722,11 +802,14 @@ const RowSwitch = memo(function RowSwitch({
   const on = value && !disabled;
 
   const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: withTiming(on ? colors.primary : colors.border, {
+    backgroundColor: withTiming(on ? colors.primary : colors.surfaceVariant, {
       duration: 200,
     }),
   }));
   const thumbStyle = useAnimatedStyle(() => ({
+    backgroundColor: withTiming(on ? colors.onPrimary : colors.outline, {
+      duration: 200,
+    }),
     transform: [
       {
         translateX: withTiming(value ? SW_TRACK_W - SW_THUMB - 3 : 3, {
@@ -752,36 +835,22 @@ const RowSwitch = memo(function RowSwitch({
       style={disabled ? { opacity: 0.4 } : undefined}
     >
       <Animated.View style={[swStyles.track, trackStyle]}>
-        <Animated.View
-          style={[
-            swStyles.thumb,
-            { backgroundColor: colors.surface },
-            thumbStyle,
-          ]}
-        />
+        <Animated.View style={[swStyles.thumb, thumbStyle]} />
       </Animated.View>
     </Pressable>
   );
 });
 
 /** 3-way theme toggle pill: Light | System | Dark */
-const ThemeToggle = memo(function ThemeToggle({
-  themeMode,
-  setThemeMode,
-}: {
-  themeMode: ThemeMode;
-  setThemeMode: (m: ThemeMode) => void;
-}) {
-  const { colors } = useTheme();
+const ThemeToggle = memo(function ThemeToggle() {
+  const { colors, themeMode, setThemeMode } = useTheme();
   const options: { key: ThemeMode; icon: IconName }[] = [
     { key: "light", icon: "sunny-outline" },
     { key: "system", icon: "phone-portrait-outline" },
     { key: "dark", icon: "moon-outline" },
   ];
   return (
-    <View
-      style={[toggleStyles.pill, { backgroundColor: colors.surfaceVariant }]}
-    >
+    <View style={[toggleStyles.pill, { backgroundColor: colors.surfaceVariant }]}>
       {options.map((o) => {
         const active = themeMode === o.key;
         return (
@@ -793,7 +862,7 @@ const ThemeToggle = memo(function ThemeToggle({
             }}
             style={[
               toggleStyles.pillOption,
-              active && { backgroundColor: colors.primary },
+              active && { backgroundColor: colors.secondaryContainer },
             ]}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
@@ -801,7 +870,7 @@ const ThemeToggle = memo(function ThemeToggle({
             <Icon
               name={o.icon}
               size={15}
-              color={active ? colors.onPrimary : colors.textSecondary}
+              color={active ? colors.onSecondaryContainer : colors.onSurfaceVariant}
             />
           </Pressable>
         );
@@ -822,9 +891,7 @@ const LanguageToggle = memo(function LanguageToggle({
   const options = ["en", "sw"] as const;
   const labels = { en: "EN", sw: "SW" };
   return (
-    <View
-      style={[toggleStyles.pill, { backgroundColor: colors.surfaceVariant }]}
-    >
+    <View style={[toggleStyles.pill, { backgroundColor: colors.surfaceVariant }]}>
       {options.map((o) => {
         const active = locale === o;
         return (
@@ -837,14 +904,14 @@ const LanguageToggle = memo(function LanguageToggle({
             style={[
               toggleStyles.pillOption,
               toggleStyles.pillOptionWide,
-              active && { backgroundColor: colors.primary },
+              active && { backgroundColor: colors.secondaryContainer },
             ]}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
           >
             <Text
               variant="labelMedium"
-              color={active ? colors.onPrimary : colors.textSecondary}
+              color={active ? colors.onSecondaryContainer : colors.onSurfaceVariant}
             >
               {labels[o]}
             </Text>
@@ -870,6 +937,7 @@ const styles = StyleSheet.create({
   },
   hero: {
     borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.lg,
     gap: spacing.lg,
   },
@@ -881,16 +949,14 @@ const styles = StyleSheet.create({
   avatarRing: {
     borderRadius: radius.full,
     borderWidth: 2,
-    borderColor: "rgba(255,255,255,0.6)",
     padding: 2,
   },
   heroInfo: { flex: 1, gap: 4 },
-  badgesRow: { flexDirection: "row" },
-  heroBadge: {
+  statusChip: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     gap: 4,
-    backgroundColor: "rgba(255,255,255,0.22)",
     paddingHorizontal: spacing.sm,
     paddingVertical: 3,
     borderRadius: radius.full,
@@ -901,40 +967,37 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.18)",
+  },
+  heroDivider: {
+    height: StyleSheet.hairlineWidth,
   },
   heroStats: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
   },
   heroStatDivider: {
     width: 1,
     height: 32,
-    backgroundColor: "rgba(255,255,255,0.25)",
   },
   guestHero: {
     borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.xl,
     alignItems: "center",
     gap: spacing.sm,
   },
   guestIconWrap: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.2)",
     marginBottom: spacing.xs,
   },
   guestBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: palette.white,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
     borderRadius: radius.full,

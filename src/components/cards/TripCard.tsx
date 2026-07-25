@@ -1,69 +1,85 @@
-import React, { memo } from 'react';
-import { View, Pressable, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Text } from '../core/Text';
-import { Icon, IconName } from '../core/Icon';
-import { Avatar } from '../core/Avatar';
-import { useTheme } from '@/hooks';
-import { spacing, radius, shadows } from '@/theme';
-import { formatDate, formatCurrency } from '@/lib/formatters';
-import { resolveCarColor, isLightColor, onColor, mixHex } from '@/lib/utils/carColor';
-import type { Trip, RideRequest } from '@/types';
+import React, { memo } from "react";
+import { View, Pressable, StyleSheet } from "react-native";
+import { Text } from "../core/Text";
+import { Icon, IconName } from "../core/Icon";
+import { Avatar } from "../core/Avatar";
+import { VerifiedBadgeIcon } from "../core/VerifiedBadgeIcon";
+import { useTheme } from "@/hooks";
+import { spacing, radius, shadows } from "@/theme";
+import { formatDate, formatCurrency } from "@/lib/formatters";
+import {
+  createTonalCardScheme,
+  resolveCarColor,
+  resolveRequestColorSource,
+} from "@/lib/utils/carColor";
+import type { Trip, RideRequest } from "@/types";
 
 interface TripCardProps {
   /** Works for both rides and requests — shared card */
   item: Trip | RideRequest;
-  variant: 'ride' | 'request';
+  variant: "ride" | "request";
   onPress: () => void;
   onAvatarPress?: () => void;
 }
 
 const CARD_W = 300;
 const CARD_H = 168;
+const VERIFIED_BADGE_STROKE = "#1F4734";
+const VERIFIED_BADGE_FILL = "#96C93D";
 
-export const TripCard = memo(function TripCard({ item, variant, onPress, onAvatarPress }: TripCardProps) {
+export const TripCard = memo(function TripCard({
+  item,
+  variant,
+  onPress,
+  onAvatarPress,
+}: TripCardProps) {
   const { colors, isDark } = useTheme();
-  const isRide = variant === 'ride';
+  const isRide = variant === "ride";
   const ride = isRide ? (item as Trip) : undefined;
   const request = !isRide ? (item as RideRequest) : undefined;
   const person = ride?.driver ?? request?.passenger;
 
   // Accent colour is derived from the vehicle colour (rides). Requests have no
   // vehicle, so they fall back to the brand primary.
-  const base = isRide
+  const rideSource = isRide
     ? resolveCarColor(ride?.vehicle?.color, colors.primary)
     : colors.primary;
-
-  const light = isLightColor(base);
-  const ink = onColor(base);
-  const subInk = light ? 'rgba(0,0,0,0.55)' : 'rgba(255,255,255,0.78)';
-
-  // Gradient gives the solid panel depth (like the reference promo card).
-  const gradTop = mixHex(base, '#FFFFFF', 0.12);
-  const gradBottom = mixHex(base, '#000000', 0.14);
-
-  // Right panel: a light tint of the accent that reads on both themes.
-  const rightBg = mixHex(base, isDark ? '#14140F' : '#FFFFFF', isDark ? 0.72 : 0.82);
-  const rightIconColor = light ? mixHex(base, '#000000', 0.35) : base;
-
-  // Price "CTA" pill contrasts against the solid panel.
-  const pillBg = light ? '#1A1A1F' : 'rgba(255,255,255,0.95)';
-  const pillInk = light ? '#FFFFFF' : '#1A1A1F';
+  const requestSeed = [
+    request?.passenger_id,
+    request?.passenger?.full_name,
+    request?.passenger?.city,
+    request?.from_location,
+    request?.to_location,
+  ]
+    .filter(Boolean)
+    .join("|");
+  const requestSource = resolveRequestColorSource(requestSeed, colors.primary);
+  const scheme = createTonalCardScheme(
+    isRide ? rideSource : requestSource,
+    isDark,
+    isRide ? "ride" : "request",
+  );
 
   const dateStr = ride
     ? formatDate(ride.departure_date)
     : request?.preferred_date
       ? formatDate(request.preferred_date)
-      : 'Flexible';
+      : "Flexible";
 
-  const seats = ride ? ride.seats_available : request?.seats_needed ?? 1;
-  const rightIcon: IconName = ride ? 'car-sport' : 'person';
+  const seats = ride ? ride.seats_available : (request?.seats_needed ?? 1);
+  const rightIcon: IconName = ride ? "car-sport" : "person";
+  const rightCountVariant = isRide ? "headlineSmall" : "titleMedium";
+  const rightMetaVariant = isRide ? "labelMedium" : "caption";
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
+        {
+          backgroundColor: scheme.leftBg,
+          borderColor: scheme.outline,
+        },
         { transform: [{ scale: pressed ? 0.98 : 1 }] },
         shadows.md,
       ]}
@@ -71,61 +87,118 @@ export const TripCard = memo(function TripCard({ item, variant, onPress, onAvata
       accessibilityLabel={`${item.from_location} to ${item.to_location}`}
     >
       <View style={styles.inner}>
-        {/* ── Left solid (accent) panel ── */}
-        <LinearGradient
-          colors={[gradTop, base, gradBottom] as const}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 1 }}
-          style={styles.left}
-        >
+        <View style={[styles.left, { backgroundColor: scheme.leftBg }]}>
           {/* Driver / passenger mini-row */}
           <View style={styles.personRow}>
-            <Avatar uri={person?.avatar_url} name={person?.full_name ?? '?'} size={26} onPress={onAvatarPress} />
-            <Text variant="labelMedium" color={ink} numberOfLines={1} style={styles.personName}>
-              {person?.full_name ?? 'Kipita'}
+            <Avatar
+              uri={person?.avatar_url}
+              name={person?.full_name ?? "?"}
+              size={26}
+              onPress={onAvatarPress}
+            />
+            <Text
+              variant="labelMedium"
+              color={scheme.leftInk}
+              numberOfLines={1}
+              style={styles.personName}
+            >
+              {person?.full_name ?? "Kipita"}
             </Text>
-            {person?.is_verified && <Icon name="checkmark-circle" size={14} color={ink} />}
+            {person?.is_verified && (
+              <VerifiedBadgeIcon
+                size={19}
+                stroke={VERIFIED_BADGE_STROKE}
+                fill={VERIFIED_BADGE_FILL}
+                strokeWidth={2.1}
+              />
+            )}
           </View>
 
           {/* Route headline */}
           <View style={styles.route}>
             <View style={styles.routeLine}>
-              <View style={[styles.dot, { backgroundColor: ink }]} />
-              <Text variant="titleMedium" color={ink} numberOfLines={1} style={styles.routeText}>
+              <View
+                style={[styles.dot, { backgroundColor: scheme.leftAccent }]}
+              />
+              <Text
+                variant="titleMedium"
+                color={scheme.leftInk}
+                numberOfLines={1}
+                style={styles.routeText}
+              >
                 {item.from_location}
               </Text>
             </View>
             <View style={styles.routeLine}>
-              <Icon name="arrow-down" size={11} color={subInk} />
-              <Text variant="titleMedium" color={ink} numberOfLines={1} style={styles.routeText}>
+              <Icon name="arrow-down" size={11} color={scheme.leftMuted} />
+              <Text
+                variant="titleMedium"
+                color={scheme.leftInk}
+                numberOfLines={1}
+                style={styles.routeText}
+              >
                 {item.to_location}
               </Text>
             </View>
           </View>
 
           {/* Price / action pill (like "Order now") */}
-          <View style={[styles.pill, { backgroundColor: pillBg }]}>
+          <View style={[styles.pill, { backgroundColor: scheme.pillBg }]}>
             {ride ? (
               <>
-                <Text variant="labelLarge" color={pillInk}>{formatCurrency(ride.price_per_seat)}</Text>
-                <Text variant="caption" color={pillInk} style={styles.pillSub}>/ seat</Text>
+                <Text variant="labelLarge" color={scheme.pillInk}>
+                  {formatCurrency(ride.price_per_seat)}
+                </Text>
+                <Text
+                  variant="caption"
+                  color={scheme.pillInk}
+                  style={styles.pillSub}
+                >
+                  / seat
+                </Text>
               </>
             ) : (
-              <Text variant="labelMedium" color={pillInk}>{seats} seat{seats > 1 ? 's' : ''} wanted</Text>
+              <Text variant="labelMedium" color={scheme.pillInk}>
+                {seats} seat{seats > 1 ? "s" : ""} wanted
+              </Text>
             )}
           </View>
-        </LinearGradient>
+        </View>
 
-        {/* ── Right tinted panel ── */}
-        <View style={[styles.right, { backgroundColor: rightBg }]}>
-          <Icon name={rightIcon} size={34} color={rightIconColor} />
+        <View
+          style={[
+            styles.right,
+            {
+              backgroundColor: scheme.rightBg,
+              borderLeftColor: scheme.outline,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.iconBadge,
+              { backgroundColor: scheme.rightAccentSoft },
+            ]}
+          >
+            <Icon name={rightIcon} size={30} color={scheme.rightAccent} />
+          </View>
           <View style={styles.seatsWrap}>
-            <Text variant="titleMedium" color={colors.text}>{seats}</Text>
-            <Text variant="caption" color={colors.textTertiary}>{ride ? 'seats left' : 'needed'}</Text>
+            <Text variant={rightCountVariant} color={scheme.rightInk}>
+              {seats}
+            </Text>
+            <Text variant={rightMetaVariant} color={scheme.rightInk}>
+              {ride ? "seats left" : "needed"}
+            </Text>
           </View>
           <View style={styles.dateWrap}>
-            <Icon name="calendar-outline" size={11} color={colors.textTertiary} />
-            <Text variant="caption" color={colors.textSecondary} numberOfLines={1}>{dateStr}</Text>
+            <Icon name="calendar-outline" size={11} color={scheme.rightInk} />
+            <Text
+              variant={rightMetaVariant}
+              color={scheme.rightInk}
+              numberOfLines={1}
+            >
+              {dateStr}
+            </Text>
           </View>
         </View>
       </View>
@@ -138,21 +211,22 @@ const styles = StyleSheet.create({
     width: CARD_W,
     height: CARD_H,
     borderRadius: radius.xl,
+    borderWidth: 1,
   },
   inner: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: "row",
     borderRadius: radius.xl,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   left: {
-    flex: 1.85,
+    flex: 2.33,
     padding: spacing.lg,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   personRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   personName: {
@@ -162,8 +236,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   routeLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   dot: {
@@ -173,12 +247,12 @@ const styles = StyleSheet.create({
   },
   routeText: {
     flex: 1,
-    fontWeight: '800',
+    fontWeight: "800",
   },
   pill: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'baseline',
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "baseline",
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
@@ -189,17 +263,25 @@ const styles = StyleSheet.create({
   },
   right: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xs,
     paddingHorizontal: spacing.sm,
+    borderLeftWidth: 1,
+  },
+  iconBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
   },
   seatsWrap: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   dateWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 3,
   },
 });

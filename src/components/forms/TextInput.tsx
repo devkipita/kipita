@@ -16,7 +16,7 @@ import Animated, {
 import { Text } from "../core/Text";
 import { Icon, IconName } from "../core/Icon";
 import { useTheme } from "@/hooks";
-import { spacing, radius, typography } from "@/theme";
+import { spacing, radius, typography, shadows } from "@/theme";
 
 interface TextInputProps extends Omit<RNTextInputProps, "style"> {
   label?: string;
@@ -68,22 +68,28 @@ export const TextInput = memo(function TextInput({
 
   // Animated border + background — subtle lift on focus.
   const animatedRow = useAnimatedStyle(() => ({
+    shadowOpacity: withTiming(focusProgress.value > 0 ? 0.16 : 0.1, {
+      duration: 180,
+    }),
+    shadowRadius: withTiming(focusProgress.value > 0 ? 18 : 12, {
+      duration: 180,
+    }),
     borderColor: error
       ? colors.error
       : interpolateColor(
           focusProgress.value,
           [0, 1],
-          [colors.inputBorder, colors.primary],
+          [colors.inputBorder, colors.inputFocusBorder],
         ),
     borderWidth: error
       ? 1.5
-      : withTiming(focusProgress.value > 0 ? 2 : 1.5, { duration: 150 }),
+      : withTiming(focusProgress.value > 0 ? 2 : 1.25, { duration: 150 }),
     backgroundColor: error
       ? colors.errorContainer
       : interpolateColor(
           focusProgress.value,
           [0, 1],
-          [colors.inputBackground, colors.surface],
+          [colors.inputBackground, colors.surfaceContainerLowest],
         ),
   }));
 
@@ -140,12 +146,22 @@ export const TextInput = memo(function TextInput({
           pointerEvents="none"
           style={[
             styles.glow,
-            { borderColor: colors.primary, shadowColor: colors.primary },
+            {
+              borderColor: colors.inputFocusBorder,
+              shadowColor: colors.inputFocusBorder,
+            },
             glowStyle,
           ]}
         />
 
-        <Animated.View style={[styles.inputRow, animatedRow]}>
+        <Animated.View
+          style={[
+            styles.inputRow,
+            shadows.lg,
+            { shadowColor: colors.shadow },
+            animatedRow,
+          ]}
+        >
           {icon && <Icon name={icon} size={20} color={iconColor} />}
           <RNTextInput
             style={[
@@ -218,7 +234,7 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: spacing.md,
     borderRadius: radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1.25,
     gap: spacing.sm,
   },
   input: {

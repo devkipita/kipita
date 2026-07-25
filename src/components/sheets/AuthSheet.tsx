@@ -35,17 +35,24 @@ export const AuthSheet = memo(function AuthSheet({
     setLoading(true);
     setError("");
     setNotice("");
-    const formattedPhone = phone.startsWith("+")
-      ? phone
-      : `+254${phone.replace(/^0/, "")}`;
-    const { error: err } = await supabase.auth.signInWithOtp({
-      phone: formattedPhone,
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else {
-      setStep("otp");
+
+    try {
+      const formattedPhone = phone.startsWith("+")
+        ? phone
+        : `+254${phone.replace(/^0/, "")}`;
+      const { error: err } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone,
+      });
+
+      if (err) {
+        setError(err.message);
+      } else {
+        setStep("otp");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not send code.");
+    } finally {
+      setLoading(false);
     }
   }, [phone]);
 
@@ -53,19 +60,26 @@ export const AuthSheet = memo(function AuthSheet({
     setLoading(true);
     setError("");
     setNotice("");
-    const formattedPhone = phone.startsWith("+")
-      ? phone
-      : `+254${phone.replace(/^0/, "")}`;
-    const { data, error: err } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token: otp,
-      type: "sms",
-    });
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-    } else if (data.session) {
-      onSuccess?.();
+
+    try {
+      const formattedPhone = phone.startsWith("+")
+        ? phone
+        : `+254${phone.replace(/^0/, "")}`;
+      const { data, error: err } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otp,
+        type: "sms",
+      });
+
+      if (err) {
+        setError(err.message);
+      } else if (data.session) {
+        onSuccess?.();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not verify code.");
+    } finally {
+      setLoading(false);
     }
   }, [phone, otp, onSuccess]);
 
@@ -73,16 +87,22 @@ export const AuthSheet = memo(function AuthSheet({
     setLoading(true);
     setError("");
     setNotice("");
-    const { data, error: err } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setLoading(false);
 
-    if (err) {
-      setError(err.message);
-    } else if (data.session) {
-      onSuccess?.();
+    try {
+      const { data, error: err } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (err) {
+        setError(err.message);
+      } else if (data.session) {
+        onSuccess?.();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not sign in.");
+    } finally {
+      setLoading(false);
     }
   }, [email, password, onSuccess]);
 
@@ -90,24 +110,32 @@ export const AuthSheet = memo(function AuthSheet({
     setLoading(true);
     setError("");
     setNotice("");
-    const { data, error: err } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: Linking.createURL("auth/callback"),
-      },
-    });
-    setLoading(false);
 
-    if (err) {
-      setError(err.message);
-    } else if (data.session) {
-      onSuccess?.();
-    } else {
-      setNotice(
-        "Check your email to confirm your account, then return to Kipita to sign in.",
+    try {
+      const { data, error: err } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName.trim() },
+          emailRedirectTo: Linking.createURL("auth/callback"),
+        },
+      });
+
+      if (err) {
+        setError(err.message);
+      } else if (data.session) {
+        onSuccess?.();
+      } else {
+        setNotice(
+          "Check your email to confirm your account, then return to Kipita to sign in.",
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not create account.",
       );
+    } finally {
+      setLoading(false);
     }
   }, [email, password, fullName, onSuccess]);
 
@@ -115,12 +143,23 @@ export const AuthSheet = memo(function AuthSheet({
     setLoading(true);
     setError("");
     setNotice("");
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: Linking.createURL("auth/callback") },
-    });
-    setLoading(false);
-    if (err) setError(err.message);
+
+    try {
+      const { error: err } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: Linking.createURL("auth/callback") },
+      });
+
+      if (err) {
+        setError(err.message);
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not start Google sign in.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Choice screen

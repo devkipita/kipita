@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AppState, Linking } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -50,29 +50,73 @@ function RootLayoutInner() {
     if (fontsError) throw fontsError;
   }, [fontsError]);
 
+  const hydrateSession = useCallback(
+    async (
+      session: Awaited<
+        ReturnType<typeof supabase.auth.getSession>
+      >["data"]["session"],
+    ) => {
+      if (!session) {
+        setUser(null);
+        setSession(null);
+        return;
+      }
+
+      setSession({
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+      });
+
+      try {
+        const { data: profiles, error } = await supabase.rpc(
+          "current_user_profile",
+        );
+
+        if (error) {
+          throw error;
+        }
+
+        const profile = profiles?.[0];
+
+        if (profile) {
+          setUser({
+            ...profile,
+            email: session.user.email ?? null,
+            phone: session.user.phone ?? null,
+          } as any);
+          return;
+        }
+      } catch (error) {
+        console.warn("Failed to hydrate auth profile", error);
+      }
+
+      setUser({
+        id: "",
+        full_name: session.user.user_metadata?.full_name ?? "",
+        first_name: session.user.user_metadata?.first_name ?? null,
+        last_name: session.user.user_metadata?.last_name ?? null,
+        phone: session.user.phone ?? null,
+        email: session.user.email ?? null,
+        avatar_url: null,
+        city: null,
+        is_verified: false,
+        rating: 0,
+        total_trips: 0,
+        created_at: new Date(0).toISOString(),
+        updated_at: new Date(0).toISOString(),
+        profile_prompt_dismissed_at: null,
+      } as any);
+    },
+    [setSession, setUser],
+  );
+
   useEffect(() => {
     let mounted = true;
 
     const bootstrapSession = async () => {
       const { data } = await supabase.auth.getSession();
 
-      if (data.session) {
-        setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
-
-        const { data: profiles } = await supabase.rpc("current_user_profile");
-        const profile = profiles?.[0];
-
-        if (profile) {
-          setUser({
-            ...profile,
-            email: data.session.user.email ?? null,
-            phone: data.session.user.phone ?? null,
-          } as any);
-        }
-      }
+      await hydrateSession(data.session);
 
       if (!mounted) return;
       setSessionReady(true);
@@ -81,8 +125,25 @@ function RootLayoutInner() {
     void bootstrapSession();
 
     const exchangeAuthCode = async (url: string | null) => {
-      const code = url ? new URL(url).searchParams.get("code") : null;
-      if (code) await supabase.auth.exchangeCodeForSession(code);
+      if (!url) {
+        return;
+      }
+
+      try {
+        const parsedUrl = new URL(url);
+        const code = parsedUrl.searchParams.get("code");
+
+        if (!code) {
+          return;
+        }
+
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          throw error;
+        }
+      } catch (error) {
+        console.warn("Failed to exchange auth callback code", error);
+      }
     };
 
     void Linking.getInitialURL().then(exchangeAuthCode);
@@ -103,25 +164,12 @@ function RootLayoutInner() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        setSession({
-          access_token: session.access_token,
-          refresh_token: session.refresh_token,
-        });
-        const { data: profiles } = await supabase.rpc("current_user_profile");
-        const profile = profiles?.[0];
-        if (profile) {
-          setUser({
-            ...profile,
-            email: session.user.email ?? null,
-            phone: session.user.phone ?? null,
-          } as any);
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void hydrateSession(session).finally(() => {
+        if (mounted) {
+          setSessionReady(true);
         }
-      } else {
-        setUser(null);
-        setSession(null);
-      }
+      });
     });
 
     return () => {
@@ -130,6 +178,21 @@ function RootLayoutInner() {
       linkingSubscription.remove();
       appStateSubscription.remove();
       void supabase.auth.stopAutoRefresh();
+    };
+  }, [hydrateSession]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setSession(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
   }, [setSession, setUser]);
 

@@ -1,5 +1,11 @@
-import React, { useCallback, useState } from "react";
-import { View, ScrollView, StyleSheet, Pressable } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  PanResponder,
+} from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -39,6 +45,7 @@ export default function HomeScreen() {
   const openSheet = useUIStore((s) => s.openSheet);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const [searchParams, setSearchParams] = useState<{
     from?: string;
     to?: string;
@@ -94,6 +101,26 @@ export default function HomeScreen() {
     setSearching(true);
   }, []);
 
+  const collapseSearch = useCallback(() => {
+    setSearchExpanded(false);
+  }, []);
+
+  const panelPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) =>
+          searchExpanded &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+          gestureState.dy < -8,
+        onPanResponderRelease: (_event, gestureState) => {
+          if (gestureState.dy < -28) {
+            collapseSearch();
+          }
+        },
+      }),
+    [collapseSearch, searchExpanded],
+  );
+
   const handleItemPress = useCallback(
     (item: Trip | RideRequest) => {
       if (!user) {
@@ -145,6 +172,8 @@ export default function HomeScreen() {
         <RouteSearchForm
           onSearch={handleSearch}
           loading={itemsLoading && searching}
+          expanded={searchExpanded}
+          onExpandedChange={setSearchExpanded}
         />
       </View>
 
@@ -196,7 +225,20 @@ export default function HomeScreen() {
         ]}
       >
         {/* Drag handle */}
-        <View style={[styles.handle, { backgroundColor: colors.divider }]} />
+        <Pressable
+          onPress={searchExpanded ? collapseSearch : undefined}
+          style={styles.panelHandleArea}
+          accessibilityRole={searchExpanded ? "button" : undefined}
+          accessibilityLabel={searchExpanded ? "Collapse search" : undefined}
+          {...(searchExpanded ? panelPanResponder.panHandlers : {})}
+        >
+          <View style={[styles.handle, { backgroundColor: colors.divider }]} />
+          {searchExpanded ? (
+            <Text variant="caption" color={colors.textSecondary}>
+              Swipe up to collapse search
+            </Text>
+          ) : null}
+        </Pressable>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -278,8 +320,12 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     alignSelf: "center",
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
+  },
+  panelHandleArea: {
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
   },
   panelContent: {
     paddingTop: spacing.md,
