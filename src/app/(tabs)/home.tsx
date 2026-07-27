@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/core/Text";
+import { Icon } from "@/components/core/Icon";
 import { AppBackground } from "@/components/core/AppBackground";
 import { RouteSearchForm } from "@/components/shared/RouteSearchForm";
 import { FLOATING_TAB_BAR_SPACE } from "@/components/shared/FloatingTabBar";
@@ -19,7 +20,7 @@ import { AlertCard } from "@/components/cards/AlertCard";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { LoadingState } from "@/components/feedback/LoadingState";
 import { useTheme, useLocale, useAppMode } from "@/hooks";
-import { useUIStore, useAuthStore } from "@/store";
+import { useUIStore, useAuthStore, useDetailStore } from "@/store";
 import {
   queryKeys,
   fetchTrips,
@@ -43,6 +44,9 @@ export default function HomeScreen() {
   const { config, isDriver } = useAppMode();
   const user = useAuthStore((s) => s.user);
   const openSheet = useUIStore((s) => s.openSheet);
+  const setTrip = useDetailStore((s) => s.setTrip);
+  const setRequest = useDetailStore((s) => s.setRequest);
+  const setAlertDetail = useDetailStore((s) => s.setAlert);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [searchExpanded, setSearchExpanded] = useState(false);
@@ -105,20 +109,29 @@ export default function HomeScreen() {
     setSearchExpanded(false);
   }, []);
 
+  const openAllAlerts = useCallback(() => {
+    router.push("/(tabs)/alerts");
+  }, [router]);
+
   const panelPanResponder = useMemo(
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_event, gestureState) =>
-          searchExpanded &&
           Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
           gestureState.dy < -8,
         onPanResponderRelease: (_event, gestureState) => {
           if (gestureState.dy < -28) {
-            collapseSearch();
+            // Swipe up: collapse the search planner if open, otherwise jump
+            // straight into the full-screen alerts feed (gamified pull-up).
+            if (searchExpanded) {
+              collapseSearch();
+            } else {
+              openAllAlerts();
+            }
           }
         },
       }),
-    [collapseSearch, searchExpanded],
+    [collapseSearch, searchExpanded, openAllAlerts],
   );
 
   const handleItemPress = useCallback(
@@ -127,11 +140,16 @@ export default function HomeScreen() {
         openSheet("auth", { returnAction: () => handleItemPress(item) });
         return;
       }
-      isDriver
-        ? openSheet("request_details", { request: item as RideRequest })
-        : openSheet("ride_details", { trip: item as Trip });
+      // Open the full-page profile (not a cramped popup) so reviews and the
+      // Message/Book actions are always reachable.
+      if (isDriver) {
+        setRequest(item as RideRequest);
+      } else {
+        setTrip(item as Trip);
+      }
+      router.push(`/ride/${item.id}` as any);
     },
-    [user, isDriver, openSheet],
+    [user, isDriver, openSheet, setTrip, setRequest, router],
   );
 
   const handleAvatarPress = useCallback(
@@ -144,9 +162,11 @@ export default function HomeScreen() {
 
   const handleAlertPress = useCallback(
     (alert: Alert) => {
+      // Peek in a drawer; the drawer offers "See more" → full thread.
+      setAlertDetail(alert);
       openSheet("alert_details", { alert });
     },
-    [openSheet],
+    [openSheet, setAlertDetail],
   );
 
   const renderCarouselItem = useCallback(
@@ -215,7 +235,9 @@ export default function HomeScreen() {
         style={[
           styles.panel,
           {
-            backgroundColor: isDark ? colors.surface : "#fff",
+            backgroundColor: isDark
+              ? colors.surface
+              : colors.surfaceContainerLowest,
             shadowColor: "#000",
             shadowOffset: { width: 0, height: -4 },
             shadowOpacity: isDark ? 0.35 : 0.08,
@@ -226,18 +248,25 @@ export default function HomeScreen() {
       >
         {/* Drag handle */}
         <Pressable
-          onPress={searchExpanded ? collapseSearch : undefined}
+          onPress={searchExpanded ? collapseSearch : openAllAlerts}
           style={styles.panelHandleArea}
-          accessibilityRole={searchExpanded ? "button" : undefined}
-          accessibilityLabel={searchExpanded ? "Collapse search" : undefined}
-          {...(searchExpanded ? panelPanResponder.panHandlers : {})}
+          accessibilityRole="button"
+          accessibilityLabel={
+            searchExpanded ? "Collapse search" : "Open all road alerts"
+          }
+          {...panelPanResponder.panHandlers}
         >
           <View style={[styles.handle, { backgroundColor: colors.divider }]} />
-          {searchExpanded ? (
-            <Text variant="caption" color={colors.textSecondary}>
-              Swipe up to collapse search
+          <View style={styles.handleHintRow}>
+            <Icon
+              name={searchExpanded ? "chevron-up" : "megaphone-outline"}
+              size={13}
+              color={colors.textTertiary}
+            />
+            <Text variant="caption" color={colors.textTertiary}>
+              {searchExpanded ? "Swipe up to collapse" : t("pull_up_alerts")}
             </Text>
-          ) : null}
+          </View>
         </Pressable>
 
         <ScrollView
@@ -327,6 +356,11 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
   },
+  handleHintRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   panelContent: {
     paddingTop: spacing.md,
     gap: spacing.xl,
@@ -346,7 +380,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   carouselWrap: {
-    height: 220,
+    height: "auto",
   },
   alertsList: {
     gap: spacing.md,

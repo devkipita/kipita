@@ -166,23 +166,27 @@ const lightBase: BaseColors = {
   errorContainer: "#FFDAD6",
   onErrorContainer: "#410002",
 
-  background: "#F8FAF6",
-  onBackground: "#191C1A",
-  surface: "#F8FAF6",
-  onSurface: "#191C1A",
-  surfaceVariant: "#DCE5DD",
-  onSurfaceVariant: "#404943",
+  // ── Surfaces: M3 neutral palette tinted toward the brand green.
+  // Light mode is a soft sage canvas — never plain white — with elevation
+  // expressed by stepping the surfaceContainer tones (Lowest=white pop card
+  // → Highest=most tinted), not by stacking white on white.
+  background: "#E6EFE3",
+  onBackground: "#171D18",
+  surface: "#E6EFE3",
+  onSurface: "#171D18",
+  surfaceVariant: "#D6E2D2",
+  onSurfaceVariant: "#3E4A40",
 
-  surfaceDim: "#D8DBD6",
-  surfaceBright: "#F8FAF6",
+  surfaceDim: "#CDD9C9",
+  surfaceBright: "#F2F7F0",
   surfaceContainerLowest: "#FFFFFF",
-  surfaceContainerLow: "#F2F4F0",
-  surfaceContainer: "#ECEEEA",
-  surfaceContainerHigh: "#E7E9E4",
-  surfaceContainerHighest: "#E1E3DF",
+  surfaceContainerLow: "#F0F5EE",
+  surfaceContainer: "#EAF1E7",
+  surfaceContainerHigh: "#E4ECE1",
+  surfaceContainerHighest: "#DEE7DB",
 
-  outline: "#707972",
-  outlineVariant: "#C0C9C1",
+  outline: "#6E796E",
+  outlineVariant: "#BEC9BB",
 
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",

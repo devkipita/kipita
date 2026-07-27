@@ -1,5 +1,10 @@
 import { supabase } from '@/lib/supabase';
-import type { Conversation, Message } from '@/types';
+import type {
+  Conversation,
+  Message,
+  MessageAttachmentType,
+  MessageAttachmentMeta,
+} from '@/types';
 
 const CONVERSATION_SELECT = `
   *,
@@ -33,6 +38,9 @@ export async function sendMessage(message: {
   conversation_id: string;
   sender_id: string;
   content: string;
+  attachment_type?: MessageAttachmentType | null;
+  attachment_url?: string | null;
+  attachment_meta?: MessageAttachmentMeta | null;
 }): Promise<Message> {
   const { data, error } = await supabase
     .from('messages')

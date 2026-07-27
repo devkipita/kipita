@@ -3,7 +3,7 @@ import { View, StyleSheet, Pressable } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/core/Text';
-import { Icon } from '@/components/core/Icon';
+import { Icon, type IconName } from '@/components/core/Icon';
 import { Button } from '@/components/core/Button';
 import { AlertCard } from '@/components/cards/AlertCard';
 import { NotificationCard } from '@/components/cards/NotificationCard';
@@ -98,35 +98,63 @@ export default function AlertsScreen() {
     [handleNotifPress],
   );
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'alerts', label: t('road_alerts_tab') },
-    { key: 'notifications', label: t('notifications') },
-    { key: 'system', label: t('system_alerts') },
+  const tabs: {
+    key: Tab;
+    label: string;
+    icon: IconName;
+    activeIcon: IconName;
+  }[] = [
+    {
+      key: 'alerts',
+      label: t('road_alerts_tab'),
+      icon: 'megaphone-outline',
+      activeIcon: 'megaphone',
+    },
+    {
+      key: 'notifications',
+      label: t('notifications'),
+      icon: 'notifications-outline',
+      activeIcon: 'notifications',
+    },
+    {
+      key: 'system',
+      label: t('system_alerts'),
+      icon: 'information-circle-outline',
+      activeIcon: 'information-circle',
+    },
   ];
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       {/* Tabs */}
-      <View style={[styles.tabBar, { borderBottomColor: colors.borderLight }]}>
-        {tabs.map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
-            style={[
-              styles.tab,
-              activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-            ]}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: activeTab === tab.key }}
-          >
-            <Text
-              variant="labelLarge"
-              color={activeTab === tab.key ? colors.primary : colors.textSecondary}
+      <View style={styles.tabBar}>
+        {tabs.map((tab) => {
+          const selected = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[
+                styles.tab,
+                selected && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+              ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
             >
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
+              <Icon
+                name={selected ? tab.activeIcon : tab.icon}
+                size={18}
+                color={selected ? colors.primary : colors.textSecondary}
+              />
+              <Text
+                variant="labelLarge"
+                color={selected ? colors.primary : colors.textSecondary}
+              >
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Post Alert FAB (alerts tab only) */}
@@ -203,11 +231,13 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
   },
   tab: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
     paddingVertical: spacing.md,
   },
   fab: {

@@ -1,5 +1,13 @@
 import { supabase } from "@/lib/supabase";
-import type { Booking } from "@/types";
+import type { Booking, BookingStatus } from "@/types";
+import { MOCK_BOOKINGS } from "@/lib/mock/data";
+
+const CURRENT_STATES: BookingStatus[] = [
+  "confirmed",
+  "in_progress",
+  "pending_payment",
+];
+const PREVIOUS_STATES: BookingStatus[] = ["completed", "cancelled"];
 
 const BOOKING_SELECT = `
   *,
@@ -17,8 +25,12 @@ export async function fetchCurrentBookings(userId: string): Promise<Booking[]> {
     .or(`passenger_id.eq.${userId},driver_id.eq.${userId}`)
     .in("status", ["confirmed", "in_progress", "pending_payment"])
     .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Booking[];
+  // Fall back to seed data when the backend is empty/unavailable (mock mode),
+  // mirroring fetchTrips so the trips list can always be previewed.
+  if (error || !data || data.length === 0) {
+    return MOCK_BOOKINGS.filter((b) => CURRENT_STATES.includes(b.status));
+  }
+  return data as Booking[];
 }
 
 export async function fetchPreviousBookings(
@@ -31,8 +43,10 @@ export async function fetchPreviousBookings(
     .in("status", ["completed", "cancelled"])
     .order("created_at", { ascending: false })
     .limit(20);
-  if (error) throw error;
-  return (data ?? []) as Booking[];
+  if (error || !data || data.length === 0) {
+    return MOCK_BOOKINGS.filter((b) => PREVIOUS_STATES.includes(b.status));
+  }
+  return data as Booking[];
 }
 
 export async function fetchIncomingRequests(
@@ -44,8 +58,10 @@ export async function fetchIncomingRequests(
     .eq("driver_id", driverId)
     .eq("status", "pending_payment")
     .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as Booking[];
+  if (error || !data || data.length === 0) {
+    return MOCK_BOOKINGS.filter((b) => b.status === "pending_payment");
+  }
+  return data as Booking[];
 }
 
 export async function acceptMatch(bookingId: string): Promise<Booking> {
@@ -57,6 +73,24 @@ export async function acceptMatch(bookingId: string): Promise<Booking> {
     .single();
   if (error) throw error;
   return data as Booking;
+}
+
+/**
+ * Advance a booking through the trip lifecycle (confirmed → in_progress →
+ * completed, or cancelled). Best-effort against the backend; the caller keeps a
+ * local override so the UI updates even if the row isn't persisted (mock mode).
+ */
+export async function updateBookingStatus(
+  bookingId: string,
+  status: BookingStatus,
+): Promise<void> {
+  // Temp/optimistic bookings never hit the table — skip the round-trip.
+  if (bookingId.startsWith("temp-")) return;
+  const { error } = await supabase
+    .from("bookings")
+    .update({ status })
+    .eq("id", bookingId);
+  if (error) throw error;
 }
 
 export async function createBooking(booking: {

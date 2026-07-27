@@ -32,7 +32,8 @@ export const TopBar = memo(function TopBar() {
         styles.container,
         {
           paddingTop: insets.top + spacing.xs,
-          backgroundColor: colors.headerBackground,
+          // Blend seamlessly with the screen — no divider under the top bar.
+          backgroundColor: colors.background,
         },
       ]}
     >

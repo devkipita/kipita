@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import type { AppNotification } from '@/types';
+import { MOCK_NOTIFICATIONS } from '@/lib/mock/data';
 
 export async function fetchNotifications(userId: string): Promise<AppNotification[]> {
   const { data, error } = await supabase
@@ -8,8 +9,12 @@ export async function fetchNotifications(userId: string): Promise<AppNotificatio
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50);
-  if (error) throw error;
-  return (data ?? []) as AppNotification[];
+  // Fall back to seed data when the backend is empty/unavailable (mock mode),
+  // mirroring fetchTrips/fetchCurrentBookings so both notification tabs preview.
+  if (error || !data || data.length === 0) {
+    return MOCK_NOTIFICATIONS;
+  }
+  return data as AppNotification[];
 }
 
 export async function markNotificationRead(id: string) {

@@ -42,6 +42,7 @@ export async function createAlert(alert: {
   location: string;
   category: AlertCategory;
   content: string;
+  image_url?: string | null;
 }): Promise<Alert> {
   const { data, error } = await supabase
     .from('announcements')

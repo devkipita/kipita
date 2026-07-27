@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useEffect } from "react";
 import { View, StyleSheet, Pressable } from "react-native";
 import * as Linking from "expo-linking";
 import { Text } from "../core/Text";
@@ -30,31 +30,53 @@ export const AuthSheet = memo(function AuthSheet({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+
+  // Cooldown countdown for the OTP "Resend" affordance.
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendIn]);
+
+  const sendOtp = useCallback(async (): Promise<boolean> => {
+    const formattedPhone = phone.startsWith("+")
+      ? phone
+      : `+254${phone.replace(/^0/, "")}`;
+    const { error: err } = await supabase.auth.signInWithOtp({
+      phone: formattedPhone,
+    });
+    if (err) {
+      setError(err.message);
+      return false;
+    }
+    setResendIn(30);
+    return true;
+  }, [phone]);
 
   const handlePhoneSubmit = useCallback(async () => {
     setLoading(true);
     setError("");
     setNotice("");
-
     try {
-      const formattedPhone = phone.startsWith("+")
-        ? phone
-        : `+254${phone.replace(/^0/, "")}`;
-      const { error: err } = await supabase.auth.signInWithOtp({
-        phone: formattedPhone,
-      });
-
-      if (err) {
-        setError(err.message);
-      } else {
-        setStep("otp");
-      }
+      if (await sendOtp()) setStep("otp");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not send code.");
     } finally {
       setLoading(false);
     }
-  }, [phone]);
+  }, [sendOtp]);
+
+  const handleResend = useCallback(async () => {
+    if (resendIn > 0) return;
+    setError("");
+    setNotice("");
+    try {
+      if (await sendOtp()) setNotice("Code resent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not resend code.");
+    }
+  }, [resendIn, sendOtp]);
 
   const handleOtpVerify = useCallback(async () => {
     setLoading(true);
@@ -277,6 +299,11 @@ export const AuthSheet = memo(function AuthSheet({
           error={error}
           autoFocus
         />
+        {notice ? (
+          <Text variant="bodySmall" color={colors.success}>
+            {notice}
+          </Text>
+        ) : null}
         <Button
           label={t("verify")}
           onPress={handleOtpVerify}
@@ -286,6 +313,15 @@ export const AuthSheet = memo(function AuthSheet({
           loading={loading}
           disabled={otp.length < 6}
         />
+        <Pressable onPress={handleResend} disabled={resendIn > 0} hitSlop={8}>
+          <Text
+            variant="labelMedium"
+            color={resendIn > 0 ? colors.textTertiary : colors.primary}
+            align="center"
+          >
+            {resendIn > 0 ? `Resend code in ${resendIn}s` : "Resend code"}
+          </Text>
+        </Pressable>
       </View>
     );
   }

@@ -351,6 +351,15 @@ export interface EmergencyContact {
 }
 
 // ── Messages ──
+export type MessageAttachmentType = "image" | "gif" | "audio";
+
+export interface MessageAttachmentMeta {
+  width?: number;
+  height?: number;
+  /** Voice-note length in milliseconds. */
+  durationMs?: number;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -358,6 +367,9 @@ export interface Message {
   content: string;
   read: boolean;
   created_at: string;
+  attachment_type?: MessageAttachmentType | null;
+  attachment_url?: string | null;
+  attachment_meta?: MessageAttachmentMeta | null;
 }
 
 export interface Conversation {
@@ -470,6 +482,7 @@ export type SheetType =
   | "trip_details"
   | "alert_post"
   | "profile_completion"
+  | "report"
   | null;
 
 export interface SheetPayload {
@@ -485,4 +498,9 @@ export interface SheetPayload {
   trip_details: { booking: Booking };
   alert_post: undefined;
   profile_completion: undefined;
+  report: {
+    type: "lost_item" | "safety" | "user";
+    reportedUser?: User | null;
+    booking?: Booking | null;
+  };
 }

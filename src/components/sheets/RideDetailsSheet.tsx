@@ -1,6 +1,5 @@
 import React, { memo, useCallback } from "react";
 import {
-  ScrollView,
   Linking,
   Pressable,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Text } from "../core/Text";
 import { Avatar } from "../core/Avatar";
 import { Icon } from "../core/Icon";
@@ -119,7 +119,7 @@ export const RideDetailsSheet = memo(function RideDetailsSheet({
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       {/* ── Scrollable content ── */}
-      <ScrollView
+      <BottomSheetScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -429,7 +429,7 @@ export const RideDetailsSheet = memo(function RideDetailsSheet({
             ))}
           </View>
         )}
-      </ScrollView>
+      </BottomSheetScrollView>
 
       {/* ── Fixed bottom action bar ── */}
       <View

@@ -14,10 +14,10 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
+import { useRouter } from "expo-router";
 import { Text } from "@/components/core/Text";
 import { Icon } from "@/components/core/Icon";
 import { Avatar } from "@/components/core/Avatar";
-import { GlassCard } from "@/components/core/GlassCard";
 import { useTheme, useLocale, useAppMode } from "@/hooks";
 import { useAuthStore, useUIStore, useSettingsStore } from "@/store";
 import { supabase } from "@/lib/supabase";
@@ -112,8 +112,13 @@ export default function ProfileScreen() {
   const { mode, toggle: toggleMode, isDriver } = useAppMode();
   const user = useAuthStore((s) => s.user);
   const openSheet = useUIStore((s) => s.openSheet);
+  const router = useRouter();
 
   const settings = useSettingsStore();
+
+  const editProfile = useCallback(() => {
+    router.push("/profile/edit" as any);
+  }, [router]);
 
   const handleSignOut = useCallback(() => {
     confirmAction(
@@ -213,10 +218,7 @@ export default function ProfileScreen() {
           <View
             style={[
               styles.hero,
-              {
-                backgroundColor: colors.surfaceContainerLow,
-                borderColor: colors.outlineVariant,
-              },
+              { backgroundColor: colors.surfaceContainer },
             ]}
           >
             <View style={styles.heroTop}>
@@ -275,7 +277,7 @@ export default function ProfileScreen() {
                 </Text>
               </View>
               <Pressable
-                onPress={viewProfile}
+                onPress={editProfile}
                 hitSlop={10}
                 style={[
                   styles.heroEdit,
@@ -285,8 +287,8 @@ export default function ProfileScreen() {
                 accessibilityLabel={t("edit_profile")}
               >
                 <Icon
-                  name="chevron-forward"
-                  size={20}
+                  name="create-outline"
+                  size={18}
                   color={colors.onSurfaceVariant}
                 />
               </Pressable>
@@ -337,10 +339,7 @@ export default function ProfileScreen() {
           <View
             style={[
               styles.guestHero,
-              {
-                backgroundColor: colors.surfaceContainerLow,
-                borderColor: colors.outlineVariant,
-              },
+              { backgroundColor: colors.surfaceContainer },
             ]}
           >
             <View style={[styles.guestIconWrap, { backgroundColor: colors.primaryContainer }]}>
@@ -374,6 +373,13 @@ export default function ProfileScreen() {
       {/* ── Account ── */}
       {user && (
         <SettingsGroup title="Account" delay={60}>
+          <SettingsRow
+            icon="create-outline"
+            tone="primary"
+            label={t("edit_profile")}
+            subtitle={t("edit_profile_sub")}
+            onPress={editProfile}
+          />
           <SettingsRow
             icon="person-circle-outline"
             tone="neutral"
@@ -683,23 +689,16 @@ const SettingsGroup = memo(function SettingsGroup({
       >
         {title.toUpperCase()}
       </Text>
-      <GlassCard borderRadius={radius.xl}>
-        <View style={groupStyles.card}>
-          {items.map((child, i) => (
-            <View key={i}>
-              {child}
-              {i < items.length - 1 && (
-                <View
-                  style={[
-                    groupStyles.divider,
-                    { backgroundColor: colors.outlineVariant },
-                  ]}
-                />
-              )}
-            </View>
-          ))}
-        </View>
-      </GlassCard>
+      <View
+        style={[
+          groupStyles.card,
+          { backgroundColor: colors.surfaceContainer },
+        ]}
+      >
+        {items.map((child, i) => (
+          <View key={i}>{child}</View>
+        ))}
+      </View>
       {footer && (
         <Text
           variant="caption"
@@ -738,7 +737,7 @@ const SettingsRow = memo(function SettingsRow({
   const inner = (
     <>
       <View style={[rowStyles.iconWrap, { backgroundColor: iconBg }]}>
-        <Icon name={icon} size={18} color={iconFg} />
+        <Icon name={icon} size={20} color={iconFg} />
       </View>
       <View style={rowStyles.labelCol}>
         <Text
@@ -937,7 +936,6 @@ const styles = StyleSheet.create({
   },
   hero: {
     borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.lg,
     gap: spacing.lg,
   },
@@ -981,7 +979,6 @@ const styles = StyleSheet.create({
   },
   guestHero: {
     borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
     padding: spacing.xl,
     alignItems: "center",
     gap: spacing.sm,
@@ -1025,10 +1022,9 @@ const groupStyles = StyleSheet.create({
     paddingLeft: spacing.sm,
     letterSpacing: 0.8,
   },
-  card: { overflow: "hidden" },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    marginLeft: spacing.lg + 34 + spacing.md,
+  card: {
+    borderRadius: radius.xl,
+    overflow: "hidden",
   },
   footer: {
     paddingLeft: spacing.sm,
@@ -1041,14 +1037,14 @@ const rowStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.md + 2,
     gap: spacing.md,
-    minHeight: 58,
+    minHeight: 62,
   },
   iconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.sm,
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
     alignItems: "center",
     justifyContent: "center",
   },

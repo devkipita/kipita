@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect } from "react";
-import { useUIStore, useAuthStore } from "@/store";
+import { useRouter } from "expo-router";
+import { useUIStore, useAuthStore, useTripStore } from "@/store";
 import { SheetProvider } from "../sheets/SheetProvider";
 import { AuthSheet } from "../sheets/AuthSheet";
 import { RideDetailsSheet } from "../sheets/RideDetailsSheet";
@@ -7,7 +8,9 @@ import { PersonSheet } from "../sheets/PersonSheet";
 import { PaymentSheet } from "../sheets/PaymentSheet";
 import { ChatSheet } from "../sheets/ChatSheet";
 import { AlertDetailSheet } from "../sheets/AlertDetailSheet";
+import { AlertPostSheet } from "../sheets/AlertPostSheet";
 import { ProfileCompletionSheet } from "../sheets/ProfileCompletionSheet";
+import { ReportSheet } from "../sheets/ReportSheet";
 import { updateProfile } from "@/lib/api/profile";
 
 /** Central sheet orchestrator — renders the correct sheet based on global state */
@@ -18,6 +21,20 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
   const openSheet = useUIStore((s) => s.openSheet);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const router = useRouter();
+  const setTripBooking = useTripStore((s) => s.setBooking);
+  const setTripStatus = useTripStore((s) => s.setStatus);
+
+  const handlePaymentDone = useCallback(() => {
+    const booking = (payload as any)?.booking;
+    closeSheet();
+    if (booking) {
+      // Payment confirmed → hand off to the live trip screen.
+      setTripBooking(booking);
+      setTripStatus(booking.id, "confirmed");
+      router.push(`/trip/${booking.id}` as any);
+    }
+  }, [payload, closeSheet, setTripBooking, setTripStatus, router]);
 
   useEffect(() => {
     const needsProfile = user && (!user.full_name.trim() || !user.city);
@@ -50,14 +67,18 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
       : activeSheet === "request_details"
         ? ["92%"]
         : activeSheet === "alert_details"
-          ? ["92%"]
-          : activeSheet === "chat"
-            ? ["70%", "95%"]
-            : activeSheet === "auth"
-              ? ["65%", "90%"]
-              : activeSheet === "profile_completion"
-                ? ["62%"]
-                : ["50%", "85%"];
+          ? ["55%", "90%"]
+          : activeSheet === "alert_post"
+            ? ["75%", "95%"]
+            : activeSheet === "chat"
+              ? ["70%", "95%"]
+              : activeSheet === "auth"
+                ? ["65%", "90%"]
+                : activeSheet === "profile_completion"
+                  ? ["62%"]
+                  : activeSheet === "report"
+                    ? ["70%", "92%"]
+                    : ["50%", "85%"];
 
   return (
     <SheetProvider snapPoints={snapPoints}>
@@ -84,8 +105,8 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
       {activeSheet === "payment" && payload && (
         <PaymentSheet
           booking={(payload as any).booking}
-          onPay={async () => false}
-          onClose={closeSheet}
+          onPay={async () => true}
+          onClose={handlePaymentDone}
         />
       )}
       {activeSheet === "chat" && payload && (
@@ -93,6 +114,10 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
       )}
       {activeSheet === "alert_details" && payload && (
         <AlertDetailSheet alert={(payload as any).alert} />
+      )}
+      {activeSheet === "alert_post" && <AlertPostSheet />}
+      {activeSheet === "report" && payload && (
+        <ReportSheet payload={payload as any} />
       )}
     </SheetProvider>
   );

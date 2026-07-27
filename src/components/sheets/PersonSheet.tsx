@@ -1,12 +1,14 @@
 import React, { memo } from "react";
-import { View, StyleSheet, Linking } from "react-native";
+import { View, StyleSheet, Linking, Pressable } from "react-native";
 import { Text } from "../core/Text";
 import { Avatar } from "../core/Avatar";
 import { Button } from "../core/Button";
 import { Icon } from "../core/Icon";
 import { Divider } from "../core/Divider";
 import { useTheme, useLocale } from "@/hooks";
-import { spacing } from "@/theme";
+import { useAuthStore, useUIStore } from "@/store";
+import { haptic } from "@/lib/utils/haptics";
+import { spacing, radius } from "@/theme";
 import { formatRating, formatPhone } from "@/lib/formatters";
 import type { User } from "@/types";
 
@@ -21,11 +23,19 @@ export const PersonSheet = memo(function PersonSheet({
 }: PersonSheetProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
+  const currentUser = useAuthStore((s) => s.user);
+  const openSheet = useUIStore((s) => s.openSheet);
+  const isSelf = currentUser?.id === user.id;
 
   const handleCall = () => {
     if (user.phone) {
       Linking.openURL(`tel:${user.phone}`);
     }
+  };
+
+  const handleReport = () => {
+    haptic.light();
+    openSheet("report", { type: "user", reportedUser: user });
   };
 
   return (
@@ -106,6 +116,32 @@ export const PersonSheet = memo(function PersonSheet({
           />
         )}
       </View>
+
+      {/* Report — hidden when viewing your own profile */}
+      {!isSelf && (
+        <>
+          <Divider />
+          <Pressable
+            onPress={handleReport}
+            style={({ pressed }) => [styles.reportRow, pressed && { opacity: 0.7 }]}
+            accessibilityRole="button"
+            accessibilityLabel={`${t("report")} ${user.full_name}`}
+          >
+            <View style={[styles.reportIcon, { backgroundColor: colors.errorContainer }]}>
+              <Icon name="flag-outline" size={18} color={colors.onErrorContainer} />
+            </View>
+            <View style={styles.reportText}>
+              <Text variant="bodyMedium" color={colors.error}>
+                {`${t("report")} ${user.full_name}`}
+              </Text>
+              <Text variant="caption" color={colors.textSecondary}>
+                {t("report_person_body")}
+              </Text>
+            </View>
+            <Icon name="chevron-forward" size={18} color={colors.outline} />
+          </Pressable>
+        </>
+      )}
     </View>
   );
 });
@@ -145,5 +181,21 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     gap: spacing.md,
+  },
+  reportRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  reportIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportText: {
+    flex: 1,
+    gap: 2,
   },
 });

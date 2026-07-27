@@ -1,10 +1,12 @@
 import { create } from 'zustand';
-import type { SheetType } from '@/types';
+import type { SheetType, User } from '@/types';
 
 interface ActiveChat {
   conversationId: string;
   participantName: string;
   participantAvatar: string | null;
+  /** Full profile of the other party, so the chat header can open their profile. */
+  participant?: User;
 }
 
 interface UIState {

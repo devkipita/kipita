@@ -8,35 +8,8 @@ import { Avatar } from "../core/Avatar";
 import { useTheme, useLocale } from "@/hooks";
 import { spacing, radius, shadows } from "@/theme";
 import { formatShortRelativeTime, truncateWords } from "@/lib/formatters";
-import type { Alert, AlertCategory } from "@/types";
-import type { IconName } from "../core/Icon";
-
-const CATEGORY_ICONS: Record<AlertCategory, IconName> = {
-  traffic: "car",
-  accident: "warning",
-  road_closure: "close-circle",
-  weather: "rainy",
-  police: "shield",
-  general: "megaphone",
-};
-
-const CATEGORY_COLORS: Record<AlertCategory, string> = {
-  traffic: "#D4B896",
-  accident: "#D4B896",
-  road_closure: "#D4B896",
-  weather: "#9EC5A2",
-  police: "#2F6C4F",
-  general: "#9EC5A2",
-};
-
-const CATEGORY_LABELS: Record<AlertCategory, string> = {
-  traffic: "Traffic",
-  accident: "Accident",
-  road_closure: "Road closed",
-  weather: "Weather",
-  police: "Police",
-  general: "Update",
-};
+import { ALERT_META } from "./alertMeta";
+import type { Alert } from "@/types";
 
 const MAX_WORDS = 26;
 
@@ -84,9 +57,8 @@ export const AlertCard = memo(function AlertCard({
 }: AlertCardProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
-  const catIcon = CATEGORY_ICONS[alert.category];
-  const catColor = CATEGORY_COLORS[alert.category];
-  const catLabel = CATEGORY_LABELS[alert.category];
+  const { icon: catIcon, color: catColor, label: catLabel } =
+    ALERT_META[alert.category];
 
   const { text: body, truncated } = truncateWords(alert.content, MAX_WORDS);
   const authorName = alert.user?.full_name ?? catLabel;

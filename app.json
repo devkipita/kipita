@@ -28,7 +28,20 @@
     "plugins": [
       "expo-router",
       "expo-localization",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Kipita needs access to your photos to attach images to road alerts and messages."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Kipita needs microphone access to record voice notes in chat."
+        }
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true

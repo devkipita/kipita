@@ -3,9 +3,12 @@ import { AppState, Linking } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import { queryClient } from "@/lib/query/client";
+import { setupQueryLifecycle } from "@/lib/query/lifecycle";
+import { gateway } from "@/lib/realtime/gateway";
 import {
   useFonts,
   DMSans_400Regular,
@@ -21,15 +24,6 @@ import { SheetOrchestrator } from "@/components/shared/SheetOrchestrator";
 import { OfflineBanner } from "@/components/feedback/OfflineBanner";
 
 SplashScreen.preventAutoHideAsync();
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 30_000,
-    },
-  },
-});
 
 function RootLayoutInner() {
   const { colors, isDark } = useTheme();
@@ -59,53 +53,69 @@ function RootLayoutInner() {
       if (!session) {
         setUser(null);
         setSession(null);
+        gateway.stop();
         return;
       }
 
+      // ── 1) Apply the session immediately — never block the app on a profile
+      //        fetch. We always have a real auth id, so downstream user-scoped
+      //        queries and realtime are valid right away.
       setSession({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
       });
+      // Authorise the realtime socket so RLS-scoped channels work.
+      supabase.realtime.setAuth(session.access_token);
 
+      const authId = session.user.id;
+      // Seed a minimal-but-valid user (real id — never "") so nothing breaks
+      // while the full profile loads in the background.
+      const existing = useAuthStore.getState().user;
+      if (!existing || existing.id !== authId) {
+        setUser({
+          id: authId,
+          full_name: session.user.user_metadata?.full_name ?? "",
+          first_name: session.user.user_metadata?.first_name ?? null,
+          last_name: session.user.user_metadata?.last_name ?? null,
+          phone: session.user.phone ?? null,
+          email: session.user.email ?? null,
+          avatar_url: null,
+          city: null,
+          is_verified: false,
+          rating: 0,
+          total_trips: 0,
+          created_at: new Date(0).toISOString(),
+          updated_at: new Date(0).toISOString(),
+          profile_prompt_dismissed_at: null,
+        } as any);
+      }
+      gateway.start(authId);
+
+      // ── 2) Enrich with the DB profile in the background, with a timeout so a
+      //        slow/hung RPC can never freeze the experience.
       try {
-        const { data: profiles, error } = await supabase.rpc(
-          "current_user_profile",
+        const rpc = supabase.rpc("current_user_profile");
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("profile-timeout")), 6000),
         );
-
-        if (error) {
-          throw error;
-        }
+        const { data: profiles, error } = (await Promise.race([
+          rpc,
+          timeout,
+        ])) as Awaited<typeof rpc>;
+        if (error) throw error;
 
         const profile = profiles?.[0];
-
         if (profile) {
           setUser({
             ...profile,
             email: session.user.email ?? null,
             phone: session.user.phone ?? null,
           } as any);
-          return;
         }
       } catch (error) {
-        console.warn("Failed to hydrate auth profile", error);
+        // Keep the seeded user; the app stays usable and we retry on next focus.
+        console.warn("Profile enrichment deferred:", error);
       }
-
-      setUser({
-        id: "",
-        full_name: session.user.user_metadata?.full_name ?? "",
-        first_name: session.user.user_metadata?.first_name ?? null,
-        last_name: session.user.user_metadata?.last_name ?? null,
-        phone: session.user.phone ?? null,
-        email: session.user.email ?? null,
-        avatar_url: null,
-        city: null,
-        is_verified: false,
-        rating: 0,
-        total_trips: 0,
-        created_at: new Date(0).toISOString(),
-        updated_at: new Date(0).toISOString(),
-        profile_prompt_dismissed_at: null,
-      } as any);
     },
     [setSession, setUser],
   );
@@ -115,9 +125,9 @@ function RootLayoutInner() {
 
     const bootstrapSession = async () => {
       const { data } = await supabase.auth.getSession();
-
-      await hydrateSession(data.session);
-
+      // Apply the session synchronously, but DON'T await profile enrichment —
+      // the splash lifts as soon as we know the session, not 6s later.
+      void hydrateSession(data.session);
       if (!mounted) return;
       setSessionReady(true);
     };
@@ -181,20 +191,8 @@ function RootLayoutInner() {
     };
   }, [hydrateSession]);
 
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        setUser(null);
-        setSession(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setSession, setUser]);
+  // Bridge connectivity + foreground into React Query and the offline banner.
+  useEffect(() => setupQueryLifecycle(), []);
 
   useEffect(() => {
     if (!fontsLoaded || !sessionReady) return;

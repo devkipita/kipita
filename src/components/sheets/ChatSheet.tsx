@@ -148,7 +148,6 @@ export const ChatSheet = memo(function ChatSheet({
             ref={listRef}
             data={messages}
             renderItem={renderMessage}
-            estimatedItemSize={60}
             keyExtractor={(item) => item.id}
             contentContainerStyle={{ padding: spacing.md }}
             onContentSizeChange={() =>

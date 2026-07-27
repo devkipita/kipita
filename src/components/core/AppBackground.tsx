@@ -27,7 +27,7 @@ export const AppBackground = memo(function AppBackground({ children }: AppBackgr
           {
             backgroundColor: isDark
               ? 'rgba(17,17,20,0.72)'
-              : 'rgba(239,246,239,0.70)',
+              : 'rgba(230,239,227,0.72)',
           },
         ]}
       />

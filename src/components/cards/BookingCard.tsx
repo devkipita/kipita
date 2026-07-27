@@ -3,39 +3,12 @@ import { View, Pressable, StyleSheet } from "react-native";
 import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { Avatar } from "../core/Avatar";
-import { useTheme, useAppMode } from "@/hooks";
+import { useTheme, useAppMode, useLocale } from "@/hooks";
 import { spacing, radius, shadows } from "@/theme";
+import { statusTone, STATUS_ICON, STATUS_LABEL_KEY } from "@/theme/statusTone";
 import { formatDate, formatTime, formatCurrency } from "@/lib/formatters";
-import { createTonalCardScheme, resolveCarColor } from "@/lib/utils/carColor";
-import type { Booking, BookingStatus } from "@/types";
-import type { IconName } from "../core/Icon";
-
-const STATUS_CONFIG: Record<
-  BookingStatus,
-  { icon: IconName; color: string; label: string }
-> = {
-  pending_payment: { icon: "time-outline", color: "#D4B896", label: "Pending" },
-  confirmed: {
-    icon: "checkmark-circle-outline",
-    color: "#2F6C4F",
-    label: "Confirmed",
-  },
-  in_progress: {
-    icon: "navigate-outline",
-    color: "#2196F3",
-    label: "In Progress",
-  },
-  completed: {
-    icon: "checkmark-done-outline",
-    color: "#9EC5A2",
-    label: "Completed",
-  },
-  cancelled: {
-    icon: "close-circle-outline",
-    color: "#D4B896",
-    label: "Cancelled",
-  },
-};
+import type { Booking } from "@/types";
+import type { TranslationKey } from "@/lib/i18n/en";
 
 interface BookingCardProps {
   booking: Booking;
@@ -43,28 +16,28 @@ interface BookingCardProps {
   onAvatarPress?: () => void;
 }
 
-const STATUS_SOURCE: Record<BookingStatus, string> = {
-  pending_payment: "#B88912",
-  confirmed: "#2F6C4F",
-  in_progress: "#1167D8",
-  completed: "#00786B",
-  cancelled: "#C9342C",
-};
-
+/**
+ * A booking's colour comes from its *status*, not the vehicle — so the trips
+ * list reads as a clear timeline: amber = needs payment, green = booked, blue =
+ * live, deep green = completed, red = cancelled. The card is a two-panel split:
+ * a pure-black main panel (~70%) carrying who / route / schedule, and a tonal
+ * status panel (~30%) that carries the booking's state accent.
+ */
 export const BookingCard = memo(function BookingCard({
   booking,
   onPress,
   onAvatarPress,
 }: BookingCardProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const { t } = useLocale();
   const { isDriver } = useAppMode();
-  const status = STATUS_CONFIG[booking.status];
+
+  const tone = statusTone(colors, booking.status);
+  const icon = STATUS_ICON[booking.status];
+  const label = t(STATUS_LABEL_KEY[booking.status] as TranslationKey);
   const ride = booking.trip;
   const otherPerson = isDriver ? booking.passenger : booking.driver;
-  const source = ride?.vehicle?.color
-    ? resolveCarColor(ride.vehicle.color, STATUS_SOURCE[booking.status])
-    : STATUS_SOURCE[booking.status];
-  const scheme = createTonalCardScheme(source, isDark, "ride");
+  const isLive = booking.status === "in_progress";
 
   const metaItems = ride
     ? [
@@ -88,16 +61,13 @@ export const BookingCard = memo(function BookingCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: scheme.leftBg,
-          borderColor: scheme.outline,
-          opacity: pressed ? 0.96 : 1,
-        },
+        { opacity: pressed ? 0.96 : 1 },
         shadows.sm,
       ]}
       accessibilityRole="button"
     >
       <View style={styles.inner}>
+        {/* Main panel — pure black. */}
         <View style={styles.mainPanel}>
           <View style={styles.topRow}>
             <Avatar
@@ -107,17 +77,18 @@ export const BookingCard = memo(function BookingCard({
               onPress={onAvatarPress}
             />
             <View style={styles.info}>
-              <Text
-                variant="titleSmall"
-                color={scheme.leftInk}
-                numberOfLines={1}
-              >
+              <Text variant="titleSmall" color="#FFFFFF" numberOfLines={1}>
                 {otherPerson?.full_name}
               </Text>
-              <View style={styles.statusRow}>
-                <Icon name={status.icon} size={14} color={scheme.leftAccent} />
-                <Text variant="caption" color={scheme.leftAccent}>
-                  {status.label}
+              <View
+                style={[styles.statusBadge, { backgroundColor: tone.container }]}
+              >
+                {isLive && (
+                  <View style={[styles.liveDot, { backgroundColor: tone.accent }]} />
+                )}
+                <Icon name={icon} size={13} color={tone.onContainer} />
+                <Text variant="labelSmall" color={tone.onContainer}>
+                  {label}
                 </Text>
               </View>
             </View>
@@ -125,20 +96,20 @@ export const BookingCard = memo(function BookingCard({
 
           {ride && (
             <View style={styles.routeRow}>
-              <Icon name="ellipse" size={6} color={scheme.leftAccent} />
+              <Icon name="ellipse" size={6} color={tone.accent} />
               <Text
                 variant="bodySmall"
-                color={scheme.leftInk}
+                color="#FFFFFF"
                 numberOfLines={1}
                 style={styles.flex}
               >
                 {ride.from_location}
               </Text>
-              <Icon name="arrow-forward" size={14} color={scheme.leftMuted} />
-              <Icon name="location" size={12} color={scheme.leftAccent} />
+              <Icon name="arrow-forward" size={14} color="rgba(255,255,255,0.5)" />
+              <Icon name="location" size={12} color={tone.accent} />
               <Text
                 variant="bodySmall"
-                color={scheme.leftInk}
+                color="#FFFFFF"
                 numberOfLines={1}
                 style={styles.flex}
               >
@@ -154,14 +125,11 @@ export const BookingCard = memo(function BookingCard({
                   key={`${booking.id}-${item.icon}`}
                   style={[
                     styles.metaPill,
-                    {
-                      backgroundColor: scheme.pillBg,
-                      borderColor: scheme.outline,
-                    },
+                    { backgroundColor: "rgba(255,255,255,0.08)" },
                   ]}
                 >
-                  <Icon name={item.icon} size={14} color={scheme.pillInk} />
-                  <Text variant="labelMedium" color={scheme.pillInk}>
+                  <Icon name={item.icon} size={14} color="rgba(255,255,255,0.7)" />
+                  <Text variant="labelMedium" color="rgba(255,255,255,0.7)">
                     {item.label}
                   </Text>
                 </View>
@@ -169,28 +137,17 @@ export const BookingCard = memo(function BookingCard({
             </View>
           )}
         </View>
-        <View
-          style={[
-            styles.sidePanel,
-            {
-              backgroundColor: scheme.rightBg,
-              borderLeftColor: scheme.outline,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.iconBadge,
-              { backgroundColor: scheme.rightAccentSoft },
-            ]}
-          >
-            <Icon name={status.icon} size={20} color={scheme.rightAccent} />
+
+        {/* Side panel — carries the status tone as a tonal container. */}
+        <View style={[styles.sidePanel, { backgroundColor: tone.container }]}>
+          <View style={[styles.iconBadge, { backgroundColor: tone.accent }]}>
+            <Icon name={icon} size={20} color={tone.onAccent} />
           </View>
-          <Text variant="titleSmall" color={scheme.rightInk} align="center">
+          <Text variant="titleSmall" color={tone.onContainer} align="center">
             {formatCurrency(booking.total_price)}
           </Text>
-          <Text variant="labelMedium" color={scheme.rightInk} align="center">
-            {status.label}
+          <Text variant="labelMedium" color={tone.onContainer} align="center">
+            {label}
           </Text>
         </View>
       </View>
@@ -201,7 +158,6 @@ export const BookingCard = memo(function BookingCard({
 const styles = StyleSheet.create({
   card: {
     borderRadius: radius.lg,
-    borderWidth: 1,
     overflow: "hidden",
   },
   inner: {
@@ -210,6 +166,7 @@ const styles = StyleSheet.create({
   },
   mainPanel: {
     flex: 2.2,
+    backgroundColor: "#000000",
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -219,7 +176,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderLeftWidth: 1,
   },
   topRow: {
     flexDirection: "row",
@@ -228,12 +184,21 @@ const styles = StyleSheet.create({
   },
   info: {
     flex: 1,
-    gap: 2,
+    gap: 4,
   },
-  statusRow: {
+  statusBadge: {
     flexDirection: "row",
     alignItems: "center",
+    alignSelf: "flex-start",
     gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   routeRow: {
     flexDirection: "row",
@@ -253,7 +218,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    borderWidth: 1,
   },
   iconBadge: {
     width: 44,

@@ -302,6 +302,26 @@ export const RouteSearchForm = memo(function RouteSearchForm({
         </Animated.View>
       ) : (
         <>
+          {/* ── Collapse header: gives the user a clear way back to the
+               available rides instead of being trapped in the planner ── */}
+          <View style={styles.expandedHeader}>
+            <Text variant="titleSmall" color={colors.text} style={styles.bold}>
+              {t(config.searchCTA as any)}
+            </Text>
+            <Pressable
+              onPress={() => setExpanded(false)}
+              hitSlop={10}
+              style={[
+                styles.closeBtn,
+                { backgroundColor: colors.surfaceVariant },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t("close")}
+            >
+              <Icon name="close" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
+
           {/* ── When: leave now vs. schedule for later ── */}
           <View
             style={[styles.segment, { backgroundColor: colors.surfaceVariant }]}
@@ -483,8 +503,9 @@ export const RouteSearchForm = memo(function RouteSearchForm({
           style={styles.advancedToggle}
           accessibilityRole="button"
         >
+          <Icon name="options-outline" size={16} color={colors.primary} />
           <Text variant="labelMedium" color={colors.primary}>
-            {t("advanced_options")}
+            {t("choose_comfort")}
           </Text>
           <Icon
             name={showAdvanced ? "chevron-up" : "chevron-down"}
@@ -566,8 +587,24 @@ const styles = StyleSheet.create({
   container: {
     gap: spacing.md,
   },
+  bold: {
+    fontWeight: "700",
+  },
+  expandedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.xs,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   compactRow: {
-    height: 58,
+    height: 60,
     borderRadius: radius.full,
     borderWidth: 1.25,
     paddingHorizontal: spacing.xs + 2,
@@ -575,6 +612,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
+    // Raised, tappable pill — reads as the primary action on the screen.
+    elevation: 8,
   },
   compactSearchTap: {
     flex: 1,

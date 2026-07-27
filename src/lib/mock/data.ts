@@ -1,4 +1,4 @@
-import type { Trip, RideRequest, Alert, AlertComment, User } from '@/types';
+import type { Trip, RideRequest, Alert, AlertComment, User, Booking, BookingStatus, AppNotification } from '@/types';
 
 // ── MOCK USERS ──
 export const MOCK_USERS: User[] = [
@@ -372,6 +372,172 @@ export const MOCK_REQUESTS: RideRequest[] = [
     created_at: new Date(Date.now() - 18000000).toISOString(),
     updated_at: new Date(Date.now() - 18000000).toISOString(),
     passenger: MOCK_USERS[5],
+  },
+];
+
+// ── MOCK BOOKINGS (current + previous trips) ──
+// Covers every BookingStatus so the trips list and live-trip screen can be
+// previewed end-to-end. MOCK_USERS[5] (Mercy Njeri) stands in for the signed-in
+// passenger; the driver is the one who published the underlying trip.
+const BOOKING_PASSENGER = MOCK_USERS[5];
+
+function makeBooking(
+  id: string,
+  trip: Trip,
+  status: BookingStatus,
+  createdOffsetMs: number,
+  seats = 1,
+): Booking {
+  const created = new Date(Date.now() - createdOffsetMs).toISOString();
+  return {
+    id,
+    trip_id: trip.id,
+    passenger_id: BOOKING_PASSENGER.id,
+    driver_id: trip.driver_id,
+    seats_booked: seats,
+    total_price: trip.price_per_seat * seats,
+    status,
+    payment_id: null,
+    booking_reference: id.replace('booking-', 'KP-').toUpperCase(),
+    created_at: created,
+    updated_at: created,
+    trip,
+    passenger: BOOKING_PASSENGER,
+    driver: trip.driver,
+  };
+}
+
+export const MOCK_BOOKINGS: Booking[] = [
+  // Current tab — confirmed, live (in progress) and awaiting payment.
+  makeBooking('booking-201', MOCK_TRIPS[0], 'confirmed', 60 * 60000, 1),
+  makeBooking('booking-202', MOCK_TRIPS[1], 'in_progress', 45 * 60000, 2),
+  makeBooking('booking-203', MOCK_TRIPS[4], 'pending_payment', 20 * 60000, 1),
+  // Previous tab — completed and cancelled.
+  makeBooking('booking-204', MOCK_TRIPS[2], 'completed', 5 * 86400000, 1),
+  makeBooking('booking-205', MOCK_TRIPS[3], 'cancelled', 8 * 86400000, 1),
+];
+
+// ── MOCK NOTIFICATIONS ──
+// One of every NotificationType, mixing read/unread and recent → older
+// timestamps. The last three (type: 'system') feed the System tab; the rest
+// feed the Notifications tab.
+const NOTIF_USER_ID = MOCK_USERS[5].id;
+
+const min = 60 * 1000;
+const hr = 60 * min;
+const day = 24 * hr;
+
+export const MOCK_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'notif-001',
+    user_id: NOTIF_USER_ID,
+    type: 'ride_match',
+    title: 'New ride match',
+    body: 'James Mwangi is driving Nairobi CBD → Mombasa tomorrow at 6:00 AM. 3 seats left.',
+    data: { trip_id: 'ride-001' },
+    read: false,
+    created_at: new Date(Date.now() - 8 * min).toISOString(),
+  },
+  {
+    id: 'notif-002',
+    user_id: NOTIF_USER_ID,
+    type: 'request_match',
+    title: 'Request accepted',
+    body: 'Aisha Odhiambo accepted your ride request to Nakuru. Confirm your seat now.',
+    data: { booking_id: 'booking-202' },
+    read: false,
+    created_at: new Date(Date.now() - 35 * min).toISOString(),
+  },
+  {
+    id: 'notif-003',
+    user_id: NOTIF_USER_ID,
+    type: 'new_message',
+    title: 'Message from Aisha Odhiambo',
+    body: '“I’m at the Westlands pickup point, silver Nissan X-Trail.”',
+    data: { conversation_id: 'conv-user-002' },
+    read: false,
+    created_at: new Date(Date.now() - 55 * min).toISOString(),
+  },
+  {
+    id: 'notif-004',
+    user_id: NOTIF_USER_ID,
+    type: 'payment_success',
+    title: 'Payment successful',
+    body: 'KES 1,600 paid for your trip to Nakuru. Booking KP-202 is confirmed.',
+    data: { booking_id: 'booking-202' },
+    read: true,
+    created_at: new Date(Date.now() - 3 * hr).toISOString(),
+  },
+  {
+    id: 'notif-005',
+    user_id: NOTIF_USER_ID,
+    type: 'trip_started',
+    title: 'Trip started',
+    body: 'Your trip from Nairobi Westlands to Nakuru is now in progress. Have a safe ride!',
+    data: { booking_id: 'booking-202' },
+    read: true,
+    created_at: new Date(Date.now() - 4 * hr).toISOString(),
+  },
+  {
+    id: 'notif-006',
+    user_id: NOTIF_USER_ID,
+    type: 'new_alert',
+    title: 'Road alert on your route',
+    body: 'Heavy traffic reported on Uhuru Highway near Nyayo Stadium. Expect 30–45 min delays.',
+    data: { alert_id: 'alert-001' },
+    read: true,
+    created_at: new Date(Date.now() - 6 * hr).toISOString(),
+  },
+  {
+    id: 'notif-007',
+    user_id: NOTIF_USER_ID,
+    type: 'payment_failed',
+    title: 'Payment failed',
+    body: 'Your M-Pesa payment for the Thika trip could not be completed. Please try again.',
+    data: { booking_id: 'booking-203' },
+    read: true,
+    created_at: new Date(Date.now() - 1 * day).toISOString(),
+  },
+  {
+    id: 'notif-008',
+    user_id: NOTIF_USER_ID,
+    type: 'trip_completed',
+    title: 'Trip completed',
+    body: 'Your trip with Brian Kamau to Nairobi CBD is complete. Tap to rate your ride.',
+    data: { booking_id: 'booking-204' },
+    read: true,
+    created_at: new Date(Date.now() - 5 * day).toISOString(),
+  },
+  // ── System notifications (System tab) ──
+  {
+    id: 'notif-101',
+    user_id: NOTIF_USER_ID,
+    type: 'system',
+    title: 'Welcome to Kipita 🎉',
+    body: 'Complete your profile to unlock faster booking and personalised ride matches.',
+    data: null,
+    read: false,
+    created_at: new Date(Date.now() - 2 * hr).toISOString(),
+  },
+  {
+    id: 'notif-102',
+    user_id: NOTIF_USER_ID,
+    type: 'system',
+    title: 'Verify your account',
+    body: 'Upload a valid ID to earn your verified badge and build trust with other travellers.',
+    data: null,
+    read: false,
+    created_at: new Date(Date.now() - 2 * day).toISOString(),
+  },
+  {
+    id: 'notif-103',
+    user_id: NOTIF_USER_ID,
+    type: 'system',
+    title: 'New version available',
+    body: 'Kipita 2.1 is here with faster search and new in-trip safety features. Update now.',
+    data: null,
+    read: true,
+    created_at: new Date(Date.now() - 7 * day).toISOString(),
   },
 ];
 
