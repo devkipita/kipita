@@ -7,22 +7,15 @@ import {
   registerForPushNotifications,
   unregisterPushToken,
 } from '@/lib/notifications/push';
+import { notificationRoute } from '@/lib/notifications/route';
 
 /** Route a notification tap to the most relevant screen based on its payload. */
 function routeFromData(
   router: ReturnType<typeof useRouter>,
   data: Record<string, any> | undefined,
 ) {
-  if (!data) return;
-  if (data.booking_id) {
-    router.push(`/trip/${data.booking_id}` as any);
-  } else if (data.conversation_id) {
-    router.push(`/chat/${data.conversation_id}` as any);
-  } else if (data.alert_id) {
-    router.push(`/alert/${data.alert_id}` as any);
-  } else {
-    router.push('/(tabs)/alerts' as any);
-  }
+  // Fall back to the notifications tab when a payload has no actionable target.
+  router.push((notificationRoute(data) ?? '/(tabs)/alerts') as any);
 }
 
 /**

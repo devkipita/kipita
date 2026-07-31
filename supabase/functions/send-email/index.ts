@@ -67,25 +67,46 @@ serve(async (req) => {
   }
 });
 
+// ── Brand palette (mirrors the in-app theme) ─────────────────────────────
+const BRAND = {
+  ink: '#002113', // deep green — headings
+  green: '#2C694D', // primary — buttons & accents
+  greenDark: '#1F4E39', // header bar
+  mint: '#B0F1CC', // primary container
+  mintSoft: '#E7F8EE', // panel background
+  muted: '#5B6B63', // secondary text
+  border: '#E4EAE6',
+  pageBg: '#F1F4F2',
+};
+
 async function buildEmail(
   template: string,
   data: Record<string, string>,
   user: { email: string; full_name: string },
   supabase: any,
 ): Promise<{ subject: string; html: string }> {
-  const name = user.full_name || 'there';
+  const name = (user.full_name || '').trim().split(' ')[0] || 'there';
 
   switch (template) {
     case 'welcome':
       return {
         subject: 'Karibu Kipita! 🚗',
-        html: emailLayout(`
-          <h2 style="color:#1B5E20;">Karibu, ${name}!</h2>
-          <p>Welcome to Kipita — Kenya's smartest carpool app.</p>
-          <p>Whether you're getting a ride or offering one, we've got you covered.</p>
-          ${ctaButton('Open Kipita', 'kipita://home')}
-          <p style="color:#888;font-size:13px;">Need help? Reach us at support@kipita.co.ke</p>
-        `),
+        html: emailLayout({
+          preheader: "You're in. Let's get you moving across Kenya.",
+          body: `
+            ${heading(`Karibu, ${name}!`)}
+            ${paragraph(
+              "Welcome to Kipita — the smart way to share rides across Kenya. Whether you're catching a ride or offering seats, you're covered.",
+            )}
+            ${panel(`
+              ${panelRow('🔎', 'Find a ride', 'Search routes and book a seat in seconds.')}
+              ${panelRow('🚗', 'Offer a ride', 'Post your trip and fill empty seats.')}
+              ${panelRow('💬', 'Stay in touch', 'Chat with drivers and riders in-app.')}
+            `)}
+            ${ctaButton('Open Kipita', 'kipita://home')}
+            ${helpNote()}
+          `,
+        }),
       };
 
     case 'payment_receipt': {
@@ -97,18 +118,22 @@ async function buildEmail(
         .single();
 
       return {
-        subject: 'Payment Receipt — Kipita',
-        html: emailLayout(`
-          <h2 style="color:#1B5E20;">Payment Confirmed ✓</h2>
-          <p>Hi ${name},</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-            <tr><td style="padding:8px 0;color:#666;">Amount</td><td style="padding:8px 0;text-align:right;font-weight:600;">KES ${payment?.amount ?? '—'}</td></tr>
-            <tr><td style="padding:8px 0;color:#666;">Method</td><td style="padding:8px 0;text-align:right;font-weight:600;">${(payment?.method ?? '').toUpperCase()}</td></tr>
-            <tr><td style="padding:8px 0;color:#666;">Reference</td><td style="padding:8px 0;text-align:right;font-size:12px;">${payment?.provider_reference ?? payment_id.slice(0, 12)}</td></tr>
-          </table>
-          ${ctaButton('View Trip', `kipita://trips/${booking_id}`)}
-          <p style="color:#888;font-size:13px;">Questions? Contact support@kipita.co.ke</p>
-        `),
+        subject: 'Your Kipita payment receipt',
+        html: emailLayout({
+          preheader: `Payment of KES ${payment?.amount ?? ''} confirmed.`,
+          body: `
+            ${badge('Payment confirmed')}
+            ${heading('Payment received ✓')}
+            ${paragraph(`Hi ${name}, thanks for your payment. Here's your receipt.`)}
+            ${detailCard([
+              ['Amount', `KES ${payment?.amount ?? '—'}`, true],
+              ['Method', String(payment?.method ?? '—').toUpperCase()],
+              ['Reference', payment?.provider_reference ?? payment_id.slice(0, 12)],
+            ])}
+            ${ctaButton('View trip', `kipita://trips/${booking_id}`)}
+            ${helpNote('Questions about this charge?')}
+          `,
+        }),
       };
     }
 
@@ -123,61 +148,170 @@ async function buildEmail(
       const ride = booking?.ride;
 
       return {
-        subject: 'Trip Confirmed — Kipita',
-        html: emailLayout(`
-          <h2 style="color:#1B5E20;">Trip Confirmed! 🎉</h2>
-          <p>Hi ${name}, your trip is all set.</p>
-          <div style="background:#E8F5E9;border-radius:12px;padding:16px;margin:16px 0;">
-            <p style="margin:0;font-weight:600;">📍 ${ride?.from_location ?? '—'} → ${ride?.to_location ?? '—'}</p>
-            <p style="margin:8px 0 0;color:#666;">📅 ${ride?.departure_date ?? '—'} at ${ride?.departure_time ?? '—'}</p>
-            <p style="margin:8px 0 0;color:#666;">💺 ${booking?.seats_booked ?? 1} seat(s)</p>
-          </div>
-          ${ctaButton('View Trip Details', `kipita://trips/${booking_id}`)}
-          <p style="color:#888;font-size:13px;">Safe travels! — Team Kipita</p>
-        `),
+        subject: 'Your trip is confirmed 🎉',
+        html: emailLayout({
+          preheader: `${ride?.from_location ?? ''} → ${ride?.to_location ?? ''} · ${ride?.departure_date ?? ''}`,
+          body: `
+            ${badge('Trip confirmed')}
+            ${heading('You’re all set! 🎉')}
+            ${paragraph(`Hi ${name}, your seat is booked. Here are your trip details.`)}
+            ${routePanel(
+              ride?.from_location ?? '—',
+              ride?.to_location ?? '—',
+              ride?.departure_date ?? '—',
+              ride?.departure_time ?? '—',
+              booking?.seats_booked ?? 1,
+            )}
+            ${ctaButton('View trip details', `kipita://trips/${booking_id}`)}
+            ${paragraph(`Safe travels! — Team Kipita`, BRAND.muted, 13)}
+          `,
+        }),
       };
     }
 
     default:
       return {
-        subject: 'Kipita Notification',
-        html: emailLayout(`<p>Hi ${name}, you have a new notification from Kipita.</p>`),
+        subject: 'Kipita notification',
+        html: emailLayout({
+          preheader: 'You have a new update from Kipita.',
+          body: `
+            ${heading(`Hi ${name}`)}
+            ${paragraph('You have a new notification from Kipita. Open the app to see the details.')}
+            ${ctaButton('Open Kipita', 'kipita://home')}
+            ${helpNote()}
+          `,
+        }),
       };
   }
 }
 
-function emailLayout(body: string): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:560px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
-    <!-- Header -->
-    <div style="background:#1B5E20;padding:24px;text-align:center;">
-      <h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">🚗 Kipita</h1>
-    </div>
-    <!-- Body -->
-    <div style="padding:24px 28px;">
-      ${body}
-    </div>
-    <!-- Footer -->
-    <div style="background:#f9f9f9;padding:16px 28px;text-align:center;border-top:1px solid #eee;">
-      <p style="margin:0;color:#999;font-size:12px;">© ${new Date().getFullYear()} Kipita. Nairobi, Kenya.</p>
-      <p style="margin:4px 0 0;color:#999;font-size:12px;">
-        <a href="mailto:support@kipita.co.ke" style="color:#1B5E20;">Contact Support</a>
-      </p>
-    </div>
-  </div>
+// ── Layout & reusable components ─────────────────────────────────────────
+
+function emailLayout({ preheader, body }: { preheader: string; body: string }): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light only">
+  <meta name="x-apple-disable-message-reformatting">
+</head>
+<body style="margin:0;padding:0;background:${BRAND.pageBg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <span style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;mso-hide:all;">${preheader}</span>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.pageBg};">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid ${BRAND.border};">
+          <!-- Header -->
+          <tr>
+            <td style="background:${BRAND.greenDark};padding:28px 32px;">
+              <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.3px;">Kipita</span>
+              <span style="color:${BRAND.mint};font-size:22px;font-weight:800;"> 🚗</span>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;color:${BRAND.ink};font-size:15px;line-height:1.6;">
+              ${body}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#FAFBFA;padding:24px 32px;border-top:1px solid ${BRAND.border};">
+              <p style="margin:0 0 6px;color:${BRAND.muted};font-size:12px;line-height:1.5;">
+                You’re receiving this because you have a Kipita account.
+              </p>
+              <p style="margin:0;color:${BRAND.muted};font-size:12px;line-height:1.5;">
+                © ${new Date().getFullYear()} Kipita · Nairobi, Kenya ·
+                <a href="mailto:support@kipita.co.ke" style="color:${BRAND.green};text-decoration:none;font-weight:600;">Contact support</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
 
+function heading(text: string): string {
+  return `<h1 style="margin:0 0 12px;color:${BRAND.ink};font-size:24px;font-weight:800;letter-spacing:-0.4px;line-height:1.25;">${text}</h1>`;
+}
+
+function paragraph(text: string, color: string = BRAND.ink, size = 15): string {
+  return `<p style="margin:0 0 16px;color:${color};font-size:${size}px;line-height:1.6;">${text}</p>`;
+}
+
+function badge(text: string): string {
+  return `<div style="display:inline-block;background:${BRAND.mint};color:${BRAND.ink};font-size:12px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;padding:6px 12px;border-radius:999px;margin:0 0 16px;">${text}</div>`;
+}
+
 function ctaButton(label: string, href: string): string {
   return `
-    <div style="text-align:center;margin:24px 0;">
-      <a href="${href}" style="display:inline-block;background:#1B5E20;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:600;font-size:15px;">
-        ${label}
-      </a>
-    </div>`;
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
+      <tr>
+        <td style="border-radius:14px;background:${BRAND.green};">
+          <a href="${href}" style="display:inline-block;padding:15px 34px;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;border-radius:14px;">${label}</a>
+        </td>
+      </tr>
+    </table>`;
+}
+
+/** Rows of label → value; pass [label, value, emphasise?]. */
+function detailCard(rows: Array<[string, string] | [string, string, boolean]>): string {
+  const body = rows
+    .map(([label, value, strong], i) => {
+      const border = i < rows.length - 1 ? `border-bottom:1px solid ${BRAND.border};` : '';
+      const valueStyle = strong
+        ? `color:${BRAND.ink};font-size:18px;font-weight:800;`
+        : `color:${BRAND.ink};font-size:14px;font-weight:600;`;
+      return `
+        <tr>
+          <td style="padding:12px 0;color:${BRAND.muted};font-size:14px;${border}">${label}</td>
+          <td style="padding:12px 0;text-align:right;${valueStyle}${border}">${value}</td>
+        </tr>`;
+    })
+    .join('');
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.mintSoft};border:1px solid ${BRAND.border};border-radius:16px;padding:4px 20px;margin:8px 0 4px;">
+      ${body}
+    </table>`;
+}
+
+function routePanel(from: string, to: string, date: string, time: string, seats: number): string {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.mintSoft};border:1px solid ${BRAND.border};border-radius:16px;margin:8px 0 4px;">
+      <tr>
+        <td style="padding:20px;">
+          <p style="margin:0;color:${BRAND.ink};font-size:17px;font-weight:800;line-height:1.4;">${from} <span style="color:${BRAND.green};">→</span> ${to}</p>
+          <p style="margin:12px 0 0;color:${BRAND.muted};font-size:14px;">📅 &nbsp;${date} · ${time}</p>
+          <p style="margin:6px 0 0;color:${BRAND.muted};font-size:14px;">💺 &nbsp;${seats} seat${seats === 1 ? '' : 's'}</p>
+        </td>
+      </tr>
+    </table>`;
+}
+
+function panel(rows: string): string {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${BRAND.mintSoft};border:1px solid ${BRAND.border};border-radius:16px;margin:8px 0 4px;">
+      <tr><td style="padding:8px 20px;">${rows}</td></tr>
+    </table>`;
+}
+
+function panelRow(icon: string, title: string, desc: string): string {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="32" valign="top" style="padding:12px 0;font-size:20px;">${icon}</td>
+        <td style="padding:12px 0;">
+          <p style="margin:0;color:${BRAND.ink};font-size:15px;font-weight:700;">${title}</p>
+          <p style="margin:2px 0 0;color:${BRAND.muted};font-size:13px;line-height:1.5;">${desc}</p>
+        </td>
+      </tr>
+    </table>`;
+}
+
+function helpNote(lead = 'Need a hand?'): string {
+  return `<p style="margin:20px 0 0;color:${BRAND.muted};font-size:13px;line-height:1.6;">${lead} Reach us anytime at <a href="mailto:support@kipita.co.ke" style="color:${BRAND.green};text-decoration:none;font-weight:600;">support@kipita.co.ke</a>.</p>`;
 }

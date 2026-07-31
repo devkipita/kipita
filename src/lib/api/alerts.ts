@@ -27,14 +27,52 @@ export async function fetchAlertPreview(): Promise<Alert[]> {
   return data as Alert[];
 }
 
-export async function fetchAlertComments(alertId: string): Promise<AlertComment[]> {
+export async function fetchAlertComments(
+  alertId: string,
+  userId?: string,
+): Promise<AlertComment[]> {
   const { data, error } = await supabase
     .from('alert_comments')
     .select('*, user:users!user_id(id, full_name, avatar_url)')
     .eq('alert_id', alertId)
     .order('created_at', { ascending: true });
   if (error || !data || data.length === 0) return MOCK_COMMENTS[alertId] ?? [];
-  return data as AlertComment[];
+
+  const comments = data as AlertComment[];
+  // Flag which comments the current user has liked so the heart renders filled.
+  if (userId && comments.length > 0) {
+    const { data: likes } = await supabase
+      .from('comment_likes')
+      .select('comment_id')
+      .eq('user_id', userId)
+      .in('comment_id', comments.map((c) => c.id));
+    const liked = new Set((likes ?? []).map((l: any) => l.comment_id));
+    return comments.map((c) => ({ ...c, liked_by_me: liked.has(c.id) }));
+  }
+  return comments;
+}
+
+/** Add or remove the current user's like on a comment (toggle). */
+export async function setCommentLike(
+  commentId: string,
+  userId: string,
+  liked: boolean,
+): Promise<void> {
+  if (liked) {
+    const { error } = await supabase
+      .from('comment_likes')
+      .upsert(
+        { comment_id: commentId, user_id: userId },
+        { onConflict: 'comment_id,user_id' },
+      );
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('comment_likes')
+      .delete()
+      .match({ comment_id: commentId, user_id: userId });
+    if (error) throw error;
+  }
 }
 
 export async function createAlert(alert: {
@@ -57,6 +95,7 @@ export async function addAlertComment(comment: {
   alert_id: string;
   user_id: string;
   content: string;
+  image_url?: string | null;
 }): Promise<AlertComment> {
   const { data, error } = await supabase
     .from('alert_comments')

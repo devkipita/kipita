@@ -17,7 +17,7 @@ import { Icon } from "@/components/core/Icon";
 import { ViewsGlyph } from "@/components/core/GlyphIcons";
 import { Avatar } from "@/components/core/Avatar";
 import { Divider } from "@/components/core/Divider";
-import { Composer } from "@/components/shared/Composer";
+import { Composer, type ComposerAttachment } from "@/components/shared/Composer";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ALERT_META } from "@/components/cards/alertMeta";
 import { useTheme, useLocale, useSafeBack } from "@/hooks";
@@ -25,9 +25,11 @@ import { useAuthStore, useDetailStore, useUIStore } from "@/store";
 import {
   fetchAlertComments,
   addAlertComment,
+  setCommentLike,
   reactToAlert,
   queryKeys,
 } from "@/lib/api";
+import { uploadChatMedia } from "@/lib/api/storage";
 import { spacing, radius } from "@/theme";
 import { formatShortRelativeTime, formatCompactNumber } from "@/lib/formatters";
 import type { AlertComment } from "@/types";
@@ -51,22 +53,44 @@ export default function AlertThreadScreen() {
 
   const alert = useDetailStore((s) => (id ? s.alerts[id] : undefined));
   const [commentText, setCommentText] = useState("");
+  const [attachment, setAttachment] = useState<ComposerAttachment | null>(null);
   const [selectedReaction, setSelectedReaction] = useState<string | null>(
     alert?.user_reaction ?? null,
   );
 
   const { data: comments = [] } = useQuery<AlertComment[]>({
     queryKey: queryKeys.alerts.comments(id ?? ""),
-    queryFn: () => fetchAlertComments(id ?? ""),
+    queryFn: () => fetchAlertComments(id ?? "", user?.id),
     enabled: !!id,
     staleTime: 30_000,
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (content: string) =>
-      addAlertComment({ alert_id: id!, user_id: user!.id, content }),
+    mutationFn: async ({
+      content,
+      media,
+    }: {
+      content: string;
+      media: ComposerAttachment | null;
+    }) => {
+      // GIFs are already hosted (remote Giphy URL); photos upload to storage.
+      let image_url: string | null = null;
+      if (media) {
+        image_url =
+          media.type === "gif"
+            ? media.uri
+            : await uploadChatMedia(media.uri, user!.id, "image");
+      }
+      return addAlertComment({
+        alert_id: id!,
+        user_id: user!.id,
+        content,
+        image_url,
+      });
+    },
     onSuccess: () => {
       setCommentText("");
+      setAttachment(null);
       queryClient.invalidateQueries({
         queryKey: queryKeys.alerts.comments(id ?? ""),
       });
@@ -79,11 +103,51 @@ export default function AlertThreadScreen() {
       setSelectedReaction((prev) => (prev === reaction ? null : reaction)),
   });
 
+  const commentsKey = queryKeys.alerts.comments(id ?? "");
+  const likeCommentMutation = useMutation({
+    mutationFn: ({ comment }: { comment: AlertComment }) =>
+      setCommentLike(comment.id, user!.id, !comment.liked_by_me),
+    // Optimistically flip the heart + count so the tap feels instant.
+    onMutate: async ({ comment }) => {
+      await queryClient.cancelQueries({ queryKey: commentsKey });
+      const prev = queryClient.getQueryData<AlertComment[]>(commentsKey);
+      queryClient.setQueryData<AlertComment[]>(commentsKey, (old) =>
+        (old ?? []).map((c) =>
+          c.id === comment.id
+            ? {
+                ...c,
+                liked_by_me: !c.liked_by_me,
+                likes_count: Math.max(
+                  0,
+                  (c.likes_count ?? 0) + (c.liked_by_me ? -1 : 1),
+                ),
+              }
+            : c,
+        ),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(commentsKey, ctx.prev);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: commentsKey });
+    },
+  });
+
+  const handleLikeComment = useCallback(
+    (comment: AlertComment) => {
+      if (!user) return;
+      likeCommentMutation.mutate({ comment });
+    },
+    [user, likeCommentMutation],
+  );
+
   const handleSend = useCallback(() => {
     const trimmed = commentText.trim();
-    if (!trimmed || !user) return;
-    addCommentMutation.mutate(trimmed);
-  }, [commentText, user, addCommentMutation]);
+    if ((!trimmed && !attachment) || !user) return;
+    addCommentMutation.mutate({ content: trimmed, media: attachment });
+  }, [commentText, attachment, user, addCommentMutation]);
 
   if (!alert) {
     return (
@@ -163,24 +227,42 @@ export default function AlertThreadScreen() {
         })}
       </View>
 
-      {/* Views — tap to see who viewed */}
-      <Pressable
-        onPress={() =>
-          openSheet("alert_viewers", { alert, initialTab: "views" })
-        }
-        style={styles.viewsRow}
-        hitSlop={6}
-        accessibilityRole="button"
-        accessibilityLabel={`${alert.views_count} ${t("views")}`}
-      >
-        <ViewsGlyph size={16} color={colors.textSecondary} />
-        <Text variant="labelMedium" color={colors.textSecondary}>
-          {formatCompactNumber(alert.views_count)} {t("views").toLowerCase()}
-        </Text>
-      </Pressable>
+      {/* Likes + views — tap either to see who reacted / viewed */}
+      <View style={styles.metaRow}>
+        <Pressable
+          onPress={() =>
+            openSheet("alert_viewers", { alert, initialTab: "likes" })
+          }
+          style={styles.viewsRow}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`${alert.reactions_count} ${t("likes")}`}
+        >
+          <Icon name="heart" size={16} color={colors.textSecondary} />
+          <Text variant="labelMedium" color={colors.textSecondary}>
+            {formatCompactNumber(alert.reactions_count)}{" "}
+            {t("likes").toLowerCase()}
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() =>
+            openSheet("alert_viewers", { alert, initialTab: "views" })
+          }
+          style={styles.viewsRow}
+          hitSlop={6}
+          accessibilityRole="button"
+          accessibilityLabel={`${alert.views_count} ${t("views")}`}
+        >
+          <ViewsGlyph size={16} color={colors.textSecondary} />
+          <Text variant="labelMedium" color={colors.textSecondary}>
+            {formatCompactNumber(alert.views_count)} {t("views").toLowerCase()}
+          </Text>
+        </Pressable>
+      </View>
 
       <Divider />
-      <Text variant="titleSmall" color={colors.text} style={styles.bold}>
+      <Text variant="titleMedium" color={colors.text} style={styles.bold}>
         {t("comments")} ({comments.length})
       </Text>
     </View>
@@ -201,7 +283,7 @@ export default function AlertThreadScreen() {
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           <Text
-            variant="bodySmall"
+            variant="bodyMedium"
             color={colors.textTertiary}
             style={styles.noComments}
           >
@@ -213,23 +295,65 @@ export default function AlertThreadScreen() {
             <Avatar
               uri={item.user?.avatar_url ?? null}
               name={item.user?.full_name ?? "User"}
-              size={30}
+              size={38}
             />
-            <View
-              style={[
-                styles.commentBubble,
-                { backgroundColor: colors.surfaceContainerHigh },
-              ]}
-            >
-              <Text variant="labelSmall" color={colors.text} style={styles.bold}>
-                {item.user?.full_name ?? "Anonymous"}
-              </Text>
-              <Text variant="bodySmall" color={colors.textSecondary}>
-                {item.content}
-              </Text>
-              <Text variant="caption" color={colors.textTertiary}>
-                {formatShortRelativeTime(item.created_at)}
-              </Text>
+            <View style={styles.commentBody}>
+              <View style={styles.commentHead}>
+                <View style={styles.commentByline}>
+                  <Text
+                    variant="bodyMedium"
+                    color={colors.text}
+                    style={styles.bold}
+                    numberOfLines={1}
+                  >
+                    {item.user?.full_name ?? "Anonymous"}
+                  </Text>
+                  <Text variant="caption" color={colors.textTertiary}>
+                    · {formatShortRelativeTime(item.created_at)}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => handleLikeComment(item)}
+                  disabled={!user}
+                  style={styles.likeBtn}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    item.liked_by_me ? "Unlike comment" : "Like comment"
+                  }
+                >
+                  <Icon
+                    name={item.liked_by_me ? "heart" : "heart-outline"}
+                    size={16}
+                    color={item.liked_by_me ? colors.error : colors.textTertiary}
+                  />
+                  {!!item.likes_count && (
+                    <Text
+                      variant="caption"
+                      color={item.liked_by_me ? colors.error : colors.textTertiary}
+                    >
+                      {formatCompactNumber(item.likes_count)}
+                    </Text>
+                  )}
+                </Pressable>
+              </View>
+              {!!item.content && (
+                <Text
+                  variant="bodyMedium"
+                  color={colors.text}
+                  style={styles.commentText}
+                >
+                  {item.content}
+                </Text>
+              )}
+              {!!item.image_url && (
+                <Image
+                  source={{ uri: item.image_url }}
+                  style={styles.commentImage}
+                  contentFit="cover"
+                  transition={150}
+                />
+              )}
             </View>
           </View>
         )}
@@ -244,6 +368,9 @@ export default function AlertThreadScreen() {
             onSend={handleSend}
             sending={addCommentMutation.isPending}
             placeholder={t("write_comment")}
+            media
+            attachment={attachment}
+            onAttachmentChange={setAttachment}
           />
         </View>
       ) : (
@@ -302,7 +429,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
 
-  listContent: { padding: spacing.lg, gap: spacing.md },
+  listContent: { padding: spacing.lg, gap: spacing.lg },
   headContent: { gap: spacing.md, marginBottom: spacing.sm },
   hero: {
     width: "100%",
@@ -322,6 +449,7 @@ const styles = StyleSheet.create({
   inlineRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   body: { lineHeight: 24 },
   reactionsRow: { flexDirection: "row", gap: spacing.sm },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: spacing.lg },
   viewsRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   reactionBtn: {
     paddingHorizontal: spacing.md,
@@ -331,8 +459,33 @@ const styles = StyleSheet.create({
   },
   reactionEmoji: { fontSize: 20 },
   noComments: { fontStyle: "italic" },
-  commentItem: { flexDirection: "row", gap: spacing.sm, alignItems: "flex-start" },
-  commentBubble: { flex: 1, padding: spacing.md, borderRadius: radius.lg, gap: 2 },
+  commentItem: { flexDirection: "row", gap: spacing.md, alignItems: "flex-start" },
+  commentBody: { flex: 1, gap: 4, paddingTop: 2 },
+  commentHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  commentByline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 1,
+  },
+  commentText: { lineHeight: 22 },
+  likeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  commentImage: {
+    marginTop: 4,
+    width: "80%",
+    height: 180,
+    borderRadius: radius.lg,
+    backgroundColor: "#0002",
+  },
   signIn: {
     flexDirection: "row",
     alignItems: "center",

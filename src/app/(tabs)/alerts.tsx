@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/core/Text';
@@ -20,6 +21,7 @@ import {
   reactToAlert,
   addAlertComment,
 } from '@/lib/api';
+import { notificationRoute } from '@/lib/notifications/route';
 import { QUERY_STALE_TIMES, ALERT_CATEGORIES } from '@/lib/constants';
 import { spacing, radius } from '@/theme';
 import { FLOATING_TAB_BAR_SPACE } from '@/components/shared/FloatingTabBar';
@@ -30,6 +32,7 @@ type Tab = 'alerts' | 'notifications' | 'system';
 export default function AlertsScreen() {
   const { colors } = useTheme();
   const { t } = useLocale();
+  const router = useRouter();
   const user = useAuthStore(s => s.user);
   const openSheet = useUIStore(s => s.openSheet);
   const queryClient = useQueryClient();
@@ -43,12 +46,16 @@ export default function AlertsScreen() {
     enabled: activeTab === 'alerts',
   });
 
-  const { data: notifications = [], isLoading: notifsLoading } = useQuery({
+  const { data: notificationsRaw = [], isLoading: notifsLoading } = useQuery({
     queryKey: queryKeys.notifications.list(),
     queryFn: () => fetchNotifications(user!.id),
     staleTime: QUERY_STALE_TIMES.notifications,
     enabled: !!user && (activeTab === 'notifications' || activeTab === 'system'),
   });
+
+  // TEMP(testing): force every notification to render as unread so both card
+  // states are easy to eyeball. Remove to restore real read/unread state.
+  const notifications = notificationsRaw.map(n => ({ ...n, read: false }));
 
   const systemNotifs = notifications.filter(n => n.type === 'system');
   const userNotifs = notifications.filter(n => n.type !== 'system');
@@ -80,8 +87,14 @@ export default function AlertsScreen() {
       if (!notif.read) {
         markReadMutation.mutate(notif.id);
       }
+      // Route the tap to the action the notification is about (trip, chat,
+      // alert, ride…). System messages have no target and simply mark read.
+      const path = notificationRoute(notif.data);
+      if (path) {
+        router.push(path as any);
+      }
     },
-    [markReadMutation],
+    [markReadMutation, router],
   );
 
   const renderAlert = useCallback(

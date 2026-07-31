@@ -416,6 +416,9 @@ export interface AlertComment {
   alert_id: string;
   user_id: string;
   content: string;
+  image_url?: string | null;
+  likes_count?: number;
+  liked_by_me?: boolean;
   created_at: string;
   user?: User;
 }

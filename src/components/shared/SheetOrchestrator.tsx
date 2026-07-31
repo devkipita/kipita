@@ -24,6 +24,7 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
   const openSheet = useUIStore((s) => s.openSheet);
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const profileLoaded = useAuthStore((s) => s.profileLoaded);
   const router = useRouter();
   const setTripBooking = useTripStore((s) => s.setBooking);
   const setTripStatus = useTripStore((s) => s.setStatus);
@@ -40,11 +41,16 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
   }, [payload, closeSheet, setTripBooking, setTripStatus, router]);
 
   useEffect(() => {
+    // Only evaluate against the real DB profile — never the optimistic seed
+    // applied during session hydration (whose id is the auth id and whose city
+    // is always null), or the prompt would fire on every launch and saves made
+    // against the seed id would silently match no row.
+    if (!profileLoaded) return;
     const needsProfile = user && (!user.full_name.trim() || !user.city);
     if (needsProfile && !user.profile_prompt_dismissed_at && !activeSheet) {
       openSheet("profile_completion");
     }
-  }, [activeSheet, openSheet, user]);
+  }, [activeSheet, openSheet, user, profileLoaded]);
 
   const handleAuthSuccess = useCallback(() => {
     const returnAction = (payload as any)?.returnAction;

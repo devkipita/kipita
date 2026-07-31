@@ -34,6 +34,7 @@ function RootLayoutInner() {
   const setUser = useAuthStore((s) => s.setUser);
   const setSession = useAuthStore((s) => s.setSession);
   const setLoading = useAuthStore((s) => s.setLoading);
+  const setProfileLoaded = useAuthStore((s) => s.setProfileLoaded);
   const [sessionReady, setSessionReady] = useState(false);
 
   const [fontsLoaded, fontsError] = useFonts({
@@ -57,6 +58,7 @@ function RootLayoutInner() {
       if (!session) {
         setUser(null);
         setSession(null);
+        setProfileLoaded(false);
         gateway.stop();
         return;
       }
@@ -76,6 +78,8 @@ function RootLayoutInner() {
       // while the full profile loads in the background.
       const existing = useAuthStore.getState().user;
       if (!existing || existing.id !== authId) {
+        // A fresh/optimistic seed — the real DB profile has not loaded yet.
+        setProfileLoaded(false);
         setUser({
           id: authId,
           full_name: session.user.user_metadata?.full_name ?? "",
@@ -115,13 +119,16 @@ function RootLayoutInner() {
             email: session.user.email ?? null,
             phone: session.user.phone ?? null,
           } as any);
+          // The real profile (with the correct public.users id) is now in the
+          // store — profile-completion prompts may safely evaluate against it.
+          setProfileLoaded(true);
         }
       } catch (error) {
         // Keep the seeded user; the app stays usable and we retry on next focus.
         console.warn("Profile enrichment deferred:", error);
       }
     },
-    [setSession, setUser],
+    [setSession, setUser, setProfileLoaded],
   );
 
   useEffect(() => {

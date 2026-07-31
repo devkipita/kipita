@@ -30,7 +30,7 @@ const NOTIF_SOURCES: Record<NotificationType, string> = {
   trip_completed: "#00786B",
   new_message: "#163A8C",
   new_alert: "#B88912",
-  system: "#404854",
+  system: "#3E63A8",
 };
 
 interface NotificationCardProps {
@@ -42,8 +42,10 @@ export const NotificationCard = memo(function NotificationCard({
   notification,
   onPress,
 }: NotificationCardProps) {
-  const { isDark } = useTheme();
+  const { colors, isDark } = useTheme();
   const icon = NOTIF_ICONS[notification.type];
+  // Colour is reserved for the icon + its surrounding circle and the title
+  // (header). The card surface and body/meta text stay monochromatic.
   const scheme = createSubtleScheme(NOTIF_SOURCES[notification.type], isDark);
   const unread = !notification.read;
 
@@ -52,11 +54,21 @@ export const NotificationCard = memo(function NotificationCard({
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        { backgroundColor: scheme.bg, opacity: pressed ? 0.85 : 1 },
+        {
+          // Unread reads as a filled chip; read blends flat into the list.
+          backgroundColor: unread ? colors.card : "transparent",
+          opacity: pressed ? 0.85 : 1,
+        },
       ]}
       accessibilityRole="button"
+      accessibilityLabel={`${unread ? "Unread. " : ""}${notification.title}`}
     >
-      <View style={[styles.iconWrap, { backgroundColor: scheme.pillBg }]}>
+      <View
+        style={[
+          styles.iconWrap,
+          { backgroundColor: scheme.pillBg, opacity: unread ? 1 : 0.5 },
+        ]}
+      >
         <Icon name={icon} size={20} color={scheme.pillInk} />
       </View>
 
@@ -64,20 +76,28 @@ export const NotificationCard = memo(function NotificationCard({
         <View style={styles.titleRow}>
           <Text
             variant="titleSmall"
-            color={scheme.ink}
+            color={unread ? scheme.ink : colors.textSecondary}
             numberOfLines={1}
             style={[styles.title, unread && styles.titleUnread]}
           >
             {notification.title}
           </Text>
-          <Text variant="caption" color={scheme.muted} style={styles.time}>
+          <Text
+            variant="caption"
+            color={colors.textTertiary}
+            style={styles.time}
+          >
             {formatShortRelativeTime(notification.created_at)}
           </Text>
           {unread && (
-            <View style={[styles.dot, { backgroundColor: scheme.accent }]} />
+            <View style={[styles.dot, { backgroundColor: scheme.pillInk }]} />
           )}
         </View>
-        <Text variant="bodySmall" color={scheme.muted} numberOfLines={2}>
+        <Text
+          variant="bodySmall"
+          color={unread ? colors.textSecondary : colors.textTertiary}
+          numberOfLines={2}
+        >
           {notification.body}
         </Text>
       </View>
