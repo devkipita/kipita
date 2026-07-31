@@ -5,3 +5,6 @@ export { useProtectedAction } from './useProtectedAction';
 export { useSafeBack } from './useSafeBack';
 export { useVoiceRecorder } from './useVoiceRecorder';
 export { useDebounce } from './useDebounce';
+export { usePushNotifications } from './usePushNotifications';
+export { useDriverKyc } from './useDriverKyc';
+export { useRoleSwitch } from './useRoleSwitch';

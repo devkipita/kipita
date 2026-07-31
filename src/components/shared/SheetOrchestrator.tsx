@@ -8,9 +8,12 @@ import { PersonSheet } from "../sheets/PersonSheet";
 import { PaymentSheet } from "../sheets/PaymentSheet";
 import { ChatSheet } from "../sheets/ChatSheet";
 import { AlertDetailSheet } from "../sheets/AlertDetailSheet";
+import { AlertViewersSheet } from "../sheets/AlertViewersSheet";
 import { AlertPostSheet } from "../sheets/AlertPostSheet";
 import { ProfileCompletionSheet } from "../sheets/ProfileCompletionSheet";
 import { ReportSheet } from "../sheets/ReportSheet";
+import { PostSheet } from "../sheets/PostSheet";
+import { DriverKycSheet } from "../sheets/DriverKycSheet";
 import { updateProfile } from "@/lib/api/profile";
 
 /** Central sheet orchestrator — renders the correct sheet based on global state */
@@ -68,6 +71,8 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
         ? ["92%"]
         : activeSheet === "alert_details"
           ? ["55%", "90%"]
+          : activeSheet === "alert_viewers"
+          ? ["60%", "100%"]
           : activeSheet === "alert_post"
             ? ["75%", "95%"]
             : activeSheet === "chat"
@@ -78,7 +83,11 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
                   ? ["62%"]
                   : activeSheet === "report"
                     ? ["70%", "92%"]
-                    : ["50%", "85%"];
+                    : activeSheet === "post"
+                      ? ["80%", "95%"]
+                      : activeSheet === "driver_kyc"
+                        ? ["75%", "95%"]
+                        : ["50%", "85%"];
 
   return (
     <SheetProvider snapPoints={snapPoints}>
@@ -115,9 +124,23 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
       {activeSheet === "alert_details" && payload && (
         <AlertDetailSheet alert={(payload as any).alert} />
       )}
+      {activeSheet === "alert_viewers" && payload && (
+        <AlertViewersSheet
+          alert={(payload as any).alert}
+          initialTab={(payload as any).initialTab}
+        />
+      )}
       {activeSheet === "alert_post" && <AlertPostSheet />}
       {activeSheet === "report" && payload && (
         <ReportSheet payload={payload as any} />
+      )}
+      {activeSheet === "post" && payload && (
+        <PostSheet {...(payload as any)} />
+      )}
+      {activeSheet === "driver_kyc" && (
+        <DriverKycSheet
+          onSubmitted={(payload as any)?.returnAction}
+        />
       )}
     </SheetProvider>
   );

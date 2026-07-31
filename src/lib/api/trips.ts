@@ -88,8 +88,17 @@ export async function fetchTrips(params?: TripSearchParams): Promise<Trip[]> {
   if (params?.to) query = query.ilike("to_location", `%${params.to}%`);
 
   const { data, error } = await query;
-  const source =
-    error || !data || data.length === 0 ? MOCK_TRIPS : (data as Trip[]);
+  // An explicit route search must reflect reality: return only rides actually
+  // going that way, and an EMPTY list when nobody is — that empty result is
+  // what triggers the "post your ride request" drawer (the core Kipita loop).
+  // Mock seed data is a browse-only preview, never mixed into a real search.
+  const isRouteSearch = Boolean(params?.from || params?.to);
+  const source: Trip[] =
+    error || !data || data.length === 0
+      ? isRouteSearch
+        ? []
+        : MOCK_TRIPS
+      : (data as Trip[]);
   return source.filter((trip) =>
     isTripScheduledOnOrAfterTarget(trip, scheduleTarget),
   );
@@ -121,9 +130,15 @@ export async function fetchRequests(
   if (params?.to) query = query.ilike("to_location", `%${params.to}%`);
 
   const { data, error } = await query;
-  const source =
+  // Same rule as fetchTrips: a real route search never falls back to mock, so
+  // "no passengers going that way" surfaces as empty → the driver is offered
+  // the "post your ride" drawer.
+  const isRouteSearch = Boolean(params?.from || params?.to);
+  const source: RideRequest[] =
     error || !data || data.length === 0
-      ? MOCK_REQUESTS
+      ? isRouteSearch
+        ? []
+        : MOCK_REQUESTS
       : (data as RideRequest[]);
 
   return source.filter((request) => {

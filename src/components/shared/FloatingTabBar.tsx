@@ -1,6 +1,12 @@
-import React, { memo, useCallback } from 'react';
+import React, { memo, useEffect } from 'react';
 import { Pressable, StyleSheet, View, Platform } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  FadeOut,
+  LinearTransition,
+  useAnimatedStyle,
+  withTiming,
+} from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -8,6 +14,7 @@ import { Text } from '@/components/core/Text';
 import { Icon, IconName } from '@/components/core/Icon';
 import { useTheme } from '@/hooks';
 import { haptic } from '@/lib/utils/haptics';
+import { tabBarHidden } from '@/lib/utils/tabBar';
 import { spacing, radius, shadows } from '@/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -36,12 +43,24 @@ export const FloatingTabBar = memo(function FloatingTabBar({
 
   const bottom = Math.max(insets.bottom, spacing.md);
 
+  // Slide out of view (and fade) as scrollable screens push tabBarHidden → 1.
+  const hideDistance = BAR_HEIGHT + bottom + spacing.xl;
+  const barStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: tabBarHidden.value * hideDistance }],
+    opacity: 1 - tabBarHidden.value,
+  }));
+
+  // Always reveal the bar when the active tab changes.
+  useEffect(() => {
+    tabBarHidden.value = withTiming(0, { duration: 200 });
+  }, [state.index]);
+
   return (
     <View
       pointerEvents="box-none"
       style={[styles.wrap, { bottom }]}
     >
-      <View
+      <Animated.View
         style={[
           styles.bar,
           shadows.lg,
@@ -49,6 +68,7 @@ export const FloatingTabBar = memo(function FloatingTabBar({
             borderColor: colors.glassBorder,
             backgroundColor: isDark ? 'rgba(28,28,32,0.72)' : 'rgba(255,255,255,0.72)',
           },
+          barStyle,
         ]}
       >
         {/* Frosted backdrop */}
@@ -112,7 +132,7 @@ export const FloatingTabBar = memo(function FloatingTabBar({
             </AnimatedPressable>
           );
         })}
-      </View>
+      </Animated.View>
     </View>
   );
 });

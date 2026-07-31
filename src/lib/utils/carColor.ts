@@ -295,6 +295,50 @@ export function createTonalCardScheme(
   };
 }
 
+export interface SubtleScheme {
+  /** Soft tinted card background. */
+  bg: string;
+  /** Strong, readable, colour-matched title ink (bold). */
+  ink: string;
+  /** Muted body / meta text. */
+  muted: string;
+  /** Icon pill background + ink. */
+  pillBg: string;
+  pillInk: string;
+  /** Accent used for the unread dot. */
+  accent: string;
+}
+
+/**
+ * A restrained, single-tone scheme from one source hue: a soft tint background
+ * paired with a deep, readable ink of the same colour. Keeps each notification's
+ * identity but reads as a subtle status pill rather than a vivid panel.
+ */
+export function createSubtleScheme(
+  sourceHex: string,
+  isDark: boolean,
+): SubtleScheme {
+  const p = TonalPalette.fromInt(argbFromHex(sourceHex));
+  if (isDark) {
+    return {
+      bg: toneHex(p, 20),
+      ink: toneHex(p, 90),
+      muted: toneHex(p, 72),
+      pillBg: toneHex(p, 30),
+      pillInk: toneHex(p, 92),
+      accent: toneHex(p, 80),
+    };
+  }
+  return {
+    bg: toneHex(p, 95),
+    ink: toneHex(p, 30),
+    muted: toneHex(p, 44),
+    pillBg: toneHex(p, 90),
+    pillInk: toneHex(p, 32),
+    accent: toneHex(p, 42),
+  };
+}
+
 function hashSeed(seed: string): number {
   let hash = 0;
   for (let index = 0; index < seed.length; index += 1) {

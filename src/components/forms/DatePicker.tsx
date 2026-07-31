@@ -27,9 +27,6 @@ interface DatePickerProps {
   minDate?: Date;
 }
 
-const JUNGLE_GREEN = "#1F4734";
-const LIME_GREEN = "#96C93D";
-
 const MONTHS = [
   "Jan",
   "Feb",
@@ -63,6 +60,7 @@ export const DatePicker = memo(function DatePicker({
   const [selected, setSelected] = useState<Date | null>(parsedValue);
 
   const displayLabel = selected ? format(selected, "EEE, d MMM yyyy") : null;
+  const filled = Boolean(displayLabel);
 
   const daysInMonth = getDaysInMonth(viewMonth);
   const firstDayOfWeek = getDay(startOfMonth(viewMonth));
@@ -138,9 +136,15 @@ export const DatePicker = memo(function DatePicker({
             shadowColor: colors.shadow,
             backgroundColor: pressed
               ? colors.surfaceContainerLow
-              : colors.inputBackground,
-            borderColor: open ? colors.inputFocusBorder : colors.inputBorder,
-            borderWidth: open ? 2 : 1.25,
+              : filled
+                ? colors.primaryContainer
+                : colors.inputBackground,
+            borderColor: open
+              ? colors.inputFocusBorder
+              : filled
+                ? colors.primary
+                : colors.inputBorder,
+            borderWidth: open ? 2 : filled ? 1.5 : 1.25,
           },
         ]}
         accessibilityRole="button"
@@ -149,16 +153,22 @@ export const DatePicker = memo(function DatePicker({
         <Icon
           name="calendar-outline"
           size={20}
-          color={open ? colors.inputFocusBorder : colors.placeholder}
+          color={
+            open || filled ? colors.primary : colors.placeholder
+          }
         />
         <Text
           variant="bodyMedium"
-          color={displayLabel ? colors.onSurface : colors.placeholder}
+          color={filled ? colors.onPrimaryContainer : colors.placeholder}
           style={styles.triggerText}
         >
           {displayLabel ?? placeholder}
         </Text>
-        <Icon name="chevron-down" size={18} color={colors.placeholder} />
+        <Icon
+          name="chevron-down"
+          size={18}
+          color={filled ? colors.onPrimaryContainer : colors.placeholder}
+        />
       </Pressable>
 
       {/* Modal */}
@@ -194,7 +204,7 @@ export const DatePicker = memo(function DatePicker({
                 hitSlop={12}
                 style={styles.navBtn}
               >
-                <Icon name="chevron-back" size={22} color={JUNGLE_GREEN} />
+                <Icon name="chevron-back" size={22} color={colors.primary} />
               </Pressable>
               <Text variant="titleLarge">{format(viewMonth, "MMMM yyyy")}</Text>
               <Pressable
@@ -202,14 +212,14 @@ export const DatePicker = memo(function DatePicker({
                 hitSlop={12}
                 style={styles.navBtn}
               >
-                <Icon name="chevron-forward" size={22} color={JUNGLE_GREEN} />
+                <Icon name="chevron-forward" size={22} color={colors.primary} />
               </Pressable>
             </View>
 
             {/* Day names */}
             <View style={styles.dayNames}>
               {DAY_NAMES.map((d) => (
-                <View key={d} style={styles.dayNameCell}>
+                <View key={d} style={styles.headCell}>
                   <Text variant="labelSmall" color={colors.textTertiary}>
                     {d}
                   </Text>
@@ -217,7 +227,7 @@ export const DatePicker = memo(function DatePicker({
               ))}
             </View>
 
-            {/* Calendar grid */}
+            {/* Calendar grid — 7 flexible columns so it fits any width */}
             <View style={styles.grid}>
               {calendarDays.map((day, idx) => {
                 if (day === null) {
@@ -230,34 +240,36 @@ export const DatePicker = memo(function DatePicker({
                   <Pressable
                     key={day}
                     onPress={() => !past && handleSelectDay(day)}
-                    style={[
-                      styles.dayCell,
-                      sel && {
-                        backgroundColor: JUNGLE_GREEN,
-                        borderRadius: radius.full,
-                      },
-                      !sel &&
-                        tod && {
-                          borderWidth: 1.5,
-                          borderColor: JUNGLE_GREEN,
-                          borderRadius: radius.full,
-                        },
-                    ]}
+                    style={styles.dayCell}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sel, disabled: past }}
                   >
-                    <Text
-                      variant="bodyMedium"
-                      color={
-                        sel
-                          ? LIME_GREEN
-                          : past
-                            ? colors.textTertiary
-                            : tod
-                              ? JUNGLE_GREEN
-                              : colors.text
-                      }
+                    <View
+                      style={[
+                        styles.dayInner,
+                        sel && { backgroundColor: colors.primary },
+                        !sel &&
+                          tod && {
+                            borderWidth: 1.5,
+                            borderColor: colors.primary,
+                          },
+                      ]}
                     >
-                      {day}
-                    </Text>
+                      <Text
+                        variant="bodyMedium"
+                        color={
+                          sel
+                            ? colors.onPrimary
+                            : past
+                              ? colors.textTertiary
+                              : tod
+                                ? colors.primary
+                                : colors.text
+                        }
+                      >
+                        {day}
+                      </Text>
+                    </View>
                   </Pressable>
                 );
               })}
@@ -275,8 +287,6 @@ export const DatePicker = memo(function DatePicker({
     </View>
   );
 });
-
-const CELL_SIZE = 42;
 
 const styles = StyleSheet.create({
   container: { gap: 4 },
@@ -302,6 +312,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing["3xl"],
     alignItems: "center",
+    // Cap width so the calendar stays comfortable on tablets / web.
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
   },
   handle: {
     width: 40,
@@ -324,19 +338,27 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: spacing.xs,
   },
-  dayNameCell: {
-    width: CELL_SIZE,
+  headCell: {
+    // 7 equal columns — matches the day grid exactly at any width.
+    width: `${100 / 7}%`,
     alignItems: "center",
     paddingVertical: spacing.xs,
   },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    width: CELL_SIZE * 7,
+    width: "100%",
   },
   dayCell: {
-    width: CELL_SIZE,
-    height: CELL_SIZE,
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dayInner: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -30,6 +30,7 @@ class RealtimeGateway {
     this.stop();
     this.userId = userId;
     this.subscribeBookings(userId);
+    this.subscribeNotifications(userId);
     // Reconnected → drain anything queued while we were offline.
     void useChatStore.getState().flushOutbox();
   }
@@ -84,6 +85,28 @@ class RealtimeGateway {
         ),
       );
     }
+  }
+
+  // ── Notifications: new row for me → refresh the list + unread badge ──
+  private subscribeNotifications(userId: string) {
+    const name = "notifications";
+    this.register(
+      name,
+      supabase.channel(name).on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.notifications.all(),
+          });
+        },
+      ),
+    );
   }
 
   // ── Messaging: join a conversation while its screen is open ──

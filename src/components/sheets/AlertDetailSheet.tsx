@@ -1,20 +1,24 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { View, Pressable, StyleSheet } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { Avatar } from "../core/Avatar";
 import { Divider } from "../core/Divider";
 import { ALERT_META } from "../cards/alertMeta";
+import { AlertEngagement } from "../cards/AlertEngagement";
 import { useTheme, useLocale } from "@/hooks";
 import { useUIStore, useDetailStore } from "@/store";
+import { queryKeys, fetchAlertComments } from "@/lib/api";
 import { spacing, radius } from "@/theme";
 import { formatShortRelativeTime } from "@/lib/formatters";
-import type { Alert } from "@/types";
+import type { Alert, AlertComment } from "@/types";
 
-const REACTIONS = ["👍", "❤️", "😮", "😢"] as const;
+// A comment is "short" enough to pair with a second in the peek preview.
+const SHORT_COMMENT = 90;
 
 interface AlertDetailSheetProps {
   alert: Alert;
@@ -33,6 +37,23 @@ export function AlertDetailSheet({ alert }: AlertDetailSheetProps) {
   const setAlert = useDetailStore((s) => s.setAlert);
 
   const meta = ALERT_META[alert.category];
+
+  const { data: comments = [] } = useQuery<AlertComment[]>({
+    queryKey: queryKeys.alerts.comments(alert.id),
+    queryFn: () => fetchAlertComments(alert.id),
+    staleTime: 30_000,
+  });
+
+  // Preview the first comment, or two if both are short enough to fit.
+  const preview = useMemo(() => {
+    if (comments.length === 0) return [];
+    const [first, second] = comments;
+    const isShort = (c?: AlertComment) => (c?.content.length ?? 0) <= SHORT_COMMENT;
+    return second && isShort(first) && isShort(second) ? [first, second] : [first];
+  }, [comments]);
+
+  const total = Math.max(alert.comments_count, comments.length);
+  const remaining = Math.max(0, total - preview.length);
 
   const openFull = useCallback(() => {
     setAlert(alert);
@@ -84,30 +105,49 @@ export function AlertDetailSheet({ alert }: AlertDetailSheetProps) {
         {alert.content}
       </Text>
 
-      {/* Reactions (glance only) */}
-      <View style={styles.reactionsRow}>
-        {REACTIONS.map((emoji) => (
-          <Pressable
-            key={emoji}
-            onPress={openFull}
-            style={[
-              styles.reactionBtn,
-              {
-                backgroundColor: colors.surfaceContainerHigh,
-                borderColor: colors.borderLight,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={`React ${emoji}`}
-          >
-            <Text style={styles.reactionEmoji}>{emoji}</Text>
-          </Pressable>
-        ))}
-      </View>
+      {/* Functional reactions + engagement stats */}
+      <AlertEngagement alert={alert} onComment={openFull} />
 
       <Divider />
 
-      {/* Engagement summary + See more */}
+      {/* Comment preview: first one or two short comments */}
+      {preview.length > 0 && (
+        <View style={styles.previewList}>
+          {preview.map((comment) => (
+            <View key={comment.id} style={styles.commentRow}>
+              <Avatar
+                uri={comment.user?.avatar_url ?? null}
+                name={comment.user?.full_name ?? "User"}
+                size={30}
+              />
+              <View style={styles.commentBody}>
+                <View style={styles.commentHead}>
+                  <Text
+                    variant="labelSmall"
+                    color={colors.text}
+                    style={[styles.bold, styles.flex]}
+                    numberOfLines={1}
+                  >
+                    {comment.user?.full_name ?? "Anonymous"}
+                  </Text>
+                  <Text variant="caption" color={colors.textTertiary}>
+                    {formatShortRelativeTime(comment.created_at)}
+                  </Text>
+                </View>
+                <Text
+                  variant="bodySmall"
+                  color={colors.textSecondary}
+                  numberOfLines={3}
+                >
+                  {comment.content}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* See more / start the discussion */}
       <Pressable
         onPress={openFull}
         style={[styles.seeMore, { backgroundColor: colors.primaryContainer }]}
@@ -115,7 +155,11 @@ export function AlertDetailSheet({ alert }: AlertDetailSheetProps) {
       >
         <Icon name="chatbubbles-outline" size={18} color={colors.primary} />
         <Text variant="labelLarge" color={colors.primary} style={styles.flex}>
-          {t("see_more")} · {alert.comments_count} {t("comments").toLowerCase()}
+          {remaining > 0
+            ? `${t("see_more")} · ${remaining} ${t("comments").toLowerCase()}`
+            : total > 0
+              ? `${t("see_all")} ${t("comments").toLowerCase()}`
+              : t("write_comment")}
         </Text>
         <Icon name="arrow-forward" size={18} color={colors.primary} />
       </Pressable>
@@ -147,14 +191,19 @@ const styles = StyleSheet.create({
   },
   inlineRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   body: { lineHeight: 24 },
-  reactionsRow: { flexDirection: "row", gap: spacing.sm },
-  reactionBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1,
+  previewList: { gap: spacing.md },
+  commentRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    alignItems: "flex-start",
   },
-  reactionEmoji: { fontSize: 20 },
+  commentBody: { flex: 1, gap: 2 },
+  commentHead: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
   seeMore: {
     flexDirection: "row",
     alignItems: "center",

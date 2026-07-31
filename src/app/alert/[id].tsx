@@ -14,13 +14,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Text } from "@/components/core/Text";
 import { Icon } from "@/components/core/Icon";
+import { ViewsGlyph } from "@/components/core/GlyphIcons";
 import { Avatar } from "@/components/core/Avatar";
 import { Divider } from "@/components/core/Divider";
 import { Composer } from "@/components/shared/Composer";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ALERT_META } from "@/components/cards/alertMeta";
 import { useTheme, useLocale, useSafeBack } from "@/hooks";
-import { useAuthStore, useDetailStore } from "@/store";
+import { useAuthStore, useDetailStore, useUIStore } from "@/store";
 import {
   fetchAlertComments,
   addAlertComment,
@@ -28,7 +29,7 @@ import {
   queryKeys,
 } from "@/lib/api";
 import { spacing, radius } from "@/theme";
-import { formatShortRelativeTime } from "@/lib/formatters";
+import { formatShortRelativeTime, formatCompactNumber } from "@/lib/formatters";
 import type { AlertComment } from "@/types";
 
 const REACTIONS = [
@@ -45,6 +46,7 @@ export default function AlertThreadScreen() {
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const user = useAuthStore((s) => s.user);
+  const openSheet = useUIStore((s) => s.openSheet);
   const queryClient = useQueryClient();
 
   const alert = useDetailStore((s) => (id ? s.alerts[id] : undefined));
@@ -160,6 +162,22 @@ export default function AlertThreadScreen() {
           );
         })}
       </View>
+
+      {/* Views — tap to see who viewed */}
+      <Pressable
+        onPress={() =>
+          openSheet("alert_viewers", { alert, initialTab: "views" })
+        }
+        style={styles.viewsRow}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={`${alert.views_count} ${t("views")}`}
+      >
+        <ViewsGlyph size={16} color={colors.textSecondary} />
+        <Text variant="labelMedium" color={colors.textSecondary}>
+          {formatCompactNumber(alert.views_count)} {t("views").toLowerCase()}
+        </Text>
+      </Pressable>
 
       <Divider />
       <Text variant="titleSmall" color={colors.text} style={styles.bold}>
@@ -304,6 +322,7 @@ const styles = StyleSheet.create({
   inlineRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
   body: { lineHeight: 24 },
   reactionsRow: { flexDirection: "row", gap: spacing.sm },
+  viewsRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   reactionBtn: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,

@@ -64,6 +64,8 @@ export const queryKeys = {
     detail: (id: string) => ["alerts", "detail", id] as const,
     comments: (alertId: string) => ["alerts", "comments", alertId] as const,
     preview: () => ["alerts", "preview"] as const,
+    viewers: (alertId: string) => ["alerts", "viewers", alertId] as const,
+    reactors: (alertId: string) => ["alerts", "reactors", alertId] as const,
   },
 
   // Notifications

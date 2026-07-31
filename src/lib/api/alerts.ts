@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import type { Alert, AlertComment, AlertCategory } from '@/types';
-import { MOCK_ALERTS, MOCK_COMMENTS } from '@/lib/mock/data';
+import type { Alert, AlertComment, AlertCategory, User } from '@/types';
+import { MOCK_ALERTS, MOCK_COMMENTS, MOCK_USERS } from '@/lib/mock/data';
 
 const ALERT_SELECT = `
   *,
@@ -67,9 +67,99 @@ export async function addAlertComment(comment: {
   return data as AlertComment;
 }
 
+/**
+ * Set or clear a user's reaction on an alert. Passing an empty reaction removes
+ * it (toggle-off); any of the 4 emoji keys upserts, replacing a prior reaction.
+ */
 export async function reactToAlert(alertId: string, userId: string, reaction: string) {
+  if (!reaction) {
+    const { error } = await supabase
+      .from('alert_reactions')
+      .delete()
+      .match({ alert_id: alertId, user_id: userId });
+    if (error) throw error;
+    return;
+  }
   const { error } = await supabase
     .from('alert_reactions')
     .upsert({ alert_id: alertId, user_id: userId, reaction }, { onConflict: 'alert_id,user_id' });
   if (error) throw error;
+}
+
+// ── People lists (viewers / reactors) ────────────────────────────────────────
+// Backed by real tables when present; otherwise synthesised from the mock user
+// pool so the "who viewed / who liked" list always has believable content.
+
+const VIEWER_POOL_NAMES = [
+  'Dennis Kiptoo', 'Faith Achieng', 'Samuel Kariuki', 'Lydia Wambui',
+  'Peter Njoroge', 'Cynthia Adhiambo', 'Victor Mutua', 'Joan Chebet',
+  'Collins Barasa', 'Nancy Wairimu', 'Dennis Omondi', 'Ruth Nyaboke',
+  'Ian Kiprotich', 'Winnie Akinyi', 'George Muriithi', 'Esther Naliaka',
+  'Brian Cheruiyot', 'Sharon Moraa', 'Felix Onyango', 'Christine Nduta',
+  'Anthony Maina', 'Purity Jerono', 'Elvis Wekesa', 'Damaris Atieno',
+];
+
+function syntheticPerson(index: number): User {
+  const name = VIEWER_POOL_NAMES[index % VIEWER_POOL_NAMES.length];
+  const handle = name.toLowerCase().replace(/\s+/g, '.');
+  return {
+    id: `person-${index}`,
+    full_name: name,
+    phone: null,
+    email: `${handle}@kipita.co.ke`,
+    avatar_url: null,
+    is_verified: index % 4 === 0,
+    rating: 4 + ((index * 3) % 10) / 10,
+    total_trips: (index * 13) % 160,
+    created_at: new Date(0).toISOString(),
+    updated_at: new Date(0).toISOString(),
+  };
+}
+
+/** Build a believable people list of `count` (capped) starting at `seed`. */
+function buildPeople(count: number, seed: number): User[] {
+  const n = Math.min(Math.max(count, 0), 50);
+  const people: User[] = [];
+  for (let i = 0; i < n; i++) {
+    const idx = seed + i;
+    people.push(idx < MOCK_USERS.length ? MOCK_USERS[idx] : syntheticPerson(idx));
+  }
+  return people;
+}
+
+/** People who have viewed an alert (most recent first). */
+export async function fetchAlertViewers(alertId: string, count = 12): Promise<User[]> {
+  try {
+    const { data, error } = await supabase
+      .from('alert_views')
+      .select('user:users!user_id(id, full_name, avatar_url, email, is_verified, rating, total_trips)')
+      .eq('alert_id', alertId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (!error && data && data.length > 0) {
+      return data.map((r: any) => r.user).filter(Boolean) as User[];
+    }
+  } catch {
+    /* table missing / offline — fall back to synthesised list */
+  }
+  return buildPeople(count, 0);
+}
+
+/** People who have reacted (liked) an alert. */
+export async function fetchAlertReactors(alertId: string, count = 8): Promise<User[]> {
+  try {
+    const { data, error } = await supabase
+      .from('alert_reactions')
+      .select('user:users!user_id(id, full_name, avatar_url, email, is_verified, rating, total_trips)')
+      .eq('alert_id', alertId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (!error && data && data.length > 0) {
+      return data.map((r: any) => r.user).filter(Boolean) as User[];
+    }
+  } catch {
+    /* fall back */
+  }
+  // Offset the seed so likers differ from the viewer list.
+  return buildPeople(count, 2);
 }

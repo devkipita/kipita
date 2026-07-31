@@ -403,6 +403,7 @@ export interface Alert {
   image_url: string | null;
   reactions_count: number;
   comments_count: number;
+  views_count: number;
   created_at: string;
   updated_at: string;
   // Joined
@@ -476,6 +477,7 @@ export type SheetType =
   | "ride_details"
   | "request_details"
   | "alert_details"
+  | "alert_viewers"
   | "person"
   | "payment"
   | "chat"
@@ -483,6 +485,8 @@ export type SheetType =
   | "alert_post"
   | "profile_completion"
   | "report"
+  | "post"
+  | "driver_kyc"
   | null;
 
 export interface SheetPayload {
@@ -503,4 +507,13 @@ export interface SheetPayload {
     reportedUser?: User | null;
     booking?: Booking | null;
   };
+  post: {
+    role: AppMode;
+    from: string;
+    to: string;
+    date: string | null;
+    departure_time: string | null;
+    preferences: RidePreferences;
+  };
+  driver_kyc: { returnAction?: () => void } | undefined;
 }

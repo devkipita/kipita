@@ -167,26 +167,28 @@ const lightBase: BaseColors = {
   onErrorContainer: "#410002",
 
   // ── Surfaces: M3 neutral palette tinted toward the brand green.
-  // Light mode is a soft sage canvas — never plain white — with elevation
-  // expressed by stepping the surfaceContainer tones (Lowest=white pop card
-  // → Highest=most tinted), not by stacking white on white.
-  background: "#E6EFE3",
-  onBackground: "#171D18",
-  surface: "#E6EFE3",
-  onSurface: "#171D18",
-  surfaceVariant: "#D6E2D2",
-  onSurfaceVariant: "#3E4A40",
+  // Light mode is a soft sage canvas — never plain white. The background is
+  // the mid sage tone; elevation is expressed by stepping *brighter* toward a
+  // soft sage-white (Lowest), while inset tones (Variant/Dim) step *deeper*.
+  // The steps carry real green chroma and enough ΔL to read as distinct soft
+  // surfaces — cards, sheets and inputs never dissolve into the canvas.
+  background: "#DBE8D6",
+  onBackground: "#161D17",
+  surface: "#DBE8D6",
+  onSurface: "#161D17",
+  surfaceVariant: "#CBDBC6",
+  onSurfaceVariant: "#404A41",
 
-  surfaceDim: "#CDD9C9",
-  surfaceBright: "#F2F7F0",
-  surfaceContainerLowest: "#FFFFFF",
-  surfaceContainerLow: "#F0F5EE",
-  surfaceContainer: "#EAF1E7",
-  surfaceContainerHigh: "#E4ECE1",
-  surfaceContainerHighest: "#DEE7DB",
+  surfaceDim: "#C1D1BB",
+  surfaceBright: "#F5FBF2",
+  surfaceContainerLowest: "#F7FCF5",
+  surfaceContainerLow: "#EFF7EC",
+  surfaceContainer: "#E9F2E5",
+  surfaceContainerHigh: "#E3EDDF",
+  surfaceContainerHighest: "#DDE8D8",
 
   outline: "#6E796E",
-  outlineVariant: "#BEC9BB",
+  outlineVariant: "#BCC8B8",
 
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",

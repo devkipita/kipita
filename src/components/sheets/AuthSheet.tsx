@@ -10,7 +10,7 @@ import { useTheme, useLocale } from "@/hooks";
 import { supabase } from "@/lib/supabase";
 import { spacing } from "@/theme";
 
-type AuthStep = "choice" | "phone" | "otp" | "sign_in" | "sign_up";
+type AuthStep = "choice" | "phone" | "otp" | "sign_in" | "sign_up" | "reset";
 
 interface AuthSheetProps {
   onSuccess?: () => void;
@@ -160,6 +160,31 @@ export const AuthSheet = memo(function AuthSheet({
       setLoading(false);
     }
   }, [email, password, fullName, onSuccess]);
+
+  const handleResetRequest = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: Linking.createURL("auth/reset-password"),
+      });
+      if (err) {
+        setError(err.message);
+      } else {
+        setNotice(
+          "If that email has an account, we've sent a reset link. Open it on this device to choose a new password.",
+        );
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not send reset email.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
 
   const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
@@ -326,6 +351,47 @@ export const AuthSheet = memo(function AuthSheet({
     );
   }
 
+  // Forgot password — request a reset link by email.
+  if (step === "reset") {
+    return (
+      <View style={styles.container}>
+        <Pressable onPress={() => setStep("sign_in")} style={styles.backBtn}>
+          <Icon name="arrow-back" size={24} color={colors.text} />
+        </Pressable>
+        <Text variant="headlineMedium">{t("reset_password")}</Text>
+        <Text variant="bodyMedium" color={colors.textSecondary}>
+          {t("reset_password_hint")}
+        </Text>
+        <TextInput
+          label={t("email")}
+          placeholder="you@example.com"
+          icon="mail-outline"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={email}
+          onChangeText={setEmail}
+          error={error}
+          autoFocus
+        />
+        {notice ? (
+          <Text variant="bodySmall" color={colors.success}>
+            {notice}
+          </Text>
+        ) : null}
+        <Button
+          label={t("send_reset_link")}
+          onPress={handleResetRequest}
+          variant="filled"
+          size="lg"
+          fullWidth
+          loading={loading}
+          disabled={!email.includes("@")}
+        />
+      </View>
+    );
+  }
+
   // Email sign-in and sign-up are deliberately separate. A mistyped
   // password must never silently create a second account.
   return (
@@ -365,6 +431,21 @@ export const AuthSheet = memo(function AuthSheet({
         onChangeText={setPassword}
         error={error}
       />
+      {step === "sign_in" && (
+        <Pressable
+          onPress={() => {
+            setError("");
+            setNotice("");
+            setStep("reset");
+          }}
+          style={styles.forgotLink}
+          hitSlop={8}
+        >
+          <Text variant="labelMedium" color={colors.primary}>
+            {t("forgot_password")}
+          </Text>
+        </Pressable>
+      )}
       {notice ? (
         <Text variant="bodySmall" color={colors.success}>
           {notice}
@@ -417,5 +498,9 @@ const styles = StyleSheet.create({
   },
   dividerLine: {
     flex: 1,
+  },
+  forgotLink: {
+    alignSelf: "flex-end",
+    marginTop: -spacing.sm,
   },
 });

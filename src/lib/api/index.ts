@@ -1,5 +1,6 @@
 export * from './queryKeys';
 export * from './trips';
+export * from './driver';
 export * from './bookings';
 export * from './alerts';
 export * from './profile';

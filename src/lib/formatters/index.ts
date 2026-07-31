@@ -77,6 +77,28 @@ export function formatShortRelativeTime(dateStr: string): string {
   return format(date, 'd MMM');
 }
 
+/** Compact count formatting for engagement stats — 1243 → "1.2K", 84 → "84". */
+export function formatCompactNumber(value: number): string {
+  if (!value || value < 0) return "0";
+  if (value < 1000) return String(value);
+  if (value < 1_000_000) {
+    const k = value / 1000;
+    return `${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}K`;
+  }
+  const m = value / 1_000_000;
+  return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(1)}M`;
+}
+
+/** Derive a stable @handle for a user (from email local-part, else name). */
+export function deriveHandle(user: { email?: string | null; full_name: string; id: string }): string {
+  const fromEmail = user.email?.split('@')[0]?.replace(/[^a-z0-9_.]/gi, '');
+  const base =
+    fromEmail && fromEmail.length > 1
+      ? fromEmail
+      : user.full_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `@${base || user.id.replace(/[^a-z0-9]/gi, '').slice(0, 8)}`;
+}
+
 export function initials(name: string): string {
   return name
     .split(' ')

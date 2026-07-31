@@ -1,5 +1,6 @@
 import React, { useCallback, useRef, useEffect, memo } from 'react';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks';
 import { useUIStore } from '@/store';
 
@@ -16,6 +17,7 @@ export const SheetProvider = memo(function SheetProvider({
   onClose,
 }: SheetProviderProps) {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheet>(null);
   const activeSheet = useUIStore(s => s.activeSheet);
   const closeSheet = useUIStore(s => s.closeSheet);
@@ -52,6 +54,7 @@ export const SheetProvider = memo(function SheetProvider({
       ref={sheetRef}
       index={0}
       snapPoints={snapPoints}
+      topInset={insets.top}
       enableDynamicSizing={false}
       onClose={handleClose}
       enablePanDownToClose

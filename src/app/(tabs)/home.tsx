@@ -1,11 +1,15 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
-  ScrollView,
   StyleSheet,
   Pressable,
   PanResponder,
 } from "react-native";
+import Animated, {
+  useAnimatedScrollHandler,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
@@ -19,6 +23,7 @@ import { TripCard } from "@/components/cards/TripCard";
 import { AlertCard } from "@/components/cards/AlertCard";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { LoadingState } from "@/components/feedback/LoadingState";
+import { MovingCar } from "@/components/core/MovingCar";
 import { useTheme, useLocale, useAppMode } from "@/hooks";
 import { useUIStore, useAuthStore, useDetailStore } from "@/store";
 import {
@@ -27,8 +32,9 @@ import {
   fetchRequests,
   fetchAlertPreview,
 } from "@/lib/api";
-import { QUERY_STALE_TIMES } from "@/lib/constants";
-import { spacing } from "@/theme";
+import { QUERY_STALE_TIMES, DEFAULT_PREFERENCES } from "@/lib/constants";
+import { tabBarHidden } from "@/lib/utils/tabBar";
+import { spacing, radius } from "@/theme";
 import type {
   RouteSearchForm as FormData,
   Trip,
@@ -41,7 +47,7 @@ const PANEL_RADIUS = 32;
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
   const { t } = useLocale();
-  const { config, isDriver } = useAppMode();
+  const { config, isDriver, mode } = useAppMode();
   const user = useAuthStore((s) => s.user);
   const openSheet = useUIStore((s) => s.openSheet);
   const setTrip = useDetailStore((s) => s.setTrip);
@@ -57,6 +63,7 @@ export default function HomeScreen() {
     departure_time?: string | null;
   }>({});
   const [searching, setSearching] = useState(false);
+  const [lastForm, setLastForm] = useState<FormData | null>(null);
 
   const searchQueryKey = isDriver
     ? queryKeys.requests.search(
@@ -96,6 +103,7 @@ export default function HomeScreen() {
   });
 
   const handleSearch = useCallback((form: FormData) => {
+    setLastForm(form);
     setSearchParams({
       from: form.from,
       to: form.to,
@@ -104,6 +112,75 @@ export default function HomeScreen() {
     });
     setSearching(true);
   }, []);
+
+  // When a deliberate search comes back empty, offer to post: a passenger
+  // posts a ride request, a driver posts a ride. Everyone on the route is then
+  // notified (server broadcast). Requires sign-in first.
+  useEffect(() => {
+    if (!searching || itemsLoading || !lastForm) return;
+    setSearching(false);
+    if (items.length > 0) return;
+
+    const openPost = () =>
+      openSheet("post", {
+        role: mode,
+        from: lastForm.from,
+        to: lastForm.to,
+        date: lastForm.date,
+        departure_time: lastForm.departure_time,
+        preferences: lastForm.preferences,
+      });
+
+    setSearchExpanded(false);
+    if (!user) {
+      openSheet("auth", { returnAction: openPost });
+      return;
+    }
+    openPost();
+  }, [searching, itemsLoading, items.length, lastForm, mode, user, openSheet]);
+
+  // Explicit "post" CTA from the empty state. Reuses the last searched route;
+  // if none exists yet, open the planner so the user enters one first.
+  const handlePostRequest = useCallback(() => {
+    const from = lastForm?.from ?? searchParams.from ?? "";
+    const to = lastForm?.to ?? searchParams.to ?? "";
+    if (from.trim().length < 2 || to.trim().length < 2) {
+      setSearchExpanded(true);
+      return;
+    }
+    const openPost = () =>
+      openSheet("post", {
+        role: mode,
+        from,
+        to,
+        date: lastForm?.date ?? searchParams.date ?? null,
+        departure_time:
+          lastForm?.departure_time ?? searchParams.departure_time ?? null,
+        preferences: lastForm?.preferences ?? DEFAULT_PREFERENCES,
+      });
+    if (!user) {
+      openSheet("auth", { returnAction: openPost });
+      return;
+    }
+    openPost();
+  }, [lastForm, searchParams, mode, user, openSheet]);
+
+  // Hide the floating tab bar while scrolling down the alerts feed, reveal it
+  // when scrolling up or resting at the top.
+  const lastScrollY = useSharedValue(0);
+  const onPanelScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const y = e.contentOffset.y;
+      if (y <= 0) {
+        tabBarHidden.value = withTiming(0, { duration: 200 });
+      } else if (y - lastScrollY.value > 6) {
+        tabBarHidden.value = withTiming(1, { duration: 200 });
+      } else if (lastScrollY.value - y > 6) {
+        tabBarHidden.value = withTiming(0, { duration: 200 });
+      }
+      lastScrollY.value = y;
+    },
+  });
 
   const collapseSearch = useCallback(() => {
     setSearchExpanded(false);
@@ -212,7 +289,13 @@ export default function HomeScreen() {
         ) : items.length === 0 ? (
           <EmptyState
             icon={isDriver ? "hand-right-outline" : "car-outline"}
+            illustration={
+              isDriver ? undefined : <MovingCar width={260} height={114} />
+            }
             message={t(config.emptyResults as any)}
+            chip={!isDriver}
+            actionLabel={t(config.postAction as any)}
+            onAction={handlePostRequest}
           />
         ) : (
           <View style={styles.carouselWrap}>
@@ -246,31 +329,42 @@ export default function HomeScreen() {
           },
         ]}
       >
-        {/* Drag handle */}
+        {/* Drag handle + swipe affordance */}
         <Pressable
           onPress={searchExpanded ? collapseSearch : openAllAlerts}
           style={styles.panelHandleArea}
           accessibilityRole="button"
           accessibilityLabel={
-            searchExpanded ? "Collapse search" : "Open all road alerts"
+            searchExpanded
+              ? t("swipe_close_search")
+              : t("swipe_all_alerts")
           }
           {...panelPanResponder.panHandlers}
         >
-          <View style={[styles.handle, { backgroundColor: colors.divider }]} />
-          <View style={styles.handleHintRow}>
-            <Icon
-              name={searchExpanded ? "chevron-up" : "megaphone-outline"}
-              size={13}
-              color={colors.textTertiary}
-            />
-            <Text variant="caption" color={colors.textTertiary}>
-              {searchExpanded ? "Swipe up to collapse" : t("pull_up_alerts")}
+          <View
+            style={[styles.handle, { backgroundColor: colors.outlineVariant }]}
+          />
+          <View
+            style={[
+              styles.handleHintRow,
+              { backgroundColor: colors.primaryContainer },
+            ]}
+          >
+            <Icon name="chevron-up" size={15} color={colors.onPrimaryContainer} />
+            <Text
+              variant="labelMedium"
+              color={colors.onPrimaryContainer}
+              style={styles.handleHintText}
+            >
+              {searchExpanded ? t("swipe_close_search") : t("swipe_all_alerts")}
             </Text>
           </View>
         </Pressable>
 
-        <ScrollView
+        <Animated.ScrollView
           showsVerticalScrollIndicator={false}
+          onScroll={onPanelScroll}
+          scrollEventThrottle={16}
           contentContainerStyle={[
             styles.panelContent,
             { paddingBottom: FLOATING_TAB_BAR_SPACE },
@@ -314,7 +408,7 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
       </View>
     </AppBackground>
   );
@@ -345,21 +439,27 @@ const styles = StyleSheet.create({
     minHeight: 200, // ensures panel never completely disappears
   },
   handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
+    width: 44,
+    height: 5,
+    borderRadius: 3,
     alignSelf: "center",
   },
   panelHandleArea: {
     alignItems: "center",
-    gap: spacing.xs,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   handleHintRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+  },
+  handleHintText: {
+    fontWeight: "700",
   },
   panelContent: {
     paddingTop: spacing.md,
@@ -383,6 +483,6 @@ const styles = StyleSheet.create({
     height: "auto",
   },
   alertsList: {
-    gap: spacing.md,
+    gap: spacing.sm,
   },
 });

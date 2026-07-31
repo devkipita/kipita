@@ -77,6 +77,16 @@ export const en = {
   read_more: 'Read more',
   choose_comfort: 'Choose comfort',
   pull_up_alerts: 'Pull up for all alerts',
+  swipe_all_alerts: 'Swipe up to see all alerts',
+  swipe_close_search: 'Swipe up to close search',
+
+  // Engagement
+  likes: 'Likes',
+  views: 'Views',
+  follow: 'Follow',
+  following: 'Following',
+  no_views_yet: 'No views yet',
+  no_likes_yet: 'No likes yet',
 
   // Details
   ride_details: 'Ride Details',
@@ -98,6 +108,7 @@ export const en = {
   post_ride: 'Post Ride',
 
   // Trip details
+  rebook: 'Rebook',
   seats: 'Seats',
   seats_available: 'seats available',
   price_per_seat: 'per seat',
@@ -299,6 +310,52 @@ export const en = {
   phone_verify_hint: "We'll text a 6-digit code to verify this number.",
   resend_code: 'Resend code',
   resend_code_in: 'Resend code in',
+
+  // Password reset
+  forgot_password: 'Forgot password?',
+  reset_password: 'Reset password',
+  reset_password_hint:
+    "Enter your email and we'll send you a link to choose a new password.",
+  send_reset_link: 'Send reset link',
+  new_password: 'New password',
+  new_password_hint: 'Choose a new password for your account.',
+  confirm_password: 'Confirm password',
+  update_password: 'Update password',
+  password_updated: 'Password updated. Signing you in…',
+  password_too_short: 'Password must be at least 8 characters.',
+  passwords_dont_match: "Passwords don't match.",
+  reset_link_invalid: 'This reset link is invalid or has expired.',
+
+  // Post a ride / request
+  no_rides_available: 'No rides available',
+  no_requests_available: 'No requests available',
+  offer_your_ride: 'Offer your ride',
+  post_your_trip: 'Post your trip',
+  post_ride_prompt: 'Passengers on this route will see it the moment you post.',
+  post_request_prompt:
+    "We'll let drivers heading this way know you're travelling.",
+  seats_offered: 'Seats offered',
+  seats_needed: 'Seats needed',
+  price_label: 'Price per seat',
+  other_amount: 'Other amount',
+  custom_amount: 'Enter a custom amount',
+  leaving_now: 'Leaving now',
+  pick_a_time: 'Pick a time',
+  request_a_ride: 'Request a ride',
+  offer_a_ride: 'Offer a ride',
+  post_broadcast_note: "We've let everyone on this route know.",
+
+  // Driver KYC
+  become_a_driver: 'Become a driver',
+  driver_kyc_intro:
+    'Driving needs a quick verification. Add your ID and licence — passengers ride with no extra steps.',
+  national_id: 'National ID number',
+  license_number: 'Driver’s licence number',
+  license_expiry: 'Licence expiry',
+  optional: 'Optional',
+  driver_kyc_review_note:
+    "We'll review your details shortly. You can start offering rides while your verification is pending.",
+  submit_for_review: 'Submit for review',
 } as const;
 
 export type TranslationKey = keyof typeof en;

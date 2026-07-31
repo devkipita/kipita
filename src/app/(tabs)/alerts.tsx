@@ -180,7 +180,7 @@ export default function AlertsScreen() {
             data={alerts}
             renderItem={renderAlert}
             contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.lg }} />}
+            ItemSeparatorComponent={() => <View style={{ height: spacing.xs }} />}
           />
         )
       )}

@@ -41,6 +41,12 @@
           "microphonePermission": "Kipita needs microphone access to record voice notes in chat."
         }
       ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2F6C4F"
+        }
+      ],
       "expo-asset"
     ],
     "experiments": {

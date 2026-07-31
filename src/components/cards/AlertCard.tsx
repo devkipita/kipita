@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { Avatar } from "../core/Avatar";
+import { AlertEngagement } from "./AlertEngagement";
 import { useTheme, useLocale } from "@/hooks";
 import { spacing, radius, shadows } from "@/theme";
 import { formatShortRelativeTime, truncateWords } from "@/lib/formatters";
@@ -16,39 +17,6 @@ const MAX_WORDS = 26;
 interface AlertCardProps {
   alert: Alert;
   onPress: () => void;
-}
-
-/** Single, co-located engagement group — like + comment stacked in one place. */
-function Engagement({
-  alert,
-  iconColor,
-  countColor,
-}: {
-  alert: Alert;
-  iconColor: string;
-  countColor: string;
-}) {
-  const liked = !!alert.user_reaction;
-  return (
-    <View style={engagement.group}>
-      <View style={engagement.item}>
-        <Icon
-          name={liked ? "heart" : "heart-outline"}
-          size={22}
-          color={liked ? "#D4B896" : iconColor}
-        />
-        <Text variant="caption" color={countColor}>
-          {alert.reactions_count}
-        </Text>
-      </View>
-      <View style={engagement.item}>
-        <Icon name="chatbubble-outline" size={20} color={iconColor} />
-        <Text variant="caption" color={countColor}>
-          {alert.comments_count}
-        </Text>
-      </View>
-    </View>
-  );
 }
 
 export const AlertCard = memo(function AlertCard({
@@ -97,106 +65,115 @@ export const AlertCard = memo(function AlertCard({
         </View>
 
         <View style={styles.mediaBody}>
-          <View style={styles.mediaContent}>
-            <Text variant="titleSmall" color="#fff" numberOfLines={1}>
-              {alert.location}
+          <Text variant="titleSmall" color="#fff" numberOfLines={1}>
+            {alert.location}
+          </Text>
+          <Text
+            variant="bodySmall"
+            color="rgba(255,255,255,0.92)"
+            numberOfLines={2}
+          >
+            {body}
+            {truncated ? ` ${t("read_more")}` : ""}
+          </Text>
+          <View style={styles.metaRow}>
+            {alert.user && (
+              <Avatar
+                uri={alert.user.avatar_url}
+                name={alert.user.full_name}
+                size={18}
+              />
+            )}
+            <Text variant="caption" color="rgba(255,255,255,0.7)">
+              {authorName} · {formatShortRelativeTime(alert.created_at)}
             </Text>
-            <Text
-              variant="bodySmall"
-              color="rgba(255,255,255,0.92)"
-              numberOfLines={2}
-            >
-              {body}
-              {truncated ? ` ${t("read_more")}` : ""}
-            </Text>
-            <View style={styles.metaRow}>
-              {alert.user && (
-                <Avatar
-                  uri={alert.user.avatar_url}
-                  name={alert.user.full_name}
-                  size={18}
-                />
-              )}
-              <Text variant="caption" color="rgba(255,255,255,0.7)">
-                {authorName} · {formatShortRelativeTime(alert.created_at)}
-              </Text>
-            </View>
           </View>
-          <Engagement
+          <AlertEngagement
             alert={alert}
-            iconColor="#fff"
-            countColor="rgba(255,255,255,0.9)"
+            onComment={onPress}
+            variant="onMedia"
+            compact
           />
         </View>
       </Pressable>
     );
   }
 
-  // ── Clean, borderless feed row (comment-style) ──
+  // ── Subtle card feed row (comment-style) ──
   return (
     <Pressable
       onPress={onPress}
-      style={({ pressed }) => [styles.row, { opacity: pressed ? 0.6 : 1 }]}
+      style={({ pressed }) => [
+        styles.row,
+        {
+          backgroundColor: pressed
+            ? colors.surfaceContainerHigh
+            : colors.surfaceContainer,
+        },
+      ]}
       accessibilityRole="button"
     >
-      <Avatar uri={alert.user?.avatar_url} name={authorName} size={40} />
+      <View style={styles.topRow}>
+        <Avatar uri={alert.user?.avatar_url} name={authorName} size={40} />
 
-      <View style={styles.body}>
-        <View style={styles.authorLine}>
+        <View style={styles.body}>
+          <View style={styles.authorLine}>
+            <Text
+              variant="labelLarge"
+              color={colors.text}
+              numberOfLines={1}
+              style={styles.author}
+            >
+              {authorName}
+            </Text>
+            <Icon name={catIcon} size={12} color={catColor} />
+            <Text variant="labelSmall" color={catColor} numberOfLines={1}>
+              {catLabel}
+            </Text>
+            <View style={styles.headerSpacer} />
+            <Text variant="caption" color={colors.textTertiary} numberOfLines={1}>
+              {formatShortRelativeTime(alert.created_at)}
+            </Text>
+          </View>
+
           <Text
-            variant="labelLarge"
-            color={colors.text}
+            variant="labelSmall"
+            color={colors.textSecondary}
+            style={styles.location}
             numberOfLines={1}
-            style={styles.author}
           >
-            {authorName}
+            {alert.location}
           </Text>
-          <View style={[styles.catDot, { backgroundColor: catColor }]} />
-          <Text variant="labelSmall" color={catColor} numberOfLines={1}>
-            {catLabel}
+
+          <Text variant="bodyMedium" color={colors.text} style={styles.content}>
+            {body}
+            {truncated && (
+              <Text variant="bodyMedium" color={colors.primary}>
+                {"  "}
+                {t("read_more")}
+              </Text>
+            )}
           </Text>
         </View>
-
-        <Text
-          variant="labelSmall"
-          color={colors.textSecondary}
-          style={styles.location}
-          numberOfLines={1}
-        >
-          {alert.location}
-        </Text>
-
-        <Text variant="bodyMedium" color={colors.text} style={styles.content}>
-          {body}
-          {truncated && (
-            <Text variant="bodyMedium" color={colors.primary}>
-              {"  "}
-              {t("read_more")}
-            </Text>
-          )}
-        </Text>
-
-        <Text variant="caption" color={colors.textTertiary} style={styles.time}>
-          {formatShortRelativeTime(alert.created_at)}
-        </Text>
       </View>
 
-      <Engagement
-        alert={alert}
-        iconColor={colors.textSecondary}
-        countColor={colors.textTertiary}
-      />
+      <AlertEngagement alert={alert} onComment={onPress} variant="default" compact />
     </Pressable>
   );
 });
 
 const styles = StyleSheet.create({
-  // Clean feed row
+  // Subtle card feed row
   row: {
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
+  },
+  topRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: spacing.md,
-    paddingVertical: spacing.xs,
   },
   body: {
     flex: 1,
@@ -211,19 +188,14 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontWeight: "700",
   },
-  catDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
+  headerSpacer: {
+    flex: 1,
   },
   location: {
     marginTop: -1,
   },
   content: {
     lineHeight: 20,
-    marginTop: 2,
-  },
-  time: {
     marginTop: 2,
   },
 
@@ -240,13 +212,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   mediaBody: {
-    flexDirection: "row",
-    alignItems: "flex-end",
     padding: spacing.md,
-    gap: spacing.sm,
-  },
-  mediaContent: {
-    flex: 1,
     gap: spacing.xs,
   },
   metaRow: {
@@ -266,19 +232,5 @@ const styles = StyleSheet.create({
   },
   catChipText: {
     fontWeight: "700",
-  },
-});
-
-const engagement = StyleSheet.create({
-  group: {
-    alignItems: "center",
-    gap: spacing.md,
-    paddingTop: 2,
-    paddingLeft: spacing.xs,
-  },
-  item: {
-    alignItems: "center",
-    gap: 2,
-    minWidth: 28,
   },
 });

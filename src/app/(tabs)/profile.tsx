@@ -18,7 +18,7 @@ import { useRouter } from "expo-router";
 import { Text } from "@/components/core/Text";
 import { Icon } from "@/components/core/Icon";
 import { Avatar } from "@/components/core/Avatar";
-import { useTheme, useLocale, useAppMode } from "@/hooks";
+import { useTheme, useLocale, useAppMode, useRoleSwitch } from "@/hooks";
 import { useAuthStore, useUIStore, useSettingsStore } from "@/store";
 import { supabase } from "@/lib/supabase";
 import { storage, STORAGE_KEYS } from "@/lib/utils/mmkv";
@@ -109,7 +109,8 @@ function toneColors(colors: Record<string, string>, tone: Tone, destructive?: bo
 export default function ProfileScreen() {
   const { colors } = useTheme();
   const { t, locale, changeLocale } = useLocale();
-  const { mode, toggle: toggleMode, isDriver } = useAppMode();
+  const { mode, isDriver } = useAppMode();
+  const { requestToggle } = useRoleSwitch();
   const user = useAuthStore((s) => s.user);
   const openSheet = useUIStore((s) => s.openSheet);
   const router = useRouter();
@@ -326,7 +327,7 @@ export default function ProfileScreen() {
                 icon={isDriver ? "car" : "person"}
                 value={isDriver ? t("driver") : t("passenger")}
                 label="Mode"
-                onPress={toggleMode}
+                onPress={requestToggle}
                 iconColor={colors.primary}
                 valueColor={colors.onSurface}
                 labelColor={colors.onSurfaceVariant}
@@ -421,7 +422,7 @@ export default function ProfileScreen() {
             tone="primary"
             label={t("switch_mode")}
             value={isDriver ? t("driver") : t("passenger")}
-            onPress={toggleMode}
+            onPress={requestToggle}
           />
         )}
       </SettingsGroup>

@@ -79,6 +79,16 @@ export const sw: Record<TranslationKey, string> = {
   read_more: 'Soma zaidi',
   choose_comfort: 'Chagua starehe',
   pull_up_alerts: 'Vuta juu kuona tahadhari zote',
+  swipe_all_alerts: 'Vuta juu kuona tahadhari zote',
+  swipe_close_search: 'Vuta juu kufunga utafutaji',
+
+  // Engagement
+  likes: 'Zilizopendwa',
+  views: 'Mionekano',
+  follow: 'Fuata',
+  following: 'Unafuata',
+  no_views_yet: 'Hakuna mionekano bado',
+  no_likes_yet: 'Hakuna zilizopendwa bado',
 
   // Details
   ride_details: 'Maelezo ya Safari',
@@ -100,6 +110,7 @@ export const sw: Record<TranslationKey, string> = {
   post_ride: 'Tuma Safari',
 
   // Trip details
+  rebook: 'Panga Tena',
   seats: 'Viti',
   seats_available: 'viti vinapatikana',
   price_per_seat: 'kwa kiti',
@@ -301,4 +312,49 @@ export const sw: Record<TranslationKey, string> = {
   phone_verify_hint: 'Tutatuma msimbo wa tarakimu 6 kuthibitisha namba hii.',
   resend_code: 'Tuma msimbo tena',
   resend_code_in: 'Tuma msimbo tena baada ya',
+
+  // Password reset
+  forgot_password: 'Umesahau nywila?',
+  reset_password: 'Weka upya nywila',
+  reset_password_hint:
+    'Weka barua pepe yako na tutakutumia kiungo cha kuchagua nywila mpya.',
+  send_reset_link: 'Tuma kiungo cha kuweka upya',
+  new_password: 'Nywila mpya',
+  new_password_hint: 'Chagua nywila mpya kwa akaunti yako.',
+  confirm_password: 'Thibitisha nywila',
+  update_password: 'Sasisha nywila',
+  password_updated: 'Nywila imesasishwa. Tunakuingiza…',
+  password_too_short: 'Nywila lazima iwe na angalau herufi 8.',
+  passwords_dont_match: 'Nywila hazilingani.',
+  reset_link_invalid: 'Kiungo hiki cha kuweka upya si sahihi au kimeisha muda.',
+
+  // Post a ride / request
+  no_rides_available: 'Hakuna safari zinazopatikana',
+  no_requests_available: 'Hakuna maombi yanayopatikana',
+  offer_your_ride: 'Toa safari yako',
+  post_your_trip: 'Chapisha safari yako',
+  post_ride_prompt: 'Abiria kwenye njia hii wataiona mara tu utakapochapisha.',
+  post_request_prompt: 'Tutawajulisha madereva wanaoelekea upande huu kuwa unasafiri.',
+  seats_offered: 'Viti vinavyotolewa',
+  seats_needed: 'Viti vinavyohitajika',
+  price_label: 'Bei kwa kiti',
+  other_amount: 'Kiasi kingine',
+  custom_amount: 'Weka kiasi chako',
+  leaving_now: 'Unaondoka sasa',
+  pick_a_time: 'Chagua saa',
+  request_a_ride: 'Omba safari',
+  offer_a_ride: 'Toa safari',
+  post_broadcast_note: 'Tumewajulisha wote kwenye njia hii.',
+
+  // Driver KYC
+  become_a_driver: 'Kuwa dereva',
+  driver_kyc_intro:
+    'Kuendesha kunahitaji uthibitisho wa haraka. Ongeza kitambulisho na leseni yako — abiria husafiri bila hatua za ziada.',
+  national_id: 'Namba ya kitambulisho',
+  license_number: 'Namba ya leseni ya udereva',
+  license_expiry: 'Mwisho wa leseni',
+  optional: 'Si lazima',
+  driver_kyc_review_note:
+    'Tutakagua taarifa zako hivi karibuni. Unaweza kuanza kutoa safari wakati uthibitisho ukisubiri.',
+  submit_for_review: 'Wasilisha kwa ukaguzi',
 };

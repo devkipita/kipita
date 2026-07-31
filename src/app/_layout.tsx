@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { queryClient } from "@/lib/query/client";
 import { setupQueryLifecycle } from "@/lib/query/lifecycle";
@@ -17,13 +17,17 @@ import {
   DMSans_700Bold,
   DMSans_800ExtraBold,
 } from "@expo-google-fonts/dm-sans";
-import { useTheme } from "@/hooks";
+import { useTheme, usePushNotifications } from "@/hooks";
 import { useAuthStore } from "@/store";
 import { supabase } from "@/lib/supabase";
+import { configureNotificationHandler } from "@/lib/notifications/push";
 import { SheetOrchestrator } from "@/components/shared/SheetOrchestrator";
 import { OfflineBanner } from "@/components/feedback/OfflineBanner";
 
 SplashScreen.preventAutoHideAsync();
+// Foreground notification behaviour — set once at module load, before any
+// notification can arrive.
+configureNotificationHandler();
 
 function RootLayoutInner() {
   const { colors, isDark } = useTheme();
@@ -174,12 +178,17 @@ function RootLayoutInner() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       void hydrateSession(session).finally(() => {
         if (mounted) {
           setSessionReady(true);
         }
       });
+      // A reset-password email deep-link produces a recovery session — send the
+      // user to the screen where they choose a new password.
+      if (event === "PASSWORD_RECOVERY") {
+        router.navigate("/auth/reset-password");
+      }
     });
 
     return () => {
@@ -193,6 +202,9 @@ function RootLayoutInner() {
 
   // Bridge connectivity + foreground into React Query and the offline banner.
   useEffect(() => setupQueryLifecycle(), []);
+
+  // Register the device for push + route notification taps.
+  usePushNotifications();
 
   useEffect(() => {
     if (!fontsLoaded || !sessionReady) return;

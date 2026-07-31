@@ -4,8 +4,8 @@ import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { useTheme } from "@/hooks";
 import { spacing, radius } from "@/theme";
-import { formatRelativeTime } from "@/lib/formatters";
-import { createTonalCardScheme } from "@/lib/utils/carColor";
+import { formatShortRelativeTime } from "@/lib/formatters";
+import { createSubtleScheme } from "@/lib/utils/carColor";
 import type { AppNotification, NotificationType } from "@/types";
 import type { IconName } from "../core/Icon";
 
@@ -44,54 +44,41 @@ export const NotificationCard = memo(function NotificationCard({
 }: NotificationCardProps) {
   const { isDark } = useTheme();
   const icon = NOTIF_ICONS[notification.type];
-  const scheme = createTonalCardScheme(
-    NOTIF_SOURCES[notification.type],
-    isDark,
-    notification.read ? "request" : "ride",
-  );
+  const scheme = createSubtleScheme(NOTIF_SOURCES[notification.type], isDark);
+  const unread = !notification.read;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [
         styles.card,
-        {
-          backgroundColor: scheme.leftBg,
-          borderColor: scheme.outline,
-          opacity: pressed ? 0.9 : 1,
-        },
+        { backgroundColor: scheme.bg, opacity: pressed ? 0.85 : 1 },
       ]}
       accessibilityRole="button"
     >
-      <View style={styles.mainPanel}>
-        <View style={[styles.iconWrap, { backgroundColor: scheme.pillBg }]}>
-          <Icon name={icon} size={20} color={scheme.pillInk} />
-        </View>
-        <View style={styles.content}>
-          <Text variant="titleSmall" color={scheme.leftInk} numberOfLines={1}>
+      <View style={[styles.iconWrap, { backgroundColor: scheme.pillBg }]}>
+        <Icon name={icon} size={20} color={scheme.pillInk} />
+      </View>
+
+      <View style={styles.content}>
+        <View style={styles.titleRow}>
+          <Text
+            variant="titleSmall"
+            color={scheme.ink}
+            numberOfLines={1}
+            style={[styles.title, unread && styles.titleUnread]}
+          >
             {notification.title}
           </Text>
-          <Text variant="bodySmall" color={scheme.leftMuted} numberOfLines={2}>
-            {notification.body}
+          <Text variant="caption" color={scheme.muted} style={styles.time}>
+            {formatShortRelativeTime(notification.created_at)}
           </Text>
+          {unread && (
+            <View style={[styles.dot, { backgroundColor: scheme.accent }]} />
+          )}
         </View>
-      </View>
-      <View
-        style={[
-          styles.sidePanel,
-          { backgroundColor: scheme.rightBg, borderLeftColor: scheme.outline },
-        ]}
-      >
-        <View
-          style={[
-            styles.sideBadge,
-            { backgroundColor: scheme.rightAccentSoft },
-          ]}
-        >
-          <Icon name={icon} size={18} color={scheme.rightAccent} />
-        </View>
-        <Text variant="labelMedium" color={scheme.rightInk} align="center">
-          {formatRelativeTime(notification.created_at)}
+        <Text variant="bodySmall" color={scheme.muted} numberOfLines={2}>
+          {notification.body}
         </Text>
       </View>
     </Pressable>
@@ -102,20 +89,9 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: radius.md,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  mainPanel: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
     gap: spacing.md,
     padding: spacing.md,
-  },
-  content: {
-    flex: 1,
-    gap: 2,
+    borderRadius: radius.md,
   },
   iconWrap: {
     width: 40,
@@ -124,20 +100,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  sidePanel: {
-    width: 96,
-    minHeight: 88,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderLeftWidth: 1,
+  content: {
+    flex: 1,
+    gap: 3,
   },
-  sideBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+  titleRow: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
+  },
+  title: {
+    flexShrink: 1,
+    fontWeight: "700",
+  },
+  titleUnread: {
+    fontWeight: "800",
+  },
+  time: {
+    marginLeft: "auto",
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
 });
