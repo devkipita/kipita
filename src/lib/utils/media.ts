@@ -69,10 +69,11 @@ export async function compressImage(
 }
 
 /**
- * Ask for library permission, let the user pick one image, then compress it.
- * Returns null if permission denied or the picker was cancelled.
+ * Ask for library permission and let the user pick one image. Returns the RAW
+ * asset (no compression) so callers can show it as an instant local preview
+ * before the slower compress/upload work runs. Null if denied or cancelled.
  */
-export async function pickAndCompressImage(): Promise<PickedImage | null> {
+export async function pickImage(): Promise<PickedImage | null> {
   const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (!permission.granted) {
     if (!permission.canAskAgain) warnPermissionDenied();
@@ -83,16 +84,27 @@ export async function pickAndCompressImage(): Promise<PickedImage | null> {
     mediaTypes: ["images"],
     quality: 1,
     allowsEditing: false,
-    // We do our own compression below, so pull the full asset here.
+    // We do our own compression later, so pull the full asset here.
   });
 
   if (result.canceled || !result.assets?.length) return null;
 
   const asset = result.assets[0];
+  return { uri: asset.uri, width: asset.width, height: asset.height };
+}
+
+/**
+ * Pick + compress in one step. Returns null if permission denied or cancelled.
+ * For flows that want an instant preview, use {@link pickImage} then
+ * {@link compressImage} separately.
+ */
+export async function pickAndCompressImage(): Promise<PickedImage | null> {
+  const picked = await pickImage();
+  if (!picked) return null;
   try {
-    return await compressImage(asset.uri, asset.width, asset.height);
+    return await compressImage(picked.uri, picked.width, picked.height);
   } catch {
     // If manipulation fails for any reason, fall back to the raw pick.
-    return { uri: asset.uri, width: asset.width, height: asset.height };
+    return picked;
   }
 }

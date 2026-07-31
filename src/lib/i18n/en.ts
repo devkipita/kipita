@@ -301,6 +301,8 @@ export const en = {
   contact_verification_note:
     'Email and phone are secured by sign-in. Changing either sends a verification step before it takes effect.',
   save_changes: 'Save changes',
+  change_photo: 'Change photo',
+  photo_upload_error: 'Could not upload your photo. Please try again.',
   profile_saved: 'Profile updated',
   profile_save_error: 'Could not save your changes. Please try again.',
   not_set: 'Not set',

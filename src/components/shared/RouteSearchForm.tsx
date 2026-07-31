@@ -44,7 +44,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   expanded,
   onExpandedChange,
 }: RouteSearchFormProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useLocale();
   const { config } = useAppMode();
 
@@ -254,11 +254,23 @@ export const RouteSearchForm = memo(function RouteSearchForm({
           exiting={FadeOut.duration(120)}
           style={[
             styles.compactRow,
-            shadows.lg,
+            shadows.xl,
             {
-              backgroundColor: colors.inputBackground,
-              borderColor: colors.inputBorder,
+              // `surfaceBright` is the one surface that reads as *raised* in both
+              // themes (bright sage-white on light, lifted grey on dark), so the
+              // pill floats above the sage canvas instead of dissolving into it.
+              backgroundColor: colors.surfaceBright,
+              // Light mode leans on the shadow; dark mode can't (a dark shadow
+              // vanishes on a dark canvas), so a faint lighter top-edge gives the
+              // pill its raised feel instead.
+              borderColor: isDark ? "rgba(255,255,255,0.10)" : colors.borderLight,
+              // Soft, wide shadow so this reads as the elevated, welcoming
+              // primary input on the screen.
               shadowColor: colors.shadow,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.16,
+              shadowRadius: 24,
+              elevation: 12,
             },
           ]}
         >
@@ -287,6 +299,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
                 backgroundColor: JUNGLE_GREEN,
                 borderWidth: 1,
                 borderColor: JUNGLE_GREEN,
+                shadowColor: colors.shadow,
               },
             ]}
             accessibilityRole="button"
@@ -295,7 +308,12 @@ export const RouteSearchForm = memo(function RouteSearchForm({
             }
           >
             <Icon name="calendar-outline" size={15} color={LIME_GREEN} />
-            <Text variant="labelMedium" color={LIME_GREEN} numberOfLines={1}>
+            <Text
+              variant="labelMedium"
+              color={LIME_GREEN}
+              numberOfLines={1}
+              style={styles.bold}
+            >
               {scheduleLabel ?? t("later")}
             </Text>
           </Pressable>

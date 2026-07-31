@@ -4,11 +4,13 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  ActivityIndicator,
   Alert as RNAlert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/core/Text";
 import { Icon } from "@/components/core/Icon";
+import { Avatar } from "@/components/core/Avatar";
 import { Button } from "@/components/core/Button";
 import { Divider } from "@/components/core/Divider";
 import { TextInput } from "@/components/forms/TextInput";
@@ -20,6 +22,8 @@ import {
   requestPhoneChange,
   confirmPhoneChange,
 } from "@/lib/api/profile";
+import { uploadChatMedia } from "@/lib/api/storage";
+import { pickImage, compressImage } from "@/lib/utils/media";
 import { formatPhone } from "@/lib/formatters";
 import { haptic } from "@/lib/utils/haptics";
 import { spacing, radius } from "@/theme";
@@ -46,7 +50,42 @@ export default function EditProfileScreen() {
   const [city, setCity] = useState(user?.city ?? "");
   const [dob, setDob] = useState(user?.date_of_birth ?? "");
   const [gender, setGender] = useState<Gender | null>(user?.gender ?? null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    user?.avatar_url ?? null,
+  );
+  // Local preview shown instantly while the picked image uploads.
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const pickAvatar = useCallback(async () => {
+    if (!user) return;
+    const picked = await pickImage();
+    if (!picked) return;
+    haptic.light();
+    // Show the raw pick immediately, then compress + upload behind the overlay.
+    setAvatarPreview(picked.uri);
+    setUploadingAvatar(true);
+    try {
+      const compressed = await compressImage(
+        picked.uri,
+        picked.width,
+        picked.height,
+      );
+      const url = await uploadChatMedia(
+        compressed.uri,
+        user.id,
+        "image",
+        "avatars",
+      );
+      setAvatarUrl(url);
+    } catch {
+      setAvatarPreview(null);
+      RNAlert.alert(t("photo_upload_error"));
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }, [user, t]);
 
   const save = useCallback(async () => {
     if (!user) return;
@@ -57,6 +96,7 @@ export default function EditProfileScreen() {
         city: city.trim() || null,
         date_of_birth: dob.trim() || null,
         gender: gender ?? null,
+        avatar_url: avatarUrl,
       });
       setUser({ ...user, ...profile });
       haptic.success();
@@ -67,7 +107,7 @@ export default function EditProfileScreen() {
     } finally {
       setSaving(false);
     }
-  }, [user, fullName, city, dob, gender, setUser, t, goBack]);
+  }, [user, fullName, city, dob, gender, avatarUrl, setUser, t, goBack]);
 
   if (!user) {
     return (
@@ -81,7 +121,9 @@ export default function EditProfileScreen() {
   const cityChanged = (city.trim() || null) !== (user.city ?? null);
   const dobChanged = (dob.trim() || null) !== (user.date_of_birth ?? null);
   const genderChanged = (gender ?? null) !== (user.gender ?? null);
-  const dirty = nameChanged || cityChanged || dobChanged || genderChanged;
+  const avatarChanged = (avatarUrl ?? null) !== (user.avatar_url ?? null);
+  const dirty =
+    nameChanged || cityChanged || dobChanged || genderChanged || avatarChanged;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -92,6 +134,44 @@ export default function EditProfileScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* ── Profile photo ── */}
+        <View style={styles.avatarSection}>
+          <Pressable
+            onPress={pickAvatar}
+            disabled={uploadingAvatar}
+            style={styles.avatarWrap}
+            accessibilityRole="button"
+            accessibilityLabel={t("change_photo")}
+          >
+            <Avatar
+              uri={avatarPreview ?? avatarUrl}
+              name={fullName || user.full_name || "You"}
+              size={104}
+            />
+            {uploadingAvatar && (
+              <View style={styles.avatarLoading}>
+                <ActivityIndicator color="#fff" />
+              </View>
+            )}
+            <View
+              style={[
+                styles.avatarBadge,
+                {
+                  backgroundColor: colors.primary,
+                  borderColor: colors.background,
+                },
+              ]}
+            >
+              <Icon name="camera" size={16} color={colors.onPrimary} />
+            </View>
+          </Pressable>
+          <Pressable onPress={pickAvatar} disabled={uploadingAvatar} hitSlop={8}>
+            <Text variant="labelMedium" color={colors.primary}>
+              {t("change_photo")}
+            </Text>
+          </Pressable>
+        </View>
+
         {/* ── Personal details ── */}
         <SectionTitle>{t("personal_details")}</SectionTitle>
         <View style={[styles.card, { backgroundColor: colors.surfaceContainer }]}>
@@ -187,7 +267,7 @@ export default function EditProfileScreen() {
           size="lg"
           fullWidth
           loading={saving}
-          disabled={!dirty || fullName.trim().length < 2}
+          disabled={!dirty || uploadingAvatar || fullName.trim().length < 2}
         />
       </View>
     </View>
@@ -515,6 +595,32 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   content: { padding: spacing.lg, gap: spacing.sm },
+  avatarSection: {
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  avatarWrap: {
+    position: "relative",
+  },
+  avatarLoading: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 52,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sectionTitle: {
     paddingLeft: spacing.sm,
     letterSpacing: 0.8,

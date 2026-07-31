@@ -146,7 +146,11 @@ export const TripCard = memo(function TripCard({
           <View style={[styles.pill, { backgroundColor: scheme.pillBg }]}>
             {ride ? (
               <>
-                <Text variant="labelLarge" color={scheme.pillInk}>
+                <Text
+                  variant="labelLarge"
+                  color={scheme.pillInk}
+                  style={styles.price}
+                >
                   {formatCurrency(ride.price_per_seat)}
                 </Text>
                 <Text
@@ -257,6 +261,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.full,
     gap: 4,
+  },
+  price: {
+    fontWeight: "800",
   },
   pillSub: {
     opacity: 0.8,

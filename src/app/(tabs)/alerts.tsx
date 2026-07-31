@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/core/Text';
@@ -36,8 +36,19 @@ export default function AlertsScreen() {
   const user = useAuthStore(s => s.user);
   const openSheet = useUIStore(s => s.openSheet);
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<Tab>('alerts');
+  const { tab } = useLocalSearchParams<{ tab?: string }>();
+  const [activeTab, setActiveTab] = useState<Tab>(
+    tab === 'notifications' || tab === 'system' ? tab : 'alerts',
+  );
   const [showPostForm, setShowPostForm] = useState(false);
+
+  // Honour the `?tab=` param when the screen is already mounted (e.g. tapping
+  // the top-bar bell while the Alerts tab is in the background).
+  useEffect(() => {
+    if (tab === 'notifications' || tab === 'system' || tab === 'alerts') {
+      setActiveTab(tab);
+    }
+  }, [tab]);
 
   const { data: alerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: queryKeys.alerts.feed(),

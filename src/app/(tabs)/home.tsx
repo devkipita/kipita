@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   /* ── Sections ── */
   section: {
     gap: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.sm,
   },
   sectionHeader: {
     flexDirection: "row",

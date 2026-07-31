@@ -303,6 +303,8 @@ export const sw: Record<TranslationKey, string> = {
   contact_verification_note:
     'Barua pepe na simu vinalindwa na kuingia. Kubadilisha chochote hutuma hatua ya uthibitisho kabla haijaanza kutumika.',
   save_changes: 'Hifadhi mabadiliko',
+  change_photo: 'Badilisha picha',
+  photo_upload_error: 'Haikuwezekana kupakia picha yako. Tafadhali jaribu tena.',
   profile_saved: 'Wasifu umesasishwa',
   profile_save_error: 'Haikuwezekana kuhifadhi mabadiliko yako. Tafadhali jaribu tena.',
   not_set: 'Haijawekwa',

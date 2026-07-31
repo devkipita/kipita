@@ -43,6 +43,7 @@ export async function uploadChatMedia(
   localUri: string,
   userId: string,
   kind: MessageAttachmentType,
+  bucket: string = BUCKET,
 ): Promise<string> {
   const { ext, mime } = extAndMime(kind, localUri);
   // Unique per-user path: <uid>/<timestamp>-<source-basename>.<ext>
@@ -55,10 +56,10 @@ export async function uploadChatMedia(
   const bytes = base64ToBytes(base64);
 
   const { error } = await supabase.storage
-    .from(BUCKET)
+    .from(bucket)
     .upload(path, bytes, { contentType: mime, upsert: false });
   if (error) throw error;
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
   return data.publicUrl;
 }

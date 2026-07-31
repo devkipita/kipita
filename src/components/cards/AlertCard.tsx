@@ -34,15 +34,7 @@ export const AlertCard = memo(function AlertCard({
   // ── Immersive media variant (image-backed) ──
   if (alert.image_url) {
     return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.media,
-          shadows.md,
-          { opacity: pressed ? 0.95 : 1 },
-        ]}
-        accessibilityRole="button"
-      >
+      <View style={[styles.media, shadows.md]}>
         <Image
           source={{ uri: alert.image_url }}
           style={StyleSheet.absoluteFill}
@@ -55,7 +47,17 @@ export const AlertCard = memo(function AlertCard({
           style={StyleSheet.absoluteFill}
         />
 
-        <View style={styles.mediaTop}>
+        {/* Full-card tap target sits BEHIND the content as a sibling (never a
+            parent) of the engagement buttons, so we never nest <button>s on web.
+            box-none lets taps on the non-interactive text fall through to it. */}
+        <Pressable
+          onPress={onPress}
+          style={StyleSheet.absoluteFill}
+          accessibilityRole="button"
+          accessibilityLabel={alert.location}
+        />
+
+        <View style={styles.mediaTop} pointerEvents="box-none">
           <View style={[styles.catChip, { backgroundColor: catColor }]}>
             <Icon name={catIcon} size={12} color="#fff" />
             <Text variant="labelSmall" color="#fff" style={styles.catChipText}>
@@ -64,7 +66,7 @@ export const AlertCard = memo(function AlertCard({
           </View>
         </View>
 
-        <View style={styles.mediaBody}>
+        <View style={styles.mediaBody} pointerEvents="box-none">
           <Text variant="titleSmall" color="#fff" numberOfLines={1}>
             {alert.location}
           </Text>
@@ -95,25 +97,21 @@ export const AlertCard = memo(function AlertCard({
             compact
           />
         </View>
-      </Pressable>
+      </View>
     );
   }
 
   // ── Subtle card feed row (comment-style) ──
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          backgroundColor: pressed
-            ? colors.surfaceContainerHigh
-            : colors.surfaceContainer,
-        },
-      ]}
-      accessibilityRole="button"
-    >
-      <View style={styles.topRow}>
+    <View style={[styles.row, { backgroundColor: colors.surfaceContainer }]}>
+      {/* Only the content opens the thread; the engagement row is a sibling so
+          its buttons are never nested inside this button (invalid on web). */}
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => pressed && styles.pressed}
+        accessibilityRole="button"
+      >
+        <View style={styles.topRow}>
         <Avatar uri={alert.user?.avatar_url} name={authorName} size={40} />
 
         <View style={styles.body}>
@@ -156,9 +154,10 @@ export const AlertCard = memo(function AlertCard({
           </Text>
         </View>
       </View>
+      </Pressable>
 
       <AlertEngagement alert={alert} onComment={onPress} variant="default" compact />
-    </Pressable>
+    </View>
   );
 });
 
@@ -169,6 +168,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.lg,
     gap: spacing.xs,
+  },
+  pressed: {
+    opacity: 0.6,
   },
   topRow: {
     flexDirection: "row",
