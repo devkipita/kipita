@@ -6,6 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/** Kipita's platform commission, as a percentage of the fare (default 12%). */
+const FEE_PERCENT = Number(Deno.env.get('KIPITA_FEE_PERCENT') ?? '12');
+
+/** Round to 2 decimal places (KES cents). */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/** Split a fare into Kipita's fee and the driver's earning. */
+function escrowSplit(amount: number): { fee: number; driverEarning: number } {
+  const fee = round2((amount * FEE_PERCENT) / 100);
+  return { fee, driverEarning: round2(amount - fee) };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -70,10 +84,21 @@ serve(async (req) => {
       });
     }
 
-    // Mark payment completed
+    // Passenger payment captured to the Kipita paybill. Compute the escrow
+    // split now and HOLD the funds — they are released to the driver (minus the
+    // Kipita fee) only when the ride is ended. See release-escrow.
+    const { fee, driverEarning } = escrowSplit(Number(payment.amount));
     const { data: updatedPayment } = await supabase
       .from('payments')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .update({
+        status: 'completed',
+        escrow_status: 'held',
+        platform_fee: fee,
+        driver_earning: driverEarning,
+        held_at: new Date().toISOString(),
+        paid_at: payment.paid_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', payment_id)
       .select('*')
       .single();
@@ -105,8 +130,8 @@ serve(async (req) => {
       {
         user_id: booking.passenger_id,
         type: 'payment_success',
-        title: 'Payment Confirmed',
-        body: `Your payment of KES ${payment.amount} has been confirmed.`,
+        title: 'Payment Held Securely',
+        body: `KES ${payment.amount} is held safely and released to your driver when your ride ends.`,
         data: { booking_id: booking.id, payment_id },
       },
       {

@@ -1,0 +1,108 @@
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+
+/**
+ * M-Pesa Daraja STK Push callback.
+ *
+ * Safaricom POSTs the result of a Lipa Na M-Pesa Online payment here (the URL
+ * set as `CallBackURL` in initiate-payment, with `?payment_id=<id>` appended).
+ * On success we record the M-Pesa receipt and hand off to `confirm-payment`,
+ * which captures the fare into escrow and confirms the booking. On failure we
+ * mark the payment failed and notify the passenger.
+ *
+ * Daraja expects a 200 with `{ ResultCode: 0 }` regardless, so it stops
+ * retrying — application errors are logged, not surfaced to Safaricom.
+ */
+serve(async (req) => {
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  );
+
+  const ack = () =>
+    new Response(JSON.stringify({ ResultCode: 0, ResultDesc: 'Accepted' }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  try {
+    const url = new URL(req.url);
+    const paymentId = url.searchParams.get('payment_id');
+    const body = await req.json();
+
+    const stk = body?.Body?.stkCallback;
+    if (!paymentId || !stk) {
+      console.error('mpesa-callback: missing payment_id or stkCallback', { paymentId });
+      return ack();
+    }
+
+    const resultCode = Number(stk.ResultCode);
+
+    // Guard against replays / already-settled payments.
+    const { data: payment } = await supabase
+      .from('payments')
+      .select('id, status, escrow_status')
+      .eq('id', paymentId)
+      .single();
+
+    if (!payment) {
+      console.error('mpesa-callback: payment not found', { paymentId });
+      return ack();
+    }
+    if (payment.status === 'completed') {
+      return ack(); // idempotent — already captured
+    }
+
+    if (resultCode !== 0) {
+      // Passenger cancelled the prompt, timed out, or had insufficient funds.
+      await supabase
+        .from('payments')
+        .update({ status: 'failed', updated_at: new Date().toISOString() })
+        .eq('id', paymentId);
+
+      const { data: failedBooking } = await supabase
+        .from('payments')
+        .select('booking_id, bookings(passenger_id)')
+        .eq('id', paymentId)
+        .single();
+
+      const passengerId = (failedBooking as any)?.bookings?.passenger_id;
+      if (passengerId) {
+        await supabase.from('notifications').insert({
+          user_id: passengerId,
+          type: 'payment_failed',
+          title: 'Payment Not Completed',
+          body: stk.ResultDesc ?? 'The M-Pesa payment was not completed.',
+          data: { payment_id: paymentId },
+        });
+      }
+      return ack();
+    }
+
+    // Success — pull the M-Pesa receipt number & amount from the metadata items.
+    const items: Array<{ Name: string; Value?: string | number }> =
+      stk.CallbackMetadata?.Item ?? [];
+    const receipt = items.find((i) => i.Name === 'MpesaReceiptNumber')?.Value;
+
+    await supabase
+      .from('payments')
+      .update({
+        transaction_reference: receipt ? String(receipt) : null,
+        paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', paymentId);
+
+    // Capture into escrow + confirm the booking (idempotent, transactional).
+    const { error: confirmErr } = await supabase.functions.invoke('confirm-payment', {
+      body: { payment_id: paymentId },
+    });
+    if (confirmErr) {
+      console.error('mpesa-callback: confirm-payment failed', confirmErr);
+    }
+
+    return ack();
+  } catch (err) {
+    console.error('mpesa-callback error:', err);
+    return ack();
+  }
+});

@@ -1,0 +1,188 @@
+import React, { memo, useCallback, useEffect } from "react";
+import { useRouter } from "expo-router";
+import { useUIStore, useAuthStore, useTripStore } from "@/store";
+import { SheetProvider } from "../sheets/SheetProvider";
+import { AuthSheet } from "../sheets/AuthSheet";
+import { RideDetailsSheet } from "../sheets/RideDetailsSheet";
+import { PersonSheet } from "../sheets/PersonSheet";
+import { PaymentSheet } from "../sheets/PaymentSheet";
+import { ChatSheet } from "../sheets/ChatSheet";
+import { AlertDetailSheet } from "../sheets/AlertDetailSheet";
+import { AlertViewersSheet } from "../sheets/AlertViewersSheet";
+import { AlertPostSheet } from "../sheets/AlertPostSheet";
+import { ProfileCompletionSheet } from "../sheets/ProfileCompletionSheet";
+import { ReportSheet } from "../sheets/ReportSheet";
+import { PostSheet } from "../sheets/PostSheet";
+import { DriverKycSheet } from "../sheets/DriverKycSheet";
+import { updateProfile } from "@/lib/api/profile";
+import { initiatePayment, pollPaymentStatus } from "@/lib/api";
+import type { Booking, PaymentMethod } from "@/types";
+
+/** Central sheet orchestrator — renders the correct sheet based on global state */
+export const SheetOrchestrator = memo(function SheetOrchestrator() {
+  const activeSheet = useUIStore((s) => s.activeSheet);
+  const payload = useUIStore((s) => s.sheetPayload);
+  const closeSheet = useUIStore((s) => s.closeSheet);
+  const openSheet = useUIStore((s) => s.openSheet);
+  const user = useAuthStore((s) => s.user);
+  const setUser = useAuthStore((s) => s.setUser);
+  const profileLoaded = useAuthStore((s) => s.profileLoaded);
+  const router = useRouter();
+  const setTripBooking = useTripStore((s) => s.setBooking);
+  const setTripStatus = useTripStore((s) => s.setStatus);
+
+  const handlePaymentDone = useCallback(() => {
+    const booking = (payload as any)?.booking;
+    closeSheet();
+    if (booking) {
+      // Payment confirmed → hand off to the live trip screen.
+      setTripBooking(booking);
+      setTripStatus(booking.id, "confirmed");
+      router.push(`/trip/${booking.id}` as any);
+    }
+  }, [payload, closeSheet, setTripBooking, setTripStatus, router]);
+
+  /**
+   * Real payment: M-Pesa STK push → poll our backend until the funds are
+   * captured into escrow. Mock/optimistic bookings (temp- ids, seed data)
+   * can't reach the backend, so we let the animated flow play and resolve
+   * success — keeps the demo working without a live booking row.
+   */
+  const handlePay = useCallback(
+    async (method: PaymentMethod, phone?: string): Promise<boolean> => {
+      const booking = (payload as any)?.booking as Booking | undefined;
+      if (!booking || !user) return false;
+
+      const isRealBooking = /^[0-9a-f-]{36}$/i.test(booking.id);
+      if (!isRealBooking) {
+        await new Promise((r) => setTimeout(r, 1400));
+        return true;
+      }
+
+      try {
+        const { payment_id } = await initiatePayment({
+          booking_id: booking.id,
+          user_id: user.id,
+          amount: booking.total_price,
+          method,
+          phone: phone ?? user.phone ?? undefined,
+        });
+        return await pollPaymentStatus(payment_id);
+      } catch {
+        return false;
+      }
+    },
+    [payload, user],
+  );
+
+  useEffect(() => {
+    // Only evaluate against the real DB profile — never the optimistic seed
+    // applied during session hydration (whose id is the auth id and whose city
+    // is always null), or the prompt would fire on every launch and saves made
+    // against the seed id would silently match no row.
+    if (!profileLoaded) return;
+    const needsProfile = user && (!user.full_name.trim() || !user.city);
+    if (needsProfile && !user.profile_prompt_dismissed_at && !activeSheet) {
+      openSheet("profile_completion");
+    }
+  }, [activeSheet, openSheet, user, profileLoaded]);
+
+  const handleAuthSuccess = useCallback(() => {
+    const returnAction = (payload as any)?.returnAction;
+    closeSheet();
+    returnAction?.();
+  }, [payload, closeSheet]);
+
+  const dismissProfileCompletion = useCallback(async () => {
+    if (user) {
+      const profile = await updateProfile(user.id, {
+        profile_prompt_dismissed_at: new Date().toISOString(),
+      });
+      setUser(profile);
+    }
+    closeSheet();
+  }, [closeSheet, setUser, user]);
+
+  if (!activeSheet) return null;
+
+  const snapPoints =
+    activeSheet === "ride_details"
+      ? ["92%"]
+      : activeSheet === "request_details"
+        ? ["92%"]
+        : activeSheet === "alert_details"
+          ? ["55%", "90%"]
+          : activeSheet === "alert_viewers"
+          ? ["60%", "100%"]
+          : activeSheet === "alert_post"
+            ? ["75%", "95%"]
+            : activeSheet === "chat"
+              ? ["70%", "95%"]
+              : activeSheet === "auth"
+                ? ["65%", "90%"]
+                : activeSheet === "profile_completion"
+                  ? ["62%"]
+                  : activeSheet === "report"
+                    ? ["70%", "92%"]
+                    : activeSheet === "post"
+                      ? ["80%", "95%"]
+                      : activeSheet === "driver_kyc"
+                        ? ["75%", "95%"]
+                        : ["50%", "85%"];
+
+  return (
+    <SheetProvider snapPoints={snapPoints}>
+      {activeSheet === "auth" && <AuthSheet onSuccess={handleAuthSuccess} />}
+      {activeSheet === "profile_completion" && user && (
+        <ProfileCompletionSheet
+          user={user}
+          onComplete={(profile) => {
+            setUser({ ...user, ...profile });
+            closeSheet();
+          }}
+          onDismiss={() => void dismissProfileCompletion()}
+        />
+      )}
+      {activeSheet === "ride_details" && payload && (
+        <RideDetailsSheet item={(payload as any).trip} variant="ride" />
+      )}
+      {activeSheet === "request_details" && payload && (
+        <RideDetailsSheet item={(payload as any).request} variant="request" />
+      )}
+      {activeSheet === "person" && payload && (
+        <PersonSheet user={(payload as any).user} />
+      )}
+      {activeSheet === "payment" && payload && (
+        <PaymentSheet
+          booking={(payload as any).booking}
+          onPay={handlePay}
+          onClose={handlePaymentDone}
+        />
+      )}
+      {activeSheet === "chat" && payload && (
+        <ChatSheet conversationId={(payload as any).conversationId} />
+      )}
+      {activeSheet === "alert_details" && payload && (
+        <AlertDetailSheet alert={(payload as any).alert} />
+      )}
+      {activeSheet === "alert_viewers" && payload && (
+        <AlertViewersSheet
+          alert={(payload as any).alert}
+          initialTab={(payload as any).initialTab}
+        />
+      )}
+      {activeSheet === "alert_post" && <AlertPostSheet />}
+      {activeSheet === "report" && payload && (
+        <ReportSheet payload={payload as any} />
+      )}
+      {activeSheet === "post" && payload && (
+        <PostSheet {...(payload as any)} />
+      )}
+      {activeSheet === "driver_kyc" && (
+        <DriverKycSheet
+          onSubmitted={(payload as any)?.returnAction}
+        />
+      )}
+    </SheetProvider>
+  );
+});

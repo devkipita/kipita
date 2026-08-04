@@ -1,0 +1,12 @@
+{
+  "name": "@kipita/shared",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Domain types and business logic shared across Kipita's mobile app and web/admin.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}
