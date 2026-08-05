@@ -9,6 +9,7 @@ import { Parallax } from "../anim/Parallax";
 import { TrickleHeading } from "./TrickleHeading";
 import { HeroCarousel } from "./HeroCarousel";
 import { CountUp } from "./CountUp";
+import { RidesCarousel } from "./RidesCarousel";
 import { WaitlistForm } from "./WaitlistForm";
 import { ContactDock } from "./ContactDock";
 import {
@@ -697,22 +698,6 @@ const LinkOutline = styled.a`
   &:hover {
     background: ${nocturne.lime};
     color: ${nocturne.greenDeep};
-  }
-`;
-
-const RideTrack = styled.div`
-  position: relative;
-  margin-top: 44px;
-  display: flex;
-  justify-content: safe center;
-  gap: 20px;
-  overflow-x: auto;
-  padding: 8px clamp(20px, 5vw, 72px) 28px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
   }
 `;
 
@@ -1899,7 +1884,7 @@ export function KipitaLanding() {
           </Reveal>
         </RidesHead>
 
-        <RideTrack>
+        <RidesCarousel>
           {RIDES.map((r) => (
             <RideCard key={r.name} style={{ background: r.card }}>
               <RideTop>
@@ -1932,7 +1917,7 @@ export function KipitaLanding() {
               </RideFoot>
             </RideCard>
           ))}
-        </RideTrack>
+        </RidesCarousel>
       </RidesSection>
 
       {/* ── Road alerts ── */}
