@@ -30,6 +30,7 @@ next-env.d.ts
 # ── Monorepo tooling ──
 .turbo/
 coverage/
+*.tsbuildinfo
 
 # ── Logs ──
 *.log
