@@ -23,9 +23,9 @@ type CardTone = {
 // with the card's colour, bold text toned to the card. The deep-green card uses
 // bright lime text (never white) — the same rule wherever a green card appears.
 const TONES = {
-  chat: { bg: "#14392a", circle: "#0b2b1b", icon: "#c7ee55", title: "#c7ee55", sub: "#a9d4b0" },
+  chat: { bg: "#14392a", circle: "#0b2b1b", icon: "#9fe870", title: "#9fe870", sub: "#a9d4b0" },
   report: { bg: "#d4b896", circle: "#0e0e0e", icon: "#d4b896", title: "#0e0e0e", sub: "#5c4e3b" },
-  call: { bg: "#c7ee55", circle: "#14392a", icon: "#c7ee55", title: "#14392a", sub: "#3f5722" },
+  call: { bg: "#9fe870", circle: "#14392a", icon: "#9fe870", title: "#14392a", sub: "#3f5722" },
   email: { bg: "#9ec5a2", circle: "#0e0e0e", icon: "#9ec5a2", title: "#0e0e0e", sub: "#2f4a38" },
 } as const satisfies Record<string, CardTone>;
 

@@ -3,8 +3,20 @@
 
 type P = { size?: number; fill?: string; className?: string };
 
-const Ph = ({ size = 24, fill = "currentColor", d, className }: P & { d: string }) => (
-  <svg width={size} height={size} viewBox="0 0 256 256" fill={fill} className={className} aria-hidden>
+const Ph = ({
+  size = 24,
+  fill = "currentColor",
+  d,
+  className,
+}: P & { d: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 256 256"
+    fill={fill}
+    className={className}
+    aria-hidden
+  >
     <path d={d} />
   </svg>
 );
@@ -35,7 +47,10 @@ export const WarningIcon = (p: P) => (
   />
 );
 export const CloudIcon = (p: P) => (
-  <Ph {...p} d="M160,72a80,80,0,0,0-158.83,0A56,56,0,0,0,72,184H184a56,56,0,0,0,0-112Z" />
+  <Ph
+    {...p}
+    d="M160,72a80,80,0,0,0-158.83,0A56,56,0,0,0,72,184H184a56,56,0,0,0,0-112Z"
+  />
 );
 export const AppleIcon = (p: P) => (
   <Ph
@@ -70,22 +85,140 @@ export const WhatsappIcon = (p: P) => (
 
 /* ── Feather 24 icons (engagement row) ── */
 export const CommentIcon = ({ size = 17 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.8-.8L3 21l1.9-4.9A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z" />
   </svg>
 );
 export const HeartIcon = ({ size = 17 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="#F4212E" aria-hidden>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="#F4212E"
+    aria-hidden
+  >
     <path d="M12 21s-7.6-4.7-9.6-9A5.3 5.3 0 0 1 12 6.4 5.3 5.3 0 0 1 21.6 12c-2 4.3-9.6 9-9.6 9z" />
   </svg>
 );
 export const ViewsIcon = ({ size = 17 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden
+  >
     <path d="M4 20v-7h3v7H4zm5.5 0V4h3v16h-3zM15 20v-10h3v10h-3z" />
   </svg>
 );
 export const ShareIcon = ({ size = 17 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
     <path d="M12 15V3m0 0L8 7m4-4 4 4M4 14v6h16v-6" />
+  </svg>
+);
+
+export const MailIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M4 6h16v12H4z" />
+    <path d="m4 7 8 6 8-6" />
+  </svg>
+);
+
+export const CompassIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15.8 8.2-2.6 7.6-7.6 2.6 2.6-7.6 7.6-2.6Z" />
+  </svg>
+);
+
+export const BriefcaseIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <rect x="3" y="7" width="18" height="13" rx="2" />
+    <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    <path d="M3 12h18" />
+  </svg>
+);
+
+export const ShieldIcon = ({ size = 18 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M12 3 5 6v6c0 4.6 3 7.9 7 9 4-1.1 7-4.4 7-9V6l-7-3Z" />
+    <path d="m9.5 12 1.7 1.7 3.3-3.7" />
+  </svg>
+);
+
+export const ArrowUpRightIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.9"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    <path d="M7 17 17 7" />
+    <path d="M8 7h9v9" />
   </svg>
 );
