@@ -867,6 +867,11 @@ const Alerts = styled.section`
   position: relative;
   padding: clamp(90px, 10vw, 150px) clamp(20px, 5vw, 72px);
   background: #edf2dc;
+
+  @media (max-width: 640px) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
 `;
 
 const AlertsHead = styled.div`
@@ -1136,6 +1141,13 @@ const StoreRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
 `;
 
 const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
@@ -1148,6 +1160,18 @@ const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
     background 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease;
+
+  @media (max-width: 640px) {
+    width: min(100%, 340px);
+    justify-content: center;
+    padding: 18px 24px;
+  }
+
+  @media (max-width: 420px) {
+    width: 100%;
+    max-width: 100%;
+  }
+
   ${({ $variant }) =>
     $variant === "light"
       ? `
@@ -1222,6 +1246,11 @@ const Contact = styled.section`
   position: relative;
   padding: clamp(90px, 10vw, 150px) clamp(20px, 5vw, 72px);
   background: ${nocturne.bg};
+
+  @media (max-width: 640px) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
 `;
 
 const ContactStack = styled.div`
@@ -1254,6 +1283,10 @@ const Footer = styled.footer`
   a {
     text-decoration: none;
   }
+
+  @media (max-width: 640px) {
+    padding: 0;
+  }
 `;
 
 const FooterCard = styled.div`
@@ -1267,6 +1300,11 @@ const FooterCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: clamp(40px, 5vw, 64px);
+
+  @media (max-width: 640px) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
 `;
 
 const FooterCols = styled.div`
@@ -1417,6 +1455,12 @@ const FooterBottomLinks = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 18px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
 `;
 
 const FooterBottomLink = styled.a`
@@ -1443,6 +1487,13 @@ const FooterBottom = styled.div`
     font-size: 15px;
     color: #d6e8d7;
     letter-spacing: -0.01em;
+  }
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 14px;
+    padding-bottom: 76px;
   }
 `;
 
@@ -2002,14 +2053,14 @@ export function KipitaLanding() {
             </DownloadLead>
             <StoreRow>
               <StoreBtn href="#contact" $variant="light">
-                <AppleIcon size={24} fill="#14392A" />
+                <AppleIcon size={30} fill="#14392A" />
                 <StoreLabel>
                   <small>Coming to</small>
                   <b>App Store</b>
                 </StoreLabel>
               </StoreBtn>
               <StoreBtn href="#contact" $variant="outline">
-                <AndroidIcon size={24} />
+                <AndroidIcon size={30} />
                 <StoreLabel>
                   <small>Coming to</small>
                   <b>Google Play</b>

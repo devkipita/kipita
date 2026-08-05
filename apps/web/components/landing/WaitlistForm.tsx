@@ -11,6 +11,12 @@ const Waitlist = styled.form`
   width: 100%;
   max-width: 480px;
   padding-top: 6px;
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    gap: 14px;
+    max-width: 100%;
+  }
 `;
 
 const WaitlistInput = styled.input`
@@ -26,6 +32,12 @@ const WaitlistInput = styled.input`
   &:focus {
     outline: none;
     border-color: ${nocturne.sage};
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    flex: none;
+    padding: 18px 22px;
   }
 `;
 
@@ -48,6 +60,11 @@ const WaitlistBtn = styled.button`
   &:disabled {
     cursor: default;
     background: ${nocturne.sage};
+  }
+
+  @media (max-width: 640px) {
+    width: 100%;
+    padding: 18px 24px;
   }
 `;
 
