@@ -2161,7 +2161,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@kipita/shared@workspace:*, @kipita/shared@workspace:packages/shared":
+"@kipita/shared@npm:1.0.0, @kipita/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@kipita/shared@workspace:packages/shared"
   languageName: unknown
@@ -2171,7 +2171,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@kipita/web@workspace:apps/web"
   dependencies:
-    "@kipita/shared": "workspace:*"
+    "@kipita/shared": "npm:1.0.0"
     "@supabase/ssr": "npm:^0.5.2"
     "@supabase/supabase-js": "npm:^2.103.2"
     "@types/node": "npm:^22.10.0"
