@@ -8,7 +8,7 @@ import { keyframes } from "styled-components";
 export const nocturne = {
   bg: "#0e0e0e",
   cream: "#faf8f4",
-  lime: "#9fe870",
+  lime: "#e5ffc3",
   sage: "#9ec5a2",
   greenDeep: "#14392a",
   green: "#2f6c4f",

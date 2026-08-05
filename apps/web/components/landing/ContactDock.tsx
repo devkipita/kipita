@@ -26,8 +26,8 @@ const TONES = {
   chat: {
     bg: "#14392a",
     circle: "#0b2b1b",
-    icon: "#9fe870",
-    title: "#9fe870",
+    icon: "#e5ffc3",
+    title: "#e5ffc3",
     sub: "#a9d4b0",
   },
   report: {
@@ -38,9 +38,9 @@ const TONES = {
     sub: "#5c4e3b",
   },
   call: {
-    bg: "#9fe870",
+    bg: "#e5ffc3",
     circle: "#14392a",
-    icon: "#9fe870",
+    icon: "#e5ffc3",
     title: "#14392a",
     sub: "#3f5722",
   },

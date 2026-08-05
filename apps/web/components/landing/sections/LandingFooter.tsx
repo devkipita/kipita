@@ -3,11 +3,7 @@ import { ArrowUpRight, Briefcase, Compass, Shield } from "lucide-react";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
 import { SITE, LEGAL_LINKS } from "@/lib/site";
-import {
-  InstagramIcon,
-  XIcon,
-  WhatsappIcon,
-} from "../icons";
+import { InstagramIcon, XIcon, WhatsappIcon } from "../icons";
 
 const Footer = styled.footer`
   padding: 0 clamp(20px, 5vw, 72px) clamp(24px, 3vw, 44px);
@@ -243,13 +239,13 @@ export function LandingFooter() {
             </p>
             <FooterSocials>
               <FooterSocial href="#top" aria-label="Instagram">
-                <InstagramIcon size={20} fill="#9FE870" />
+                <InstagramIcon size={20} fill="#e5ffc3" />
               </FooterSocial>
               <FooterSocial href="#top" aria-label="X">
-                <XIcon size={20} fill="#9FE870" />
+                <XIcon size={20} fill="#e5ffc3" />
               </FooterSocial>
               <FooterSocial href="#contact" aria-label="WhatsApp">
-                <WhatsappIcon size={20} fill="#9FE870" />
+                <WhatsappIcon size={20} fill="#e5ffc3" />
               </FooterSocial>
             </FooterSocials>
           </FooterBrand>
