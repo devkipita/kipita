@@ -81,7 +81,9 @@ export function RidesCarousel({ children }: RidesCarouselProps) {
 
     if (!track) return [] as HTMLElement[];
 
-    return Array.from(track.querySelectorAll(":scope > article"));
+    return Array.from(
+      track.querySelectorAll<HTMLElement>(":scope > article"),
+    );
   }, []);
 
   const syncActive = useCallback(() => {
