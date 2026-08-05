@@ -23,10 +23,34 @@ type CardTone = {
 // with the card's colour, bold text toned to the card. The deep-green card uses
 // bright lime text (never white) — the same rule wherever a green card appears.
 const TONES = {
-  chat: { bg: "#14392a", circle: "#0b2b1b", icon: "#9fe870", title: "#9fe870", sub: "#a9d4b0" },
-  report: { bg: "#d4b896", circle: "#0e0e0e", icon: "#d4b896", title: "#0e0e0e", sub: "#5c4e3b" },
-  call: { bg: "#9fe870", circle: "#14392a", icon: "#9fe870", title: "#14392a", sub: "#3f5722" },
-  email: { bg: "#9ec5a2", circle: "#0e0e0e", icon: "#9ec5a2", title: "#0e0e0e", sub: "#2f4a38" },
+  chat: {
+    bg: "#14392a",
+    circle: "#0b2b1b",
+    icon: "#9fe870",
+    title: "#9fe870",
+    sub: "#a9d4b0",
+  },
+  report: {
+    bg: "#d4b896",
+    circle: "#0e0e0e",
+    icon: "#d4b896",
+    title: "#0e0e0e",
+    sub: "#5c4e3b",
+  },
+  call: {
+    bg: "#9fe870",
+    circle: "#14392a",
+    icon: "#9fe870",
+    title: "#14392a",
+    sub: "#3f5722",
+  },
+  email: {
+    bg: "#9ec5a2",
+    circle: "#0e0e0e",
+    icon: "#9ec5a2",
+    title: "#0e0e0e",
+    sub: "#2f4a38",
+  },
 } as const satisfies Record<string, CardTone>;
 
 const ContactGrid = styled(Reveal)`
@@ -49,7 +73,9 @@ const cardCss = css<{ $tone: CardTone }>`
   cursor: pointer;
   font-family: inherit;
   text-decoration: none;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 
   &:hover {
     transform: translateY(-6px);
@@ -110,7 +136,10 @@ const phone = "+254700000000";
  * "Live chat" and "Report an issue" cards can launch the dock in the right mode.
  */
 export function ContactDock() {
-  const [signal, setSignal] = useState<{ mode: "support" | "report"; nonce: number }>();
+  const [signal, setSignal] = useState<{
+    mode: "support" | "report";
+    nonce: number;
+  }>();
 
   const open = (mode: "support" | "report") =>
     setSignal((s) => ({ mode, nonce: (s?.nonce ?? 0) + 1 }));
@@ -130,7 +159,9 @@ export function ContactDock() {
           </IconWell>
           <CardBody>
             <CardTitle $tone={TONES.chat}>Live chat</CardTitle>
-            <CardText $tone={TONES.chat}>Talk to support now. Average reply under two minutes.</CardText>
+            <CardText $tone={TONES.chat}>
+              Talk to support now. Average reply under two minutes.
+            </CardText>
           </CardBody>
         </ContactCardButton>
 
@@ -146,7 +177,9 @@ export function ContactDock() {
           </IconWell>
           <CardBody>
             <CardTitle $tone={TONES.report}>Report an issue</CardTitle>
-            <CardText $tone={TONES.report}>Something went wrong on a trip? Flag it and we investigate.</CardText>
+            <CardText $tone={TONES.report}>
+              Something went wrong on a trip? Flag it and we investigate.
+            </CardText>
           </CardBody>
         </ContactCardButton>
 
@@ -158,7 +191,9 @@ export function ContactDock() {
           </IconWell>
           <CardBody>
             <CardTitle $tone={TONES.call}>Call us</CardTitle>
-            <CardText $tone={TONES.call}>+254 700 000 000 · Mon–Sun, 6am to 11pm EAT.</CardText>
+            <CardText $tone={TONES.call}>
+              +254 700 000 000 · Mon–Sun, 6am to 11pm EAT.
+            </CardText>
           </CardBody>
         </ContactCardLink>
 
@@ -170,7 +205,9 @@ export function ContactDock() {
           </IconWell>
           <CardBody>
             <CardTitle $tone={TONES.email}>Email</CardTitle>
-            <CardText $tone={TONES.email}>hello@kipita.co.ke · we answer within a working day.</CardText>
+            <CardText $tone={TONES.email}>
+              hello@kipita.co.ke · we answer within a working day.
+            </CardText>
           </CardBody>
         </ContactCardLink>
       </ContactGrid>

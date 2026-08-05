@@ -1,10 +1,5 @@
 import styled from "styled-components";
-import {
-  ArrowUpRight,
-  Briefcase,
-  Compass,
-  Shield,
-} from "lucide-react";
+import { ArrowUpRight, Briefcase, Compass, Shield } from "lucide-react";
 import { landingFonts } from "./fonts";
 import { nocturne, pulse, dash } from "./nocturne";
 import { Brand } from "../ui/Brand";

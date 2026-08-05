@@ -4,44 +4,89 @@ import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { nocturne } from "./nocturne";
 
-const DockBtn = styled.button`
+const DockShell = styled.div<{ $open: boolean }>`
   position: fixed;
   right: clamp(16px, 2vw, 28px);
   bottom: clamp(16px, 2vw, 28px);
   z-index: 96;
+  width: ${({ $open }) => ($open ? "min(360px, calc(100vw - 32px))" : "194px")};
+  height: ${({ $open }) => ($open ? "min(540px, calc(100vh - 32px))" : "58px")};
+  max-width: calc(100vw - 32px);
+  border-radius: ${({ $open }) => ($open ? "30px" : "999px")};
+  background: ${({ $open }) => ($open ? nocturne.surface : nocturne.lime)};
+  border: 1px solid
+    ${({ $open }) => ($open ? "#2a2a2a" : "rgba(159, 232, 112, 0.22)")};
+  overflow: hidden;
+  transform-origin: bottom right;
+  box-shadow: ${({ $open }) =>
+    $open
+      ? "0 34px 88px rgba(0, 0, 0, 0.72)"
+      : "0 16px 40px rgba(0, 0, 0, 0.55)"};
+  transition:
+    width 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+  will-change: width, height, border-radius, background;
+
+  @media (max-width: 640px) {
+    width: ${({ $open }) => ($open ? "calc(100vw - 24px)" : "194px")};
+    right: 12px;
+    bottom: 12px;
+  }
+`;
+
+const DockLauncher = styled.button<{ $open: boolean }>`
+  position: absolute;
+  inset: 0;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   padding: 15px 24px;
-  border-radius: 999px;
   border: none;
-  background: ${nocturne.lime};
+  background: transparent;
   color: ${nocturne.greenDeep};
   font-size: 15px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
-  transition: background 0.2s ease;
+  opacity: ${({ $open }) => ($open ? 0 : 1)};
+  transform: ${({ $open }) =>
+    $open ? "translateY(10px) scale(0.96)" : "translateY(0) scale(1)"};
+  pointer-events: ${({ $open }) => ($open ? "none" : "auto")};
+  transition:
+    opacity 180ms ease,
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
 
   &:hover {
     background: ${nocturne.cream};
   }
 `;
 
-const ChatPanel = styled.div`
-  position: fixed;
-  right: clamp(16px, 2vw, 28px);
-  bottom: clamp(88px, 9vw, 104px);
-  z-index: 95;
-  width: min(360px, calc(100vw - 32px));
+const LauncherIcon = styled.span`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(20, 57, 42, 0.12);
+`;
+
+const DockPanel = styled.div<{ $open: boolean }>`
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  border-radius: 26px;
-  background: ${nocturne.surface};
-  border: 1px solid #2a2a2a;
-  overflow: hidden;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7);
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transform: ${({ $open }) =>
+    $open ? "translateY(0) scale(1)" : "translateY(18px) scale(0.96)"};
+  pointer-events: ${({ $open }) => ($open ? "auto" : "none")};
+  transition:
+    opacity 200ms ease 110ms,
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1) 70ms;
 `;
 
 const ChatTop = styled.div`
@@ -105,9 +150,10 @@ const ChatClose = styled.button`
 const ChatBody = styled.div`
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 12px;
   padding: 20px;
-  max-height: 280px;
   overflow-y: auto;
 `;
 
@@ -148,7 +194,9 @@ const Quick = styled.button`
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 
   &:hover {
     border-color: ${nocturne.sage};
@@ -198,16 +246,27 @@ const ChatSend = styled.button`
   }
 `;
 
+const LauncherLabel = styled.span`
+  white-space: nowrap;
+`;
+
 type Message = { from: "bot" | "me"; text: string };
 type Mode = "support" | "report";
 
 const QUICK: Record<Mode, string[]> = {
   support: ["How does payment work?", "I want to drive", "Where is my refund?"],
-  report: ["A driver behaved badly", "Wrong fare charged", "Trip never happened"],
+  report: [
+    "A driver behaved badly",
+    "Wrong fare charged",
+    "Trip never happened",
+  ],
 };
 
 const OPENING: Record<Mode, Message> = {
-  support: { from: "bot", text: "Habari! You've reached Kipita support. What's going on?" },
+  support: {
+    from: "bot",
+    text: "Habari! You've reached Kipita support. What's going on?",
+  },
   report: {
     from: "bot",
     text: "Sorry that happened. Tell us the trip date and what went wrong — we'll open a case straight away.",
@@ -247,12 +306,18 @@ export function SupportDock({
   }, [openSignal?.nonce]);
 
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
+    bodyRef.current?.scrollTo({
+      top: bodyRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, open]);
 
-  useEffect(() => () => {
-    if (replyTimer.current) clearTimeout(replyTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (replyTimer.current) clearTimeout(replyTimer.current);
+    },
+    [],
+  );
 
   const send = (text: string) => {
     const t = text.trim();
@@ -271,69 +336,74 @@ export function SupportDock({
   };
 
   return (
-    <>
-      {open && (
-        <ChatPanel role="dialog" aria-label="Kipita support chat">
-          <ChatTop>
-            <ChatTopWho>
-              <ChatAvatar>KS</ChatAvatar>
-              <ChatTitle>
-                <b>{mode === "report" ? "Report an issue" : "Kipita Support"}</b>
-                <span>Typically replies in 2 minutes</span>
-              </ChatTitle>
-            </ChatTopWho>
-            <ChatClose
-              aria-label="Close chat"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </ChatClose>
-          </ChatTop>
-
-          <ChatBody ref={bodyRef}>
-            {messages.map((m, i) => (
-              <MsgRow key={i} $me={m.from === "me"}>
-                <Bubble $me={m.from === "me"}>{m.text}</Bubble>
-              </MsgRow>
-            ))}
-          </ChatBody>
-
-          <QuickRow>
-            {QUICK[mode].map((label) => (
-              <Quick key={label} onClick={() => send(label)}>
-                {label}
-              </Quick>
-            ))}
-          </QuickRow>
-
-          <ChatForm
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(draft);
-            }}
-          >
-            <ChatInput
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Type a message…"
-              aria-label="Message"
-            />
-            <ChatSend type="submit" aria-label="Send">
-              <svg width="20" height="20" viewBox="0 0 256 256" fill="#FAF8F4" aria-hidden>
-                <path d="M231.87,114,88,26.19a16,16,0,0,0-24.24,17l25.13,73.06a4,4,0,0,1,0,2.6L63.76,212.8A16,16,0,0,0,88,229.81L231.87,142a16,16,0,0,0,0-28ZM96,136h56a8,8,0,0,0,0-16H96Z" />
-              </svg>
-            </ChatSend>
-          </ChatForm>
-        </ChatPanel>
-      )}
-
-      <DockBtn
-        onClick={() => setOpen((o) => !o)}
+    <DockShell $open={open}>
+      <DockLauncher
+        type="button"
+        $open={open}
+        onClick={() => setOpen(true)}
         aria-label="Support chat"
       >
-        <ChatIcon fill="#14392A" />
-        {open ? "Close" : "Chat with us"}
-      </DockBtn>
-    </>
+        <LauncherIcon>
+          <ChatIcon fill="#14392A" />
+        </LauncherIcon>
+        <LauncherLabel>Chat with us</LauncherLabel>
+      </DockLauncher>
+
+      <DockPanel $open={open} role="dialog" aria-label="Kipita support chat">
+        <ChatTop>
+          <ChatTopWho>
+            <ChatAvatar>KS</ChatAvatar>
+            <ChatTitle>
+              <b>{mode === "report" ? "Report an issue" : "Kipita Support"}</b>
+              <span>Typically replies in 2 minutes</span>
+            </ChatTitle>
+          </ChatTopWho>
+          <ChatClose aria-label="Close chat" onClick={() => setOpen(false)}>
+            ×
+          </ChatClose>
+        </ChatTop>
+
+        <ChatBody ref={bodyRef}>
+          {messages.map((m, i) => (
+            <MsgRow key={i} $me={m.from === "me"}>
+              <Bubble $me={m.from === "me"}>{m.text}</Bubble>
+            </MsgRow>
+          ))}
+        </ChatBody>
+
+        <QuickRow>
+          {QUICK[mode].map((label) => (
+            <Quick key={label} onClick={() => send(label)}>
+              {label}
+            </Quick>
+          ))}
+        </QuickRow>
+
+        <ChatForm
+          onSubmit={(e) => {
+            e.preventDefault();
+            send(draft);
+          }}
+        >
+          <ChatInput
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Type a message…"
+            aria-label="Message"
+          />
+          <ChatSend type="submit" aria-label="Send">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 256 256"
+              fill="#FAF8F4"
+              aria-hidden
+            >
+              <path d="M231.87,114,88,26.19a16,16,0,0,0-24.24,17l25.13,73.06a4,4,0,0,1,0,2.6L63.76,212.8A16,16,0,0,0,88,229.81L231.87,142a16,16,0,0,0,0-28ZM96,136h56a8,8,0,0,0,0-16H96Z" />
+            </svg>
+          </ChatSend>
+        </ChatForm>
+      </DockPanel>
+    </DockShell>
   );
 }
