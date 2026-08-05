@@ -82,7 +82,13 @@ const Nav = styled.nav`
   padding: 22px clamp(14px, 5vw, 72px);
   pointer-events: none;
 
+  @media (max-width: 900px) {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+
   @media (max-width: 640px) {
+    gap: 10px;
     padding-top: 18px;
     padding-bottom: 18px;
   }
@@ -90,6 +96,8 @@ const Nav = styled.nav`
 
 const NavLogo = styled.div`
   display: block;
+  flex: 0 1 auto;
+  min-width: 0;
   pointer-events: auto;
 
   a {
@@ -102,9 +110,41 @@ const NavLogo = styled.div`
     display: block;
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: 900px) {
     svg {
-      height: 112px;
+      height: 88px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    height: 58px;
+    display: flex;
+    align-items: center;
+
+    > a {
+      display: flex;
+      align-items: center;
+      height: 58px;
+      overflow: visible;
+    }
+
+    svg {
+      height: 58px;
+      transform: scale(1.45);
+      transform-origin: left center;
+    }
+  }
+
+  @media (max-width: 420px) {
+    height: 52px;
+
+    > a {
+      height: 52px;
+    }
+
+    svg {
+      height: 52px;
+      transform: scale(1.38);
     }
   }
 `;
@@ -113,18 +153,37 @@ const NavRight = styled.div`
   display: flex;
   align-items: center;
   gap: clamp(12px, 2.4vw, 38px);
+  margin-left: auto;
+  flex: 0 0 auto;
   pointer-events: auto;
+
+  @media (max-width: 900px) {
+    gap: 12px;
+  }
+
+  @media (max-width: 640px) {
+    gap: 10px;
+  }
+
+  @media (max-width: 420px) {
+    gap: 8px;
+  }
 `;
 
 const NavLink = styled.a`
   font-size: 15px;
   font-weight: 500;
+  white-space: nowrap;
   color: ${nocturne.cream};
   letter-spacing: 0.01em;
   transition: color 0.2s ease;
 
   &:hover {
     color: ${nocturne.sage};
+  }
+
+  @media (max-width: 640px) {
+    display: none;
   }
 `;
 
@@ -138,11 +197,23 @@ const NavCta = styled.a`
   color: ${nocturne.greenDeep};
   font-size: 15px;
   font-weight: 700;
+  white-space: nowrap;
   transition: background 0.2s ease;
 
   &:hover {
     background: ${nocturne.cream};
     color: ${nocturne.greenDeep};
+  }
+
+  @media (max-width: 640px) {
+    gap: 6px;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  @media (max-width: 420px) {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 `;
 
@@ -274,11 +345,25 @@ const HeroActions = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
+  margin-top: 12px;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  @media (max-width: 420px) {
+    gap: 10px;
+  }
 `;
 
 const BtnLime = styled.a`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 18px 36px;
   border-radius: 999px;
@@ -295,11 +380,24 @@ const BtnLime = styled.a`
   &:hover {
     background: ${nocturne.cream};
   }
+
+  @media (max-width: 640px) {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 16px 18px;
+    font-size: 15px;
+  }
+
+  @media (max-width: 420px) {
+    padding: 14px 14px;
+    font-size: 14px;
+  }
 `;
 
 const BtnGreen = styled.a`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   padding: 18px 36px;
   border-radius: 999px;
@@ -311,6 +409,18 @@ const BtnGreen = styled.a`
 
   &:hover {
     background: ${nocturne.green};
+  }
+
+  @media (max-width: 640px) {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 16px 18px;
+    font-size: 15px;
+  }
+
+  @media (max-width: 420px) {
+    padding: 14px 14px;
+    font-size: 14px;
   }
 `;
 
@@ -1561,7 +1671,7 @@ export function KipitaLanding() {
         <HeroCopy>
           <LivePill>
             <PulseDot />
-            <span>Ride · Share · Connect</span>
+            <span>Share the ride · Save more</span>
           </LivePill>
 
           <Display
@@ -1574,10 +1684,8 @@ export function KipitaLanding() {
 
           <Reveal stagger={0.12} delay={0.55}>
             <HeroLead>
-              Kipita isn&apos;t a taxi. It&apos;s the seat that was already
-              going your way. We match you with drivers heading to your
-              destination — so you split the cost, skip the matatu chaos, and
-              arrive with someone worth talking to.
+              Make every journey count. Share the ride. Split the cost. Meet
+              people going your way.
             </HeroLead>
             <HeroActions>
               <BtnLime href="#download">Find a ride</BtnLime>
