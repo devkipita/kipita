@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import { landingFonts } from "./fonts";
 import { nocturne, pulse, dash } from "./nocturne";
+import { Brand } from "../ui/Brand";
 import { Reveal } from "../anim/Reveal";
 import { Parallax } from "../anim/Parallax";
 import { TrickleHeading } from "./TrickleHeading";
@@ -78,17 +79,31 @@ const Nav = styled.nav`
   gap: 14px;
   padding: 22px clamp(14px, 5vw, 72px);
   pointer-events: none;
+
+  @media (max-width: 640px) {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
 `;
 
-const NavLogo = styled.a`
+const NavLogo = styled.div`
   display: block;
   pointer-events: auto;
-  height: 34px;
 
-  img {
-    height: 34px;
+  a {
+    color: ${nocturne.cream};
+  }
+
+  svg {
+    height: 132px;
     width: auto;
     display: block;
+  }
+
+  @media (max-width: 640px) {
+    svg {
+      height: 112px;
+    }
   }
 `;
 
@@ -271,7 +286,9 @@ const BtnLime = styled.a`
   font-weight: 700;
   border: none;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background: ${nocturne.cream};
@@ -425,9 +442,7 @@ const MatchCol = styled.div<{ $right?: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 16px;
-  ${({ $right }) =>
-    $right &&
-    `align-items: flex-end; text-align: right;`}
+  ${({ $right }) => $right && `align-items: flex-end; text-align: right;`}
 
   p {
     margin: 0;
@@ -460,7 +475,8 @@ const MatchAvatar = styled.div<{ $tone: "green" | "tan" }>`
   align-items: center;
   justify-content: center;
   flex: none;
-  background: ${({ $tone }) => ($tone === "green" ? nocturne.green : nocturne.tan)};
+  background: ${({ $tone }) =>
+    $tone === "green" ? nocturne.green : nocturne.tan};
 `;
 
 const MatchMid = styled.div`
@@ -562,7 +578,9 @@ const LinkOutline = styled.a`
   color: ${nocturne.lime};
   font-size: 16px;
   font-weight: 600;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 
   &:hover {
     background: ${nocturne.lime};
@@ -701,7 +719,9 @@ const PriceLine = styled.span`
   align-items: center;
   gap: 6px;
   white-space: nowrap;
-  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.4s ease;
+  transition:
+    transform 0.4s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.4s ease;
   will-change: transform, opacity;
 
   @media (prefers-reduced-motion: reduce) {
@@ -1012,7 +1032,10 @@ const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
   gap: 12px;
   padding: 16px 28px;
   border-radius: 999px;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
   ${({ $variant }) =>
     $variant === "light"
       ? `
@@ -1140,8 +1163,13 @@ const FooterBrand = styled.div`
   gap: 20px;
   max-width: 340px;
 
-  img {
-    height: 38px;
+  a {
+    color: #fff;
+    width: fit-content;
+  }
+
+  svg {
+    height: 56px;
     width: auto;
     display: block;
     align-self: flex-start;
@@ -1215,72 +1243,185 @@ const FooterBottom = styled.div`
 
 const RIDES = [
   {
-    card: "#2F6C4F", av: "#14392A", avText: "#9EC5A2", initials: "JM",
-    name: "James Mwangi", nameC: "#DDF3B2", sub: "4.9 · 128 trips", subC: "#9EC5A2",
-    tagBg: "#14392A", tagC: "#9EC5A2", tag: "Premium",
-    from: "Nanyuki", to: "Nairobi CBD", cityC: "#C7EE55",
-    meta: "↓ 3h 20m · 4 seats left", metaC: "#9EC5A2",
-    priceBg: "#FAF8F4", priceC: "#0E0E0E", price: "KES 3,000",
-    when: "Today · 6:00 AM", whenC: "#9EC5A2",
+    card: "#2F6C4F",
+    av: "#14392A",
+    avText: "#9EC5A2",
+    initials: "JM",
+    name: "James Mwangi",
+    nameC: "#DDF3B2",
+    sub: "4.9 · 128 trips",
+    subC: "#9EC5A2",
+    tagBg: "#14392A",
+    tagC: "#9EC5A2",
+    tag: "Premium",
+    from: "Nanyuki",
+    to: "Nairobi CBD",
+    cityC: "#C7EE55",
+    meta: "↓ 3h 20m · 4 seats left",
+    metaC: "#9EC5A2",
+    priceBg: "#FAF8F4",
+    priceC: "#0E0E0E",
+    price: "KES 3,000",
+    when: "Today · 6:00 AM",
+    whenC: "#9EC5A2",
   },
   {
-    card: "#D4B896", av: "#0E0E0E", avText: "#D4B896", initials: "AO",
-    name: "Aisha Odhiambo", nameC: "#0E0E0E", sub: "4.8 · 91 trips", subC: "#5C4E3B",
-    tagBg: "#0E0E0E", tagC: "#D4B896", tag: "Common",
-    from: "Nakuru", to: "Nairobi", cityC: "#0E0E0E",
-    meta: "↓ 2h 40m · 2 seats left", metaC: "#5C4E3B",
-    priceBg: "#0E0E0E", priceC: "#FAF8F4", price: "KES 1,500",
-    when: "Today · 2:15 PM", whenC: "#5C4E3B",
+    card: "#D4B896",
+    av: "#0E0E0E",
+    avText: "#D4B896",
+    initials: "AO",
+    name: "Aisha Odhiambo",
+    nameC: "#0E0E0E",
+    sub: "4.8 · 91 trips",
+    subC: "#5C4E3B",
+    tagBg: "#0E0E0E",
+    tagC: "#D4B896",
+    tag: "Common",
+    from: "Nakuru",
+    to: "Nairobi",
+    cityC: "#0E0E0E",
+    meta: "↓ 2h 40m · 2 seats left",
+    metaC: "#5C4E3B",
+    priceBg: "#0E0E0E",
+    priceC: "#FAF8F4",
+    price: "KES 1,500",
+    when: "Today · 2:15 PM",
+    whenC: "#5C4E3B",
   },
   {
-    card: "#C7EE55", av: "#14392A", avText: "#C7EE55", initials: "BK",
-    name: "Brian Kiptoo", nameC: "#14392A", sub: "4.7 · 54 trips", subC: "#4B6330",
-    tagBg: "#14392A", tagC: "#C7EE55", tag: "Budget",
-    from: "Naivasha", to: "Nairobi", cityC: "#14392A",
-    meta: "↓ 1h 30m · 3 seats left", metaC: "#4B6330",
-    priceBg: "#14392A", priceC: "#C7EE55", price: "KES 1,000",
-    when: "Tomorrow · 7:30 AM", whenC: "#4B6330",
+    card: "#C7EE55",
+    av: "#14392A",
+    avText: "#C7EE55",
+    initials: "BK",
+    name: "Brian Kiptoo",
+    nameC: "#14392A",
+    sub: "4.7 · 54 trips",
+    subC: "#4B6330",
+    tagBg: "#14392A",
+    tagC: "#C7EE55",
+    tag: "Budget",
+    from: "Naivasha",
+    to: "Nairobi",
+    cityC: "#14392A",
+    meta: "↓ 1h 30m · 3 seats left",
+    metaC: "#4B6330",
+    priceBg: "#14392A",
+    priceC: "#C7EE55",
+    price: "KES 1,000",
+    when: "Tomorrow · 7:30 AM",
+    whenC: "#4B6330",
   },
   {
-    card: "#9EC5A2", av: "#0E0E0E", avText: "#9EC5A2", initials: "WN",
-    name: "Wanjiku Njeri", nameC: "#0E0E0E", sub: "5.0 · 203 trips", subC: "#2F6C4F",
-    tagBg: "#2F6C4F", tagC: "#FAF8F4", tag: "Premium",
-    from: "Eldoret", to: "Nairobi", cityC: "#0E0E0E",
-    meta: "↓ 5h 10m · 1 seat left", metaC: "#2F6C4F",
-    priceBg: "#0E0E0E", priceC: "#FAF8F4", price: "KES 3,000",
-    when: "Fri · 5:45 AM", whenC: "#2F6C4F",
+    card: "#9EC5A2",
+    av: "#0E0E0E",
+    avText: "#9EC5A2",
+    initials: "WN",
+    name: "Wanjiku Njeri",
+    nameC: "#0E0E0E",
+    sub: "5.0 · 203 trips",
+    subC: "#2F6C4F",
+    tagBg: "#2F6C4F",
+    tagC: "#FAF8F4",
+    tag: "Premium",
+    from: "Eldoret",
+    to: "Nairobi",
+    cityC: "#0E0E0E",
+    meta: "↓ 5h 10m · 1 seat left",
+    metaC: "#2F6C4F",
+    priceBg: "#0E0E0E",
+    priceC: "#FAF8F4",
+    price: "KES 3,000",
+    when: "Fri · 5:45 AM",
+    whenC: "#2F6C4F",
   },
 ];
 
 const ALERTS = [
   {
-    avBg: "#14392A", avC: "#C7EE55", initials: "JM", name: "James Mwangi",
-    handle: "@jmwangi", time: "· 32m", chip: "traffic" as const, chipLabel: "Traffic",
+    avBg: "#14392A",
+    avC: "#C7EE55",
+    initials: "JM",
+    name: "James Mwangi",
+    handle: "@jmwangi",
+    time: "· 32m",
+    chip: "traffic" as const,
+    chipLabel: "Traffic",
     loc: "Uhuru Highway, Nairobi",
     body: "Heavy traffic from Globe Roundabout to Nyayo Stadium — a stalled matatu is blocking the left lane. Expect 30–45 minutes. Haile Selassie is moving.",
-    comments: 8, hearts: 42, views: 374,
+    comments: 8,
+    hearts: 42,
+    views: 374,
   },
   {
-    avBg: "#C0533F", avC: "#FAF8F4", initials: "AO", name: "Aisha Odhiambo",
-    handle: "@aisha_o", time: "· 1h", chip: "accident" as const, chipLabel: "Accident",
+    avBg: "#C0533F",
+    avC: "#FAF8F4",
+    initials: "AO",
+    name: "Aisha Odhiambo",
+    handle: "@aisha_o",
+    time: "· 1h",
+    chip: "accident" as const,
+    chipLabel: "Accident",
     loc: "Thika Road, Safari Park",
     body: "Two-vehicle collision near Safari Park Hotel. One lane blocked inbound to Nairobi, emergency services on site. Use the Outer Ring detour.",
-    comments: 12, hearts: 38, views: 512,
+    comments: 12,
+    hearts: 38,
+    views: 512,
   },
   {
-    avBg: "#2F6C4F", avC: "#C7EE55", initials: "BK", name: "Brian Kiptoo",
-    handle: "@bkiptoo", time: "· 2h", chip: "weather" as const, chipLabel: "Weather",
+    avBg: "#2F6C4F",
+    avC: "#C7EE55",
+    initials: "BK",
+    name: "Brian Kiptoo",
+    handle: "@bkiptoo",
+    time: "· 2h",
+    chip: "weather" as const,
+    chipLabel: "Weather",
     loc: "Nakuru–Eldoret Highway",
     body: "Dense fog past Salgaa, visibility under 50 metres. Trucks crawling on the climbing lane. Drive with hazards, allow an extra hour.",
-    comments: 21, hearts: 67, views: 891,
+    comments: 21,
+    hearts: 67,
+    views: 891,
   },
 ];
 
 const STATS = [
-  { bg: "#FAF8F4", numC: "#14392A", labelC: "#5A6357", value: 24800, dec: 0, suffix: "+", label: "riders on Kipita" },
-  { bg: "#D4B896", numC: "#2E2416", labelC: "#5C4E3B", value: 6300, dec: 0, suffix: "+", label: "verified drivers" },
-  { bg: "#9EC5A2", numC: "#14392A", labelC: "#2F4A38", value: 42, dec: 0, suffix: "", label: "towns connected" },
-  { bg: "#0E0E0E", numC: "#FAF8F4", labelC: "#8E918B", value: 18.4, dec: 1, prefix: "KES", suffix: "M", label: "saved on fuel by sharing" },
+  {
+    bg: "#FAF8F4",
+    numC: "#14392A",
+    labelC: "#5A6357",
+    value: 24800,
+    dec: 0,
+    suffix: "+",
+    label: "riders on Kipita",
+  },
+  {
+    bg: "#D4B896",
+    numC: "#2E2416",
+    labelC: "#5C4E3B",
+    value: 6300,
+    dec: 0,
+    suffix: "+",
+    label: "verified drivers",
+  },
+  {
+    bg: "#9EC5A2",
+    numC: "#14392A",
+    labelC: "#2F4A38",
+    value: 42,
+    dec: 0,
+    suffix: "",
+    label: "towns connected",
+  },
+  {
+    bg: "#0E0E0E",
+    numC: "#FAF8F4",
+    labelC: "#8E918B",
+    value: 18.4,
+    dec: 1,
+    prefix: "KES",
+    suffix: "M",
+    label: "saved on fuel by sharing",
+  },
 ];
 
 const chipIcon = {
@@ -1294,9 +1435,8 @@ export function KipitaLanding() {
     <Root className={landingFonts}>
       {/* ── Nav ── */}
       <Nav>
-        <NavLogo href="#top">
-          {/* Logo shown as-is — never recoloured. */}
-          <img src="/landing/kipita-lockup.png" alt="Kipita" />
+        <NavLogo>
+          <Brand href="#top" light />
         </NavLogo>
         <NavRight>
           <NavLink href="#rides">Rides</NavLink>
@@ -1309,10 +1449,18 @@ export function KipitaLanding() {
       <Hero id="top">
         <HeroPattern aria-hidden />
         <HeroPeopleLeft amount={40}>
-          <img src="/landing/people-left.png" alt="" style={{ width: "100%", display: "block" }} />
+          <img
+            src="/landing/people-left.png"
+            alt=""
+            style={{ width: "100%", display: "block" }}
+          />
         </HeroPeopleLeft>
         <HeroPeopleRight amount={30}>
-          <img src="/landing/people-right.png" alt="" style={{ width: "100%", display: "block" }} />
+          <img
+            src="/landing/people-right.png"
+            alt=""
+            style={{ width: "100%", display: "block" }}
+          />
         </HeroPeopleRight>
 
         <HeroCopy>
@@ -1331,9 +1479,10 @@ export function KipitaLanding() {
 
           <Reveal stagger={0.12} delay={0.55}>
             <HeroLead>
-              Kipita isn&apos;t a taxi. It&apos;s the seat that was already going your way. We match
-              you with drivers heading to your destination — so you split the cost, skip the matatu
-              chaos, and arrive with someone worth talking to.
+              Kipita isn&apos;t a taxi. It&apos;s the seat that was already
+              going your way. We match you with drivers heading to your
+              destination — so you split the cost, skip the matatu chaos, and
+              arrive with someone worth talking to.
             </HeroLead>
             <HeroActions>
               <BtnLime href="#download">Find a ride</BtnLime>
@@ -1368,13 +1517,18 @@ export function KipitaLanding() {
           <HowHead>
             <HowHeadCol>
               <Eyebrow $tone="green">RideConnect</Eyebrow>
-              <H2>Two people.<br />One direction.</H2>
+              <H2>
+                Two people.
+                <br />
+                One direction.
+              </H2>
             </HowHeadCol>
             <Reveal delay={0.1}>
               <HowLead>
-                A driver is already leaving Nanyuki for Nairobi at six. Three seats are empty. You
-                need one. Kipita puts you in the same place, agrees the fare before anyone moves, and
-                holds the money until the trip ends.
+                A driver is already leaving Nanyuki for Nairobi at six. Three
+                seats are empty. You need one. Kipita puts you in the same
+                place, agrees the fare before anyone moves, and holds the money
+                until the trip ends.
               </HowLead>
             </Reveal>
           </HowHead>
@@ -1390,17 +1544,42 @@ export function KipitaLanding() {
                     <span>The driver</span>
                   </MatchWho>
                   <p>
-                    Posts the trip they were making anyway. Sets the seats, the time and the price per
-                    seat. Fuel stops being a solo cost.
+                    Posts the trip they were making anyway. Sets the seats, the
+                    time and the price per seat. Fuel stops being a solo cost.
                   </p>
                 </MatchCol>
 
                 <MatchMid>
-                  <svg width="120" height="120" viewBox="0 0 120 120" fill="none" aria-hidden>
-                    <circle cx="60" cy="60" r="52" stroke="#2A2A2A" strokeWidth="1.5" />
-                    <MatchRing cx="60" cy="60" r="52" stroke="#9EC5A2" strokeWidth="2" strokeDasharray="14 26" />
+                  <svg
+                    width="120"
+                    height="120"
+                    viewBox="0 0 120 120"
+                    fill="none"
+                    aria-hidden
+                  >
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="#2A2A2A"
+                      strokeWidth="1.5"
+                    />
+                    <MatchRing
+                      cx="60"
+                      cy="60"
+                      r="52"
+                      stroke="#9EC5A2"
+                      strokeWidth="2"
+                      strokeDasharray="14 26"
+                    />
                     <circle cx="60" cy="60" r="26" fill="#14392A" />
-                    <path d="M52 60h16m-6-6 6 6-6 6" stroke="#9EC5A2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <path
+                      d="M52 60h16m-6-6 6 6-6 6"
+                      stroke="#9EC5A2"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
                   <span>Matched</span>
                 </MatchMid>
@@ -1413,8 +1592,8 @@ export function KipitaLanding() {
                     <span>The passenger</span>
                   </MatchWho>
                   <p>
-                    Searches the route, sees who&apos;s driving and what they charge, chats, pays in the
-                    app. No haggling at the stage.
+                    Searches the route, sees who&apos;s driving and what they
+                    charge, chats, pays in the app. No haggling at the stage.
                   </p>
                 </MatchCol>
               </MatchGrid>
@@ -1423,9 +1602,21 @@ export function KipitaLanding() {
 
           <Steps stagger={0.08}>
             {[
-              { n: "01", t: "Search or post", b: "Pick your route and time. Leave now, or schedule for Friday." },
-              { n: "02", t: "Chat, then pay", b: "Message the driver first. Agree pickup. Pay by M-Pesa inside the app." },
-              { n: "03", t: "Ride and rate", b: "Track the trip live. Money releases to the driver when you arrive." },
+              {
+                n: "01",
+                t: "Search or post",
+                b: "Pick your route and time. Leave now, or schedule for Friday.",
+              },
+              {
+                n: "02",
+                t: "Chat, then pay",
+                b: "Message the driver first. Agree pickup. Pay by M-Pesa inside the app.",
+              },
+              {
+                n: "03",
+                t: "Ride and rate",
+                b: "Track the trip live. Money releases to the driver when you arrive.",
+              },
             ].map((s) => (
               <StepCard key={s.n}>
                 <StepNum>{s.n}</StepNum>
@@ -1443,7 +1634,11 @@ export function KipitaLanding() {
         <RidesHead>
           <RidesHeadCol>
             <Eyebrow $tone="tan">Ride requests</Eyebrow>
-            <H2>Seats going<br />your way.</H2>
+            <H2>
+              Seats going
+              <br />
+              your way.
+            </H2>
           </RidesHeadCol>
           <Reveal delay={0.1}>
             <LinkOutline href="#download">See all rides</LinkOutline>
@@ -1495,13 +1690,18 @@ export function KipitaLanding() {
                 <LiveTagDot />
                 <span>Live</span>
               </LiveTag>
-              <AlertsTitle>Road alerts,<br />as they happen.</AlertsTitle>
+              <AlertsTitle>
+                Road alerts,
+                <br />
+                as they happen.
+              </AlertsTitle>
             </AlertsHeadCol>
             <Reveal delay={0.1}>
               <AlertsLead>
-                Riders and drivers post what they&apos;re seeing on the road right now — accidents,
-                weather, police checks, matatu jams. Nairobi, Mombasa, Kisumu, Nakuru, Eldoret.
-                Verified by the people behind you.
+                Riders and drivers post what they&apos;re seeing on the road
+                right now — accidents, weather, police checks, matatu jams.
+                Nairobi, Mombasa, Kisumu, Nakuru, Eldoret. Verified by the
+                people behind you.
               </AlertsLead>
             </Reveal>
           </AlertsHead>
@@ -1530,10 +1730,21 @@ export function KipitaLanding() {
                 </AlertHead>
                 <AlertBody>{a.body}</AlertBody>
                 <AlertEngage>
-                  <span><CommentIcon />{a.comments}</span>
-                  <span><HeartIcon />{a.hearts}</span>
-                  <span><ViewsIcon />{a.views}</span>
-                  <AlertShare aria-label="Share"><ShareIcon /></AlertShare>
+                  <span>
+                    <CommentIcon />
+                    {a.comments}
+                  </span>
+                  <span>
+                    <HeartIcon />
+                    {a.hearts}
+                  </span>
+                  <span>
+                    <ViewsIcon />
+                    {a.views}
+                  </span>
+                  <AlertShare aria-label="Share">
+                    <ShareIcon />
+                  </AlertShare>
                 </AlertEngage>
               </AlertCard>
             ))}
@@ -1544,11 +1755,17 @@ export function KipitaLanding() {
       {/* ── Statistics ── */}
       <Stats>
         <StatsPeople amount={40}>
-          <img src="/landing/people-right.png" alt="" style={{ width: "100%", display: "block" }} />
+          <img
+            src="/landing/people-right.png"
+            alt=""
+            style={{ width: "100%", display: "block" }}
+          />
         </StatsPeople>
         <StatsWrap>
           <Reveal>
-            <StatsTitle>Every empty seat is a road we didn&apos;t need.</StatsTitle>
+            <StatsTitle>
+              Every empty seat is a road we didn&apos;t need.
+            </StatsTitle>
           </Reveal>
           <StatsGrid stagger={0.07}>
             {STATS.map((s) => (
@@ -1570,10 +1787,15 @@ export function KipitaLanding() {
         <DownloadGrid>
           <DownloadCopy stagger={0.1}>
             <Eyebrow $tone="lime">In build · launching soon</Eyebrow>
-            <H2>Put Kipita<br />in your pocket.</H2>
+            <H2>
+              Put Kipita
+              <br />
+              in your pocket.
+            </H2>
             <DownloadLead>
-              We&apos;re finishing the app now. Join the waitlist and you&apos;ll get it the day it
-              lands on the store — iOS and Android, same week.
+              We&apos;re finishing the app now. Join the waitlist and
+              you&apos;ll get it the day it lands on the store — iOS and
+              Android, same week.
             </DownloadLead>
             <StoreRow>
               <StoreBtn href="#contact" $variant="light">
@@ -1596,9 +1818,21 @@ export function KipitaLanding() {
 
           <Reveal delay={0.1}>
             <Phones>
-              <Phone src="/landing/app-search.png" alt="Kipita search screen" $pos="left" />
-              <Phone src="/landing/app-home.png" alt="Kipita home screen" $pos="center" />
-              <Phone src="/landing/app-rides.png" alt="Kipita rides screen" $pos="right" />
+              <Phone
+                src="/landing/app-search.png"
+                alt="Kipita search screen"
+                $pos="left"
+              />
+              <Phone
+                src="/landing/app-home.png"
+                alt="Kipita home screen"
+                $pos="center"
+              />
+              <Phone
+                src="/landing/app-rides.png"
+                alt="Kipita rides screen"
+                $pos="right"
+              />
             </Phones>
           </Reveal>
         </DownloadGrid>
@@ -1611,8 +1845,8 @@ export function KipitaLanding() {
             <Eyebrow $tone="tan">Support</Eyebrow>
             <H2>Someone&apos;s always on.</H2>
             <p>
-              Report a driver, chase a refund, or just ask a question. Real people, Nairobi hours, and
-              a bot that handles the rest overnight.
+              Report a driver, chase a refund, or just ask a question. Real
+              people, Nairobi hours, and a bot that handles the rest overnight.
             </p>
           </ContactHead>
 
@@ -1625,15 +1859,21 @@ export function KipitaLanding() {
         <FooterCard>
           <FooterCols>
             <FooterBrand>
-              <img src="/landing/kipita-lockup.png" alt="Kipita" />
+              <Brand href="#top" light />
               <p>
-                Kipita connects two people already moving in the same direction. Not a taxi. A shared
-                road.
+                Kipita connects two people already moving in the same direction.
+                Not a taxi. A shared road.
               </p>
               <Socials>
-                <Social href="#top" aria-label="Instagram"><InstagramIcon size={20} fill="#C7EE55" /></Social>
-                <Social href="#top" aria-label="X"><XIcon size={20} fill="#C7EE55" /></Social>
-                <Social href="#top" aria-label="WhatsApp"><WhatsappIcon size={20} fill="#C7EE55" /></Social>
+                <Social href="#top" aria-label="Instagram">
+                  <InstagramIcon size={20} fill="#C7EE55" />
+                </Social>
+                <Social href="#top" aria-label="X">
+                  <XIcon size={20} fill="#C7EE55" />
+                </Social>
+                <Social href="#top" aria-label="WhatsApp">
+                  <WhatsappIcon size={20} fill="#C7EE55" />
+                </Social>
               </Socials>
             </FooterBrand>
 

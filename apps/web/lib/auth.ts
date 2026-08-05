@@ -5,6 +5,7 @@ export interface AdminUser {
   id: string;
   full_name: string;
   is_admin: boolean;
+  image?: string;
 }
 
 /**
@@ -21,11 +22,20 @@ export async function requireAdmin(): Promise<AdminUser> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, full_name, is_admin")
+    .select("id, full_name, is_admin, image:avatar_url")
     .eq("auth_id", user.id)
     .single();
 
   if (!profile?.is_admin) redirect("/admin/login?denied=1");
 
-  return profile as AdminUser;
+  return {
+    ...(profile as AdminUser),
+    image:
+      profile.image ??
+      (typeof user.user_metadata?.avatar_url === "string"
+        ? user.user_metadata.avatar_url
+        : typeof user.user_metadata?.picture === "string"
+          ? user.user_metadata.picture
+          : undefined),
+  };
 }

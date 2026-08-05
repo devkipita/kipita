@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import styled from "styled-components";
@@ -25,8 +26,34 @@ const Right = styled.div`
   align-items: center;
 `;
 
-export function AdminBar({ name }: { name?: string }) {
+const Avatar = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: ${({ theme }) => theme.color.bgAlt};
+  color: ${({ theme }) => theme.color.primaryDark};
+  font-weight: 800;
+  font-size: 0.95rem;
+`;
+
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+`;
+
+export function AdminBar({ name, image }: { name?: string; image?: string }) {
   const router = useRouter();
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [image]);
 
   async function signOut() {
     await createClient().auth.signOut();
@@ -34,11 +61,26 @@ export function AdminBar({ name }: { name?: string }) {
     router.refresh();
   }
 
+  const initial = name?.trim().charAt(0).toUpperCase() || "A";
+  const showImage = Boolean(image) && !imageFailed;
+
   return (
     <Bar>
       <Inner>
         <Brand href="/admin" label="Kipita Admin" />
         <Right>
+          <Avatar aria-label={name ? `${name} avatar` : "Admin avatar"}>
+            {showImage ? (
+              <AvatarImage
+                src={image}
+                alt={name}
+                referrerPolicy="no-referrer"
+                onError={() => setImageFailed(true)}
+              />
+            ) : (
+              initial
+            )}
+          </Avatar>
           {name && <Badge>{name}</Badge>}
           <SmallButton $variant="reject" onClick={signOut}>
             <LogOut size={16} strokeWidth={2.2} />

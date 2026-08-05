@@ -5,8 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, LogIn, Mail, Lock } from "lucide-react";
 import styled from "styled-components";
 import { Brand } from "@/components/ui/Brand";
-import { ButtonEl, Card, Field, Input, Notice } from "@/components/ui/primitives";
+import {
+  ButtonEl,
+  Card,
+  Field,
+  Input,
+  Notice,
+} from "@/components/ui/primitives";
 import { createClient } from "@/lib/supabase/client";
+import GoogleLogo  from "@/public/Google";
 
 const Screen = styled.div`
   min-height: 100vh;
@@ -25,6 +32,22 @@ const Title = styled.h1`
   margin: 16px 0 24px;
 `;
 
+const Divider = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: ${({ theme }) => theme.color.muted};
+  font-size: 0.9rem;
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    border-top: 1px solid ${({ theme }) => theme.color.line};
+  }
+`;
+
 const RevealToggle = styled(Eye)`
   cursor: pointer;
   position: absolute;
@@ -38,13 +61,23 @@ function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const denied = params.get("denied");
+  const authError = params.get("error");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(denied ? "This account isn't an admin." : "");
+  const [error, setError] = useState(() => {
+    if (denied) return "This account isn't an admin.";
+    if (authError === "oauth_exchange_failed")
+      return "Google sign in failed. Try again.";
+    if (authError === "oauth_missing_code")
+      return "Google sign in was interrupted. Try again.";
+    if (authError === "oauth_user_missing")
+      return "Signed in, but no user session was found.";
+    return "";
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,6 +112,23 @@ function LoginForm() {
 
     router.push("/admin");
     router.refresh();
+  }
+
+  async function signInWithGoogle() {
+    setBusy(true);
+    setError("");
+
+    const supabase = createClient();
+    const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setBusy(false);
+    }
   }
 
   return (
@@ -123,15 +173,24 @@ function LoginForm() {
             />
             <RevealToggle onClick={() => setShowPassword(!showPassword)} />
           </Field>
-          <ButtonEl
-            type="submit"
-            style={{ width: "100%" }}
-            disabled={busy}
-          >
+          <ButtonEl type="submit" style={{ width: "100%" }} disabled={busy}>
             {!busy && <LogIn size={20} strokeWidth={2.2} />}
             {busy ? "Signing in…" : "Sign in"}
           </ButtonEl>
         </form>
+
+        <Divider>or</Divider>
+
+        <ButtonEl
+          type="button"
+          style={{ width: "100%" }}
+          $variant="light"
+          onClick={signInWithGoogle}
+          disabled={busy}
+        >
+          <GoogleLogo size={20} strokeWidth={2.2} />
+          Sign in with Google
+        </ButtonEl>
       </LoginCard>
     </Screen>
   );
