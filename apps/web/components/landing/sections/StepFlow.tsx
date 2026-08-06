@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type PointerEvent as ReactPointerEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
 import styled, { css, keyframes } from "styled-components";
 
@@ -62,14 +62,10 @@ const STEP_MS = 2400;
    drum starts turning on its own again. */
 const RESUME_MS = 6000;
 
-/* Cylinder geometry. Cards sit on the rim of a drum: each is `ANGLE_STEP`
-   degrees apart, so rotating the drum swings the neighbours through the centre
-   instead of sliding a card across. RADIUS_RATIO is the drum radius as a
-   fraction of the stage width (controls how far the side cards fan out).
-   LERP is the per-frame ease toward the target rotation. */
+// Drum geometry: cards ANGLE_STEP degrees apart on a rim of radius
+// RADIUS_RATIO × stage width (controls how far side cards fan out).
 const ANGLE_STEP = 52;
 const RADIUS_RATIO = 0.46;
-const LERP = 0.16;
 
 const rgba = (c: [number, number, number], a: number) =>
   `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
@@ -216,11 +212,9 @@ const CardsRow = styled.div`
   grid-template-columns: repeat(3, 1fr);
   gap: var(--gap);
 
-  /* Mobile: a rotating-drum stage (M3 centre-aligned hero layout). Cards sit on
-     the rim of a cylinder — the active step faces front; its two neighbours are
-     turned and tucked behind, peeking in from the left and right. The whole
-     drum rotates continuously (driven per-frame in JS), so a neighbour *swings*
-     into the centre rather than a card sliding across. Swipe or tap to turn. */
+  /* Mobile: rotating-drum stage. Cards sit on a cylinder rim — active card
+     faces front, neighbours turn and tuck behind. Rotation is driven by the
+     native scroll position of the overlay SwipeTrack. */
   @media (max-width: 760px) {
     display: block;
     position: relative;
@@ -229,10 +223,40 @@ const CardsRow = styled.div`
     height: calc(var(--stage-h, 320px) + 28px);
     padding: 14px 0;
     overflow: hidden;
-    touch-action: pan-y;
     perspective: 1300px;
     transform-style: preserve-3d;
   }
+`;
+
+/* Transparent native scroller layered over the drum. It owns the gesture:
+   horizontal swipe scrolls it (with momentum + snap), vertical falls through to
+   the page — the reliable pattern every mobile carousel uses. rot is read from
+   its scrollLeft. Desktop hides it. */
+const SwipeTrack = styled.div`
+  display: none;
+
+  @media (max-width: 760px) {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+`;
+
+const SwipeCell = styled.div`
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: center;
 `;
 
 const Card = styled.div<{
@@ -265,11 +289,9 @@ const Card = styled.div<{
     outline-offset: 3px;
   }
 
-  /* On mobile each card is absolutely stacked on the drum rim. Its transform,
-     opacity and depth (z-index) are written every animation frame by JS, so no
-     CSS transition here — the requestAnimationFrame loop IS the motion. The
-     $pos values below are only a static pre-hydration pose so nothing overlaps
-     before the script takes over. */
+  /* Mobile: visual-only card on the drum rim. transform/opacity/z-index are set
+     by JS from scroll position; the SwipeTrack overlay owns input. $pos is just
+     a pre-hydration pose. */
   @media (max-width: 760px) {
     position: absolute;
     top: 14px;
@@ -278,6 +300,7 @@ const Card = styled.div<{
     max-width: 340px;
     min-height: 320px;
     margin: 0;
+    pointer-events: none;
     will-change: transform, opacity;
     transform-style: preserve-3d;
     backface-visibility: hidden;
@@ -387,17 +410,13 @@ export function StepFlow() {
   const isMobileRef = useRef(false);
   const reducedRef = useRef(false);
 
-  // The drum's rotation, measured in cards (not degrees): `rot` is where it is
-  // right now, `target` is where it's easing to. Both are unbounded floats;
-  // the visible step is `rot` rounded, mod N.
+  // rot = drum rotation in cards (0..N-1), read from the SwipeTrack's scroll.
   const rot = useRef(0);
-  const target = useRef(0);
-  const raf = useRef<number | null>(null);
-  // Live pointer-drag state for the mobile drum (see pointer handlers).
-  const drag = useRef({ on: false, startX: 0, startY: 0, axis: "", rot0: 0 });
-  // Set right after a horizontal swipe so the trailing click doesn't also fire
-  // go() and fight the swipe result.
-  const justSwiped = useRef(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const programmatic = useRef(false); // true while we drive scrollTo ourselves
+  const scrollEnd = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swiped = useRef(false); // a real swipe just happened (suppress tap-nav)
+  const dir = useRef(1); // auto-advance ping-pong direction
 
   useEffect(() => {
     activeRef.current = active;
@@ -410,18 +429,31 @@ export function StepFlow() {
     }
   };
 
-  // Start (or restart) the auto-advance loop.
+  // Advance one step: mobile scrolls the track (ping-pong at the ends); desktop
+  // just cycles the active index and lets the grid transitions animate.
+  const advance = () => {
+    const cur = activeRef.current;
+    if (isMobileRef.current) {
+      let next = cur + dir.current;
+      if (next < 0 || next > N - 1) {
+        dir.current *= -1;
+        next = cur + dir.current;
+      }
+      scrollToCell(next, true);
+    } else {
+      const next = (cur + 1) % N;
+      setActive(next);
+      rot.current = next;
+    }
+  };
+
   const startAuto = () => {
     if (reducedRef.current) return;
     pauseTimer();
-    timer.current = setInterval(() => {
-      target.current += 1;
-      spin();
-    }, STEP_MS);
+    timer.current = setInterval(advance, STEP_MS);
   };
 
-  // Called after a user interaction: keep auto-play off, then resume once the
-  // user has been idle for RESUME_MS.
+  // Keep auto-play off, then resume after RESUME_MS of no interaction.
   const scheduleResume = () => {
     if (idle.current) clearTimeout(idle.current);
     if (reducedRef.current) return;
@@ -431,16 +463,13 @@ export function StepFlow() {
     }, RESUME_MS);
   };
 
-  // Reflect the drum's rounded position into React state (dots + aria) only
-  // when the focused step actually changes.
   const syncActive = (r: number) => {
     const idx = ((Math.round(r) % N) + N) % N;
     if (idx !== activeRef.current) setActive(idx);
   };
 
-  // Place every card on the cylinder rim for a given rotation. Written straight
-  // to the DOM (no React render) so it stays smooth at 60fps. On desktop the
-  // cards live in a plain grid, so we clear any inline styles and bail.
+  // Position each card on the cylinder rim for rotation r, writing straight to
+  // the DOM. Desktop uses the plain grid, so clear inline styles and bail.
   const place = (r: number) => {
     const stage = cardsRef.current;
     if (!stage) return;
@@ -450,7 +479,6 @@ export function StepFlow() {
         el.style.transform = "";
         el.style.opacity = "";
         el.style.zIndex = "";
-        el.style.pointerEvents = "";
       });
       return;
     }
@@ -460,12 +488,11 @@ export function StepFlow() {
     const cosMax = Math.cos(maxRad);
     cardEls.current.forEach((el, i) => {
       if (!el) return;
-      // Signed distance from front, wrapped into (-N/2, N/2] so each card takes
-      // the short way round and the far card sits at the (invisible) back.
+      // Signed distance from front, wrapped so neighbours peek on both sides.
       let dist = (((i - r) % N) + N) % N;
       if (dist > N / 2) dist -= N;
       const rad = (dist * ANGLE_STEP * Math.PI) / 180;
-      const depth = Math.cos(rad); // 1 = front, smaller = turned away
+      const depth = Math.cos(rad);
       const t = Math.max(0, (depth - cosMax) / (1 - cosMax)); // 0 back → 1 front
       const x = Math.sin(rad) * radius;
       const scale = 0.8 + 0.2 * t;
@@ -473,47 +500,67 @@ export function StepFlow() {
       el.style.transform = `translateX(calc(-50% + ${x.toFixed(2)}px)) rotateY(${ry.toFixed(2)}deg) scale(${scale.toFixed(3)})`;
       el.style.opacity = t.toFixed(3);
       el.style.zIndex = String(Math.round(t * 100) + 1);
-      el.style.pointerEvents = t > 0.12 ? "auto" : "none";
     });
   };
 
-  // Ease `rot` toward `target` one frame at a time — the continuous rotation.
-  const tick = () => {
-    const diff = target.current - rot.current;
-    if (Math.abs(diff) < 0.0015) {
-      rot.current = target.current;
-      place(rot.current);
-      syncActive(rot.current);
-      raf.current = null;
-      return;
+  const scrollToCell = (i: number, prog: boolean) => {
+    const track = trackRef.current;
+    if (!track) return;
+    if (prog) programmatic.current = true;
+    track.scrollTo({
+      left: i * track.clientWidth,
+      behavior: reducedRef.current ? "auto" : "smooth",
+    });
+  };
+
+  // Go to a step. Mobile scrolls the track (drives the drum); desktop sets state.
+  const go = (i: number) => {
+    const idx = Math.max(0, Math.min(N - 1, i));
+    pauseTimer();
+    if (isMobileRef.current) scrollToCell(idx, true);
+    else {
+      setActive(idx);
+      rot.current = idx;
     }
-    rot.current += diff * LERP;
+    scheduleResume();
+  };
+
+  // Every scroll frame maps scrollLeft → rotation and repaints the drum.
+  const onTrackScroll = () => {
+    const track = trackRef.current;
+    if (!track) return;
+    rot.current = track.scrollLeft / (track.clientWidth || 1);
     place(rot.current);
     syncActive(rot.current);
-    raf.current = requestAnimationFrame(tick);
+    if (!programmatic.current) swiped.current = true;
+    if (scrollEnd.current) clearTimeout(scrollEnd.current);
+    scrollEnd.current = setTimeout(() => {
+      const wasUser = !programmatic.current;
+      programmatic.current = false;
+      swiped.current = false;
+      if (wasUser) scheduleResume();
+    }, 150);
   };
 
-  const spin = () => {
-    if (reducedRef.current) {
-      rot.current = target.current;
-      place(rot.current);
-      syncActive(rot.current);
-      return;
-    }
-    if (raf.current == null) raf.current = requestAnimationFrame(tick);
-  };
-
-  // Rotate to a specific step, taking the shortest way around the drum.
-  const go = (i: number) => {
+  // A touch on the track means the user is taking over: stop auto-play.
+  const onTrackDown = () => {
+    programmatic.current = false;
     pauseTimer();
-    const base = Math.round(rot.current);
-    const baseMod = ((base % N) + N) % N;
-    let delta = i - baseMod;
-    if (delta > N / 2) delta -= N;
-    if (delta < -N / 2) delta += N;
-    target.current = base + delta;
-    spin();
-    scheduleResume();
+    if (idle.current) {
+      clearTimeout(idle.current);
+      idle.current = null;
+    }
+  };
+
+  // Tap the left/right third to step (ignored if it was actually a swipe).
+  const onTrackClick = (e: ReactMouseEvent) => {
+    if (swiped.current) return;
+    const track = trackRef.current;
+    if (!track) return;
+    const rect = track.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    if (x < 0.4) go(activeRef.current - 1);
+    else if (x > 0.6) go(activeRef.current + 1);
   };
 
   useEffect(() => {
@@ -524,22 +571,25 @@ export function StepFlow() {
     reducedRef.current = isReduced;
     if (isReduced) return;
 
-    // Auto-advance keeps turning the drum forward until the user takes over.
     startAuto();
     return () => {
       if (timer.current) clearInterval(timer.current);
       if (idle.current) clearTimeout(idle.current);
-      if (raf.current) cancelAnimationFrame(raf.current);
+      if (scrollEnd.current) clearTimeout(scrollEnd.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track the mobile breakpoint — the drum only applies there; on desktop the
-  // grid takes over, so re-place to clear inline styles when crossing over.
+  // Watch the mobile breakpoint; align the track scroll to the active step.
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 760px)");
     const sync = () => {
       isMobileRef.current = mq.matches;
+      if (mq.matches && trackRef.current) {
+        rot.current = activeRef.current;
+        trackRef.current.scrollLeft =
+          activeRef.current * trackRef.current.clientWidth;
+      }
       place(rot.current);
     };
     sync();
@@ -548,8 +598,7 @@ export function StepFlow() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Size the drum stage to the tallest card (absolute cards don't stretch their
-  // parent) and re-place on any resize (rim radius scales with width).
+  // Size the stage to the tallest card and repaint on resize (radius ∝ width).
   useEffect(() => {
     const measure = () => {
       let h = 0;
@@ -566,89 +615,6 @@ export function StepFlow() {
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ── Mobile drum swipe ─────────────────────────────────────────────────────
-  const onPointerDown = (e: ReactPointerEvent) => {
-    if (!isMobileRef.current) return;
-    if (raf.current) {
-      cancelAnimationFrame(raf.current);
-      raf.current = null;
-    }
-    // Cancel any pending auto-resume while the user is touching the drum.
-    if (idle.current) {
-      clearTimeout(idle.current);
-      idle.current = null;
-    }
-    drag.current = {
-      on: true,
-      startX: e.clientX,
-      startY: e.clientY,
-      axis: "",
-      rot0: rot.current,
-    };
-    // Capture immediately so the browser hands us the whole gesture instead of
-    // grabbing it for a scroll and firing pointercancel mid-swipe. `touch-action:
-    // pan-y` still lets vertical drags scroll the page (we release below).
-    try {
-      cardsRef.current?.setPointerCapture(e.pointerId);
-    } catch {
-      /* pointer already gone — ignore */
-    }
-  };
-
-  const onPointerMove = (e: ReactPointerEvent) => {
-    const d = drag.current;
-    if (!d.on) return;
-    const dx = e.clientX - d.startX;
-    const dy = e.clientY - d.startY;
-    // Lock to an axis on the first real move; vertical drags scroll the page.
-    if (!d.axis) {
-      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
-      d.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-      if (d.axis === "y") {
-        // Hand the gesture back so the page scrolls normally.
-        d.on = false;
-        try {
-          cardsRef.current?.releasePointerCapture(e.pointerId);
-        } catch {
-          /* ignore */
-        }
-        return;
-      }
-      pauseTimer();
-    }
-    // Turn the drum with the finger: a full card-width drag ≈ one step.
-    const width = cardsRef.current?.clientWidth || 320;
-    rot.current = d.rot0 - dx / (width * 0.55);
-    place(rot.current);
-    syncActive(rot.current);
-  };
-
-  const endDrag = () => {
-    const d = drag.current;
-    if (!d.on || d.axis !== "x") {
-      d.on = false;
-      return;
-    }
-    d.on = false;
-    const moved = rot.current - d.rot0;
-    if (Math.abs(moved) > 0.08) {
-      justSwiped.current = true;
-      setTimeout(() => {
-        justSwiped.current = false;
-      }, 350);
-    }
-    // Snap to the nearest step, but let even a short, decisive flick advance a
-    // full step in its direction rather than springing back.
-    let tgt = Math.round(rot.current);
-    if (Math.abs(moved) >= 0.2) {
-      const dir = moved > 0 ? 1 : -1;
-      tgt = Math.round(d.rot0) + dir * Math.max(1, Math.round(Math.abs(moved)));
-    }
-    target.current = tgt;
-    spin();
-    scheduleResume();
-  };
 
   return (
     <Wrap>
@@ -688,11 +654,6 @@ export function StepFlow() {
             ? ({ "--stage-h": `${stageH}px` } as CSSProperties)
             : undefined
         }
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={endDrag}
-        onPointerCancel={endDrag}
-        onPointerLeave={endDrag}
       >
         {STEPS.map((s, i) => {
           const isActive = i === active;
@@ -711,10 +672,7 @@ export function StepFlow() {
               role="button"
               tabIndex={0}
               aria-current={isActive ? "step" : undefined}
-              onClick={() => {
-                if (justSwiped.current) return;
-                go(i);
-              }}
+              onClick={() => go(i)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
@@ -751,6 +709,18 @@ export function StepFlow() {
             </Card>
           );
         })}
+
+        <SwipeTrack
+          ref={trackRef}
+          onScroll={onTrackScroll}
+          onPointerDown={onTrackDown}
+          onClick={onTrackClick}
+          aria-hidden
+        >
+          {STEPS.map((s) => (
+            <SwipeCell key={`swipe-${s.label}`} />
+          ))}
+        </SwipeTrack>
       </CardsRow>
     </Wrap>
   );
