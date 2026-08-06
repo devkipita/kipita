@@ -3,6 +3,9 @@
 import { useState } from "react";
 import styled from "styled-components";
 import { nocturne } from "./nocturne";
+import { joinWaitlist } from "@/lib/waitlist";
+
+type Status = "idle" | "loading" | "done" | "error";
 
 const Waitlist = styled.form`
   display: flex;
@@ -68,27 +71,67 @@ const WaitlistBtn = styled.button`
   }
 `;
 
-/** Email capture for the app waitlist. Client-side confirmation only (no backend wired yet). */
+const Note = styled.p<{ $tone: "ok" | "err" }>`
+  width: 100%;
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: ${({ $tone }) => ($tone === "ok" ? nocturne.sage : "#e88b7a")};
+`;
+
+/** Email capture for the app waitlist. Persists to the Supabase `waitlist` table. */
 export function WaitlistForm() {
-  const [joined, setJoined] = useState(false);
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<Status>("idle");
+
+  const done = status === "done";
+  const loading = status === "loading";
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (loading || done) return;
+
+    setStatus("loading");
+    try {
+      await joinWaitlist(email);
+      setStatus("done");
+    } catch {
+      setStatus("error");
+    }
+  }
 
   return (
-    <Waitlist
-      onSubmit={(e) => {
-        e.preventDefault();
-        setJoined(true);
-      }}
-    >
+    <Waitlist onSubmit={onSubmit} noValidate={false}>
       <WaitlistInput
         type="email"
         required
         placeholder="you@example.com"
         aria-label="Email address"
-        disabled={joined}
+        value={email}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          if (status === "error") setStatus("idle");
+        }}
+        disabled={loading || done}
       />
-      <WaitlistBtn type="submit" disabled={joined}>
-        {joined ? "You're on the list" : "Join waitlist"}
+      <WaitlistBtn type="submit" disabled={loading || done}>
+        {done
+          ? "You're on the list"
+          : loading
+            ? "Joining…"
+            : "Join waitlist"}
       </WaitlistBtn>
+
+      {done ? (
+        <Note $tone="ok">
+          You&apos;re on the list — we&apos;ll email you the moment Kipita
+          launches.
+        </Note>
+      ) : status === "error" ? (
+        <Note $tone="err">
+          Something went wrong. Please check your email and try again.
+        </Note>
+      ) : null}
     </Waitlist>
   );
 }

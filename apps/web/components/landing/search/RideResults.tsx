@@ -487,7 +487,7 @@ export function RideResults({
           </EmptyLead>
           <RequestBtn href="#download">
             Request this ride
-            <ArrowRight size={17} />
+            <ArrowRight size={24} />
           </RequestBtn>
           <EmptyNote>You only pay once a driver accepts.</EmptyNote>
         </Empty>
