@@ -586,6 +586,14 @@ export function StepFlow() {
       axis: "",
       rot0: rot.current,
     };
+    // Capture immediately so the browser hands us the whole gesture instead of
+    // grabbing it for a scroll and firing pointercancel mid-swipe. `touch-action:
+    // pan-y` still lets vertical drags scroll the page (we release below).
+    try {
+      cardsRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      /* pointer already gone — ignore */
+    }
   };
 
   const onPointerMove = (e: ReactPointerEvent) => {
@@ -598,11 +606,16 @@ export function StepFlow() {
       if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
       d.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
       if (d.axis === "y") {
+        // Hand the gesture back so the page scrolls normally.
         d.on = false;
+        try {
+          cardsRef.current?.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
         return;
       }
       pauseTimer();
-      cardsRef.current?.setPointerCapture(e.pointerId);
     }
     // Turn the drum with the finger: a full card-width drag ≈ one step.
     const width = cardsRef.current?.clientWidth || 320;
@@ -618,14 +631,21 @@ export function StepFlow() {
       return;
     }
     d.on = false;
-    if (Math.abs(rot.current - d.rot0) > 0.08) {
+    const moved = rot.current - d.rot0;
+    if (Math.abs(moved) > 0.08) {
       justSwiped.current = true;
       setTimeout(() => {
         justSwiped.current = false;
       }, 350);
     }
-    // Snap to the nearest step and let the drum settle.
-    target.current = Math.round(rot.current);
+    // Snap to the nearest step, but let even a short, decisive flick advance a
+    // full step in its direction rather than springing back.
+    let tgt = Math.round(rot.current);
+    if (Math.abs(moved) >= 0.2) {
+      const dir = moved > 0 ? 1 : -1;
+      tgt = Math.round(d.rot0) + dir * Math.max(1, Math.round(Math.abs(moved)));
+    }
+    target.current = tgt;
     spin();
     scheduleResume();
   };
