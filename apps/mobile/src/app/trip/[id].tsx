@@ -19,6 +19,7 @@ import { Avatar } from "@/components/core/Avatar";
 import { Icon } from "@/components/core/Icon";
 import { Divider } from "@/components/core/Divider";
 import { EmptyState } from "@/components/feedback/EmptyState";
+import { StatusFlow } from "@/components/shared/StatusFlow";
 import { useTheme, useLocale, useAppMode, useSafeBack } from "@/hooks";
 import { useAuthStore, useUIStore, useTripStore, useReviewStore } from "@/store";
 import { updateBookingStatus, fetchCurrentBookings, releaseEscrow, requestRefund, queryKeys } from "@/lib/api";
@@ -251,49 +252,23 @@ export default function TripScreen() {
             {isLive && <LiveDot color={tone.accent} />}
           </View>
 
-          {/* Progress stepper — nodes/track tinted to the state accent. */}
+          {/* Progress tracker — animated flowing-dot legs tinted to the state
+             accent; the current leg streams toward the next stage. */}
           {!isCancelled && (
-            <View style={styles.stepper}>
-              {STEPS.map((step, i) => {
-                const done = stepIdx >= i;
-                const active = stepIdx === i && !isCompleted;
-                return (
-                  <React.Fragment key={step.key}>
-                    <View style={styles.step}>
-                      <View
-                        style={[
-                          styles.stepDot,
-                          {
-                            backgroundColor: done ? tone.accent : tone.onContainer + "1A",
-                          },
-                          active && styles.stepDotActive,
-                        ]}
-                      >
-                        <Icon
-                          name={step.icon}
-                          size={16}
-                          color={done ? tone.onAccent : tone.onContainer}
-                        />
-                      </View>
-                      <Text
-                        variant="caption"
-                        color={tone.onContainer}
-                        style={done ? styles.bold : styles.stepIdle}
-                      >
-                        {t(step.key)}
-                      </Text>
-                    </View>
-                    {i < STEPS.length - 1 && (
-                      <View
-                        style={[
-                          styles.stepLine,
-                          { backgroundColor: stepIdx > i ? tone.accent : tone.onContainer + "26" },
-                        ]}
-                      />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+            <View style={styles.flowWrap}>
+              <StatusFlow
+                steps={STEPS.map((s) => ({
+                  key: s.key,
+                  label: t(s.key),
+                  icon: s.icon,
+                }))}
+                currentIndex={stepIdx}
+                state={isCompleted ? "complete" : "active"}
+                accent={tone.accent}
+                onAccent={tone.onAccent}
+                track={tone.onContainer + "33"}
+                labelColor={tone.onContainer}
+              />
             </View>
           )}
         </View>
@@ -803,6 +778,9 @@ const styles = StyleSheet.create({
   },
   liveCore: { width: 10, height: 10, borderRadius: 5 },
 
+  flowWrap: {
+    paddingHorizontal: spacing.xs,
+  },
   stepper: {
     flexDirection: "row",
     alignItems: "center",

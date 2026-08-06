@@ -7,6 +7,7 @@ import { Icon } from '../core/Icon';
 import { Button } from '../core/Button';
 import { Divider } from '../core/Divider';
 import { PaymentResultAnimation } from '../shared/PaymentResultAnimation';
+import { StatusFlow } from '../shared/StatusFlow';
 import { useTheme, useLocale } from '@/hooks';
 import { useAuthStore } from '@/store';
 import { spacing, radius, typography } from '@/theme';
@@ -116,6 +117,25 @@ export const PaymentSheet = memo(function PaymentSheet({ booking, onPay, onClose
               {t('payment_success_sub')}
             </Text>
           </View>
+
+          {/* Escrow status — money is held now and streams to the driver on
+             arrival; the "In escrow" node pulses while the release leg flows. */}
+          <View style={styles.escrowFlow}>
+            <StatusFlow
+              steps={[
+                { key: 'paid', label: 'Paid', icon: 'checkmark-circle' },
+                { key: 'held', label: 'In escrow', icon: 'lock-closed-outline' },
+                { key: 'release', label: 'On arrival', icon: 'flag' },
+              ]}
+              currentIndex={1}
+              state="active"
+              accent={colors.success}
+              onAccent={colors.onSuccess}
+              track={colors.outlineVariant}
+              labelColor={colors.textSecondary}
+            />
+          </View>
+
           <Button label={t('done')} onPress={onClose} variant="filled" size="lg" fullWidth />
         </View>
       </Animated.View>
@@ -318,6 +338,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   centerText: { gap: spacing.xs, alignItems: 'center' },
+  escrowFlow: { alignSelf: 'stretch', paddingHorizontal: spacing.sm },
   cancelLink: { paddingVertical: spacing.sm },
   actionRow: { flexDirection: 'row', gap: spacing.md, alignSelf: 'stretch' },
   phoneField: { gap: spacing.xs },
