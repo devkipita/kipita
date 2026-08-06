@@ -78,13 +78,18 @@ const Field = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 12px 10px;
   border-radius: 20px;
   cursor: text;
   transition: background 0.2s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.03);
+  }
+
+  @media (max-width: 640px) {
+    gap: 10px;
+    padding: 11px 8px;
   }
 `;
 
@@ -173,12 +178,16 @@ const Spinner = styled.span`
 /* Dotted connector between the from and to rows. */
 const Connector = styled.div`
   height: 1px;
-  margin: 2px 14px 2px 27px;
+  margin: 2px 10px 2px 24px;
   background: repeating-linear-gradient(
     to right,
     ${nocturne.line} 0 5px,
     transparent 5px 11px
   );
+
+  @media (max-width: 640px) {
+    margin: 2px 8px 2px 22px;
+  }
 `;
 
 /* ══════════════ When control ══════════════ */
@@ -385,7 +394,7 @@ const SearchBtn = styled.button`
   color: ${nocturne.greenDeep};
   font-family: inherit;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 900;
   cursor: pointer;
   transition:
     background 0.2s ease,
@@ -656,7 +665,7 @@ export function RideSearch() {
               void search.run();
             }}
           >
-            <Search size={18} />
+            <Search size={24} />
             Search rides
           </SearchBtn>
         </div>

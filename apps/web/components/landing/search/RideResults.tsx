@@ -217,16 +217,27 @@ const Seats = styled.span`
   font-weight: 600;
 `;
 
-/* ── Skeletons ── */
+/* ── Skeletons ── mirror the real RideCard layout exactly (same container,
+   same rows in the same positions) so nothing shifts when results land. */
 const SkelCard = styled.div`
-  height: 176px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
   border-radius: 22px;
+  background: ${nocturne.surface};
   border: 1px solid ${nocturne.line};
+`;
+
+const Bar = styled.div<{ $w: string; $h: number; $r?: number }>`
+  width: ${({ $w }) => $w};
+  height: ${({ $h }) => $h}px;
+  border-radius: ${({ $r }) => $r ?? 6}px;
   background: linear-gradient(
     90deg,
-    ${nocturne.surface} 0px,
-    #1d1d1d 160px,
-    ${nocturne.surface} 320px
+    ${nocturne.line2} 0px,
+    ${nocturne.line} 160px,
+    ${nocturne.line2} 320px
   );
   background-size: 640px 100%;
   animation: ${shimmer} 1.15s linear infinite;
@@ -235,6 +246,40 @@ const SkelCard = styled.div`
     animation: none;
   }
 `;
+
+function SkeletonCard() {
+  return (
+    <SkelCard aria-hidden>
+      <CardTop>
+        <Bar $w="40px" $h={40} $r={999} />
+        <Who as="div" style={{ gap: 7 }}>
+          <Bar $w="58%" $h={13} />
+          <Bar $w="40%" $h={11} />
+        </Who>
+      </CardTop>
+
+      <Route>
+        <RouteCol>
+          <Bar $w="32px" $h={9} />
+          <Bar $w="72px" $h={16} />
+        </RouteCol>
+        <RouteArrow />
+        <RouteCol>
+          <Bar $w="32px" $h={9} />
+          <Bar $w="72px" $h={16} />
+        </RouteCol>
+      </Route>
+
+      <Foot>
+        <Meta as="div">
+          <Bar $w="82px" $h={18} />
+          <Bar $w="120px" $h={12} />
+        </Meta>
+        <Bar $w="86px" $h={30} $r={999} />
+      </Foot>
+    </SkelCard>
+  );
+}
 
 /* ── Empty state ── centered, minimal copy. Sage/tan palette only (no lime),
    per the design direction. */
@@ -414,7 +459,7 @@ export function RideResults({
         </ResultHead>
         <Grid>
           {[0, 1, 2].map((i) => (
-            <SkelCard key={i} />
+            <SkeletonCard key={i} />
           ))}
         </Grid>
       </Panel>

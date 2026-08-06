@@ -43,7 +43,7 @@ export const Eyebrow = styled.span<{ $tone?: "green" | "tan" | "lime" }>`
 
 export const Section = styled.section`
   position: relative;
-  padding: clamp(90px, 10vw, 160px) clamp(20px, 5vw, 72px);
+  padding: clamp(90px, 10vw, 160px) clamp(20px, 3vw, 72px);
   background: ${nocturne.bg};
 `;
 

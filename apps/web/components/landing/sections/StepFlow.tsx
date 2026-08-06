@@ -56,10 +56,21 @@ const STEP_MS = 2400;
 const rgba = (c: [number, number, number], a: number) =>
   `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${a})`;
 
-const pulse = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }
-  70% { box-shadow: 0 0 0 22px rgba(255, 255, 255, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+/* A slow, continuous rotation for the dashed halo around the active number. */
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+/* Dots flow forward along the completed part of the track — a subtle nod to
+   the journey moving toward the next step. */
+const march = keyframes`
+  to { background-position-x: 18px; }
+`;
+
+/* Gentle breathing so every number feels alive, not just the active one. */
+const breathe = keyframes`
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 `;
 
 const Wrap = styled.div`
@@ -79,7 +90,7 @@ const DotsRow = styled.div`
 
 const DotCell = styled.div`
   position: relative;
-  height: calc(var(--dot) + 14px);
+  height: calc(var(--dot) + 34px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,10 +102,10 @@ const Line = styled.span`
   top: 50%;
   left: calc(50% + (var(--dot) / 2) + 6px);
   width: calc(100% + var(--gap) - var(--dot) - 12px);
-  height: 4px;
+  height: 6px;
   transform: translateY(-50%);
-  background-image: radial-gradient(circle, #333 1.6px, transparent 1.7px);
-  background-size: 14px 4px;
+  background-image: radial-gradient(circle, #333 2.7px, transparent 2.8px);
+  background-size: 18px 6px;
   background-repeat: repeat-x;
 `;
 
@@ -104,13 +115,15 @@ const LineFill = styled.span<{ $on: boolean; $color: string }>`
   height: 100%;
   width: ${({ $on }) => ($on ? "100%" : "0%")};
   background-image: ${({ $color }) =>
-    `radial-gradient(circle, ${$color} 1.6px, transparent 1.7px)`};
-  background-size: 14px 4px;
+    `radial-gradient(circle, ${$color} 2.7px, transparent 2.8px)`};
+  background-size: 18px 6px;
   background-repeat: repeat-x;
   transition: width 620ms ease;
+  animation: ${march} 900ms linear infinite;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    animation: none;
   }
 `;
 
@@ -139,16 +152,43 @@ const Dot = styled.span<{
   transition:
     background 420ms ease,
     color 420ms ease,
-    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 420ms ease;
-  ${({ $pulse }) =>
-    $pulse &&
-    css`
-      animation: ${pulse} 1800ms ease-out infinite;
-    `}
+
+  /* A slowly rotating dashed halo marks the active step — elegant and
+     continuous, no harsh glow or layout shift. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -12px;
+    border-radius: 999px;
+    border: 4px dotted ${({ $border }) => $border};
+    opacity: ${({ $pulse }) => ($pulse ? 0.85 : 0)};
+    transition: opacity 420ms ease;
+    ${({ $pulse }) =>
+      $pulse &&
+      css`
+        animation: ${spin} 7s linear infinite;
+      `}
+  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    animation: none;
+
+    &::before {
+      animation: none;
+    }
+  }
+`;
+
+/* The number itself breathes on a per-step delay so the row ripples gently. */
+const Num = styled.span<{ $i: number }>`
+  display: inline-flex;
+  animation: ${breathe} 3.4s ease-in-out infinite;
+  animation-delay: ${({ $i }) => $i * 0.35}s;
+
+  @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
 `;
@@ -158,16 +198,33 @@ const CardsRow = styled.div`
   grid-template-columns: repeat(3, 1fr);
   gap: var(--gap);
 
+  /* On mobile the row becomes a native, swipeable scroll-snap carousel: the
+     centred card is the active step and its neighbours peek in from the sides.
+     Real momentum scrolling + snap keeps it smooth on touch with no JS jank. */
   @media (max-width: 760px) {
-    grid-template-columns: 1fr;
+    display: flex;
+    grid-template-columns: none;
+    gap: 16px;
+    padding: 16px 9% 40px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 `;
 
 const Card = styled.div<{
   $bg: string;
   $op: number;
-  $y: string;
   $shadow: string;
+  $pos: number;
 }>`
   display: flex;
   flex-direction: column;
@@ -179,16 +236,39 @@ const Card = styled.div<{
   min-height: clamp(300px, 32vw, 420px);
   background: ${({ $bg }) => $bg};
   opacity: ${({ $op }) => $op};
-  transform: translateY(${({ $y }) => $y});
   box-shadow: ${({ $shadow }) => $shadow};
+  transform-origin: center center;
+  /* Desktop: the active card lifts with a minimal, smooth scale — no jump. */
+  transform: ${({ $pos }) => ($pos === 0 ? "scale(1.03)" : "scale(1)")};
   transition:
-    opacity 420ms ease,
-    transform 420ms cubic-bezier(0.34, 1.56, 0.64, 1),
-    box-shadow 420ms ease;
+    transform 520ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 520ms ease,
+    box-shadow 520ms ease;
 
   &:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.55);
     outline-offset: 3px;
+  }
+
+  /* On mobile each card is a scroll-snap item that centres in the viewport as
+     you swipe. The active (centred) card sits at full size; its neighbours
+     ease down a touch and dim, giving a smooth coverflow feel while staying
+     genuinely scrollable. $pos: 0 = active/centre, otherwise a side card. */
+  @media (max-width: 760px) {
+    position: static;
+    flex: 0 0 82%;
+    max-width: 360px;
+    min-height: 320px;
+    scroll-snap-align: center;
+    z-index: auto;
+    opacity: ${({ $pos }) => ($pos === 0 ? 1 : 0.5)};
+    transform: ${({ $pos }) => ($pos === 0 ? "scale(1)" : "scale(0.9)")};
+    box-shadow: ${({ $pos }) =>
+      $pos === 0 ? "0 16px 36px -22px rgba(0, 0, 0, 0.6)" : "none"};
+    transition:
+      transform 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 360ms ease,
+      box-shadow 360ms ease;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -270,6 +350,53 @@ export function StepFlow() {
   const [active, setActive] = useState(0);
   const [reduced, setReduced] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const cardEls = useRef<Array<HTMLDivElement | null>>([]);
+  const activeRef = useRef(0);
+  // True while WE are driving a smooth scroll, so the scroll listener doesn't
+  // mistake it for the user swiping (which would pause the auto-advance).
+  const programmatic = useRef(false);
+
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  const pauseTimer = () => {
+    if (timer.current) {
+      clearInterval(timer.current);
+      timer.current = null;
+    }
+  };
+
+  // Smoothly centre a card in the mobile scroller. No-op on desktop (grid,
+  // nothing to scroll) so the same handler is safe everywhere.
+  const scrollToCard = (i: number) => {
+    const scroller = cardsRef.current;
+    const el = cardEls.current[i];
+    if (!scroller || !el) return;
+    if (scroller.scrollWidth <= scroller.clientWidth + 4) return;
+    programmatic.current = true;
+    const left = el.offsetLeft - (scroller.clientWidth - el.offsetWidth) / 2;
+    scroller.scrollTo({ left, behavior: "smooth" });
+  };
+
+  const nearestCard = () => {
+    const scroller = cardsRef.current;
+    if (!scroller) return activeRef.current;
+    const center = scroller.scrollLeft + scroller.clientWidth / 2;
+    let best = Infinity;
+    let idx = 0;
+    cardEls.current.forEach((el, i) => {
+      if (!el) return;
+      const c = el.offsetLeft + el.offsetWidth / 2;
+      const d = Math.abs(c - center);
+      if (d < best) {
+        best = d;
+        idx = i;
+      }
+    });
+    return idx;
+  };
 
   useEffect(() => {
     const isReduced = window.matchMedia(
@@ -278,21 +405,43 @@ export function StepFlow() {
     setReduced(isReduced);
     if (isReduced) return;
 
-    timer.current = setInterval(
-      () => setActive((a) => (a + 1) % STEPS.length),
-      STEP_MS,
-    );
+    timer.current = setInterval(() => {
+      const next = (activeRef.current + 1) % STEPS.length;
+      setActive(next);
+      scrollToCard(next);
+    }, STEP_MS);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };
   }, []);
 
+  // Keep the dots + emphasis in sync as the user swipes the mobile carousel,
+  // and pause the auto-advance the moment they take over.
+  useEffect(() => {
+    const scroller = cardsRef.current;
+    if (!scroller) return;
+    let endTimer: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      clearTimeout(endTimer);
+      endTimer = setTimeout(() => {
+        if (programmatic.current) programmatic.current = false;
+      }, 130);
+      if (programmatic.current) return;
+      pauseTimer();
+      const n = nearestCard();
+      if (n !== activeRef.current) setActive(n);
+    };
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      scroller.removeEventListener("scroll", onScroll);
+      clearTimeout(endTimer);
+    };
+  }, []);
+
   const go = (i: number) => {
-    if (timer.current) {
-      clearInterval(timer.current);
-      timer.current = null;
-    }
+    pauseTimer();
     setActive(i);
+    scrollToCard(i);
   };
 
   return (
@@ -315,23 +464,32 @@ export function StepFlow() {
                 $bg={reached ? s.accent : "transparent"}
                 $fg={reached ? s.dotFg : "#6B6B6B"}
                 $border={reached ? s.accent : "#3A3A3A"}
-                $scale={on ? 1.12 : 1}
+                $scale={on ? 1.06 : 1}
                 $pulse={on}
                 aria-hidden
               >
-                {i + 1}
+                <Num $i={i}>{i + 1}</Num>
               </Dot>
             </DotCell>
           );
         })}
       </DotsRow>
 
-      <CardsRow>
+      <CardsRow ref={cardsRef}>
         {STEPS.map((s, i) => {
           const isActive = i === active;
+          // Position relative to the active card, normalised to -1 / 0 / 1 so
+          // the two inactive cards always sit just behind-left and behind-right
+          // in the mobile carousel (3-card loop).
+          let pos = i - active;
+          if (pos === 2) pos = -1;
+          else if (pos === -2) pos = 1;
           return (
             <Card
               key={s.label}
+              ref={(el) => {
+                cardEls.current[i] = el;
+              }}
               role="button"
               tabIndex={0}
               aria-current={isActive ? "step" : undefined}
@@ -343,11 +501,11 @@ export function StepFlow() {
                 }
               }}
               $bg={s.bg}
-              $op={reduced ? 1 : isActive ? 1 : 0.42}
-              $y={!reduced && isActive ? "-12px" : "0px"}
+              $op={reduced ? 1 : isActive ? 1 : 0.5}
+              $pos={pos}
               $shadow={
                 !reduced && isActive
-                  ? `0 26px 60px -20px ${s.accent}66`
+                  ? `0 18px 44px -28px ${s.accent}40`
                   : "0 0 0 0 transparent"
               }
             >
