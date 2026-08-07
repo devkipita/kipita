@@ -13,13 +13,10 @@ const BrandLink = styled(Link)<{ $light?: boolean }>`
   color: ${({ $light }) => ($light ? "#fff" : "inherit")};
 `;
 
-// Square high-res mark. Sized in CSS (height + width:auto) so callers can scale
-// it per context; the intrinsic width/height keep the aspect ratio + let the
-// optimiser serve a crisp, small variant. `sizes` caps the download near the
-// largest place it renders (~140px, 2× on retina).
+// Sized in CSS (height + width:auto); callers scale it per context.
 const BrandLogo = styled(Image)`
   display: block;
-  height: 100px;
+  height: 32px;
   width: auto;
   flex: none;
 `;
@@ -39,7 +36,6 @@ export function Brand({
   href?: string;
   label?: string;
   light?: boolean;
-  /** Set on above-the-fold placements (nav) so the mark isn't lazy-loaded. */
   priority?: boolean;
   className?: string;
 }) {
@@ -50,9 +46,9 @@ export function Brand({
       <BrandLogo
         src="/kipita-logo.png"
         alt="Kipita"
-        width={200}
-        height={200}
-        sizes="140px"
+        width={1397}
+        height={621}
+        sizes="160px"
         priority={priority}
       />
       {extraLabel ? <BrandText>{extraLabel}</BrandText> : null}

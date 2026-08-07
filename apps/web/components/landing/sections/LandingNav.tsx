@@ -3,7 +3,8 @@ import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
 
 const Nav = styled.nav`
-  position: fixed;
+  /* Not pinned anywhere — flows at the top and scrolls away with the page. */
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -13,75 +14,60 @@ const Nav = styled.nav`
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
-  padding: 22px clamp(14px, 5vw, 72px);
+  padding: 16px clamp(14px, 5vw, 72px);
   pointer-events: none;
 
   @media (max-width: 900px) {
     flex-wrap: nowrap;
     gap: 12px;
-    /* On mobile the nav is NOT pinned — it sits in the page flow at the top and
-       simply scrolls away with the content. No sticky bar, no background. */
-    position: absolute;
   }
 
   @media (max-width: 640px) {
     gap: 10px;
-    padding-top: 14px;
-    padding-bottom: 14px;
+    padding-top: 12px;
+    padding-bottom: 12px;
   }
 `;
 
 const NavLogo = styled.div`
-  display: block;
+  display: flex;
+  align-items: center;
+  /* Footprint that sets the navbar height; the img overflows it (see below). */
+  height: 44px;
   flex: 0 1 auto;
   min-width: 0;
   pointer-events: auto;
 
   a {
+    display: flex;
+    align-items: center;
     color: ${nocturne.cream};
   }
 
   img {
-    height: 132px;
+    height: 66px;
     width: auto;
     display: block;
   }
 
   @media (max-width: 900px) {
+    height: 36px;
     img {
-      height: 88px;
+      height: 62px;
     }
   }
 
   @media (max-width: 640px) {
-    height: 58px;
-    display: flex;
-    align-items: center;
-
-    > a {
-      display: flex;
-      align-items: center;
-      height: 58px;
-      overflow: visible;
-    }
-
+    height: 32px;
     img {
       height: 58px;
-      transform: scale(1.45);
-      transform-origin: left center;
     }
   }
 
   @media (max-width: 420px) {
-    height: 52px;
-
-    > a {
-      height: 52px;
-    }
-
+    height: 28px;
     img {
-      height: 52px;
-      transform: scale(1.38);
+      height: 54px;
     }
   }
 `;

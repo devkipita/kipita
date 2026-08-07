@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/Button";
 import { Container } from "@/components/ui/primitives";
 
 const Nav = styled.nav`
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 50;
-  backdrop-filter: saturate(140%) blur(10px);
-  background: ${({ theme }) =>
-    theme.mode === "dark"
-      ? "rgba(17, 20, 18, 0.8)"
-      : "rgba(230, 239, 227, 0.8)"};
   border-bottom: 1px solid ${({ theme }) => theme.color.line};
 `;
 
@@ -21,7 +16,7 @@ const NavInner = styled(Container)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 72px;
+  height: 56px;
 `;
 
 const NavLinks = styled.div`
@@ -45,7 +40,6 @@ const NavLink = styled(Link)`
   }
 `;
 
-/** Sticky translucent top nav for the marketing + legal pages. */
 export function SiteNav() {
   return (
     <Nav>

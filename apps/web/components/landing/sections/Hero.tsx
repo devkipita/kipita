@@ -13,7 +13,7 @@ const HeroShell = styled.section`
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
   align-items: center;
   gap: 40px;
-  padding: 150px clamp(16px, 5vw, 72px) 80px;
+  padding: 50px clamp(16px, 5vw, 72px) 80px;
   overflow: hidden;
 
   @media (max-width: 900px) {

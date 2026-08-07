@@ -58,7 +58,7 @@ const FooterBrand = styled.div`
   }
 
   > a img {
-    height: 104px;
+    height: 36px;
     width: auto;
     display: block;
     align-self: flex-start;
