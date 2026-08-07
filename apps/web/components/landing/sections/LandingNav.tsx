@@ -19,12 +19,15 @@ const Nav = styled.nav`
   @media (max-width: 900px) {
     flex-wrap: nowrap;
     gap: 12px;
+    /* On mobile the nav is NOT pinned — it sits in the page flow at the top and
+       simply scrolls away with the content. No sticky bar, no background. */
+    position: absolute;
   }
 
   @media (max-width: 640px) {
     gap: 10px;
-    padding-top: 18px;
-    padding-bottom: 18px;
+    padding-top: 14px;
+    padding-bottom: 14px;
   }
 `;
 
@@ -38,14 +41,14 @@ const NavLogo = styled.div`
     color: ${nocturne.cream};
   }
 
-  svg {
+  img {
     height: 132px;
     width: auto;
     display: block;
   }
 
   @media (max-width: 900px) {
-    svg {
+    img {
       height: 88px;
     }
   }
@@ -62,7 +65,7 @@ const NavLogo = styled.div`
       overflow: visible;
     }
 
-    svg {
+    img {
       height: 58px;
       transform: scale(1.45);
       transform-origin: left center;
@@ -76,7 +79,7 @@ const NavLogo = styled.div`
       height: 52px;
     }
 
-    svg {
+    img {
       height: 52px;
       transform: scale(1.38);
     }
@@ -155,7 +158,7 @@ export function LandingNav() {
   return (
     <Nav>
       <NavLogo>
-        <Brand href="#top" light />
+        <Brand href="#top" light priority />
       </NavLogo>
       <NavRight>
         <NavLink href="#find">Find a ride</NavLink>

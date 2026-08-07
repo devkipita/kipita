@@ -134,7 +134,7 @@ function LoginForm() {
   return (
     <Screen>
       <LoginCard>
-        <Brand href="/" label="Kipita Admin" />
+        <Brand href="/" label="Kipita Admin" priority />
         <Title>Sign in</Title>
 
         {error && (

@@ -1,16 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { nocturne } from "./nocturne";
 
-const DockShell = styled.div<{ $open: boolean }>`
+const popIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+`;
+
+// Resting width when the pill shows its "Chat with us" label vs. the collapsed
+// icon-only circle. On render the pill starts expanded, then shrinks to a circle.
+const PILL_W = "184px";
+const CIRCLE = "58px";
+
+const DockShell = styled.div<{ $open: boolean; $expanded: boolean }>`
   position: fixed;
   right: clamp(16px, 2vw, 28px);
   bottom: clamp(16px, 2vw, 28px);
   z-index: 96;
-  width: ${({ $open }) => ($open ? "min(360px, calc(100vw - 32px))" : "194px")};
-  height: ${({ $open }) => ($open ? "min(540px, calc(100vh - 32px))" : "58px")};
+  width: ${({ $open, $expanded }) =>
+    $open ? "min(360px, calc(100vw - 32px))" : $expanded ? PILL_W : CIRCLE};
+  height: ${({ $open }) => ($open ? "min(540px, calc(100vh - 32px))" : CIRCLE)};
   max-width: calc(100vw - 32px);
   border-radius: ${({ $open }) => ($open ? "30px" : "999px")};
   background: ${({ $open }) => ($open ? nocturne.surface : nocturne.lime)};
@@ -18,6 +35,7 @@ const DockShell = styled.div<{ $open: boolean }>`
     ${({ $open }) => ($open ? "#2a2a2a" : "rgba(159, 232, 112, 0.22)")};
   overflow: hidden;
   transform-origin: bottom right;
+  animation: ${popIn} 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
   box-shadow: ${({ $open }) =>
     $open
       ? "0 34px 88px rgba(0, 0, 0, 0.72)"
@@ -32,19 +50,25 @@ const DockShell = styled.div<{ $open: boolean }>`
   will-change: width, height, border-radius, background;
 
   @media (max-width: 640px) {
-    width: ${({ $open }) => ($open ? "calc(100vw - 24px)" : "194px")};
+    width: ${({ $open, $expanded }) =>
+      $open ? "calc(100vw - 24px)" : $expanded ? PILL_W : CIRCLE};
     right: 12px;
     bottom: 12px;
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 `;
 
-const DockLauncher = styled.button<{ $open: boolean }>`
+const DockLauncher = styled.button<{ $open: boolean; $expanded: boolean }>`
   position: absolute;
   inset: 0;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 15px 24px;
+  justify-content: ${({ $expanded }) => ($expanded ? "flex-start" : "center")};
+  gap: ${({ $expanded }) => ($expanded ? "10px" : "0")};
+  padding: ${({ $expanded }) => ($expanded ? "15px 22px" : "0")};
   border: none;
   background: transparent;
   color: ${nocturne.greenDeep};
@@ -58,11 +82,9 @@ const DockLauncher = styled.button<{ $open: boolean }>`
   pointer-events: ${({ $open }) => ($open ? "none" : "auto")};
   transition:
     opacity 180ms ease,
+    gap 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    padding 300ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
-
-  &:hover {
-    background: ${nocturne.cream};
-  }
 `;
 
 const LauncherIcon = styled.span`
@@ -246,8 +268,14 @@ const ChatSend = styled.button`
   }
 `;
 
-const LauncherLabel = styled.span`
+const LauncherLabel = styled.span<{ $expanded: boolean }>`
   white-space: nowrap;
+  overflow: hidden;
+  max-width: ${({ $expanded }) => ($expanded ? "160px" : "0")};
+  opacity: ${({ $expanded }) => ($expanded ? 1 : 0)};
+  transition:
+    max-width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 220ms ease;
 `;
 
 type Message = { from: "bot" | "me"; text: string };
@@ -293,8 +321,19 @@ export function SupportDock({
   const [mode, setMode] = useState<Mode>("support");
   const [draft, setDraft] = useState("");
   const [messages, setMessages] = useState<Message[]>([OPENING.support]);
+  // Intro flourish: the pill mounts showing "Chat with us", then shrinks to an
+  // icon-only circle. Hovering re-expands it so the label stays discoverable.
+  const [intro, setIntro] = useState(true);
+  const [hover, setHover] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
   const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setIntro(false), 2600);
+    return () => clearTimeout(t);
+  }, []);
+
+  const expanded = !open && (intro || hover);
 
   // React to external open requests from the contact cards.
   useEffect(() => {
@@ -336,17 +375,23 @@ export function SupportDock({
   };
 
   return (
-    <DockShell $open={open}>
+    <DockShell
+      $open={open}
+      $expanded={expanded}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+    >
       <DockLauncher
         type="button"
         $open={open}
+        $expanded={expanded}
         onClick={() => setOpen(true)}
-        aria-label="Support chat"
+        aria-label="Chat with us"
       >
         <LauncherIcon>
           <ChatIcon fill="#14392A" />
         </LauncherIcon>
-        <LauncherLabel>Chat with us</LauncherLabel>
+        <LauncherLabel $expanded={expanded}>Chat with us</LauncherLabel>
       </DockLauncher>
 
       <DockPanel $open={open} role="dialog" aria-label="Kipita support chat">

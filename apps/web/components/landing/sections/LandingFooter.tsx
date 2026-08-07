@@ -57,7 +57,7 @@ const FooterBrand = styled.div`
     width: fit-content;
   }
 
-  > a svg {
+  > a img {
     height: 104px;
     width: auto;
     display: block;

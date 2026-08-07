@@ -398,6 +398,13 @@ const Pill = styled.span<{ $bg: string; $c: string }>`
 
 export function StepFlow() {
   const N = STEPS.length;
+  // Endless swipe: the mobile track holds SETS copies of the N cells so the user
+  // can keep swiping in either direction. Once a swipe settles, scrollLeft is
+  // snapped back to the middle set — invisible, since the drum poses cards by
+  // rotation mod N, so a whole-set jump lands on an identical frame.
+  const SETS = 5;
+  const baseCell = N * ((SETS - 1) / 2); // first cell of the middle set
+  const totalCells = N * SETS;
   const [active, setActive] = useState(0);
   const [reduced, setReduced] = useState(false);
   const [stageH, setStageH] = useState(0);
@@ -416,7 +423,6 @@ export function StepFlow() {
   const programmatic = useRef(false); // true while we drive scrollTo ourselves
   const scrollEnd = useRef<ReturnType<typeof setTimeout> | null>(null);
   const swiped = useRef(false); // a real swipe just happened (suppress tap-nav)
-  const dir = useRef(1); // auto-advance ping-pong direction
 
   useEffect(() => {
     activeRef.current = active;
@@ -429,17 +435,16 @@ export function StepFlow() {
     }
   };
 
-  // Advance one step: mobile scrolls the track (ping-pong at the ends); desktop
-  // just cycles the active index and lets the grid transitions animate.
+  // Advance one step: mobile scrolls the track one cell forward (endless — the
+  // recenter keeps it in range); desktop cycles the active index and lets the
+  // grid transitions animate.
   const advance = () => {
     const cur = activeRef.current;
     if (isMobileRef.current) {
-      let next = cur + dir.current;
-      if (next < 0 || next > N - 1) {
-        dir.current *= -1;
-        next = cur + dir.current;
-      }
-      scrollToCell(next, true);
+      const track = trackRef.current;
+      if (!track) return;
+      const curCell = Math.round(track.scrollLeft / (track.clientWidth || 1));
+      scrollToCell(curCell + 1, true);
     } else {
       const next = (cur + 1) % N;
       setActive(next);
@@ -503,22 +508,52 @@ export function StepFlow() {
     });
   };
 
-  const scrollToCell = (i: number, prog: boolean) => {
+  // Scroll to an absolute cell index on the (SETS × N) track, clamped so runaway
+  // taps can't overshoot the buffer before the next recenter runs.
+  const scrollToCell = (cell: number, prog: boolean) => {
     const track = trackRef.current;
     if (!track) return;
+    const c = Math.max(0, Math.min(totalCells - 1, cell));
     if (prog) programmatic.current = true;
     track.scrollTo({
-      left: i * track.clientWidth,
+      left: c * track.clientWidth,
       behavior: reducedRef.current ? "auto" : "smooth",
     });
   };
 
-  // Go to a step. Mobile scrolls the track (drives the drum); desktop sets state.
+  // Once a swipe/advance settles, snap scrollLeft back into the middle set. The
+  // jump is a whole number of sets, so the drum pose (rot mod N) is unchanged —
+  // seamless, and it's what lets the user keep circling forever either way.
+  const recenter = () => {
+    const track = trackRef.current;
+    if (!track) return;
+    const w = track.clientWidth || 1;
+    const cell = Math.round(track.scrollLeft / w);
+    const step = ((cell % N) + N) % N;
+    const mid = baseCell + step;
+    if (cell !== mid) {
+      programmatic.current = true;
+      track.scrollLeft = mid * w;
+      rot.current = mid;
+    }
+  };
+
+  // Go to a step. Mobile scrolls the track by the shortest signed path around
+  // the ring (so it wraps in whichever direction is nearer); desktop sets state.
   const go = (i: number) => {
-    const idx = Math.max(0, Math.min(N - 1, i));
     pauseTimer();
-    if (isMobileRef.current) scrollToCell(idx, true);
-    else {
+    if (isMobileRef.current) {
+      const track = trackRef.current;
+      if (track) {
+        const curCell = Math.round(track.scrollLeft / (track.clientWidth || 1));
+        const curStep = ((curCell % N) + N) % N;
+        const targetStep = ((i % N) + N) % N;
+        let d = (((targetStep - curStep) % N) + N) % N;
+        if (d > N / 2) d -= N;
+        scrollToCell(curCell + d, true);
+      }
+    } else {
+      const idx = Math.max(0, Math.min(N - 1, i));
       setActive(idx);
       rot.current = idx;
     }
@@ -539,6 +574,7 @@ export function StepFlow() {
       programmatic.current = false;
       swiped.current = false;
       if (wasUser) scheduleResume();
+      recenter();
     }, 150);
   };
 
@@ -586,9 +622,9 @@ export function StepFlow() {
     const sync = () => {
       isMobileRef.current = mq.matches;
       if (mq.matches && trackRef.current) {
-        rot.current = activeRef.current;
-        trackRef.current.scrollLeft =
-          activeRef.current * trackRef.current.clientWidth;
+        const cell = baseCell + activeRef.current;
+        rot.current = cell;
+        trackRef.current.scrollLeft = cell * trackRef.current.clientWidth;
       }
       place(rot.current);
     };
@@ -606,6 +642,16 @@ export function StepFlow() {
         if (el) h = Math.max(h, el.offsetHeight);
       });
       if (h) setStageH((prev) => (Math.abs(prev - h) > 1 ? h : prev));
+      // Keep the track parked in the middle set once we know the width, so
+      // there's always buffer to swipe into on both sides (and no edge-stuck
+      // state if the width wasn't ready on mount). RO never fires mid-swipe.
+      const track = trackRef.current;
+      if (isMobileRef.current && track && track.clientWidth) {
+        const step = ((Math.round(rot.current) % N) + N) % N;
+        const cell = baseCell + step;
+        track.scrollLeft = cell * track.clientWidth;
+        rot.current = cell;
+      }
       place(rot.current);
     };
     measure();
@@ -717,8 +763,8 @@ export function StepFlow() {
           onClick={onTrackClick}
           aria-hidden
         >
-          {STEPS.map((s) => (
-            <SwipeCell key={`swipe-${s.label}`} />
+          {Array.from({ length: totalCells }, (_, i) => (
+            <SwipeCell key={`swipe-${i}`} />
           ))}
         </SwipeTrack>
       </CardsRow>

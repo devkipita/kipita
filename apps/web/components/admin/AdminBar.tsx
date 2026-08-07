@@ -67,7 +67,7 @@ export function AdminBar({ name, image }: { name?: string; image?: string }) {
   return (
     <Bar>
       <Inner>
-        <Brand href="/admin" label="Kipita Admin" />
+        <Brand href="/admin" label="Kipita Admin" priority />
         <Right>
           <Avatar aria-label={name ? `${name} avatar` : "Admin avatar"}>
             {showImage ? (

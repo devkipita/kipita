@@ -50,7 +50,7 @@ export function SiteNav() {
   return (
     <Nav>
       <NavInner>
-        <Brand />
+        <Brand priority />
         <NavLinks>
           <NavLink href="/#how">How it works</NavLink>
           <NavLink href="/#trust">Trust &amp; safety</NavLink>
