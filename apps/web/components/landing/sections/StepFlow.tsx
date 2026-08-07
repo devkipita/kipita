@@ -560,6 +560,17 @@ export function StepFlow() {
     scheduleResume();
   };
 
+  // Stop auto-play right now and cancel the pending resume. Called whenever the
+  // user takes over (touch, wheel, trackpad) so the two never drive the track at
+  // once — the resume is re-armed once the scroll settles.
+  const holdAuto = () => {
+    pauseTimer();
+    if (idle.current) {
+      clearTimeout(idle.current);
+      idle.current = null;
+    }
+  };
+
   // Every scroll frame maps scrollLeft → rotation and repaints the drum.
   const onTrackScroll = () => {
     const track = trackRef.current;
@@ -567,25 +578,31 @@ export function StepFlow() {
     rot.current = track.scrollLeft / (track.clientWidth || 1);
     place(rot.current);
     syncActive(rot.current);
-    if (!programmatic.current) swiped.current = true;
+    // A frame we didn't drive = the user is scrolling (swipe OR wheel/trackpad).
+    // Pause immediately so auto-advance can't fire mid-gesture and fight it.
+    if (!programmatic.current) {
+      swiped.current = true;
+      holdAuto();
+    }
     if (scrollEnd.current) clearTimeout(scrollEnd.current);
     scrollEnd.current = setTimeout(() => {
       const wasUser = !programmatic.current;
       programmatic.current = false;
       swiped.current = false;
-      if (wasUser) scheduleResume();
       recenter();
+      if (wasUser) scheduleResume();
     }, 150);
   };
 
-  // A touch on the track means the user is taking over: stop auto-play.
+  // The user is taking over: stop auto-play and kill any in-flight auto
+  // smooth-scroll so their gesture doesn't fight the browser's animation.
   const onTrackDown = () => {
-    programmatic.current = false;
-    pauseTimer();
-    if (idle.current) {
-      clearTimeout(idle.current);
-      idle.current = null;
+    const track = trackRef.current;
+    if (track && programmatic.current) {
+      track.scrollTo({ left: track.scrollLeft, behavior: "auto" });
     }
+    programmatic.current = false;
+    holdAuto();
   };
 
   // Tap the left/right third to step (ignored if it was actually a swipe).
