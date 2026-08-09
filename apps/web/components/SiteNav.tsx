@@ -9,14 +9,19 @@ const Nav = styled.nav`
   position: relative;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid ${({ theme }) => theme.color.line};
 `;
 
 const NavInner = styled(Container)`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
+  height: 68px;
+`;
+
+const Logo = styled(Brand)`
+  img {
+    height: 44px;
+  }
 `;
 
 const NavLinks = styled.div`
@@ -44,12 +49,12 @@ export function SiteNav() {
   return (
     <Nav>
       <NavInner>
-        <Brand priority />
+        <Logo priority />
         <NavLinks>
-          <NavLink href="/#how">How it works</NavLink>
-          <NavLink href="/#trust">Trust &amp; safety</NavLink>
+          <NavLink href="/help#start">How it works</NavLink>
+          <NavLink href="/help#faq">Trust &amp; safety</NavLink>
           <NavLink href="/legal/privacy">Legal</NavLink>
-          <Button href="/#get" icon={ArrowRight} compact>
+          <Button href="/#download" icon={ArrowRight} compact>
             Get the app
           </Button>
         </NavLinks>

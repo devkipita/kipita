@@ -1,6 +1,8 @@
 import styled from "styled-components";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
+import { Avatar } from "../../profile/Avatar";
+import type { Profile } from "@/lib/auth/types";
 
 const Nav = styled.nav`
   /* Not pinned anywhere — flows at the top and scrolls away with the page. */
@@ -140,7 +142,53 @@ const NavCta = styled.a`
   }
 `;
 
-export function LandingNav() {
+const NavProfile = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px 5px 5px;
+  border-radius: 999px;
+  background: rgba(22, 22, 22, 0.72);
+  border: 1px solid rgba(250, 248, 244, 0.1);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: ${nocturne.cream};
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    background: rgba(28, 28, 28, 0.82);
+    border-color: rgba(250, 248, 244, 0.18);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+  }
+
+  .name {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 420px) {
+    padding: 4px;
+    .name {
+      display: none;
+    }
+  }
+`;
+
+export function LandingNav({ profile }: { profile: Profile | null }) {
+  // "Sign in" is folded into a single "Get started" entry point. Once signed
+  // in, that CTA becomes a profile chip (photo + first name) linking to /profile.
+  const name =
+    profile?.full_name?.trim() || profile?.email?.split("@")[0] || "Account";
+  const firstName = name.split(/\s+/)[0];
+
   return (
     <Nav>
       <NavLogo>
@@ -149,7 +197,14 @@ export function LandingNav() {
       <NavRight>
         <NavLink href="#find">Find a ride</NavLink>
         <NavLink href="#alerts">Alerts</NavLink>
-        <NavCta href="#download">Get the app</NavCta>
+        {profile ? (
+          <NavProfile href="/profile" aria-label="Your profile">
+            <Avatar name={name} src={profile.avatar_url} size={32} />
+            <span className="name">{firstName}</span>
+          </NavProfile>
+        ) : (
+          <NavCta href="/auth/sign-up">Get started</NavCta>
+        )}
       </NavRight>
     </Nav>
   );

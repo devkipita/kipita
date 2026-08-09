@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans } from "next/font/google";
+import { DM_Sans, Space_Grotesk } from "next/font/google";
 import { SITE } from "@/lib/site";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -10,6 +10,14 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   variable: "--font-dm-sans",
+});
+
+// Used only on the StepFlow cards on the landing.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+  variable: "--font-space-grotesk",
 });
 
 export const metadata: Metadata = {
@@ -99,7 +107,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${dmSans.className}`}
+      className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmSans.className}`}
       suppressHydrationWarning
     >
       <body>

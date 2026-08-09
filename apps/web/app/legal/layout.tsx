@@ -58,7 +58,7 @@ export default function LegalLayout({
           <Prose>{children}</Prose>
         </Container>
       </Section>
-      <SiteFooter />
+      <SiteFooter mood="slate" />
     </>
   );
 }

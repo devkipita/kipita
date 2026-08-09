@@ -9,7 +9,7 @@ import { ThemeRuntimeProvider } from "./ThemeRuntimeProvider";
  */
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
-    <SCThemeProvider theme={themes.light}>
+    <SCThemeProvider theme={themes.dark}>
       <ThemeRuntimeProvider>{children}</ThemeRuntimeProvider>
     </SCThemeProvider>
   );

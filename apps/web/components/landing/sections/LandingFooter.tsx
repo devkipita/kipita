@@ -2,8 +2,8 @@ import styled from "styled-components";
 import { ArrowUpRight, Briefcase, Compass, Shield } from "lucide-react";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
+import { FOOTER_SOCIALS } from "@/components/SiteFooter";
 import { SITE, LEGAL_LINKS } from "@/lib/site";
-import { InstagramIcon, XIcon, WhatsappIcon } from "../icons";
 
 const Footer = styled.footer`
   padding: 0 clamp(20px, 5vw, 72px) clamp(24px, 3vw, 44px);
@@ -19,6 +19,7 @@ const Footer = styled.footer`
 `;
 
 const FooterCard = styled.div`
+  position: relative;
   max-width: 1360px;
   margin: 0 auto;
   border-radius: 36px;
@@ -26,9 +27,29 @@ const FooterCard = styled.div`
   border: 1px solid rgba(158, 197, 162, 0.14);
   box-shadow: 0 22px 64px rgba(0, 0, 0, 0.22);
   padding: clamp(40px, 5vw, 72px) clamp(28px, 4vw, 64px);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   gap: clamp(40px, 5vw, 64px);
+
+  /* Faint brand-shape watermark drawn from the shared background sheet. */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("/backgrounds/white.svg");
+    background-size: 420px;
+    background-position: center;
+    background-repeat: repeat;
+    opacity: 0.05;
+    pointer-events: none;
+  }
+
+  /* Keep all footer content above the watermark. */
+  > * {
+    position: relative;
+    z-index: 1;
+  }
 
   @media (max-width: 640px) {
     border-bottom-left-radius: 0;
@@ -238,15 +259,17 @@ export function LandingFooter() {
               Not a taxi. A shared road.
             </p>
             <FooterSocials>
-              <FooterSocial href="#top" aria-label="Instagram">
-                <InstagramIcon size={20} fill="#e5ffc3" />
-              </FooterSocial>
-              <FooterSocial href="#top" aria-label="X">
-                <XIcon size={20} fill="#e5ffc3" />
-              </FooterSocial>
-              <FooterSocial href="#contact" aria-label="WhatsApp">
-                <WhatsappIcon size={20} fill="#e5ffc3" />
-              </FooterSocial>
+              {FOOTER_SOCIALS.map(({ label, href, Icon }) => (
+                <FooterSocial
+                  key={label}
+                  href={href}
+                  aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noreferrer" : undefined}
+                >
+                  <Icon size={20} fill="#e5ffc3" />
+                </FooterSocial>
+              ))}
             </FooterSocials>
           </FooterBrand>
 

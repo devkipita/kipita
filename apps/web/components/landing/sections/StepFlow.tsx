@@ -359,6 +359,7 @@ const IconBubble = styled.span<{ $bg: string }>`
 
 const Title = styled.h3<{ $c: string }>`
   margin: clamp(20px, 2.4vw, 28px) 0 0;
+  font-family: var(--font-space-grotesk), var(--font-dm-sans), system-ui, sans-serif;
   font-size: clamp(28px, 3.4vw, 46px);
   font-weight: 700;
   line-height: 1;

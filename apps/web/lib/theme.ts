@@ -17,8 +17,9 @@ const radius = {
   pill: "999px",
 } as const;
 
+// The single primary typeface for the whole app.
 const font =
-  'var(--font-dm-sans), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  'var(--font-dm-sans), "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
 
 /** One container/on-container pair used by bento & accent cards. */
 export type Tone = { bg: string; on: string };
@@ -29,9 +30,17 @@ export type ToneName =
   | "tan"
   | "blue"
   | "amber"
+  | "lav"
   | "deep"
   | "dark"
-  | "surface";
+  | "surface"
+  // Vibrant, theme-independent accents mirroring the landing's StepFlow cards.
+  // These stay unmuted in both light and dark so ported pages keep the
+  // landing's energy.
+  | "forest"
+  | "peach"
+  | "lilac"
+  | "lime";
 
 /** The token contract every theme must satisfy (light & dark share this shape). */
 export interface AppTheme {
@@ -104,9 +113,15 @@ const light: AppTheme = {
     tan: { bg: "#fcdeba", on: "#281903" },
     blue: { bg: "#c9e6ff", on: "#001e2f" },
     amber: { bg: "#ffddb4", on: "#291800" },
+    lav: { bg: "#e7d8ff", on: "#25084f" },
     deep: { bg: "#0e5136", on: "#b0f1cc" },
     dark: { bg: "#16201b", on: "#dfeee5" },
     surface: { bg: "#f7fcf5", on: "#161d17" },
+    // StepFlow palette — identical in both themes.
+    forest: { bg: "#013330", on: "#e5ffc3" },
+    peach: { bg: "#f8a783", on: "#2a1002" },
+    lilac: { bg: "#ddb8fb", on: "#3b0a63" },
+    lime: { bg: "#e5ffc3", on: "#013330" },
   },
   radius,
   shadow: {
@@ -150,9 +165,15 @@ const dark: AppTheme = {
     tan: { bg: "#4a3b28", on: "#fcdeba" },
     blue: { bg: "#123047", on: "#c9e6ff" },
     amber: { bg: "#4a3a1a", on: "#ffddb4" },
+    lav: { bg: "#2c1a4a", on: "#e7d8ff" },
     deep: { bg: "#0e5136", on: "#b0f1cc" },
     dark: { bg: "#0a0d0b", on: "#dfeee5" },
     surface: { bg: "#1d201e", on: "#e1e3df" },
+    // StepFlow palette — identical in both themes.
+    forest: { bg: "#013330", on: "#e5ffc3" },
+    peach: { bg: "#f8a783", on: "#2a1002" },
+    lilac: { bg: "#ddb8fb", on: "#3b0a63" },
+    lime: { bg: "#e5ffc3", on: "#013330" },
   },
   radius,
   shadow: {

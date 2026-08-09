@@ -3,7 +3,7 @@ import { DM_Sans } from "next/font/google";
 /**
  * The web uses the SAME typeface as the mobile app — DM Sans — for brand
  * consistency. The landing's CSS module references `--font-outfit` (headings)
- * and `--font-inter` (body); both now resolve to DM Sans, so no module changes
+ * and `--font-inter` (body); both resolve to DM Sans, so no module changes
  * are needed.
  */
 const heading = DM_Sans({

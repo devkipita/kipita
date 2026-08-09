@@ -1,3 +1,4 @@
+import type { Profile } from "@/lib/auth/types";
 import { landingFonts } from "./fonts";
 import { Root } from "./primitives";
 import { LandingNav } from "./sections/LandingNav";
@@ -16,10 +17,10 @@ import { LandingFooter } from "./sections/LandingFooter";
    ./primitives, curated copy in ./data, and the live ride-search
    (the "How it works" centrepiece) in ./search.
    ══════════════════════════════════════════════════════════════ */
-export function KipitaLanding() {
+export function KipitaLanding({ profile }: { profile: Profile | null }) {
   return (
     <Root className={landingFonts}>
-      <LandingNav />
+      <LandingNav profile={profile} />
       <Hero />
       <HowItWorks />
       <RideRequests />
