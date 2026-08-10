@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import {
   ArrowDown,
@@ -22,6 +22,7 @@ import { Container } from "@/components/ui/primitives";
 import { Reveal } from "@/components/anim/Reveal";
 import { ChatSupport } from "@/components/help/ChatSupport";
 import { SITE } from "@/lib/site";
+import { fetchPublishedFaqs } from "@/lib/faqs";
 import type { ToneName } from "@/lib/theme";
 
 /* Brand shapes drift gently behind the hero — the same playful motion the
@@ -335,6 +336,20 @@ const Q = styled.button<{ $open: boolean }>`
   font-weight: 700;
   font-size: 1.02rem;
   color: ${({ theme }) => theme.color.text};
+  transition: background 0.18s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.color.surface2};
+  }
+  &:hover .idx {
+    background: ${({ theme, $open }) =>
+      $open ? theme.color.primary : theme.color.primaryContainer};
+    color: ${({ theme, $open }) =>
+      $open ? theme.color.onPrimary : theme.color.onPrimaryContainer};
+  }
+  &:hover svg {
+    color: ${({ theme }) => theme.color.primary};
+  }
 
   .idx {
     flex: none;
@@ -451,26 +466,49 @@ const HOW: { icon: typeof UserPlus; t: string; d: string; tone: ToneName }[] = [
   { icon: MapPin, t: "Travel together", d: "Meet at the pickup point, share the ride, and rate each other after.", tone: "blue" },
 ];
 
-const FAQS = [
-  { q: "How does payment work?", a: "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed — so your money is protected." },
-  { q: "Is my ride safe?", a: "Riders and drivers are verified, every trip is rated, and payments are escrow-protected. Share your trip details with a friend any time from the app." },
-  { q: "Can I sign up with my phone number?", a: "Yes. Choose the Phone tab on sign in, enter your Kenyan number, and we'll text you a 6-digit code to verify it." },
-  { q: "How do I become a driver?", a: "Create an account, then submit your licence and ID for KYC verification from the app. Once approved, you can start offering seats." },
-  { q: "What if I need to cancel?", a: "You can cancel from your bookings. Refunds follow our refund policy — escrow-held fares are returned when eligible." },
-  { q: "How do I change my email or phone?", a: "Head to your profile, edit your details, and confirm the change via the code or link we send you." },
+type FaqItem = { question: string; answer: string };
+
+// Fallback shown before the DB loads (or if the faqs table isn't there yet).
+// The admin FAQ manager writes to the `faqs` table, which then overrides these.
+const DEFAULT_FAQS: FaqItem[] = [
+  { question: "How does payment work?", answer: "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed — so your money is protected." },
+  { question: "Is my ride safe?", answer: "Riders and drivers are verified, every trip is rated, and payments are escrow-protected. Share your trip details with a friend any time from the app." },
+  { question: "Can I sign up with my phone number?", answer: "Yes. Choose the Phone tab on sign in, enter your Kenyan number, and we'll text you a 6-digit code to verify it." },
+  { question: "How do I become a driver?", answer: "Create an account, then submit your licence and ID for KYC verification from the app. Once approved, you can start offering seats." },
+  { question: "What if I need to cancel?", answer: "You can cancel from your bookings. Refunds follow our refund policy — escrow-held fares are returned when eligible." },
+  { question: "How do I change my email or phone?", answer: "Head to your profile, edit your details, and confirm the change via the code or link we send you." },
 ];
 
 export function HelpContent() {
   const [open, setOpen] = useState<number | null>(0);
   const [query, setQuery] = useState("");
+  const [faqs, setFaqs] = useState<FaqItem[]>(DEFAULT_FAQS);
+
+  // Pull the live, admin-managed FAQs; keep the defaults if the table is empty
+  // or unreachable so the section always renders something.
+  useEffect(() => {
+    let alive = true;
+    fetchPublishedFaqs()
+      .then((rows) => {
+        if (alive && rows.length) {
+          setFaqs(rows.map((r) => ({ question: r.question, answer: r.answer })));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return FAQS;
-    return FAQS.filter(
-      (f) => f.q.toLowerCase().includes(q) || f.a.toLowerCase().includes(q),
+    if (!q) return faqs;
+    return faqs.filter(
+      (f) =>
+        f.question.toLowerCase().includes(q) ||
+        f.answer.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, faqs]);
 
   return (
     <>
@@ -558,22 +596,22 @@ export function HelpContent() {
           {results.length ? (
             <Faq>
               {results.map((f) => {
-                const idx = FAQS.indexOf(f);
+                const idx = faqs.indexOf(f);
                 const isOpen = open === idx;
                 return (
-                  <Item key={f.q} $open={isOpen}>
+                  <Item key={f.question} $open={isOpen}>
                     <Q
                       $open={isOpen}
                       onClick={() => setOpen(isOpen ? null : idx)}
                       aria-expanded={isOpen}
                     >
                       <span className="idx">{idx + 1}</span>
-                      <span className="q">{f.q}</span>
+                      <span className="q">{f.question}</span>
                       <ArrowDown size={26} strokeWidth={2.6} />
                     </Q>
                     <A $open={isOpen}>
                       <div>
-                        <p>{f.a}</p>
+                        <p>{f.answer}</p>
                       </div>
                     </A>
                   </Item>

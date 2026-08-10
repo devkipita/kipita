@@ -34,49 +34,75 @@ export async function updateProfileAction(
   if (!user) return { error: "Your session expired. Sign in again." };
 
   const { full_name, city, date_of_birth, gender } = parsed.data;
-  // Upsert so first-time profile completion creates the row if the DB trigger
-  // hasn't (auth_id is unique).
-  const { error } = await supabase.from("users").upsert(
-    {
-      auth_id: user.id,
+  const { data, error } = await supabase
+    .from("users")
+    .update({
       full_name,
       city: city || null,
       date_of_birth: date_of_birth || null,
       gender: gender || null,
-      email: user.email ?? null,
-      phone: user.phone ?? null,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "auth_id" },
-  );
+    })
+    .eq("auth_id", user.id)
+    .select("auth_id")
+    .maybeSingle();
 
   if (error) return { error: error.message };
+  if (!data) {
+    return {
+      error:
+        "Your profile is not ready yet. Sign out and back in, then try again.",
+    };
+  }
 
+  await supabase.auth.updateUser({
+    data: {
+      ...user.user_metadata,
+      full_name,
+    },
+  });
+
+  revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath("/profile/edit");
   return { ok: true };
 }
 
 /** Persist a newly uploaded avatar URL to the profile row. */
-export async function updateAvatarAction(avatarUrl: string): Promise<ActionState> {
+export async function updateAvatarAction(
+  avatarUrl: string,
+): Promise<ActionState> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "Your session expired. Sign in again." };
 
-  const { error } = await supabase.from("users").upsert(
-    {
-      auth_id: user.id,
+  const { data, error } = await supabase
+    .from("users")
+    .update({
       avatar_url: avatarUrl,
-      email: user.email ?? null,
-      phone: user.phone ?? null,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "auth_id" },
-  );
+    })
+    .eq("auth_id", user.id)
+    .select("auth_id")
+    .maybeSingle();
   if (error) return { error: error.message };
+  if (!data) {
+    return {
+      error:
+        "Your profile is not ready yet. Sign out and back in, then try again.",
+    };
+  }
 
+  await supabase.auth.updateUser({
+    data: {
+      ...user.user_metadata,
+      avatar_url: avatarUrl,
+    },
+  });
+
+  revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath("/profile/edit");
   return { ok: true };

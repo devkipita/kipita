@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2, LifeBuoy, Flag, ChevronRight } from "lucide-react";
+import { Undo2, HelpCircle, Flag, ChevronRight } from "lucide-react";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
 import { Container, Grid, H2, Lead } from "@/components/ui/primitives";
@@ -35,11 +35,18 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
             </FeatureBody>
           </FeatureCardLink>
 
-          <FeatureCardBox style={{ opacity: 0.55 }}>
-            <IconBubble icon={LifeBuoy} />
-            <FeatureTitle>Support</FeatureTitle>
-            <FeatureBody>Coming soon.</FeatureBody>
-          </FeatureCardBox>
+          <FeatureCardLink href="/admin/faq">
+            <IconBubble icon={HelpCircle} variant="green" />
+            <FeatureTitle>
+              Help FAQ
+              <InlineChevron data-chevron>
+                <ChevronRight size={18} />
+              </InlineChevron>
+            </FeatureTitle>
+            <FeatureBody>
+              Add and edit the questions shown on the /help page.
+            </FeatureBody>
+          </FeatureCardLink>
 
           <FeatureCardBox style={{ opacity: 0.55 }}>
             <IconBubble icon={Flag} />

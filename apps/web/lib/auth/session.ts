@@ -17,6 +17,29 @@ export async function getAuthUser() {
   return user;
 }
 
+function authAvatarUrl(user: User): string | null {
+  return typeof user.user_metadata?.avatar_url === "string"
+    ? user.user_metadata.avatar_url
+    : typeof user.user_metadata?.picture === "string"
+      ? user.user_metadata.picture
+      : null;
+}
+
+function isManagedAvatarUrl(url: string | null | undefined): url is string {
+  return (
+    typeof url === "string" &&
+    url.includes("/storage/v1/object/public/avatars/")
+  );
+}
+
+function mergedAvatarUrl(
+  rowAvatarUrl: string | null,
+  user: User,
+): string | null {
+  if (isManagedAvatarUrl(rowAvatarUrl)) return rowAvatarUrl;
+  return authAvatarUrl(user) ?? rowAvatarUrl ?? null;
+}
+
 /** A display-safe profile built from the auth record alone — used when the
  *  `users` row is missing (trigger not fired / RLS) so authed users never loop. */
 function synthesize(user: User): Profile {
@@ -26,7 +49,7 @@ function synthesize(user: User): Profile {
     full_name: (user.user_metadata?.full_name as string | undefined) ?? "",
     email: user.email ?? null,
     phone: user.phone ?? null,
-    avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+    avatar_url: authAvatarUrl(user),
     date_of_birth: null,
     gender: null,
     city: null,
@@ -56,6 +79,7 @@ export async function getProfile(): Promise<Profile | null> {
     ...row,
     email: user.email ?? row.email ?? null,
     phone: user.phone ?? row.phone ?? null,
+    avatar_url: mergedAvatarUrl(row.avatar_url, user),
   });
 
   const { data } = await supabase

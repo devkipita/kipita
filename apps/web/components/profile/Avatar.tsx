@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styled from "styled-components";
+
+const MANAGED_AVATAR_PATH = "/storage/v1/object/public/avatars/";
 
 const Circle = styled.div<{ $size: number }>`
   width: ${({ $size }) => $size}px;
@@ -35,6 +37,13 @@ export function initials(name: string) {
   );
 }
 
+function resolveAvatarSrc(src?: string | null): string | null {
+  if (!src) return null;
+  if (!/^https?:\/\//i.test(src)) return src;
+  if (src.includes(MANAGED_AVATAR_PATH)) return src;
+  return `/api/avatar?src=${encodeURIComponent(src)}`;
+}
+
 /** Round avatar — shows the image, falling back to initials on error/empty. */
 export function Avatar({
   name,
@@ -47,13 +56,24 @@ export function Avatar({
   size?: number;
   className?: string;
 }) {
+  const resolvedSrc = resolveAvatarSrc(src);
   const [broken, setBroken] = useState(false);
-  const showImg = src && !broken;
+
+  useEffect(() => {
+    setBroken(false);
+  }, [resolvedSrc]);
+
+  const showImg = resolvedSrc && !broken;
   return (
     <Circle $size={size} className={className}>
       {showImg ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={name} onError={() => setBroken(true)} />
+        <img
+          src={resolvedSrc}
+          alt={name}
+          referrerPolicy="no-referrer"
+          onError={() => setBroken(true)}
+        />
       ) : (
         initials(name)
       )}
