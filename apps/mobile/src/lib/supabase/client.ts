@@ -1,6 +1,7 @@
 import { createClient, processLock } from "@supabase/supabase-js";
 import { MMKV } from "react-native-mmkv";
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 const storage = new MMKV({ id: "supabase-auth" });
 
@@ -26,13 +27,28 @@ if (!supabaseUrl || !supabasePublishableKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-  auth: {
-    storage: mmkvStorageAdapter,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-    flowType: "pkce",
-    lock: processLock,
-  },
-});
+// Reuse the client across Fast Refresh reloads so `processLock` never
+// deadlocks waiting on a lock held by a discarded GoTrueClient instance.
+declare global {
+  // eslint-disable-next-line no-var
+  var __kipitaSupabase: ReturnType<typeof createClient> | undefined;
+}
+
+export const supabase =
+  globalThis.__kipitaSupabase ??
+  createClient(supabaseUrl, supabasePublishableKey, {
+    auth: {
+      storage: mmkvStorageAdapter,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+      flowType: "pkce",
+      // The navigator-lock based processLock doesn't survive web page
+      // reloads cleanly; only use it on native platforms.
+      lock: Platform.OS === "web" ? undefined : processLock,
+    },
+  });
+
+if (__DEV__) {
+  globalThis.__kipitaSupabase = supabase;
+}

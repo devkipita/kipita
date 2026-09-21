@@ -365,7 +365,7 @@ export const Composer = memo(function Composer({
             <RNTextInput
               style={[
                 styles.input,
-                typography.bodyMedium,
+                typography.input,
                 {
                   height: inputHeight,
                   color: colors.text,

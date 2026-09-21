@@ -238,7 +238,7 @@ export const PaymentSheet = memo(function PaymentSheet({ booking, onPay, onClose
             keyboardType="phone-pad"
             style={[
               styles.phoneInput,
-              typography.bodyLarge,
+              typography.input,
               {
                 color: colors.text,
                 backgroundColor: colors.surfaceContainerHigh,

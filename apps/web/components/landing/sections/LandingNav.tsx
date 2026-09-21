@@ -184,7 +184,8 @@ const NavProfile = styled.a`
 
 export function LandingNav({ profile }: { profile: Profile | null }) {
   // "Sign in" is folded into a single "Get started" entry point. Once signed
-  // in, that CTA becomes a profile chip (photo + first name) linking to /profile.
+  // in, that CTA becomes a profile chip (photo + first name) that drops the
+  // visitor into the app at /home rather than the settings page.
   const name =
     profile?.full_name?.trim() || profile?.email?.split("@")[0] || "Account";
   const firstName = name.split(/\s+/)[0];
@@ -198,7 +199,7 @@ export function LandingNav({ profile }: { profile: Profile | null }) {
         <NavLink href="#find">Find a ride</NavLink>
         <NavLink href="#alerts">Alerts</NavLink>
         {profile ? (
-          <NavProfile href="/profile" aria-label="Your profile">
+          <NavProfile href="/home" aria-label="Go to your Kipita home">
             <Avatar name={name} src={profile.avatar_url} size={32} />
             <span className="name">{firstName}</span>
           </NavProfile>

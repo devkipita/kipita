@@ -4,6 +4,7 @@ import Link from "next/link";
 import styled from "styled-components";
 import {
   BadgeCheck,
+  Bell,
   CalendarDays,
   Cookie,
   FileText,
@@ -212,10 +213,15 @@ export function ProfileView({ profile }: { profile: Profile }) {
 
   return (
     <Page>
-      <AppHeader name={profile.full_name} avatarUrl={profile.avatar_url} showProfileChip={false} />
+      <AppHeader
+        name={profile.full_name}
+        avatarUrl={profile.avatar_url}
+        userId={profile.id}
+        showProfileChip={false}
+      />
       <Wrap>
         <Hero>
-          <AvatarUploader authId={profile.auth_id} name={profile.full_name} src={profile.avatar_url} />
+          <AvatarUploader userId={profile.id} name={profile.full_name} src={profile.avatar_url} />
           <div>
             <Name>{profile.full_name || "Your profile"}</Name>
             <Pills>
@@ -300,6 +306,16 @@ export function ProfileView({ profile }: { profile: Profile }) {
         </Panel>
 
         <SectionTitle>Notifications</SectionTitle>
+        <Panel style={{ marginBottom: 12 }}>
+          <LinkRow
+            icon={Bell}
+            title="Your notifications"
+            description="New rides, requests and trip updates"
+            href="/notifications"
+            tone="blue"
+            last
+          />
+        </Panel>
         <NotificationsCard />
 
         <SectionTitle>Help &amp; support</SectionTitle>

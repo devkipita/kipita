@@ -125,7 +125,27 @@ export const typography = {
     fontSize: 10,
     lineHeight: 14,
   },
+  /**
+   * Text the user types. Use this for every TextInput instead of `bodyMedium`.
+   *
+   * The 16px floor is not a taste call: on iOS, focusing a field whose font is
+   * under 16px makes Safari zoom the page in — which is what happens when the
+   * app is opened on an iPhone via the web build, and it wrecks the layout
+   * because the zoom never animates back out. 16px is the documented threshold.
+   * It also reads better natively; 14px input text was cramped.
+   */
+  input: {
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 22,
+  },
 } satisfies Record<string, TypographyVariant>;
+
+/**
+ * The iOS auto-zoom threshold. Anything the user can type into must render at
+ * or above this size — see `typography.input`.
+ */
+export const MIN_INPUT_FONT_SIZE = 16;
 
 export type TypographyKey = keyof typeof typography;
 

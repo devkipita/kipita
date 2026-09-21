@@ -7,7 +7,7 @@ import { useLocale } from '@/hooks';
 
 export default function TabLayout() {
   const { t } = useLocale();
-
+  
   return (
     <>
       <TopBar />

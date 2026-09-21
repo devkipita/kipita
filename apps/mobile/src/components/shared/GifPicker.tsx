@@ -80,7 +80,7 @@ export function GifPicker({ visible, onClose, onSelect }: GifPickerProps) {
         >
           <Icon name="search-outline" size={18} color={colors.placeholder} />
           <TextInput
-            style={[styles.searchInput, typography.bodyMedium, { color: colors.text }]}
+            style={[styles.searchInput, typography.input, { color: colors.text }]}
             placeholder="Search GIFs"
             placeholderTextColor={colors.placeholder}
             value={query}

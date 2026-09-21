@@ -216,7 +216,7 @@ export function ReportSheet({ payload }: { payload: ReportSheetPayload }) {
         maxLength={600}
         style={[
           styles.input,
-          typography.bodyMedium,
+          typography.input,
           { color: colors.text, backgroundColor: colors.surfaceContainerHigh },
           Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : null,
         ]}
@@ -236,7 +236,7 @@ export function ReportSheet({ payload }: { payload: ReportSheetPayload }) {
             keyboardType="phone-pad"
             style={[
               styles.contactInput,
-              typography.bodyMedium,
+              typography.input,
               { color: colors.text, backgroundColor: colors.surfaceContainerHigh },
               Platform.OS === "web" ? ({ outlineStyle: "none" } as any) : null,
             ]}

@@ -102,14 +102,16 @@ export function EditProfileForm({
 
   useEffect(() => {
     if (state.ok) {
-      router.push("/profile");
+      // A new account finishing onboarding goes on to the app; an ordinary
+      // edit returns to the profile it came from.
+      router.push(welcome ? "/home" : "/profile");
       router.refresh();
     }
-  }, [state.ok, router]);
+  }, [state.ok, welcome, router]);
 
   return (
     <Page>
-      <AppHeader name={profile.full_name} avatarUrl={profile.avatar_url} />
+      <AppHeader name={profile.full_name} avatarUrl={profile.avatar_url} userId={profile.id} />
       <Wrap>
         {welcome && (
           <Welcome>

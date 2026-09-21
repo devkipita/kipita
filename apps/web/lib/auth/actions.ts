@@ -63,6 +63,7 @@ export async function updateProfileAction(
   });
 
   revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/profile");
   revalidatePath("/profile/edit");
   return { ok: true };
@@ -103,6 +104,7 @@ export async function updateAvatarAction(
   });
 
   revalidatePath("/");
+  revalidatePath("/home");
   revalidatePath("/profile");
   revalidatePath("/profile/edit");
   return { ok: true };

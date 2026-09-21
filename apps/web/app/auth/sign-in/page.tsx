@@ -9,6 +9,6 @@ export default async function SignInPage({
 }) {
   const user = await getAuthUser();
   const { next } = await searchParams;
-  if (user) redirect(next ?? "/profile");
-  return <SignInForm next={next ?? "/profile"} />;
+  if (user) redirect(next ?? "/home");
+  return <SignInForm next={next ?? "/home"} />;
 }

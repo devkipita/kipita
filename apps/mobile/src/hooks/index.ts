@@ -8,3 +8,4 @@ export { useDebounce } from './useDebounce';
 export { usePushNotifications } from './usePushNotifications';
 export { useDriverKyc } from './useDriverKyc';
 export { useRoleSwitch } from './useRoleSwitch';
+export { useCityPhoto } from './useCityPhoto';

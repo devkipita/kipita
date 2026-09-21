@@ -7,7 +7,7 @@ import { AlertBox, GhostButton, Spinner } from "./ui";
 import GoogleLogo from "@/public/Google";
 
 /** Google sign-in. Redirects through /auth/callback with the given next. */
-export function OAuthButtons({ next = "/profile" }: { next?: string }) {
+export function OAuthButtons({ next = "/home" }: { next?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

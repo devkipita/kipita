@@ -11,7 +11,7 @@ export default async function ResetPasswordPage() {
       heading="Set a new password"
       sub="Choose a fresh password for your Kipita account."
       cta="Update password"
-      redirectTo="/profile"
+      redirectTo="/home"
     />
   );
 }

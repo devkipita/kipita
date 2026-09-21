@@ -59,7 +59,7 @@ const RowBetween = styled.div`
 
 type Mode = "email" | "phone";
 
-export function SignInForm({ next = "/profile" }: { next?: string }) {
+export function SignInForm({ next = "/home" }: { next?: string }) {
   const router = useRouter();
   const supabase = createClient();
 

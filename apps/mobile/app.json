@@ -4,7 +4,7 @@
     "slug": "kipita",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/icon.png",
+    "icon": "./src/assets/favicon_io/android-chrome-512x512.png",
     "scheme": "kipita",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/adaptive-icon.png",
+        "foregroundImage": "./src/assets/favicon_io/android-chrome-512x512.png",
         "backgroundColor": "#1B5E20"
       },
       "package": "com.kipita.app"
@@ -47,7 +47,10 @@
           "color": "#2F6C4F"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-image",
+      "expo-splash-screen",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

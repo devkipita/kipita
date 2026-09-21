@@ -167,7 +167,7 @@ export const ChatSheet = memo(function ChatSheet({
         <RNTextInput
           style={[
             styles.input,
-            typography.bodyMedium,
+            typography.input,
             { color: colors.text, backgroundColor: colors.inputBackground },
             Platform.OS === "web" ? styles.webInputReset : null,
           ]}

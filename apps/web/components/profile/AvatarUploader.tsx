@@ -55,12 +55,18 @@ const Spin = styled(Loader2)`
 
 const MAX = 5 * 1024 * 1024; // 5MB — matches the avatars bucket limit
 
+/**
+ * `userId` is the PUBLIC `users.id`, not `auth_id`. The bucket's insert policy
+ * (migration 011) compares the first path segment to `current_app_user_id()`,
+ * which resolves to `users.id` — uploading under the auth id is rejected by
+ * RLS. That mismatch is the exact bug migration 011 was written to fix.
+ */
 export function AvatarUploader({
-  authId,
+  userId,
   name,
   src,
 }: {
-  authId: string;
+  userId: string;
   name: string;
   src?: string | null;
 }) {
@@ -85,7 +91,7 @@ export function AvatarUploader({
 
     const supabase = createClient();
     const ext = file.type.split("/")[1];
-    const path = `${authId}/avatar-${Date.now()}.${ext}`;
+    const path = `${userId}/avatar-${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage
       .from("avatars")
       .upload(path, file, { upsert: true, contentType: file.type });

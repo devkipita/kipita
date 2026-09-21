@@ -1,54 +1,92 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { View, StyleSheet, Pressable, TextInput, Platform } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Text } from '@/components/core/Text';
-import { Icon, type IconName } from '@/components/core/Icon';
-import { Button } from '@/components/core/Button';
+import { Icon } from '@/components/core/Icon';
 import { AlertCard } from '@/components/cards/AlertCard';
 import { NotificationCard } from '@/components/cards/NotificationCard';
 import { EmptyState } from '@/components/feedback/EmptyState';
 import { LoadingState } from '@/components/feedback/LoadingState';
-import { useTheme, useLocale } from '@/hooks';
+import { useTheme, useLocale, useSafeBack } from '@/hooks';
 import { useAuthStore, useUIStore } from '@/store';
 import {
   queryKeys,
   fetchAlerts,
   fetchNotifications,
   markNotificationRead,
-  createAlert,
-  reactToAlert,
-  addAlertComment,
+  markAllNotificationsRead,
 } from '@/lib/api';
 import { notificationRoute } from '@/lib/notifications/route';
-import { QUERY_STALE_TIMES, ALERT_CATEGORIES } from '@/lib/constants';
-import { spacing, radius } from '@/theme';
+import { QUERY_STALE_TIMES } from '@/lib/constants';
+import { spacing, radius, typography } from '@/theme';
 import { FLOATING_TAB_BAR_SPACE } from '@/components/shared/FloatingTabBar';
-import type { Alert, AppNotification, AlertCategory } from '@/types';
+import type { Alert, AppNotification } from '@/types';
 
 type Tab = 'alerts' | 'notifications' | 'system';
+
+const TABS: { key: Tab; labelKey: string }[] = [
+  { key: 'alerts', labelKey: 'road_alerts_tab' },
+  { key: 'notifications', labelKey: 'notifications' },
+  { key: 'system', labelKey: 'system_alerts' },
+];
+
+const SEARCH_HEIGHT = 44;
+const COLLAPSE_AT = 28;
 
 export default function AlertsScreen() {
   const { colors } = useTheme();
   const { t } = useLocale();
   const router = useRouter();
-  const user = useAuthStore(s => s.user);
-  const openSheet = useUIStore(s => s.openSheet);
+  const goBack = useSafeBack();
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
+  const openSheet = useUIStore((s) => s.openSheet);
   const queryClient = useQueryClient();
   const { tab } = useLocalSearchParams<{ tab?: string }>();
+
   const [activeTab, setActiveTab] = useState<Tab>(
     tab === 'notifications' || tab === 'system' ? tab : 'alerts',
   );
-  const [showPostForm, setShowPostForm] = useState(false);
+  const [query, setQuery] = useState('');
+  const scrollY = useSharedValue(0);
 
-  // Honour the `?tab=` param when the screen is already mounted (e.g. tapping
-  // the top-bar bell while the Alerts tab is in the background).
   useEffect(() => {
     if (tab === 'notifications' || tab === 'system' || tab === 'alerts') {
       setActiveTab(tab);
     }
   }, [tab]);
+
+  const searchStyle = useAnimatedStyle(() => {
+    const hidden = scrollY.value > COLLAPSE_AT;
+    return {
+      height: withTiming(hidden ? 0 : SEARCH_HEIGHT, { duration: 180 }),
+      opacity: withTiming(hidden ? 0 : 1, { duration: 140 }),
+      marginBottom: withTiming(hidden ? 0 : spacing.sm, { duration: 180 }),
+    };
+  });
+
+  const onListScroll = useCallback(
+    (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+      scrollY.value = event.nativeEvent.contentOffset.y;
+    },
+    [scrollY],
+  );
+
+  const selectTab = useCallback(
+    (next: Tab) => {
+      scrollY.value = 0;
+      setActiveTab(next);
+    },
+    [scrollY],
+  );
 
   const { data: alerts = [], isLoading: alertsLoading } = useQuery({
     queryKey: queryKeys.alerts.feed(),
@@ -57,53 +95,67 @@ export default function AlertsScreen() {
     enabled: activeTab === 'alerts',
   });
 
-  const { data: notificationsRaw = [], isLoading: notifsLoading } = useQuery({
+  const { data: notifications = [], isLoading: notifsLoading } = useQuery({
     queryKey: queryKeys.notifications.list(),
     queryFn: () => fetchNotifications(user!.id),
     staleTime: QUERY_STALE_TIMES.notifications,
     enabled: !!user && (activeTab === 'notifications' || activeTab === 'system'),
   });
 
-  // TEMP(testing): force every notification to render as unread so both card
-  // states are easy to eyeball. Remove to restore real read/unread state.
-  const notifications = notificationsRaw.map(n => ({ ...n, read: false }));
-
-  const systemNotifs = notifications.filter(n => n.type === 'system');
-  const userNotifs = notifications.filter(n => n.type !== 'system');
-
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
     },
   });
 
-  const reactMutation = useMutation({
-    mutationFn: ({ alertId, reaction }: { alertId: string; reaction: string }) =>
-      reactToAlert(alertId, user!.id, reaction),
+  const markAllMutation = useMutation({
+    mutationFn: () => markAllNotificationsRead(user!.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.alerts.feed() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.unreadCount() });
     },
   });
+
+  const needle = query.trim().toLowerCase();
+
+  const visibleAlerts = useMemo(() => {
+    if (!needle) return alerts;
+    return alerts.filter(
+      (a) =>
+        a.content.toLowerCase().includes(needle) ||
+        a.location.toLowerCase().includes(needle),
+    );
+  }, [alerts, needle]);
+
+  const visibleNotifs = useMemo(() => {
+    const scoped = notifications.filter((n) =>
+      activeTab === 'system' ? n.type === 'system' : n.type !== 'system',
+    );
+    if (!needle) return scoped;
+    return scoped.filter(
+      (n) =>
+        n.title.toLowerCase().includes(needle) ||
+        n.body.toLowerCase().includes(needle),
+    );
+  }, [notifications, activeTab, needle]);
+
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
+  );
 
   const handleAlertPress = useCallback(
-    (alert: Alert) => {
-      openSheet('alert_details', { alert });
-    },
+    (alert: Alert) => openSheet('alert_details', { alert }),
     [openSheet],
   );
 
   const handleNotifPress = useCallback(
     (notif: AppNotification) => {
-      if (!notif.read) {
-        markReadMutation.mutate(notif.id);
-      }
-      // Route the tap to the action the notification is about (trip, chat,
-      // alert, ride…). System messages have no target and simply mark read.
+      if (!notif.read) markReadMutation.mutate(notif.id);
       const path = notificationRoute(notif.data);
-      if (path) {
-        router.push(path as any);
-      }
+      if (path) router.push(path as any);
     },
     [markReadMutation, router],
   );
@@ -122,67 +174,112 @@ export default function AlertsScreen() {
     [handleNotifPress],
   );
 
-  const tabs: {
-    key: Tab;
-    label: string;
-    icon: IconName;
-    activeIcon: IconName;
-  }[] = [
-    {
-      key: 'alerts',
-      label: t('road_alerts_tab'),
-      icon: 'megaphone-outline',
-      activeIcon: 'megaphone',
-    },
-    {
-      key: 'notifications',
-      label: t('notifications'),
-      icon: 'notifications-outline',
-      activeIcon: 'notifications',
-    },
-    {
-      key: 'system',
-      label: t('system_alerts'),
-      icon: 'information-circle-outline',
-      activeIcon: 'information-circle',
-    },
-  ];
+  const isAlerts = activeTab === 'alerts';
+  const loading = isAlerts ? alertsLoading : notifsLoading;
+  const searchPlaceholder = isAlerts ? t('search_alerts') : t('search_notifications');
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      {/* Tabs */}
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => {
-          const selected = activeTab === tab.key;
+      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+        <Pressable
+          onPress={() => goBack()}
+          hitSlop={12}
+          style={[styles.backBtn, { backgroundColor: colors.surfaceContainerHigh }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('back')}
+        >
+          <Icon name="arrow-back" size={20} color={colors.text} />
+        </Pressable>
+
+        <Text variant="titleLarge" color={colors.text} style={styles.title}>
+          {t('alerts')}
+        </Text>
+
+        {!isAlerts && unreadCount > 0 ? (
+          <Pressable
+            onPress={() => markAllMutation.mutate()}
+            hitSlop={10}
+            style={[styles.markAll, { backgroundColor: colors.primaryContainer }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('mark_all_read')}
+          >
+            <Icon name="checkmark-done" size={15} color={colors.onPrimaryContainer} />
+            <Text variant="labelSmall" color={colors.onPrimaryContainer} style={styles.markAllText}>
+              {t('mark_all_read')}
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={styles.backBtn} />
+        )}
+      </View>
+
+      <Animated.View style={[styles.searchWrap, searchStyle]}>
+        <View
+          style={[
+            styles.search,
+            { backgroundColor: colors.surfaceContainerHigh },
+          ]}
+        >
+          <Icon name="search" size={16} color={colors.textTertiary} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={searchPlaceholder}
+            placeholderTextColor={colors.placeholder}
+            style={[styles.searchInput, typography.input, { color: colors.text }]}
+            returnKeyType="search"
+            accessibilityLabel={searchPlaceholder}
+          />
+          {query.length > 0 && (
+            <Pressable
+              onPress={() => setQuery('')}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('clear')}
+            >
+              <Icon name="close-circle" size={16} color={colors.textTertiary} />
+            </Pressable>
+          )}
+        </View>
+      </Animated.View>
+
+      <View style={styles.segment} accessibilityRole="tablist">
+        {TABS.map(({ key, labelKey }) => {
+          const selected = activeTab === key;
+          const badge = key === 'notifications' ? unreadCount : 0;
           return (
             <Pressable
-              key={tab.key}
-              onPress={() => setActiveTab(tab.key)}
+              key={key}
+              onPress={() => selectTab(key)}
               style={[
-                styles.tab,
-                selected && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+                styles.segmentBtn,
+                {
+                  backgroundColor: selected
+                    ? colors.primary
+                    : colors.surfaceContainerHigh,
+                },
               ]}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              accessibilityLabel={t(labelKey as any)}
             >
-              <Icon
-                name={selected ? tab.activeIcon : tab.icon}
-                size={18}
-                color={selected ? colors.primary : colors.textSecondary}
-              />
               <Text
-                variant="labelLarge"
-                color={selected ? colors.primary : colors.textSecondary}
+                variant="labelMedium"
+                color={selected ? colors.onPrimary : colors.textSecondary}
+                numberOfLines={1}
+                style={styles.segmentLabel}
               >
-                {tab.label}
+                {t(labelKey as any)}
               </Text>
+              {badge > 0 && !selected && (
+                <View style={[styles.dot, { backgroundColor: colors.primary }]} />
+              )}
             </Pressable>
           );
         })}
       </View>
 
-      {/* Post Alert FAB (alerts tab only) */}
-      {activeTab === 'alerts' && user && (
+      {isAlerts && user && (
         <Pressable
           style={[styles.fab, { backgroundColor: colors.primary }]}
           onPress={() => openSheet('alert_post', undefined)}
@@ -193,57 +290,53 @@ export default function AlertsScreen() {
         </Pressable>
       )}
 
-      {/* Content */}
-      {activeTab === 'alerts' && (
-        alertsLoading ? (
-          <LoadingState />
-        ) : alerts.length === 0 ? (
-          <EmptyState icon="megaphone-outline" message={t('empty_alerts')} />
-        ) : (
-          <FlashList
-            data={alerts}
-            renderItem={renderAlert}
-            contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.xs }} />}
-          />
-        )
-      )}
-
-      {activeTab === 'notifications' && (
-        !user ? (
+      {loading ? (
+        <LoadingState />
+      ) : isAlerts ? (
+        visibleAlerts.length === 0 ? (
           <EmptyState
-            icon="log-in-outline"
-            message={t('sign_in')}
-            actionLabel={t('sign_in')}
-            onAction={() => openSheet('auth', {})}
+            icon="megaphone-outline"
+            message={needle ? t('no_results') : t('empty_alerts')}
           />
-        ) : notifsLoading ? (
-          <LoadingState />
-        ) : userNotifs.length === 0 ? (
-          <EmptyState icon="notifications-outline" message={t('empty_notifications')} />
         ) : (
           <FlashList
-            data={userNotifs}
-            renderItem={renderNotif}
-            contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
+            data={visibleAlerts}
+            renderItem={renderAlert}
+            keyboardShouldPersistTaps="handled"
+            onScroll={onListScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              padding: spacing.lg,
+              paddingBottom: FLOATING_TAB_BAR_SPACE,
+            }}
             ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
           />
         )
-      )}
-
-      {activeTab === 'system' && (
-        notifsLoading ? (
-          <LoadingState />
-        ) : systemNotifs.length === 0 ? (
-          <EmptyState icon="information-circle-outline" message={t('empty_notifications')} />
-        ) : (
-          <FlashList
-            data={systemNotifs}
-            renderItem={renderNotif}
-            contentContainerStyle={{ padding: spacing.lg, paddingBottom: FLOATING_TAB_BAR_SPACE }}
-            ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
-          />
-        )
+      ) : !user ? (
+        <EmptyState
+          icon="log-in-outline"
+          message={t('sign_in')}
+          actionLabel={t('sign_in')}
+          onAction={() => openSheet('auth', {})}
+        />
+      ) : visibleNotifs.length === 0 ? (
+        <EmptyState
+          icon={activeTab === 'system' ? 'information-circle-outline' : 'notifications-outline'}
+          message={needle ? t('no_results') : t('empty_notifications')}
+        />
+      ) : (
+        <FlashList
+          data={visibleNotifs}
+          renderItem={renderNotif}
+          keyboardShouldPersistTaps="handled"
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            paddingBottom: FLOATING_TAB_BAR_SPACE,
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        />
       )}
     </View>
   );
@@ -253,31 +346,91 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  tabBar: {
+  header: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.sm,
   },
-  tab: {
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
     flex: 1,
+    fontWeight: '800',
+  },
+  markAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    height: 32,
+    paddingHorizontal: spacing.sm + 2,
+    borderRadius: radius.full,
+  },
+  markAllText: {
+    fontWeight: '700',
+  },
+  searchWrap: {
+    overflow: 'hidden',
+    marginHorizontal: spacing.lg,
+  },
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    height: SEARCH_HEIGHT,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
+  searchInput: {
+    flex: 1,
+    height: '100%',
+    padding: 0,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
+  },
+  segment: {
+    flexDirection: 'row',
+    gap: 6,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+  },
+  segmentBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
+    gap: 5,
+    height: 30,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
+  segmentLabel: {
+    fontWeight: '600',
+    fontSize: 12.5,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   fab: {
     position: 'absolute',
     right: spacing.lg,
-    bottom: spacing.lg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    bottom: FLOATING_TAB_BAR_SPACE - spacing.xl,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.18,
     shadowRadius: 8,
   },
 });

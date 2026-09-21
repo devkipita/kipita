@@ -166,7 +166,9 @@ export const TextInput = memo(function TextInput({
           <RNTextInput
             style={[
               styles.input,
-              typography.bodyMedium,
+              // `typography.input`, not bodyMedium — a sub-16px field makes
+              // iOS zoom the page on focus. See the note on the token.
+              typography.input,
               { color: colors.text },
               Platform.OS === "web" ? styles.webInputReset : null,
             ]}

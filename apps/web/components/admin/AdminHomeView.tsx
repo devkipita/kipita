@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2, HelpCircle, Flag, ChevronRight } from "lucide-react";
+import { Undo2, HelpCircle, Flag, Ticket, ChevronRight } from "lucide-react";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
 import { Container, Grid, H2, Lead } from "@/components/ui/primitives";
@@ -45,6 +45,19 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
             </FeatureTitle>
             <FeatureBody>
               Add and edit the questions shown on the /help page.
+            </FeatureBody>
+          </FeatureCardLink>
+
+          <FeatureCardLink href="/admin/promotions">
+            <IconBubble icon={Ticket} variant="green" />
+            <FeatureTitle>
+              Offers
+              <InlineChevron data-chevron>
+                <ChevronRight size={18} />
+              </InlineChevron>
+            </FeatureTitle>
+            <FeatureBody>
+              Create the gift cards and discounts shown on the home page.
             </FeatureBody>
           </FeatureCardLink>
 

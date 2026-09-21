@@ -434,7 +434,7 @@ export default function TripScreen() {
                       maxLength={400}
                       style={[
                         styles.reviewInput,
-                        typography.bodyMedium,
+                        typography.input,
                         {
                           color: colors.text,
                           backgroundColor: colors.surfaceContainerHigh,

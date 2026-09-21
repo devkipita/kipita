@@ -1,9 +1,6 @@
 import React, { memo, useEffect } from 'react';
 import { Pressable, StyleSheet, View, Platform } from 'react-native';
 import Animated, {
-  FadeIn,
-  FadeOut,
-  LinearTransition,
   useAnimatedStyle,
   withTiming,
 } from 'react-native-reanimated';
@@ -17,21 +14,21 @@ import { haptic } from '@/lib/utils/haptics';
 import { tabBarHidden } from '@/lib/utils/tabBar';
 import { spacing, radius, shadows } from '@/theme';
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+export const FLOATING_TAB_BAR_SPACE = 112;
 
-/** Space the floating bar occupies at the bottom — screens should pad by this.
- * Covers the bar height (64) + its bottom offset + safe-area on tall devices. */
-export const FLOATING_TAB_BAR_SPACE = 128;
+const BAR_HEIGHT = 58;
+const ITEM_HEIGHT = 48;
 
-const BAR_HEIGHT = 64;
-
-/** Active / inactive icon pairs per route. */
 const ICONS: Record<string, { active: IconName; inactive: IconName }> = {
   home: { active: 'home', inactive: 'home-outline' },
   trips: { active: 'car', inactive: 'car-outline' },
   alerts: { active: 'megaphone', inactive: 'megaphone-outline' },
   profile: { active: 'person', inactive: 'person-outline' },
 };
+
+function oneWord(label: string): string {
+  return label.trim().split(/\s+/)[0] ?? label;
+}
 
 export const FloatingTabBar = memo(function FloatingTabBar({
   state,
@@ -42,50 +39,49 @@ export const FloatingTabBar = memo(function FloatingTabBar({
   const insets = useSafeAreaInsets();
 
   const bottom = Math.max(insets.bottom, spacing.md);
-
-  // Slide out of view (and fade) as scrollable screens push tabBarHidden → 1.
   const hideDistance = BAR_HEIGHT + bottom + spacing.xl;
+
   const barStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: tabBarHidden.value * hideDistance }],
     opacity: 1 - tabBarHidden.value,
   }));
 
-  // Always reveal the bar when the active tab changes.
   useEffect(() => {
     tabBarHidden.value = withTiming(0, { duration: 200 });
   }, [state.index]);
 
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.wrap, { bottom }]}
-    >
+    <View pointerEvents="box-none" style={[styles.wrap, { bottom }]}>
       <Animated.View
         style={[
           styles.bar,
           shadows.lg,
           {
             borderColor: colors.glassBorder,
-            backgroundColor: isDark ? 'rgba(28,28,32,0.72)' : 'rgba(255,255,255,0.72)',
+            backgroundColor: isDark
+              ? 'rgba(22,24,23,0.82)'
+              : 'rgba(255,255,255,0.86)',
           },
           barStyle,
         ]}
       >
-        {/* Frosted backdrop */}
         <BlurView
-          intensity={40}
+          intensity={36}
           tint={isDark ? 'dark' : 'light'}
           style={[StyleSheet.absoluteFill, styles.blur]}
         />
 
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
-          const label =
+          const rawLabel =
             typeof options.tabBarLabel === 'string'
               ? options.tabBarLabel
               : options.title ?? route.name;
+          const label = oneWord(rawLabel);
           const isFocused = state.index === index;
-          const icons = ICONS[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+          const icons =
+            ICONS[route.name] ?? { active: 'ellipse', inactive: 'ellipse-outline' };
+          const tint = isFocused ? colors.primary : colors.textSecondary;
 
           const onPress = () => {
             const event = navigation.emit({
@@ -99,37 +95,40 @@ export const FloatingTabBar = memo(function FloatingTabBar({
             }
           };
 
-          const onLongPress = () => {
-            navigation.emit({ type: 'tabLongPress', target: route.key });
-          };
-
           return (
-            <AnimatedPressable
+            <Pressable
               key={route.key}
               onPress={onPress}
-              onLongPress={onLongPress}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
+              onLongPress={() =>
+                navigation.emit({ type: 'tabLongPress', target: route.key })
+              }
+              hitSlop={{ top: 10, bottom: 10, left: 4, right: 4 }}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: isFocused }}
               accessibilityLabel={label}
-              layout={LinearTransition.springify().damping(18).stiffness(180)}
-              style={[
-                styles.item,
-                isFocused && { backgroundColor: colors.primary },
-              ]}
+              style={styles.item}
             >
-              <Icon
-                name={isFocused ? icons.active : icons.inactive}
-                size={22}
-                color={isFocused ? colors.onPrimary : colors.tabInactive}
-              />
-              {isFocused && (
-                <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
-                  <Text variant="labelMedium" color={colors.onPrimary} style={styles.label}>
-                    {label}
-                  </Text>
-                </Animated.View>
-              )}
-            </AnimatedPressable>
+              <View
+                style={[
+                  styles.iconWell,
+                  isFocused && { backgroundColor: colors.primaryContainer },
+                ]}
+              >
+                <Icon
+                  name={isFocused ? icons.active : icons.inactive}
+                  size={19}
+                  color={isFocused ? colors.onPrimaryContainer : tint}
+                />
+              </View>
+              <Text
+                variant="labelSmall"
+                color={tint}
+                numberOfLines={1}
+                style={[styles.label, isFocused && styles.labelActive]}
+              >
+                {label}
+              </Text>
+            </Pressable>
           );
         })}
       </Animated.View>
@@ -148,29 +147,38 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     height: BAR_HEIGHT,
-    paddingHorizontal: spacing.sm,
-    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
     borderRadius: radius.full,
     borderWidth: 1,
     overflow: 'hidden',
-    // Constrain width so it reads as a floating pill, not a full-width bar.
-    maxWidth: 420,
+    maxWidth: 380,
     ...(Platform.OS === 'web' ? { width: 'auto' } : null),
   },
   blur: {
     borderRadius: radius.full,
   },
   item: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    height: 46,
-    minWidth: 46,
-    paddingHorizontal: spacing.md,
+    gap: 2,
+    height: ITEM_HEIGHT,
+    minWidth: 68,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.full,
+  },
+  iconWell: {
+    width: 40,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: radius.full,
   },
   label: {
-    fontWeight: '900',
-    marginLeft: spacing.xs,
+    fontSize: 10.5,
+    lineHeight: 13,
+    fontWeight: '600',
+  },
+  labelActive: {
+    fontWeight: '800',
   },
 });

@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
-import { LifeBuoy } from "lucide-react";
+import { House, LifeBuoy, Megaphone } from "lucide-react";
 import { Brand } from "@/components/ui/Brand";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { Avatar } from "@/components/profile/Avatar";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 const Bar = styled.header<{ $hidden: boolean }>`
   position: sticky;
@@ -68,14 +69,22 @@ const Chip = styled(Link)`
   }
 `;
 
-/** Sticky top navigation for the signed-in account area. */
+/**
+ * Sticky top navigation for the signed-in account area.
+ *
+ * Passing `userId` (the `users.id`, not `auth_id`) mounts the live notification
+ * bell — which also carries the arrival toast, so new rides surface on whatever
+ * page the user is on.
+ */
 export function AppHeader({
   name,
   avatarUrl,
+  userId,
   showProfileChip = true,
 }: {
   name?: string;
   avatarUrl?: string | null;
+  userId?: string;
   showProfileChip?: boolean;
 }) {
   const [hidden, setHidden] = useState(false);
@@ -96,12 +105,25 @@ export function AppHeader({
   return (
     <Bar $hidden={hidden}>
       <Inner>
-        <Brand href="/" priority />
+        <Brand href={userId ? "/home" : "/"} priority />
         <Right>
+          {userId && (
+            <>
+              <NavLink href="/home">
+                <House size={17} strokeWidth={2.2} />
+                <span>Home</span>
+              </NavLink>
+              <NavLink href="/alerts">
+                <Megaphone size={17} strokeWidth={2.2} />
+                <span>Alerts</span>
+              </NavLink>
+            </>
+          )}
           <NavLink href="/help">
             <LifeBuoy size={17} strokeWidth={2.2} />
             <span>Help</span>
           </NavLink>
+          {userId && <NotificationBell userId={userId} />}
           <ThemeToggle />
           {showProfileChip && name !== undefined && (
             <Chip href="/profile" aria-label="Your profile">

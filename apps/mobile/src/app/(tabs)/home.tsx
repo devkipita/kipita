@@ -1,11 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  PanResponder,
-} from "react-native";
+import { View, StyleSheet, Pressable } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  runOnJS,
   useAnimatedScrollHandler,
   useSharedValue,
   withTiming,
@@ -190,25 +187,29 @@ export default function HomeScreen() {
     router.push("/(tabs)/alerts");
   }, [router]);
 
-  const panelPanResponder = useMemo(
+  // Swipe up on the panel handle: collapse the planner if it's open, otherwise
+  // jump to the full alerts feed. Uses react-native-gesture-handler rather than
+  // PanResponder — the handle is a Pressable, and RN's responder negotiation
+  // lets the press win, so the old PanResponder never fired.
+  const handleSwipeUp = useCallback(() => {
+    if (searchExpanded) {
+      collapseSearch();
+    } else {
+      openAllAlerts();
+    }
+  }, [searchExpanded, collapseSearch, openAllAlerts]);
+
+  const panelSwipe = useMemo(
     () =>
-      PanResponder.create({
-        onMoveShouldSetPanResponder: (_event, gestureState) =>
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
-          gestureState.dy < -8,
-        onPanResponderRelease: (_event, gestureState) => {
-          if (gestureState.dy < -28) {
-            // Swipe up: collapse the search planner if open, otherwise jump
-            // straight into the full-screen alerts feed (gamified pull-up).
-            if (searchExpanded) {
-              collapseSearch();
-            } else {
-              openAllAlerts();
-            }
+      Gesture.Pan()
+        .activeOffsetY([-10, 10])
+        .failOffsetX([-20, 20])
+        .onEnd((event) => {
+          if (event.translationY < -28 || event.velocityY < -600) {
+            runOnJS(handleSwipeUp)();
           }
-        },
-      }),
-    [collapseSearch, searchExpanded, openAllAlerts],
+        }),
+    [handleSwipeUp],
   );
 
   const handleItemPress = useCallback(
@@ -330,36 +331,37 @@ export default function HomeScreen() {
         ]}
       >
         {/* Drag handle + swipe affordance */}
-        <Pressable
-          onPress={searchExpanded ? collapseSearch : openAllAlerts}
-          style={styles.panelHandleArea}
-          accessibilityRole="button"
-          accessibilityLabel={
-            searchExpanded
-              ? t("swipe_close_search")
-              : t("swipe_all_alerts")
-          }
-          {...panelPanResponder.panHandlers}
-        >
-          <View
-            style={[styles.handle, { backgroundColor: colors.outlineVariant }]}
-          />
-          <View
-            style={[
-              styles.handleHintRow,
-              { backgroundColor: colors.primaryContainer },
-            ]}
+        <GestureDetector gesture={panelSwipe}>
+          <Pressable
+            onPress={handleSwipeUp}
+            style={styles.panelHandleArea}
+            accessibilityRole="button"
+            accessibilityLabel={
+              searchExpanded
+                ? t("swipe_close_search")
+                : t("swipe_all_alerts")
+            }
           >
-            <Icon name="chevron-up" size={15} color={colors.onPrimaryContainer} />
-            <Text
-              variant="labelMedium"
-              color={colors.onPrimaryContainer}
-              style={styles.handleHintText}
+            <View
+              style={[styles.handle, { backgroundColor: colors.outlineVariant }]}
+            />
+            <View
+              style={[
+                styles.handleHintRow,
+                { backgroundColor: colors.primaryContainer },
+              ]}
             >
-              {searchExpanded ? t("swipe_close_search") : t("swipe_all_alerts")}
-            </Text>
-          </View>
-        </Pressable>
+              <Icon name="chevron-up" size={15} color={colors.onPrimaryContainer} />
+              <Text
+                variant="labelMedium"
+                color={colors.onPrimaryContainer}
+                style={styles.handleHintText}
+              >
+                {searchExpanded ? t("swipe_close_search") : t("swipe_all_alerts")}
+              </Text>
+            </View>
+          </Pressable>
+        </GestureDetector>
 
         <Animated.ScrollView
           showsVerticalScrollIndicator={false}
