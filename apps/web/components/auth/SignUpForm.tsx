@@ -5,6 +5,11 @@ import styled from "styled-components";
 import { ArrowRight, Info, Mail, MailCheck, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { signUpEmailSchema } from "@/lib/validators/auth";
+import {
+  attemptCooldownMs,
+  cooldownMessage,
+  recordFailedAttempt,
+} from "@/lib/security/attempt-throttle";
 import { TextField } from "./TextField";
 import { OAuthButtons } from "./OAuthButtons";
 import { StepDots } from "./StepDots";
@@ -85,10 +90,22 @@ export function SignUpForm() {
       return;
     }
     setErrs({});
+
+    // Signup hits Supabase directly, so this is only a courtesy throttle —
+    // see the note in lib/security/attempt-throttle.ts. Enable CAPTCHA and the
+    // Supabase auth rate limits for the real protection.
+    const throttleKey = `signup:${email.trim().toLowerCase()}`;
+    const wait = attemptCooldownMs(throttleKey);
+    if (wait > 0) return setError(cooldownMessage(wait));
+
     setBusy(true);
     const err = await send();
     setBusy(false);
-    if (err) return setError(err.message);
+    if (err) {
+      recordFailedAttempt(throttleKey);
+      return setError(err.message);
+    }
+    recordFailedAttempt(throttleKey);
     setSent(true);
     setCooldown(30);
   }

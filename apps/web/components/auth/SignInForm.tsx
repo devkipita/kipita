@@ -57,6 +57,13 @@ const RowBetween = styled.div`
   margin-top: -6px;
 `;
 
+import {
+  attemptCooldownMs,
+  clearAttempts,
+  cooldownMessage,
+  recordFailedAttempt,
+} from "@/lib/security/attempt-throttle";
+
 type Mode = "email" | "phone";
 
 export function SignInForm({ next = "/home" }: { next?: string }) {
@@ -93,16 +100,26 @@ export function SignInForm({ next = "/home" }: { next?: string }) {
       return;
     }
     setErrs({});
+
+    const throttleKey = `signin:${email.trim().toLowerCase()}`;
+    const wait = attemptCooldownMs(throttleKey);
+    if (wait > 0) {
+      setError(cooldownMessage(wait));
+      return;
+    }
+
     setBusy(true);
     const { data, error: err } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
     if (err || !data.session) {
+      recordFailedAttempt(throttleKey);
       setError(err?.message ?? "Couldn't sign you in.");
       setBusy(false);
       return;
     }
+    clearAttempts(throttleKey);
     done();
   }
 

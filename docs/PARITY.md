@@ -4,16 +4,41 @@ What works on each platform, and what only looks like it works. Written against 
 code, not the roadmap: every "no" below was verified by reading the source or the
 migrations.
 
-Audited 2026-09-21. Update this file when a row changes.
+Audited 2026-09-21, revised 2026-09-22. Update this file when a row changes.
 
 Legend: **Yes** — works end to end · **Partial** — ships but with a caveat in the notes ·
 **No** — not built · **Broken** — present in the UI but does not do what it appears to.
+
+> ## ⚠ The live database is at migration 001 — everything since is unapplied
+>
+> Probed `ipaqkfykfibycyqsmfsy` directly on 2026-09-22 with the publishable key.
+> `users`, `rides`, `ride_requests` and `bookings` exist. **`trips`, `cities`,
+> `trip_stops`, `saved_places`, `reports`, `comment_likes`, `wallet_transactions`,
+> `refund_requests`, `waitlist`, `faqs`, `promotions` and `route_interests` all
+> return 404** — PostgREST even hints "perhaps you meant `public.rides`", which is
+> the pre-003 name.
+>
+> So migrations **003 through 020 have never run**. Until `supabase db push`
+> happens, nothing that touches the trip model works on either platform: ride
+> search, ride detail, seat reservation and M-Pesa all query `trips`, and
+> `bookings` still has `ride_id` rather than `trip_id`. The application code in
+> this repo is written against the intended schema and is correct; the database is
+> simply behind it.
+>
+> The CLI here cannot push — it needs `SUPABASE_DB_PASSWORD`. Every row in the
+> tables below describes intended behaviour against the migrated schema.
 
 > **Migrations 018–020 are written but not applied.** They add the `promotions`
 > table, the `alert-media` storage bucket, and route-targeted broadcasts. Until
 > `supabase db push` runs, the offers band stays hidden, alert photo uploads fail,
 > and new posts still notify every active user. Migrations 013, 015 and 017 have
-> also historically lagged — check they land too.
+> also historically lagged — check they land too. Migration 013 in particular gates
+> escrow, so web M-Pesa needs it applied before it can hold funds.
+>
+> **The Daraja secrets must be set on the edge functions** (`MPESA_CONSUMER_KEY`,
+> `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`,
+> and `MPESA_BASE_URL` for production rather than sandbox), or `initiate-payment`
+> throws and the web checkout reports that it couldn't reach M-Pesa.
 
 ---
 
@@ -28,10 +53,34 @@ Legend: **Yes** — works end to end · **Partial** — ships but with a caveat 
 | Post a ride request | Yes | Yes | |
 | Post form opens on an empty search | Yes | Yes | The core loop: a search that finds nothing becomes a new post. |
 | Ride detail | Yes | Yes | |
-| Reserve a seat | Yes | Partial | Web writes the booking at `pending_payment` and hands off to the app — there is no payment surface on web. |
-| Pay with M-Pesa | Partial | **No** | Mobile's payment sheet is not wired to the backend: `SheetOrchestrator` hardcodes `onPay={async () => true}` and never calls `initiatePayment`. The Daraja edge functions are real; the UI does not call them. |
+| Reserve a seat | **Broken** | Yes | See the booking-row note below — mobile never inserts a `bookings` row, web does. |
+| Pay with M-Pesa | **Broken in practice** | Yes | Both call the same Daraja backend. Mobile's wiring is real but unreachable; web's works end to end. See below. |
+| Escrow release to driver | Yes | — | `releaseEscrow` runs when the driver ends the ride. Driver-side is app-only. |
 | Register a vehicle | **No** | **No** | No CRUD and no UI on either platform, so every trip is created with `vehicle_id = NULL`. Car make/model/plate on a ride card only ever comes from mobile's seed data. |
 | Origin / destination city ids | **No** | **No** | `cities` is seeded and joined, but nothing sets `origin_city_id` / `destination_city_id`. Routing is free-text `ilike` matching. |
+
+### M-Pesa, precisely
+
+The backend is real on both platforms and shared: `initiate-payment` fires a Daraja
+STK push, Safaricom calls `mpesa-callback`, that flips the `payments` row to
+`completed` (funds in escrow) or `failed`, and `release-escrow` pays the driver out
+minus the 12% fee in `@kipita/shared`.
+
+**Mobile's client is wired but unreachable.** `SheetOrchestrator.handlePay` really
+does call `initiatePayment` + `pollPaymentStatus` — the older note that it
+hardcoded `onPay={async () => true}` is out of date. The problem is upstream:
+`createBooking` in `lib/api/bookings.ts` is **never called from anywhere**.
+`app/ride/[id].tsx` builds a booking object in memory with the id `temp-<tripId>`,
+and `handlePay` then checks `/^[0-9a-f-]{36}$/` and short-circuits any non-UUID to
+a fake 1.4-second success. So every payment started from the mobile ride screen
+resolves "paid" without a booking row and without charging anyone.
+
+**Web is the path that actually works.** `reserveSeatAction` inserts a real
+`bookings` row, so the UUID is genuine, and `PaymentDrawer` drives the same edge
+functions: phone entry → STK push → poll → confirmed / failed / still-waiting.
+
+Fixing mobile is small: call `createBooking` before opening the payment sheet, and
+drop the `temp-` short-circuit.
 
 ## Road alerts
 
@@ -81,9 +130,10 @@ Legend: **Yes** — works end to end · **Partial** — ships but with a caveat 
 
 | Capability | Mobile | Web | Notes |
 |---|---|---|---|
-| Offers / gift cards band | **No** | Yes | Web only. |
+| Offers / gift cards band | Static | Yes | Web reads the `promotions` table. Mobile's Trips tab shows three hard-coded cards (invite, off-peak, verification) — real copy, no backend. |
+| "Why kipita.co.ke" cards | Yes | **No** | Mobile-only, static, on the Trips tab. |
 | Admin editor | — | Yes | `/admin/promotions`. |
-| Redeeming an offer | — | **No** | Display-only. Redemption needs a payment surface to apply a discount to, a redemptions ledger, and server-side price authority. |
+| Redeeming an offer | — | **No** | Display-only on both. Web now has a payment surface, so redemption is newly *possible* — it still needs a redemptions ledger and server-side price authority. |
 
 ## Admin
 
@@ -96,13 +146,28 @@ Legend: **Yes** — works end to end · **Partial** — ships but with a caveat 
 
 ---
 
+## Mobile UI, revised 2026-09-22
+
+| Capability | Status | Notes |
+|---|---|---|
+| Inputs zoom the page on iPhone | **Fixed** | Every text field was 14px; iOS auto-zooms anything under 16px when focused, which is what wrecked the layout in the web build. A `typography.input` token (16px) now covers all eight text-entry surfaces. |
+| `+html.tsx` anti-zoom CSS | **Inert** | Expo only renders it when `web.output` is `"static"`; in SPA mode it serves its own template. Kept as a safety net, comment corrected. |
+| Home "swipe up to see all alerts" | **Fixed** | `PanResponder` was attached to a `Pressable` and lost responder negotiation, so it never fired. Now `Gesture.Pan` from gesture-handler. |
+| Bottom tab bar | Redesigned | 58px, icon over label, one-word labels always visible. |
+| Top bar | Redesigned | Brand on the left in normal flow (it was an absolute overlay that sat under the bell), theme/profile pill on the right; hidden on home, alerts and trips, which own their headers. |
+| Alerts screen | Redesigned | Own header + back arrow, search that collapses on scroll, thin filter chips. Removed a `TEMP(testing)` hack that forced every notification to render unread. |
+| Post Alert sheet | Redesigned | Was reusing the chat `Composer`. Now a real form: category chips, location, multiline body with counter, photo, Post button. |
+| Trips screen | Redesigned | Header/search/chips, photo-hero tickets, Offers and "Why kipita.co.ke" carousels with section headings. |
+| Destination photos on tickets | Yes | Wikipedia `pageimages` at 800px, cached in MMKV for 30 days. All ten seeded towns return a real photo (Kericho returns a map rather than a street scene). Gradient + monogram fallback while loading or when there's no image. |
+| `yarn typecheck` (mobile) | **Failing** | 43 pre-existing errors, surfaced by the TypeScript 5.9 → 6.0 upgrade: the Supabase client is untyped so every `insert`/`update` payload is `never`, plus `StyleSheet.create` union issues. Unrelated to the UI work; `expo export` succeeds. |
+
 ## Where things live on the web
 
 | Surface | Route |
 |---|---|
 | Signed-in home (search, rides, offers, alerts preview) | `/home` — where sign-in now lands |
 | Road alerts feed / one alert | `/alerts`, `/alerts/[id]` |
-| A trip or ride request | `/ride/[id]` (`?kind=request` for a request) |
+| A trip or ride request, and M-Pesa checkout | `/ride/[id]` (`?kind=request` for a request) |
 | Notification inbox | `/notifications` |
 | Offers editor | `/admin/promotions` |
 

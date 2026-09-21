@@ -11,6 +11,7 @@ import {
   XCircle,
   type LucideIcon,
 } from "lucide-react";
+import { isSafeImageUrl } from "@/lib/security/url";
 import type { AlertCategory, ReactionKey } from "./types";
 
 /**
@@ -72,7 +73,9 @@ export function truncateWords(text: string): { body: string; truncated: boolean 
  * layout renders as a black box rather than falling back to text.
  */
 export function isDisplayableImage(url: string | null): url is string {
-  return !!url && /^https?:\/\//i.test(url);
+  // Also the XSS guard for stored image URLs — anything that isn't http(s) is
+  // rejected outright rather than handed to an <img src>.
+  return isSafeImageUrl(url) && /^https?:\/\//i.test(url ?? "");
 }
 
 /** "12" / "1.2k" / "3.4m" — matches mobile's compact counts. */

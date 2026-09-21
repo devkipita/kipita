@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { driverKycSchema, type DriverKycInput } from "@/lib/validators/home";
+import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 /**
  * Driver KYC submission — the web port of `submitDriverKyc`
@@ -40,6 +41,13 @@ export async function submitDriverKycAction(
       error: "Your profile isn't ready yet. Sign out and back in, then try again.",
     };
   }
+
+  const gate = rateLimit(
+    `kyc:${me.id}`,
+    LIMITS.submitKyc.limit,
+    LIMITS.submitKyc.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const { national_id, license_number, license_expiry } = parsed.data;
   const { error } = await supabase.from("driver_profiles").upsert(

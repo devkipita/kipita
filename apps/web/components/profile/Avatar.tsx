@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
+import { safeHttpUrl } from "@/lib/security/url";
 
 const MANAGED_AVATAR_PATH = "/storage/v1/object/public/avatars/";
 
@@ -38,10 +39,14 @@ export function initials(name: string) {
 }
 
 function resolveAvatarSrc(src?: string | null): string | null {
-  if (!src) return null;
-  if (!/^https?:\/\//i.test(src)) return src;
-  if (src.includes(MANAGED_AVATAR_PATH)) return src;
-  return `/api/avatar?src=${encodeURIComponent(src)}`;
+  // Vet the protocol first: this value comes from the database and could be a
+  // `javascript:` or `data:` URL. safeHttpUrl returns null for anything that
+  // isn't http(s) or a same-origin relative path.
+  const safe = safeHttpUrl(src);
+  if (!safe) return null;
+  if (!/^https?:\/\//i.test(safe)) return safe;
+  if (safe.includes(MANAGED_AVATAR_PATH)) return safe;
+  return `/api/avatar?src=${encodeURIComponent(safe)}`;
 }
 
 /** Round avatar — shows the image, falling back to initials on error/empty. */

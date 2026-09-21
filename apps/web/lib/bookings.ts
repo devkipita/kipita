@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 /**
  * Reserving a seat from the web.
@@ -13,7 +14,15 @@ import { createClient } from "@/lib/supabase/server";
  */
 
 export type BookingResult =
-  | { ok: true; reference: string | null; seats: number; total: number }
+  | {
+      ok: true;
+      bookingId: string;
+      reference: string | null;
+      seats: number;
+      total: number;
+      /** True when this hold already existed, so we don't double-charge. */
+      existing: boolean;
+    }
   | { ok: false; error: string };
 
 export async function reserveSeatAction(
@@ -36,6 +45,13 @@ export async function reserveSeatAction(
   if (!profile) {
     return { ok: false, error: "Your profile isn't ready yet. Try again in a moment." };
   }
+
+  const gate = rateLimit(
+    `reserve:${profile.id}`,
+    LIMITS.reserveSeat.limit,
+    LIMITS.reserveSeat.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const { data: trip } = await supabase
     .from("trips")
@@ -72,9 +88,11 @@ export async function reserveSeatAction(
   if (existing) {
     return {
       ok: true,
+      bookingId: existing.id as string,
       reference: existing.booking_reference ?? null,
       seats: existing.seats_booked,
       total: Number(existing.total_price),
+      existing: true,
     };
   }
 
@@ -89,7 +107,7 @@ export async function reserveSeatAction(
       total_price: total,
       status: "pending_payment",
     })
-    .select("booking_reference, seats_booked, total_price")
+    .select("id, booking_reference, seats_booked, total_price")
     .maybeSingle();
 
   if (error || !booking) {
@@ -99,8 +117,26 @@ export async function reserveSeatAction(
   revalidatePath(`/ride/${tripId}`);
   return {
     ok: true,
+    bookingId: booking.id as string,
     reference: booking.booking_reference ?? null,
     seats: booking.seats_booked,
     total: Number(booking.total_price),
+    existing: false,
   };
+}
+
+/** The signed-in caller's `users.id`, needed by the payment edge function. */
+export async function currentUserIdAction(): Promise<string | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle();
+  return (data?.id as string) ?? null;
 }

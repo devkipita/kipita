@@ -20,9 +20,26 @@ type SupabaseCookie = {
  */
 const STREAMING_AUTHED_ROUTES = ["/home"];
 
-/** Refresh the Supabase auth session cookie on every matched request. */
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+/**
+ * Refresh the Supabase auth session cookie on every matched request.
+ *
+ * `extraRequestHeaders` are merged onto the *request* so server components can
+ * read them (the CSP nonce arrives this way) — they have to be applied every
+ * time the response is rebuilt below, or a cookie refresh would drop them.
+ */
+export async function updateSession(
+  request: NextRequest,
+  extraRequestHeaders: Record<string, string> = {},
+) {
+  const withHeaders = () => {
+    const headers = new Headers(request.headers);
+    for (const [key, value] of Object.entries(extraRequestHeaders)) {
+      headers.set(key, value);
+    }
+    return NextResponse.next({ request: { headers } });
+  };
+
+  let response = withHeaders();
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -33,7 +50,7 @@ export async function updateSession(request: NextRequest) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
-        response = NextResponse.next({ request });
+        response = withHeaders();
         cookiesToSet.forEach(({ name, value, options }) =>
           response.cookies.set(name, value, options),
         );

@@ -25,8 +25,14 @@ import {
 } from "lucide-react";
 import { AppHeader } from "@/components/app/AppHeader";
 import { Avatar } from "@/components/profile/Avatar";
-import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
+import {
+  currentUserIdAction,
+  reserveSeatAction,
+  type BookingResult,
+} from "@/lib/bookings";
+import { PaymentDrawer } from "./PaymentDrawer";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
+import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
 import type { Profile } from "@/lib/auth/types";
 
@@ -408,6 +414,13 @@ export function RideDetailView({
   const [seats, setSeats] = useState(1);
   const [result, setResult] = useState<BookingResult | null>(null);
   const [pending, startTransition] = useTransition();
+  const [payingFor, setPayingFor] = useState<{
+    bookingId: string;
+    total: number;
+  } | null>(null);
+  // Kept outside `payingFor` so closing the drawer doesn't lose it.
+  const [payerId, setPayerId] = useState<string | null>(null);
+  const [paid, setPaid] = useState(false);
 
   const date = formatRideDate(isTrip ? ride.departure_date : ride.preferred_date);
   const time = formatRideTime(isTrip ? ride.departure_time : ride.preferred_time);
@@ -421,7 +434,18 @@ export function RideDetailView({
   function reserve() {
     if (!isTrip) return;
     startTransition(async () => {
-      setResult(await reserveSeatAction(ride.id, seats));
+      const booked = await reserveSeatAction(ride.id, seats);
+      setResult(booked);
+      if (!booked.ok) return;
+
+      // The edge function checks the booking belongs to this users.id, so it
+      // has to come from the server rather than the profile prop (which can be
+      // a synthesized record carrying the auth id).
+      const userId = await currentUserIdAction();
+      if (userId) {
+        setPayerId(userId);
+        setPayingFor({ bookingId: booked.bookingId, total: booked.total });
+      }
     });
   }
 
@@ -519,8 +543,8 @@ export function RideDetailView({
                 </Chips>
               </div>
             </Person>
-            {person.phone && (
-              <PhoneRow href={`tel:${person.phone}`}>
+            {safeTelHref(person.phone) && (
+              <PhoneRow href={safeTelHref(person.phone) as string}>
                 <Phone size={18} strokeWidth={2.4} />
                 {person.phone}
               </PhoneRow>
@@ -556,12 +580,15 @@ export function RideDetailView({
             <CheckCircle2 size={20} strokeWidth={2.4} />
             <div>
               <b>
-                Seat held{result.reference ? ` · ${result.reference}` : ""}
+                {paid ? "Seat confirmed" : "Seat held"}
+                {result.reference ? ` · ${result.reference}` : ""}
               </b>
               <p>
                 {result.seats} seat{result.seats === 1 ? "" : "s"} ·{" "}
-                {formatKes(result.total)}. Open the Kipita app to pay with M-Pesa
-                and confirm — your seat is held until then.
+                {formatKes(result.total)}.{" "}
+                {paid
+                  ? "Paid — we hold your fare until the trip is done, then release it to your driver."
+                  : "Pay with M-Pesa to confirm; the seat is held until you do."}
               </p>
             </div>
           </Banner>
@@ -579,6 +606,21 @@ export function RideDetailView({
 
         {renderAction()}
       </Wrap>
+
+      {payingFor && payerId && (
+        <PaymentDrawer
+          open
+          bookingId={payingFor.bookingId}
+          userId={payerId}
+          amount={payingFor.total}
+          defaultPhone={profile?.phone}
+          onClose={() => setPayingFor(null)}
+          onPaid={() => {
+            setPaid(true);
+            setPayingFor(null);
+          }}
+        />
+      )}
     </Page>
   );
 
@@ -635,6 +677,26 @@ export function RideDetailView({
             </p>
           </div>
         </Banner>
+      );
+    }
+
+    // Held but not yet paid — let them reopen M-Pesa without re-reserving.
+    if (result?.ok && !paid) {
+      return (
+        <Bar>
+          <Primary
+            type="button"
+            onClick={() =>
+              setPayingFor({
+                bookingId: result.bookingId,
+                total: result.total,
+              })
+            }
+            disabled={pending || !payerId}
+          >
+            <Smartphone size={18} strokeWidth={2.4} /> Pay {formatKes(result.total)}
+          </Primary>
+        </Bar>
       );
     }
 

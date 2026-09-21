@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { postRequestSchema, postTripSchema } from "@/lib/validators/home";
 import type { PostRequestInput, PostTripInput } from "@/lib/validators/home";
+import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 /**
  * Posting a trip or a ride request — the write half of the core Kipita loop.
@@ -63,6 +64,13 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   const session = await resolveUser(supabase);
   if ("error" in session) return { ok: false, error: session.error };
 
+  const gate = rateLimit(
+    `post:${session.userId}`,
+    LIMITS.postTrip.limit,
+    LIMITS.postTrip.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
+
   // The mode cookie is a UI preference, so re-check the real gate here.
   const kyc = await fetchDriverKyc(supabase, session.userId);
   if (!kyc.hasApplied) {
@@ -112,6 +120,13 @@ export async function createRideRequestAction(
   const supabase = await createClient();
   const session = await resolveUser(supabase);
   if ("error" in session) return { ok: false, error: session.error };
+
+  const gate = rateLimit(
+    `post:${session.userId}`,
+    LIMITS.postTrip.limit,
+    LIMITS.postTrip.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const request = parsed.data;
   const { data, error } = await supabase

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { alertSchema, commentSchema } from "@/lib/validators/home";
 import type { AlertInput } from "@/lib/validators/home";
+import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 /**
  * Posting alerts and comments.
@@ -48,6 +49,13 @@ export async function createAlertAction(input: AlertInput): Promise<AlertResult>
   const session = await resolveUserId(supabase);
   if ("error" in session) return { ok: false, error: session.error };
 
+  const gate = rateLimit(
+    `alert:${session.userId}`,
+    LIMITS.postAlert.limit,
+    LIMITS.postAlert.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
+
   const { category, location, content, image_url } = parsed.data;
   const { data, error } = await supabase
     .from("announcements")
@@ -82,6 +90,13 @@ export async function addCommentAction(
   const supabase = await createClient();
   const session = await resolveUserId(supabase);
   if ("error" in session) return { ok: false, error: session.error };
+
+  const gate = rateLimit(
+    `comment:${session.userId}`,
+    LIMITS.comment.limit,
+    LIMITS.comment.windowMs,
+  );
+  if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const { error } = await supabase.from("alert_comments").insert({
     alert_id: parsed.data.alert_id,
