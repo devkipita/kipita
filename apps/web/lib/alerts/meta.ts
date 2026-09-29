@@ -1,40 +1,111 @@
 import {
   Car,
   CloudRain,
-  Frown,
+  SmileySad as Frown,
   Heart,
   Megaphone,
   Shield,
-  Sparkles,
+  Sparkle as Sparkles,
   ThumbsUp,
-  TriangleAlert,
+  Warning as TriangleAlert,
   XCircle,
-  type LucideIcon,
-} from "lucide-react";
+} from "@/components/icons";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { isSafeImageUrl } from "@/lib/security/url";
+import { palette } from "@/lib/theme";
+import type { AccentName, AccentStep, ToneName } from "@/lib/theme";
 import type { AlertCategory, ReactionKey } from "./types";
 
 /**
- * Category presentation — the web port of
- * `apps/mobile/src/components/cards/alertMeta.ts`.
- *
- * The colours are the exact mobile hexes. They're semantic (red means accident
- * everywhere) and theme-independent, like the forest/peach/lilac/lime tones in
- * `lib/theme.ts`, so they are not routed through the theme.
+ * Category presentation. Each category owns a hue from the palette and a step
+ * within it, so the badge, the edge stripe and the map pin all say the same
+ * thing. `deep` steps are a dark fill with light text; `soft` steps invert it.
  */
 export const ALERT_META: Record<
   AlertCategory,
-  { label: string; icon: LucideIcon; color: string }
+  {
+    label: string;
+    icon: LucideIcon;
+    accent: AccentName;
+    step: AccentStep;
+    color: string;
+  }
 > = {
-  traffic: { label: "Traffic", icon: Car, color: "#E08A2B" },
-  accident: { label: "Accident", icon: TriangleAlert, color: "#D93A34" },
-  road_closure: { label: "Road closed", icon: XCircle, color: "#C23B22" },
-  weather: { label: "Weather", icon: CloudRain, color: "#2E80B8" },
-  police: { label: "Police", icon: Shield, color: "#2F6C4F" },
-  general: { label: "Update", icon: Megaphone, color: "#6E8BA6" },
+  traffic: {
+    label: "Traffic",
+    icon: Car,
+    accent: "orange",
+    step: "soft",
+    color: palette.orange,
+  },
+  accident: {
+    label: "Accident",
+    icon: TriangleAlert,
+    accent: "red",
+    step: "bold",
+    color: palette.red,
+  },
+  road_closure: {
+    label: "Road closed",
+    icon: XCircle,
+    accent: "red",
+    step: "deep",
+    color: palette.redDark,
+  },
+  weather: {
+    label: "Weather",
+    icon: CloudRain,
+    accent: "blue",
+    step: "soft",
+    color: palette.blue,
+  },
+  police: {
+    label: "Police",
+    icon: Shield,
+    accent: "lime",
+    step: "deep",
+    color: palette.limeDark,
+  },
+  general: {
+    label: "Update",
+    icon: Megaphone,
+    accent: "purple",
+    step: "soft",
+    color: palette.purple,
+  },
 };
 
 export const ALERT_CATEGORIES = Object.keys(ALERT_META) as AlertCategory[];
+
+/**
+ * Category → theme tone. The tone pairs carry a matched `on` colour, so a badge
+ * or wash built from one is legible in both schemes without hand-picking text
+ * colours the way `categoryTint` needs.
+ */
+export const CATEGORY_TONE: Record<AlertCategory, ToneName> = {
+  traffic: "amber",
+  accident: "peach",
+  road_closure: "tan",
+  weather: "blue",
+  police: "green",
+  general: "lav",
+};
+
+/**
+ * Category → M3 semantic role. Severity maps onto the status quads the theme
+ * already carries, so a card reads the same way as any other status surface in
+ * the app and stays legible in both schemes.
+ */
+export type CategoryRole = "error" | "warning" | "info" | "primary" | "secondary";
+
+export const CATEGORY_ROLE: Record<AlertCategory, CategoryRole> = {
+  accident: "error",
+  road_closure: "error",
+  traffic: "warning",
+  weather: "info",
+  police: "primary",
+  general: "secondary",
+};
 
 /**
  * Reaction presentation. The stored value is the key (identical to mobile), so
@@ -45,15 +116,43 @@ export const REACTION_META: Record<
   ReactionKey,
   { label: string; icon: LucideIcon; color: string }
 > = {
-  thumbs_up: { label: "Thumbs up", icon: ThumbsUp, color: "#2F6C4F" },
-  heart: { label: "Heart", icon: Heart, color: "#E0245E" },
-  wow: { label: "Wow", icon: Sparkles, color: "#D9A21B" },
-  sad: { label: "Sad", icon: Frown, color: "#4B79C4" },
+  thumbs_up: { label: "Thumbs up", icon: ThumbsUp, color: palette.limeDark },
+  heart: { label: "Heart", icon: Heart, color: palette.red },
+  wow: { label: "Wow", icon: Sparkles, color: palette.orange },
+  sad: { label: "Sad", icon: Frown, color: palette.blue },
 };
 
 /** A soft wash of the category colour, for chips on a light or dark surface. */
 export function categoryTint(color: string): string {
   return `color-mix(in srgb, ${color} 14%, transparent)`;
+}
+
+/** Mirrors the five-minute window in the RLS policies from migration 022. */
+export const EDIT_WINDOW_MS = 5 * 60 * 1000;
+
+export function editWindowRemaining(createdAt: string): number {
+  const ends = new Date(createdAt).getTime() + EDIT_WINDOW_MS;
+  return Math.max(0, ends - Date.now());
+}
+
+export function canEditAlert(createdAt: string): boolean {
+  return editWindowRemaining(createdAt) > 0;
+}
+
+/**
+ * `updated_at` defaults to `created_at` on insert, and the two are written in
+ * the same statement but not the same instant, so a small tolerance keeps a
+ * freshly posted alert from claiming it was edited.
+ */
+export function wasEdited(alert: {
+  created_at: string;
+  updated_at?: string | null;
+}): boolean {
+  if (!alert.updated_at) return false;
+  return (
+    new Date(alert.updated_at).getTime() - new Date(alert.created_at).getTime() >
+    2000
+  );
 }
 
 const MAX_WORDS = 26;

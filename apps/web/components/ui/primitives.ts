@@ -84,7 +84,7 @@ export const Card = styled.div`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.lg};
   padding: 32px;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
 `;
 
 /* ── Buttons ──────────────────────────────────────────────────────────── */
@@ -95,17 +95,21 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   font-weight: 700;
   font-size: ${({ $compact }) => ($compact ? "1rem" : "1.05rem")};
-  padding: ${({ $compact }) => ($compact ? "12px 22px" : "16px 28px")};
+  padding: ${({ $compact }) => ($compact ? "8px 15px" : "12px 22px")};
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
 
   &:active {
     transform: translateY(1px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 
   svg {
@@ -118,26 +122,25 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
       case "ghost":
         return css`
           background: transparent;
-          color: ${theme.color.primaryDark};
-          border-color: ${theme.color.line};
+          color: ${theme.color.onSurfaceVariant};
+          border-color: ${theme.color.outlineVariant};
           &:hover {
-            background: ${theme.color.surface2};
+            background: ${theme.color.surfaceContainerHigh};
+            color: ${theme.color.onSurface};
           }
         `;
       case "light":
         return css`
-          background: ${theme.color.surface};
-          color: ${theme.color.primaryDark};
-          box-shadow: ${theme.shadow.soft};
+          background: ${theme.color.secondaryContainer};
+          color: ${theme.color.onSecondaryContainer};
           &:hover {
-            background: ${theme.color.surface2};
+            background: ${theme.color.surfaceContainerHigh};
           }
         `;
       default:
         return css`
           background: ${theme.color.primary};
           color: ${theme.color.onPrimary};
-          box-shadow: ${theme.shadow.card};
           &:hover {
             background: ${theme.color.primaryDark};
           }
@@ -200,8 +203,11 @@ export const Input = styled.input`
   background: ${({ theme }) => theme.color.surface};
 
   &:focus {
-    outline: none;
     border-color: ${({ theme }) => theme.color.primary};
+  }
+
+  &:focus:not(:focus-visible) {
+    outline: none;
   }
 `;
 

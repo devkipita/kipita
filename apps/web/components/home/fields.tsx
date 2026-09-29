@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { Minus, Plus } from "lucide-react";
+import { Minus, Plus } from "@/components/icons";
 
 /**
  * Form atoms shared by the route planner, the post drawer, the KYC form and the
@@ -23,13 +23,13 @@ export const FieldHead = styled.div`
 
   label,
   span.k {
-    font-size: 0.86rem;
+    font-size: ${({ theme }) => theme.type.label};
     font-weight: 700;
     color: ${({ theme }) => theme.color.textSoft};
   }
   span.v {
-    font-size: 0.86rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.label};
+    font-weight: 700;
     color: ${({ theme }) => theme.color.primary};
   }
 `;
@@ -42,10 +42,10 @@ export const TextInput = styled.input`
   background: ${({ theme }) => theme.color.surface};
   color: ${({ theme }) => theme.color.text};
   font: inherit;
-  font-size: 0.98rem;
+  font-size: ${({ theme }) => theme.type.body};
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
   }
   &:focus {
     outline: none;
@@ -63,11 +63,11 @@ export const TextArea = styled.textarea`
   background: ${({ theme }) => theme.color.surface};
   color: ${({ theme }) => theme.color.text};
   font: inherit;
-  font-size: 0.98rem;
+  font-size: ${({ theme }) => theme.type.body};
   line-height: 1.5;
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
   }
   &:focus {
     outline: none;
@@ -77,7 +77,7 @@ export const TextArea = styled.textarea`
 
 export const FieldError = styled.p`
   margin: 0;
-  font-size: 0.82rem;
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 600;
   color: ${({ theme }) => theme.color.dangerText};
 `;
@@ -103,7 +103,7 @@ export const SegmentButton = styled.button<{ $active: boolean }>`
   border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
   font: inherit;
-  font-size: 0.88rem;
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -133,7 +133,7 @@ export const Chip = styled.button<{ $active?: boolean }>`
   border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
   font: inherit;
-  font-size: 0.86rem;
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -185,8 +185,8 @@ const StepperShell = styled.div`
   b {
     min-width: 34px;
     text-align: center;
-    font-size: 1rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.body};
+    font-weight: 700;
   }
 `;
 
@@ -211,7 +211,7 @@ export function Stepper({
         disabled={value <= min}
         aria-label={`Fewer ${label}`}
       >
-        <Minus size={16} strokeWidth={2.6} />
+        <Minus size={16} />
       </button>
       <b aria-live="polite">{value}</b>
       <button
@@ -220,7 +220,7 @@ export function Stepper({
         disabled={value >= max}
         aria-label={`More ${label}`}
       >
-        <Plus size={16} strokeWidth={2.6} />
+        <Plus size={16} />
       </button>
     </StepperShell>
   );
@@ -248,7 +248,7 @@ export const Suggestions = styled.ul`
     background: transparent;
     color: ${({ theme }) => theme.color.text};
     font: inherit;
-    font-size: 0.92rem;
+    font-size: ${({ theme }) => theme.type.body};
     font-weight: 600;
     text-align: left;
     cursor: pointer;
@@ -257,7 +257,7 @@ export const Suggestions = styled.ul`
     background: ${({ theme }) => theme.color.surface};
   }
   li small {
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
     font-weight: 500;
   }
 `;

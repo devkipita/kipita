@@ -2,13 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import {
-  Calendar,
-  ChevronDown,
-  MapPin,
-  Navigation,
-  Search,
-} from "lucide-react";
+import { Calendar, CaretDown as ChevronDown, MapPin, NavigationArrow as Navigation, MagnifyingGlass as Search } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { useRideSearch } from "./useRideSearch";
 import { RideResults } from "./RideResults";

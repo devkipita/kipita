@@ -2,36 +2,24 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import { ArrowRight, Megaphone, Plus } from "lucide-react";
+import { ArrowRight, Megaphone, Plus } from "@/components/icons";
 import { ButtonEl } from "@/components/ui/primitives";
 import { AlertCard } from "@/components/alerts/AlertCard";
+import { HOME_COPY } from "@/lib/home/copy";
 import type { Alert } from "@/lib/alerts/types";
-
-const Panel = styled.section`
-  border-radius: ${({ theme }) => theme.radius.lg} ${({ theme }) => theme.radius.lg} 0 0;
-  background: ${({ theme }) => theme.color.bgAlt};
-  padding: 20px 16px 28px;
-  margin: 8px -16px -40px;
-
-  @media (min-width: 720px) {
-    border-radius: ${({ theme }) => theme.radius.lg};
-    margin: 8px 0 0;
-    padding: 22px;
-  }
-`;
 
 const Head = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 
   h2 {
     flex: 1;
     min-width: 0;
     margin: 0;
-    font-size: 1.12rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.subhead};
+    font-weight: 700;
     letter-spacing: -0.02em;
     color: ${({ theme }) => theme.color.text};
   }
@@ -41,7 +29,7 @@ const SeeAll = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.85rem;
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   color: ${({ theme }) => theme.color.primary};
   text-decoration: none;
@@ -59,35 +47,29 @@ const List = styled.div`
 
 const Empty = styled.div`
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 10px;
-  padding: 34px 20px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.muted};
+  gap: 14px;
+  padding: 22px 4px;
+  color: ${({ theme }) => theme.color.textSoft};
 
   svg {
+    flex: none;
     color: ${({ theme }) => theme.color.primary};
   }
   b {
-    font-size: 1rem;
-    font-weight: 800;
+    display: block;
+    font-size: ${({ theme }) => theme.type.body};
+    font-weight: 700;
     color: ${({ theme }) => theme.color.text};
   }
   p {
-    margin: 0;
-    max-width: 32ch;
-    font-size: 0.88rem;
+    margin: 2px 0 0;
+    max-width: 44ch;
+    font-size: ${({ theme }) => theme.type.label};
     line-height: 1.5;
   }
 `;
 
-/**
- * Band 4 — a preview of the road-alerts feed, mirroring the panel that occupies
- * the bottom of the mobile home screen. The full feed lives at `/alerts`.
- */
 export function AlertsPanel({
   alerts,
   viewerId,
@@ -98,22 +80,24 @@ export function AlertsPanel({
   onPost: () => void;
 }) {
   return (
-    <Panel>
+    <section>
       <Head>
-        <h2>Road alerts</h2>
+        <h2>{HOME_COPY.alertsTitle}</h2>
         <ButtonEl type="button" $compact $variant="light" onClick={onPost}>
-          <Plus size={16} strokeWidth={2.6} /> Post
+          <Plus size={16} /> Post
         </ButtonEl>
         <SeeAll href="/alerts">
-          See all <ArrowRight size={15} strokeWidth={2.6} />
+          {HOME_COPY.alertsSeeAll} <ArrowRight size={15} />
         </SeeAll>
       </Head>
 
       {alerts.length === 0 ? (
         <Empty>
-          <Megaphone size={26} strokeWidth={2} />
-          <b>Quiet out there</b>
-          <p>No alerts reported nearby. Post one if you spot something.</p>
+          <Megaphone size={24} />
+          <span>
+            <b>{HOME_COPY.emptyAlerts}</b>
+            <p>{HOME_COPY.emptyAlertsBody}</p>
+          </span>
         </Empty>
       ) : (
         <List>
@@ -122,6 +106,6 @@ export function AlertsPanel({
           ))}
         </List>
       )}
-    </Panel>
+    </section>
   );
 }

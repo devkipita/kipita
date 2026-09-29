@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Info } from "lucide-react";
+import { Info } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { AlertBox, GhostButton, Spinner } from "./ui";
 import GoogleLogo from "@/public/Google";

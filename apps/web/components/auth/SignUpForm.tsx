@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { ArrowRight, Info, Mail, MailCheck, User } from "lucide-react";
+import { ArrowRight, Info, Envelope as Mail, EnvelopeSimple as MailCheck, User } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { signUpEmailSchema } from "@/lib/validators/auth";
 import {
@@ -124,7 +124,7 @@ export function SignUpForm() {
       <Sent>
         <StepDots total={4} current={1} />
         <Burst>
-          <MailCheck size={38} strokeWidth={2.2} />
+          <MailCheck size={38} />
         </Burst>
         <Heading style={{ fontSize: "1.8rem" }}>Check your inbox</Heading>
         <Sub style={{ margin: "10px auto 24px" }}>
@@ -184,7 +184,7 @@ export function SignUpForm() {
           error={errs.email}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>Continue <ArrowRight size={19} strokeWidth={2.4} /></>}
+          {busy ? <Spinner /> : <>Continue <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

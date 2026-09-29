@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2, HelpCircle, Flag, Ticket, ChevronRight } from "lucide-react";
+import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, Ticket, CaretRight as ChevronRight } from "@/components/icons";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
 import { Container, Grid, H2, Lead } from "@/components/ui/primitives";

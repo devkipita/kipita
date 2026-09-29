@@ -1,23 +1,24 @@
 "use client";
 
 import styled from "styled-components";
-import { Briefcase, Music, PawPrint, VolumeX, type LucideIcon } from "lucide-react";
+import { Briefcase, MusicNote as Music, PawPrint, SpeakerSimpleX as VolumeX } from "@/components/icons";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { Switch } from "@/components/ui/Switch";
 import type { RidePreferences } from "@/lib/ride-detail";
 
 const List = styled.div`
   display: grid;
-  gap: 2px;
-  padding: 6px;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: ${({ theme }) => theme.color.surface2};
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 10px;
+  padding: 11px 2px;
+
+  & + & {
+    border-top: 1px solid ${({ theme }) => theme.color.line};
+  }
 
   svg {
     flex: none;
@@ -26,7 +27,7 @@ const Row = styled.div`
   span {
     flex: 1;
     min-width: 0;
-    font-size: 0.92rem;
+    font-size: ${({ theme }) => theme.type.body};
     font-weight: 600;
     color: ${({ theme }) => theme.color.text};
   }
@@ -51,7 +52,7 @@ export function ComfortToggles({
     <List>
       {OPTIONS.map(({ key, label, icon: Icon }) => (
         <Row key={key}>
-          <Icon size={18} strokeWidth={2.2} />
+          <Icon size={18} />
           <span>{label}</span>
           <Switch
             checked={!!value[key]}

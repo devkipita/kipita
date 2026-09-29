@@ -2,17 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import {
-  CalendarDays,
-  ChevronDown,
-  Circle,
-  Clock,
-  Loader2,
-  MapPin,
-  Search,
-  SlidersHorizontal,
-  Zap,
-} from "lucide-react";
+import { CalendarBlank as CalendarDays, CaretDown as ChevronDown, Circle, Clock, CircleNotch as Loader2, MapPin, MagnifyingGlass as Search, SlidersHorizontal, Lightning as Zap } from "@/components/icons";
 import { fetchTowns, type Town } from "@/lib/rides";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { ROLE_COPY } from "@/lib/home/labels";
@@ -41,7 +31,7 @@ export type SearchForm = {
 const Card = styled.section`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.md};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   padding: 20px;
   display: grid;
   gap: 16px;
@@ -105,7 +95,7 @@ const Advanced = styled.button`
   background: ${({ theme }) => theme.color.surface2};
   color: ${({ theme }) => theme.color.text};
   font: inherit;
-  font-size: 0.9rem;
+  font-size: ${({ theme }) => theme.type.body};
   font-weight: 700;
   cursor: pointer;
 
@@ -114,7 +104,7 @@ const Advanced = styled.button`
   }
   svg.chev {
     margin-left: auto;
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
     transition: transform 0.18s ease;
   }
   &[aria-expanded="true"] svg.chev {
@@ -257,9 +247,9 @@ export function RouteSearchForm({
       <form onSubmit={submit}>
         <Route>
           <Rail>
-            <Circle className="start" size={11} strokeWidth={0} />
+            <Circle className="start" size={11} />
             <span className="line" />
-            <MapPin className="end" size={16} strokeWidth={2.4} />
+            <MapPin className="end" size={16} />
           </Rail>
           <Stops>
             <TextInput
@@ -308,14 +298,14 @@ export function RouteSearchForm({
                 $active={when === "now"}
                 onClick={() => chooseWhen("now")}
               >
-                <Zap size={15} strokeWidth={2.4} /> Leaving now
+                <Zap size={15} /> Leaving now
               </SegmentButton>
               <SegmentButton
                 type="button"
                 $active={when === "later"}
                 onClick={() => chooseWhen("later")}
               >
-                <CalendarDays size={15} strokeWidth={2.4} /> Pick a time
+                <CalendarDays size={15} /> Pick a time
               </SegmentButton>
             </Segmented>
           </FieldBlock>
@@ -325,7 +315,7 @@ export function RouteSearchForm({
               <FieldBlock>
                 <FieldHead>
                   <label htmlFor="search-date">
-                    <CalendarDays size={14} strokeWidth={2.4} /> Date
+                    <CalendarDays size={14} /> Date
                   </label>
                 </FieldHead>
                 <TextInput
@@ -339,7 +329,7 @@ export function RouteSearchForm({
               <FieldBlock>
                 <FieldHead>
                   <label htmlFor="search-time">
-                    <Clock size={14} strokeWidth={2.4} /> Time
+                    <Clock size={14} /> Time
                   </label>
                 </FieldHead>
                 <TextInput
@@ -358,9 +348,9 @@ export function RouteSearchForm({
               aria-expanded={showComfort}
               onClick={() => setShowComfort((v) => !v)}
             >
-              <SlidersHorizontal className="lead" size={17} strokeWidth={2.3} />
+              <SlidersHorizontal className="lead" size={17} />
               {copy.preferencesLabel}
-              <ChevronDown className="chev" size={18} strokeWidth={2.3} />
+              <ChevronDown className="chev" size={18} />
             </Advanced>
             {showComfort && (
               <div style={{ marginTop: 10 }}>
@@ -372,11 +362,11 @@ export function RouteSearchForm({
           <Submit type="submit" disabled={!canSearch || busy}>
             {busy ? (
               <>
-                <Loader2 size={19} strokeWidth={2.4} /> Searching…
+                <Loader2 size={19} /> Searching…
               </>
             ) : (
               <>
-                <Search size={19} strokeWidth={2.4} /> {copy.searchCTA}
+                <Search size={19} /> {copy.searchCTA}
               </>
             )}
           </Submit>

@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, CircleNotch as Loader2 } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { updateAvatarAction } from "@/lib/auth/actions";
 import { Avatar } from "./Avatar";
@@ -119,7 +119,7 @@ export function AvatarUploader({
       <Wrap>
         <Avatar name={name} src={preview ?? src} size={84} />
         <Trigger type="button" onClick={() => inputRef.current?.click()} disabled={busy} aria-label="Change photo">
-          {busy ? <Spin size={16} /> : <Camera size={16} strokeWidth={2.4} />}
+          {busy ? <Spin size={16} /> : <Camera size={16} />}
         </Trigger>
         <input
           ref={inputRef}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Info } from "lucide-react";
+import { Check, Info } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { setPasswordSchema } from "@/lib/validators/auth";
 import { PasswordField } from "./PasswordField";
@@ -87,7 +87,7 @@ export function NewPasswordForm({ heading, sub, cta, redirectTo, step }: Props) 
           autoComplete="new-password"
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>{cta} <Check size={19} strokeWidth={2.6} /></>}
+          {busy ? <Spinner /> : <>{cta} <Check size={19} /></>}
         </PrimaryButton>
       </Form>
     </>

@@ -2,20 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import {
-  ArrowDown,
-  ArrowUpRight,
-  Compass,
-  LifeBuoy,
-  Mail,
-  MapPin,
-  MessageCircle,
-  Search,
-  ShieldCheck,
-  Sparkles,
-  UserPlus,
-  Wallet,
-} from "lucide-react";
+import { ArrowDown, ArrowUpRight, Compass, Lifebuoy as LifeBuoy, Envelope as Mail, MapPin, ChatCircle as MessageCircle, MagnifyingGlass as Search, ShieldCheck, Sparkle as Sparkles, UserPlus, Wallet } from "@/components/icons";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Container } from "@/components/ui/primitives";
@@ -45,7 +32,7 @@ const Hero = styled.section`
   overflow: hidden;
   background: ${({ theme }) => theme.tone.deep.bg};
   color: ${({ theme }) => theme.tone.deep.on};
-  box-shadow: ${({ theme }) => theme.shadow.card};
+  border: 1px solid ${({ theme }) => theme.color.line};
 `;
 
 /* Two layers of the brand-shape sheet, offset and drifting out of phase, give
@@ -101,7 +88,7 @@ const HeroEyebrow = styled.span`
 
 const HeroTitle = styled.h1`
   margin: 16px 0 0;
-  font-family: var(--font-space-grotesk), var(--font-dm-sans), system-ui, sans-serif;
+  font-family: ${({ theme }) => theme.fontHeading};
   font-size: clamp(2.2rem, 5vw, 3.4rem);
   line-height: 0.98;
   letter-spacing: -0.03em;
@@ -319,7 +306,7 @@ const Faq = styled.div`
 const Item = styled.div<{ $open: boolean }>`
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.color.surface};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   overflow: hidden;
 `;
 
@@ -422,7 +409,7 @@ const ContactCard = styled.a<{ $tone: ToneName }>`
 
   &:hover {
     transform: translateY(-3px);
-    box-shadow: ${({ theme }) => theme.shadow.card};
+    border: 1px solid ${({ theme }) => theme.color.line};
   }
   .chip {
     display: inline-flex;
@@ -517,7 +504,7 @@ export function HelpContent() {
         <HeroShapes aria-hidden />
           <HeroInner>
             <HeroEyebrow>
-              <LifeBuoy size={15} strokeWidth={2.4} />
+              <LifeBuoy size={15} />
               Help center
             </HeroEyebrow>
             <HeroTitle>
@@ -537,7 +524,7 @@ export function HelpContent() {
                 ?.scrollIntoView({ behavior: "smooth" });
             }}
           >
-            <Search size={20} strokeWidth={2.2} />
+            <Search size={20} />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -545,13 +532,13 @@ export function HelpContent() {
               aria-label="Search help articles"
             />
             <SearchGo type="submit" aria-label="Search">
-              <ArrowUpRight size={20} strokeWidth={2.4} />
+              <ArrowUpRight size={20} />
             </SearchGo>
           </SearchBar>
           <Topics>
             {CATS.map(({ icon: Icon, t, href }) => (
               <Topic key={t} href={href}>
-                <Icon size={15} strokeWidth={2.2} />
+                <Icon size={15} />
                 {t}
               </Topic>
             ))}
@@ -573,7 +560,7 @@ export function HelpContent() {
                   <div className="top">
                     <span className="num">{i + 1}</span>
                     <span className="bubble">
-                      <Icon size={26} strokeWidth={2.2} />
+                      <Icon size={26} />
                     </span>
                   </div>
                   <h3>{t}</h3>
@@ -607,7 +594,7 @@ export function HelpContent() {
                     >
                       <span className="idx">{idx + 1}</span>
                       <span className="q">{f.question}</span>
-                      <ArrowDown size={26} strokeWidth={2.6} />
+                      <ArrowDown size={26} />
                     </Q>
                     <A $open={isOpen}>
                       <div>
@@ -647,7 +634,7 @@ export function HelpContent() {
             <Support>
               <ContactCard href={`mailto:${SITE.supportEmail}`} $tone="green">
                 <span className="chip">
-                  <Mail size={22} strokeWidth={2.2} />
+                  <Mail size={22} />
                 </span>
                 <div>
                   <b>Email support</b>
@@ -656,7 +643,7 @@ export function HelpContent() {
               </ContactCard>
               <ContactCard href="#chat" $tone="tan">
                 <span className="chip">
-                  <MessageCircle size={22} strokeWidth={2.2} />
+                  <MessageCircle size={22} />
                 </span>
                 <div>
                   <b>Live chat</b>

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import { ArrowUpRight, Briefcase, Compass, Shield } from "lucide-react";
+import { ArrowUpRight, Briefcase, Compass, Shield } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
 import { FOOTER_SOCIALS } from "@/components/SiteFooter";

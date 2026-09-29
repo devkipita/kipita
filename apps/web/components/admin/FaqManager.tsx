@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash as Trash2, X } from "@/components/icons";
 import {
   createFaq,
   deleteFaq,
@@ -73,7 +73,7 @@ const Row = styled.div<{ $muted: boolean }>`
   padding: 18px 20px;
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.color.surface};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   opacity: ${({ $muted }) => ($muted ? 0.6 : 1)};
 
   & + & {
@@ -203,7 +203,7 @@ export function FaqManager() {
         <strong>{faqs.length} question(s)</strong>
         {editing === null && (
           <ButtonEl type="button" $compact onClick={startNew}>
-            <Plus size={18} strokeWidth={2.4} />
+            <Plus size={18} />
             Add FAQ
           </ButtonEl>
         )}
@@ -252,7 +252,7 @@ export function FaqManager() {
                 onClick={cancel}
                 disabled={busy}
               >
-                <X size={18} strokeWidth={2.4} />
+                <X size={18} />
                 Cancel
               </ButtonEl>
               <ButtonEl
@@ -261,7 +261,7 @@ export function FaqManager() {
                 onClick={save}
                 disabled={busy || !draft.question.trim() || !draft.answer.trim()}
               >
-                <Check size={18} strokeWidth={2.4} />
+                <Check size={18} />
                 {editing === "new" ? "Create" : "Save"}
               </ButtonEl>
             </div>
@@ -281,7 +281,7 @@ export function FaqManager() {
             </div>
             <div className="actions">
               <SmallButton type="button" onClick={() => startEdit(f)}>
-                <Pencil size={15} strokeWidth={2.4} />
+                <Pencil size={15} />
                 Edit
               </SmallButton>
               <SmallButton
@@ -289,7 +289,7 @@ export function FaqManager() {
                 $variant="reject"
                 onClick={() => remove(f.id)}
               >
-                <Trash2 size={15} strokeWidth={2.4} />
+                <Trash2 size={15} />
                 Delete
               </SmallButton>
             </div>

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import styled, { css } from "styled-components";
-import { ChevronRight, type LucideIcon } from "lucide-react";
+import { CaretRight as ChevronRight } from "@/components/icons";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
 
 export const SectionTitle = styled.h2`
@@ -17,7 +18,7 @@ export const SectionTitle = styled.h2`
 export const Panel = styled.div`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.md};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   overflow: hidden;
 `;
 
@@ -109,13 +110,13 @@ export function LinkRow({
   const inner = (
     <>
       <Lead $tone={tone}>
-        <Icon size={19} strokeWidth={2.2} />
+        <Icon size={19} />
       </Lead>
       <Body>
         <span className="t">{title}</span>
         {description && <span className="d">{description}</span>}
       </Body>
-      <ChevronRight className="chev" size={20} strokeWidth={2.2} />
+      <ChevronRight className="chev" size={20} />
     </>
   );
   return (
@@ -152,7 +153,7 @@ export function ControlRow({
     <>
       <RowDiv>
         <Lead $tone={tone}>
-          <Icon size={19} strokeWidth={2.2} />
+          <Icon size={19} />
         </Lead>
         <Body>
           <span className="t">{title}</span>

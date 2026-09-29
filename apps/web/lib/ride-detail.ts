@@ -13,6 +13,21 @@ export type RidePreferences = {
   music?: boolean;
 };
 
+/**
+ * A person's trust line: "4.8 · 31 trips", or "New" before they have either.
+ *
+ * Shared by the ride card and the detail page so the same driver never reads
+ * two different ways — and so a brand-new driver never renders "0 · 0 trips",
+ * which looks like a bad score rather than an absent one.
+ */
+export function ratingLabel(
+  rating: number | null | undefined,
+  trips: number | null | undefined,
+): string {
+  const score = rating && rating > 0 ? rating.toFixed(1) : "New";
+  return trips && trips > 0 ? `${score} · ${trips} trips` : score;
+}
+
 export type RidePerson = {
   id: string;
   full_name: string | null;

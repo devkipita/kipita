@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import styled, { css } from "styled-components";
 import { IconBubble } from "./IconBubble";
 
@@ -7,7 +7,7 @@ const cardCss = css`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.lg};
   padding: 32px;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: block;
 `;
@@ -15,7 +15,7 @@ const cardCss = css`
 const hoverCss = css`
   &:hover {
     transform: translateY(-4px);
-    box-shadow: ${({ theme }) => theme.shadow.card};
+    border: 1px solid ${({ theme }) => theme.color.line};
   }
   &:hover [data-chevron] {
     transform: translateX(4px);

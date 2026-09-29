@@ -89,6 +89,14 @@ export const queryKeys = {
     status: (id: string) => ["payments", "status", id] as const,
   },
 
+  // Wallet
+  wallet: {
+    all: () => ["wallet"] as const,
+    summary: () => ["wallet", "summary"] as const,
+    transactions: () => ["wallet", "transactions"] as const,
+    withdrawals: () => ["wallet", "withdrawals"] as const,
+  },
+
   // Ratings
   ratings: {
     forUser: (userId: string) => ["ratings", userId] as const,

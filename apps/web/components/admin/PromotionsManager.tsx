@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash as Trash2, X } from "@/components/icons";
 import {
   createPromotion,
   deletePromotion,
@@ -108,7 +108,7 @@ const Row = styled.div<{ $muted: boolean; $tone: ToneName }>`
   padding: 18px 20px;
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.color.surface};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   opacity: ${({ $muted }) => ($muted ? 0.6 : 1)};
 
   & + & {
@@ -328,7 +328,7 @@ export function PromotionsManager() {
         <strong>{promotions.length} offer(s)</strong>
         {editing === null && (
           <ButtonEl type="button" $compact onClick={startNew}>
-            <Plus size={18} strokeWidth={2.4} />
+            <Plus size={18} />
             Add offer
           </ButtonEl>
         )}
@@ -466,11 +466,11 @@ export function PromotionsManager() {
                 onClick={cancel}
                 disabled={busy}
               >
-                <X size={18} strokeWidth={2.4} />
+                <X size={18} />
                 Cancel
               </ButtonEl>
               <ButtonEl type="button" $compact onClick={save} disabled={busy || !canSave}>
-                <Check size={18} strokeWidth={2.4} />
+                <Check size={18} />
                 {editing === "new" ? "Create" : "Save"}
               </ButtonEl>
             </div>
@@ -506,11 +506,11 @@ export function PromotionsManager() {
               </div>
               <div className="actions">
                 <SmallButton type="button" onClick={() => startEdit(p)}>
-                  <Pencil size={15} strokeWidth={2.4} />
+                  <Pencil size={15} />
                   Edit
                 </SmallButton>
                 <SmallButton type="button" $variant="reject" onClick={() => remove(p.id)}>
-                  <Trash2 size={15} strokeWidth={2.4} />
+                  <Trash2 size={15} />
                   Delete
                 </SmallButton>
               </div>

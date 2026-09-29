@@ -93,6 +93,7 @@ serve(async (req) => {
         p_type: 'refund',
         p_reference: claimed.payment_id,
         p_description: `Refund for booking ${claimed.booking_id.slice(0, 8)}`,
+        p_booking_id: claimed.booking_id,
       });
 
       await admin
@@ -127,8 +128,18 @@ serve(async (req) => {
         p_type: 'payout',
         p_reference: claimed.payment_id,
         p_description: `Ride earning for booking ${claimed.booking_id.slice(0, 8)}`,
+        p_booking_id: claimed.booking_id,
       });
     }
+
+    await admin.rpc('record_wallet_entry', {
+      p_user_id: claimed.passenger_id,
+      p_amount: Number(claimed.amount),
+      p_type: 'escrow_release',
+      p_reference: claimed.payment_id,
+      p_description: `Fare released to your driver for booking ${claimed.booking_id.slice(0, 8)}`,
+      p_booking_id: claimed.booking_id,
+    });
 
     await admin
       .from('payments')

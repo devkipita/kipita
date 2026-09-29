@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import { BellOff, Car, CheckCheck, Info, Loader2, RotateCw } from "lucide-react";
-import { AppHeader } from "@/components/app/AppHeader";
+import { ContentWidth } from "@/components/nav/AppShell";
+import { BellSlash as BellOff, Car, Checks as CheckCheck, Info, CircleNotch as Loader2, ArrowClockwise as RotateCw } from "@/components/icons";
 import { markAllRead, markRead, refreshNotifications } from "@/lib/notifications/store";
 import {
   tabForNotification,
@@ -15,15 +15,11 @@ import type { Profile } from "@/lib/auth/types";
 import { NotificationItem } from "./NotificationItem";
 import { PushBanner } from "./PushBanner";
 
-const Page = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const Wrap = styled.main`
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 24px clamp(16px, 4vw, 28px) 72px;
+const Wrap = styled(ContentWidth)`
+  padding-block: 24px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 `;
 
 const Head = styled.div`
@@ -217,13 +213,8 @@ export function NotificationsView({ profile }: { profile: Profile }) {
   const visible = grouped[tab];
 
   return (
-    <Page>
-      <AppHeader
-        name={profile.full_name}
-        avatarUrl={profile.avatar_url}
-        userId={profile.id}
-      />
-      <Wrap>
+    <>
+      <Wrap $max={760}>
         <Head>
           <h1>Notifications</h1>
           <HeadAction
@@ -231,7 +222,7 @@ export function NotificationsView({ profile }: { profile: Profile }) {
             onClick={() => void markAllRead()}
             disabled={unread === 0}
           >
-            <CheckCheck size={16} strokeWidth={2.4} />
+            <CheckCheck size={16} />
             Mark all read
           </HeadAction>
         </Head>
@@ -256,18 +247,18 @@ export function NotificationsView({ profile }: { profile: Profile }) {
 
         {status === "loading" && (
           <Center>
-            <Loader2 className="spin" size={26} strokeWidth={2.2} />
+            <Loader2 className="spin" size={26} />
             <p>Loading your notifications…</p>
           </Center>
         )}
 
         {status === "error" && (
           <Center>
-            <Info size={30} strokeWidth={2} />
+            <Info size={30} />
             <b>We couldn&apos;t load these</b>
             <p>Check your connection and try again.</p>
             <Retry type="button" onClick={refreshNotifications}>
-              <RotateCw size={16} strokeWidth={2.4} /> Retry
+              <RotateCw size={16} /> Retry
             </Retry>
           </Center>
         )}
@@ -276,9 +267,9 @@ export function NotificationsView({ profile }: { profile: Profile }) {
           (visible.length === 0 ? (
             <Center>
               {tab === "rides" ? (
-                <Car size={30} strokeWidth={2} />
+                <Car size={30} />
               ) : (
-                <BellOff size={30} strokeWidth={2} />
+                <BellOff size={30} />
               )}
               <b>{EMPTY_COPY[tab].title}</b>
               <p>{EMPTY_COPY[tab].body}</p>
@@ -295,6 +286,6 @@ export function NotificationsView({ profile }: { profile: Profile }) {
             </List>
           ))}
       </Wrap>
-    </Page>
+    </>
   );
 }

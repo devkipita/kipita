@@ -2,28 +2,10 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styled, { css } from "styled-components";
-import {
-  ArrowLeft,
-  BadgeCheck,
-  Briefcase,
-  CalendarDays,
-  Car,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  MapPin,
-  Minus,
-  Music,
-  PawPrint,
-  Phone,
-  Plus,
-  Smartphone,
-  Star,
-  Users,
-  VolumeX,
-} from "lucide-react";
-import { AppHeader } from "@/components/app/AppHeader";
+import { ContentWidth } from "@/components/nav/AppShell";
+import { ArrowLeft, SealCheck as BadgeCheck, Briefcase, CalendarBlank as CalendarDays, Car, CheckCircle as CheckCircle2, Clock, CircleNotch as Loader2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import {
   currentUserIdAction,
@@ -31,20 +13,13 @@ import {
   type BookingResult,
 } from "@/lib/bookings";
 import { PaymentDrawer } from "./PaymentDrawer";
-import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
+import { formatRideDate, formatRideTime, ratingLabel, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
 import type { Profile } from "@/lib/auth/types";
 
-const Page = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const Wrap = styled.main`
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 20px clamp(16px, 4vw, 28px) 72px;
+const Wrap = styled(ContentWidth)`
+  padding-block: 20px 40px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -71,7 +46,7 @@ const Back = styled(Link)`
 const Card = styled.section`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.md};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   padding: 20px;
 `;
 
@@ -379,11 +354,6 @@ const Banner = styled.div<{ $tone: "ok" | "bad" | "info" }>`
   }
 `;
 
-function ratingLabel(rating: number | null, trips: number | null) {
-  const score = rating && rating > 0 ? rating.toFixed(1) : "New";
-  return trips && trips > 0 ? `${score} · ${trips} trips` : score;
-}
-
 function preferenceChips(prefs: RideDetail["preferences"]) {
   return [
     prefs.luggage && { icon: Briefcase, label: "Luggage" },
@@ -407,6 +377,7 @@ export function RideDetailView({
   ride: RideDetail;
   profile: Profile | null;
 }) {
+  const router = useRouter();
   const isTrip = ride.kind === "trip";
   const person = isTrip ? ride.driver : ride.passenger;
   const maxSeats = isTrip ? Math.max(1, ride.seats_available) : ride.seats_needed;
@@ -450,16 +421,10 @@ export function RideDetailView({
   }
 
   return (
-    <Page>
-      <AppHeader
-        name={profile?.full_name}
-        avatarUrl={profile?.avatar_url}
-        userId={profile?.id}
-        showProfileChip={!!profile}
-      />
-      <Wrap>
+    <>
+      <Wrap $max={860}>
         <Back href="/notifications">
-          <ArrowLeft size={17} strokeWidth={2.4} /> Notifications
+          <ArrowLeft size={17} /> Notifications
         </Back>
 
         <Card>
@@ -470,7 +435,7 @@ export function RideDetailView({
                 <i />
               </span>
               <span className="line" />
-              <MapPin size={18} strokeWidth={2.4} />
+              <MapPin size={18} />
             </Rail>
             <Stops>
               <div>
@@ -493,31 +458,31 @@ export function RideDetailView({
           <Chips>
             {date && (
               <Chip>
-                <CalendarDays size={15} strokeWidth={2.4} /> {date}
+                <CalendarDays size={15} /> {date}
               </Chip>
             )}
             {time && (
               <Chip>
-                <Clock size={15} strokeWidth={2.4} /> {time}
+                <Clock size={15} /> {time}
               </Chip>
             )}
             {isTrip ? (
               <>
                 <Chip $accent>{formatKes(ride.price_per_seat)} / seat</Chip>
                 <Chip>
-                  <Users size={15} strokeWidth={2.4} />
+                  <Users size={15} />
                   {ride.seats_available} of {ride.seats_total} left
                 </Chip>
               </>
             ) : (
               <Chip $accent>
-                <Users size={15} strokeWidth={2.4} />
+                <Users size={15} />
                 {ride.seats_needed} seat{ride.seats_needed === 1 ? "" : "s"} needed
               </Chip>
             )}
             {prefs.map(({ icon: Icon, label }) => (
               <Chip key={label}>
-                <Icon size={15} strokeWidth={2.4} /> {label}
+                <Icon size={15} /> {label}
               </Chip>
             ))}
           </Chips>
@@ -533,11 +498,11 @@ export function RideDetailView({
                 <h2>{person.full_name?.trim() || (isTrip ? "Kipita driver" : "Kipita passenger")}</h2>
                 <Chips style={{ marginTop: 0 }}>
                   <Chip $accent={!!person.is_verified}>
-                    <BadgeCheck size={15} strokeWidth={2.4} />
+                    <BadgeCheck size={15} />
                     {person.is_verified ? "Verified" : "Unverified"}
                   </Chip>
                   <Chip>
-                    <Star size={15} strokeWidth={2.4} />
+                    <Star size={15} />
                     {ratingLabel(person.rating, person.total_trips)}
                   </Chip>
                 </Chips>
@@ -545,7 +510,7 @@ export function RideDetailView({
             </Person>
             {safeTelHref(person.phone) && (
               <PhoneRow href={safeTelHref(person.phone) as string}>
-                <Phone size={18} strokeWidth={2.4} />
+                <Phone size={18} />
                 {person.phone}
               </PhoneRow>
             )}
@@ -556,7 +521,7 @@ export function RideDetailView({
           <Card>
             <Vehicle>
               <span className="icon">
-                <Car size={22} strokeWidth={2.2} />
+                <Car size={22} />
               </span>
               <div>
                 <small>Vehicle</small>
@@ -577,7 +542,7 @@ export function RideDetailView({
 
         {result?.ok && (
           <Banner $tone="ok">
-            <CheckCircle2 size={20} strokeWidth={2.4} />
+            <CheckCircle2 size={20} />
             <div>
               <b>
                 {paid ? "Seat confirmed" : "Seat held"}
@@ -596,7 +561,7 @@ export function RideDetailView({
 
         {result && !result.ok && (
           <Banner $tone="bad">
-            <Smartphone size={20} strokeWidth={2.4} />
+            <Smartphone size={20} />
             <div>
               <b>Couldn&apos;t hold that seat</b>
               <p>{result.error}</p>
@@ -616,12 +581,14 @@ export function RideDetailView({
           defaultPhone={profile?.phone}
           onClose={() => setPayingFor(null)}
           onPaid={() => {
+            const paidBooking = payingFor.bookingId;
             setPaid(true);
             setPayingFor(null);
+            router.push(`/trips/${paidBooking}`);
           }}
         />
       )}
-    </Page>
+    </>
   );
 
   // Declared after the JSX (hoisted) to keep the page structure readable —
@@ -630,7 +597,7 @@ export function RideDetailView({
     if (closed) {
       return (
         <Banner $tone="info">
-          <Smartphone size={20} strokeWidth={2.4} />
+          <Smartphone size={20} />
           <div>
             <b>{isTrip ? "This ride has closed" : "This request has closed"}</b>
             <p>Browse what&apos;s running now from your notifications.</p>
@@ -642,7 +609,7 @@ export function RideDetailView({
     if (isOwn) {
       return (
         <Banner $tone="info">
-          <CheckCircle2 size={20} strokeWidth={2.4} />
+          <CheckCircle2 size={20} />
           <div>
             <b>This is your own post</b>
             <p>Manage it from the Kipita app.</p>
@@ -668,7 +635,7 @@ export function RideDetailView({
     if (!isTrip) {
       return (
         <Banner $tone="info">
-          <Smartphone size={20} strokeWidth={2.4} />
+          <Smartphone size={20} />
           <div>
             <b>Respond in the app</b>
             <p>
@@ -694,7 +661,7 @@ export function RideDetailView({
             }
             disabled={pending || !payerId}
           >
-            <Smartphone size={18} strokeWidth={2.4} /> Pay {formatKes(result.total)}
+            <Smartphone size={18} /> Pay {formatKes(result.total)}
           </Primary>
         </Bar>
       );
@@ -711,7 +678,7 @@ export function RideDetailView({
             disabled={seats <= 1 || pending}
             aria-label="Fewer seats"
           >
-            <Minus size={16} strokeWidth={2.6} />
+            <Minus size={16} />
           </button>
           <b>
             {seats} seat{seats === 1 ? "" : "s"}
@@ -722,13 +689,13 @@ export function RideDetailView({
             disabled={seats >= maxSeats || pending}
             aria-label="More seats"
           >
-            <Plus size={16} strokeWidth={2.6} />
+            <Plus size={16} />
           </button>
         </Seats>
         <Primary type="button" onClick={reserve} disabled={pending || soldOut}>
           {pending ? (
             <>
-              <Loader2 className="spin" size={18} strokeWidth={2.4} /> Holding…
+              <Loader2 className="spin" size={18} /> Holding…
             </>
           ) : soldOut ? (
             "Fully booked"

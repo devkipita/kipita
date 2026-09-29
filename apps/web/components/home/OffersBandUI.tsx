@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styled, { useTheme } from "styled-components";
-import { BadgePercent, CalendarClock, Check, Copy, Gift } from "lucide-react";
+import { SealPercent as BadgePercent, CalendarDots as CalendarClock, Check, Copy, Gift } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
 import {
   formatPromotionValue,
@@ -12,8 +12,8 @@ import {
 
 const Head = styled.h2`
   margin: 0 0 12px;
-  font-size: 1.12rem;
-  font-weight: 800;
+  font-size: ${({ theme }) => theme.type.subhead};
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.text};
 `;
@@ -25,8 +25,13 @@ const Rail = styled.div`
   gap: 14px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 
   > * {
     scroll-snap-align: start;
@@ -53,18 +58,18 @@ const Card = styled.article<{ $tone: ToneName }>`
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: 1.42rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.heading};
+    font-weight: 700;
     letter-spacing: -0.02em;
   }
   h3 {
     margin: 0;
-    font-size: 0.98rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.body};
+    font-weight: 700;
   }
   p {
     margin: 0;
-    font-size: 0.86rem;
+    font-size: ${({ theme }) => theme.type.label};
     line-height: 1.5;
     opacity: 0.84;
   }
@@ -73,7 +78,7 @@ const Card = styled.article<{ $tone: ToneName }>`
     align-items: center;
     gap: 6px;
     margin-top: 2px;
-    font-size: 0.76rem;
+    font-size: ${({ theme }) => theme.type.label};
     font-weight: 700;
     opacity: 0.74;
   }
@@ -91,8 +96,8 @@ const CodeRow = styled.button`
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: ${({ theme }) => theme.type.label};
+  font-weight: 700;
   letter-spacing: 0.06em;
   cursor: pointer;
   opacity: 0.92;
@@ -147,7 +152,7 @@ export function OffersBandUI({ offers }: { offers: Promotion[] }) {
           return (
             <Card key={offer.id} $tone={tone}>
               <span className="value">
-                <Icon size={21} strokeWidth={2.4} />
+                <Icon size={21} />
                 {formatPromotionValue(offer)}
               </span>
               <h3>{offer.title}</h3>
@@ -159,16 +164,16 @@ export function OffersBandUI({ offers }: { offers: Promotion[] }) {
                   aria-label={`Copy code ${offer.code}`}
                 >
                   {copied === offer.code ? (
-                    <Check size={14} strokeWidth={2.8} />
+                    <Check size={14} />
                   ) : (
-                    <Copy size={14} strokeWidth={2.6} />
+                    <Copy size={14} />
                   )}
                   {offer.code}
                 </CodeRow>
               )}
               {ends && (
                 <span className="ends">
-                  <CalendarClock size={13} strokeWidth={2.4} /> Ends {ends}
+                  <CalendarClock size={13} /> Ends {ends}
                 </span>
               )}
             </Card>

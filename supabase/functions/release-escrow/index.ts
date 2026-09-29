@@ -99,6 +99,25 @@ serve(async (req) => {
       ? { fee: Number(payment.platform_fee), driverEarning: Number(payment.driver_earning) }
       : escrowSplit(Number(payment.amount));
 
+    const { data: released } = await supabase
+      .from('payments')
+      .update({
+        escrow_status: 'released',
+        platform_fee: fee,
+        driver_earning: driverEarning,
+        released_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payment.id)
+      .eq('escrow_status', 'held')
+      .select('*')
+      .maybeSingle();
+
+    if (!released) {
+      // Lost the race — another request released it first. Treat as success.
+      return json({ released: true, already: true, driver_earning: driverEarning, platform_fee: fee });
+    }
+
     // Settle the driver — try M-Pesa B2C, else credit the Kipita wallet.
     let payoutReference: string | null = null;
     let payoutStatus = 'wallet';
@@ -136,30 +155,27 @@ serve(async (req) => {
         p_type: 'payout',
         p_reference: payment.id,
         p_description: `Ride earning for ${booking.booking_reference ?? booking_id.slice(0, 8)}`,
+        p_booking_id: booking_id,
       });
     }
 
-    // Mark the escrow released.
-    const { data: released } = await supabase
+    await supabase.rpc('record_wallet_entry', {
+      p_user_id: booking.passenger_id,
+      p_amount: Number(payment.amount),
+      p_type: 'escrow_release',
+      p_reference: payment.id,
+      p_description: `Fare released to your driver for ${booking.booking_reference ?? booking_id.slice(0, 8)}`,
+      p_booking_id: booking_id,
+    });
+
+    await supabase
       .from('payments')
       .update({
-        escrow_status: 'released',
-        platform_fee: fee,
-        driver_earning: driverEarning,
-        released_at: new Date().toISOString(),
         payout_reference: payoutReference,
         payout_status: payoutStatus,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', payment.id)
-      .eq('escrow_status', 'held') // guard against concurrent double-release
-      .select('*')
-      .maybeSingle();
-
-    if (!released) {
-      // Lost the race — another request released it first. Treat as success.
-      return json({ released: true, already: true, driver_earning: driverEarning, platform_fee: fee });
-    }
+      .eq('id', payment.id);
 
     // Ensure the booking is marked completed.
     await supabase

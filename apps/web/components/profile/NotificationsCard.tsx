@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Megaphone, Route } from "lucide-react";
+import { Bell, Megaphone, Path as Route } from "@/components/icons";
 import { Switch } from "@/components/ui/Switch";
 import { ControlRow, Panel } from "./SettingsUI";
 

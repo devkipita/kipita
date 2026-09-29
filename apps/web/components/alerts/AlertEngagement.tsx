@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
-import { MessageCircle } from "lucide-react";
+import { ChatCircle as MessageCircle } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { formatCompactNumber, REACTION_META } from "@/lib/alerts/meta";
 import { reactToAlert } from "@/lib/alerts/api";
@@ -145,8 +145,7 @@ export function AlertEngagement({
             >
               <Icon
                 size={15}
-                strokeWidth={2.4}
-                fill={active ? "currentColor" : "none"}
+                weight={active ? "fill" : "regular"}
               />
               {compact && formatCompactNumber(count)}
             </Action>
@@ -169,7 +168,7 @@ export function AlertEngagement({
           onComment?.();
         }}
       >
-        <MessageCircle size={15} strokeWidth={2.4} />
+        <MessageCircle size={15} />
         {formatCompactNumber(alert.comments_count)}
       </Action>
     </Bar>

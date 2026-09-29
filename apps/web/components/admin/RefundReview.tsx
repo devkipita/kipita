@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, X, CheckCircle2, MapPin, Loader2 } from "lucide-react";
+import { Check, X, CheckCircle as CheckCircle2, MapPin, CircleNotch as Loader2 } from "@/components/icons";
 import styled, { keyframes } from "styled-components";
 import { formatKes, type PendingRefund, type RefundDecision } from "@kipita/shared";
 import { fetchPendingRefunds, resolveRefund } from "@/lib/refunds";
@@ -24,7 +24,7 @@ const Row = styled.div`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.md};
   padding: 20px 24px;
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  border: 1px solid ${({ theme }) => theme.color.line};
   display: flex;
   align-items: center;
   gap: 20px;
@@ -136,7 +136,7 @@ export function RefundReview() {
             <div style={{ flex: 1, minWidth: 200 }}>
               {item.booking?.trip && (
                 <TripRow>
-                  <MapPin size={15} strokeWidth={2.2} />
+                  <MapPin size={15} />
                   {item.booking.trip.from_location} → {item.booking.trip.to_location}
                 </TripRow>
               )}
@@ -153,7 +153,7 @@ export function RefundReview() {
                 disabled={busy === item.id}
                 onClick={() => act(item, "reject")}
               >
-                <X size={16} strokeWidth={2.4} />
+                <X size={16} />
                 Reject
               </SmallButton>
               <SmallButton
@@ -164,7 +164,7 @@ export function RefundReview() {
                 {busy === item.id ? (
                   <Spinner size={16} />
                 ) : (
-                  <Check size={16} strokeWidth={2.4} />
+                  <Check size={16} />
                 )}
                 Approve
               </SmallButton>

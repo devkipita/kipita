@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import styled from "styled-components";
 
 const PillEl = styled.span`
@@ -28,7 +28,7 @@ export function Pill({
 }) {
   return (
     <PillEl>
-      <Icon size={16} strokeWidth={2.2} />
+      <Icon size={16} />
       {children}
     </PillEl>
   );

@@ -22,6 +22,7 @@ ios/
 
 # ── Next.js (apps/web) ──
 .next/
+.next-build/
 out/
 build/
 next-env.d.ts

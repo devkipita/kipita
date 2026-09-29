@@ -2,13 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import {
-  CheckCircle2,
-  Clock,
-  Loader2,
-  Smartphone,
-  TriangleAlert,
-} from "lucide-react";
+import { CheckCircle as CheckCircle2, Clock, CircleNotch as Loader2, DeviceMobile as Smartphone, Warning as TriangleAlert } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { FieldBlock, FieldHead, TextInput } from "@/components/home/fields";
@@ -163,7 +157,7 @@ export function PaymentDrawer({
       return (
         <Stage_ $tone="ok">
           <span className="badge">
-            <CheckCircle2 size={34} strokeWidth={2.4} />
+            <CheckCircle2 size={34} />
           </span>
           <b>Paid — your seat is confirmed</b>
           <p>
@@ -178,7 +172,7 @@ export function PaymentDrawer({
       return (
         <Stage_ $tone="bad">
           <span className="badge">
-            <TriangleAlert size={32} strokeWidth={2.4} />
+            <TriangleAlert size={32} />
           </span>
           <b>Payment didn&apos;t go through</b>
           <p>
@@ -193,7 +187,7 @@ export function PaymentDrawer({
       return (
         <Stage_ $tone="wait">
           <span className="badge">
-            <Clock size={32} strokeWidth={2.4} />
+            <Clock size={32} />
           </span>
           <b>Still waiting on M-Pesa</b>
           <p>
@@ -208,7 +202,7 @@ export function PaymentDrawer({
       return (
         <Stage_ $tone="wait">
           <span className="badge">
-            <Spinner size={32} strokeWidth={2.4} />
+            <Spinner size={32} />
           </span>
           <b>
             {stage === "pushing" ? "Sending the request…" : "Check your phone"}
@@ -283,7 +277,7 @@ export function PaymentDrawer({
               onClick={pay}
               disabled={!valid}
             >
-              <Smartphone size={18} strokeWidth={2.4} />
+              <Smartphone size={18} />
               {stage === "form" ? `Pay ${formatKes(amount)}` : "Try again"}
             </ButtonEl>
           </DrawerFooter>

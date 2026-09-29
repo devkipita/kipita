@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { SignOut as LogOut } from "@/components/icons";
 import styled from "styled-components";
 import { Brand } from "@/components/ui/Brand";
 import { Badge, Container, SmallButton } from "@/components/ui/primitives";
@@ -83,7 +83,7 @@ export function AdminBar({ name, image }: { name?: string; image?: string }) {
           </Avatar>
           {name && <Badge>{name}</Badge>}
           <SmallButton $variant="reject" onClick={signOut}>
-            <LogOut size={16} strokeWidth={2.2} />
+            <LogOut size={16} />
             Sign out
           </SmallButton>
         </Right>

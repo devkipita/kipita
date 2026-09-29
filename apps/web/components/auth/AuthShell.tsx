@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import { ArrowLeft, ShieldCheck, Users, Wallet } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Users, Wallet } from "@/components/icons";
 import { Brand } from "@/components/ui/Brand";
 import { AnimatedHeading } from "@/components/anim/AnimatedHeading";
 import { Reveal } from "@/components/anim/Reveal";
@@ -183,19 +183,19 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <Benefits>
               <Benefit>
                 <span>
-                  <Wallet size={20} strokeWidth={2.2} />
+                  <Wallet size={20} />
                 </span>
                 Split the cost, keep more in your pocket
               </Benefit>
               <Benefit>
                 <span>
-                  <ShieldCheck size={20} strokeWidth={2.2} />
+                  <ShieldCheck size={20} />
                 </span>
                 Verified riders, escrow-held payments
               </Benefit>
               <Benefit>
                 <span>
-                  <Users size={20} strokeWidth={2.2} />
+                  <Users size={20} />
                 </span>
                 Meet people heading the same direction
               </Benefit>
@@ -213,7 +213,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <TopBar>
           <MobileBrand href="/" priority />
           <HomeLink href="/">
-            <ArrowLeft size={16} strokeWidth={2.4} />
+            <ArrowLeft size={16} />
             Back home
           </HomeLink>
         </TopBar>

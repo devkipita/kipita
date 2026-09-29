@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Menu, X } from "lucide-react";
+import { ArrowRight, List as Menu, X } from "@/components/icons";
 import styled from "styled-components";
 import { Brand } from "@/components/ui/Brand";
 import { Button } from "@/components/ui/Button";
@@ -144,7 +144,7 @@ export function SiteNav() {
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
         >
-          {open ? <X size={22} strokeWidth={2.2} /> : <Menu size={22} strokeWidth={2.2} />}
+          {open ? <X size={22} /> : <Menu size={22} />}
         </MenuBtn>
       </NavInner>
 

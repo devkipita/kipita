@@ -2,28 +2,9 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import {
-  BadgeCheck,
-  Bell,
-  CalendarDays,
-  Cookie,
-  FileText,
-  HelpCircle,
-  Info,
-  LifeBuoy,
-  LogOut,
-  Mail,
-  MapPin,
-  Moon,
-  Pencil,
-  Phone,
-  ReceiptText,
-  Shield,
-  Star,
-  UserRound,
-} from "lucide-react";
+import { ContentWidth } from "@/components/nav/AppShell";
+import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Cookie, FileText, Question as HelpCircle, Info, Lifebuoy as LifeBuoy, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
-import { AppHeader } from "@/components/app/AppHeader";
 import { Switch } from "@/components/ui/Switch";
 import { useThemeMode } from "@/components/providers/ThemeRuntimeProvider";
 import { signOutAction } from "@/lib/auth/actions";
@@ -32,15 +13,8 @@ import { AvatarUploader } from "./AvatarUploader";
 import { NotificationsCard } from "./NotificationsCard";
 import { ControlRow, LinkRow, Panel, SectionTitle } from "./SettingsUI";
 
-const Page = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const Wrap = styled.main`
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 24px clamp(16px, 4vw, 28px) 72px;
+const Wrap = styled(ContentWidth)`
+  padding-block: 24px 40px;
 `;
 
 const Hero = styled.section`
@@ -161,7 +135,7 @@ const EditBtn = styled(Link)`
   color: ${({ theme }) => theme.color.onPrimary};
   font-weight: 700;
   text-decoration: none;
-  box-shadow: ${({ theme }) => theme.shadow.card};
+  border: 1px solid ${({ theme }) => theme.color.line};
   transition: background 0.2s ease, transform 0.15s ease;
   &:hover {
     background: ${({ theme }) => theme.color.primaryDark};
@@ -212,31 +186,25 @@ export function ProfileView({ profile }: { profile: Profile }) {
     : null;
 
   return (
-    <Page>
-      <AppHeader
-        name={profile.full_name}
-        avatarUrl={profile.avatar_url}
-        userId={profile.id}
-        showProfileChip={false}
-      />
-      <Wrap>
+    <>
+      <Wrap $max={900}>
         <Hero>
           <AvatarUploader userId={profile.id} name={profile.full_name} src={profile.avatar_url} />
           <div>
             <Name>{profile.full_name || "Your profile"}</Name>
             <Pills>
               <Pill $ok={profile.is_verified}>
-                <BadgeCheck size={13} strokeWidth={2.6} />
+                <BadgeCheck size={13} />
                 {profile.is_verified ? "Verified" : "Unverified"}
               </Pill>
               {profile.email_verified && (
                 <Pill $ok>
-                  <Mail size={13} strokeWidth={2.6} /> Email
+                  <Mail size={13} /> Email
                 </Pill>
               )}
               {profile.phone_verified && (
                 <Pill $ok>
-                  <Phone size={13} strokeWidth={2.6} /> Phone
+                  <Phone size={13} /> Phone
                 </Pill>
               )}
             </Pills>
@@ -246,7 +214,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
         <Stats>
           <Stat $tone="tan">
             <b>
-              <Star size={20} strokeWidth={2.4} fill="currentColor" />
+              <Star size={20} weight="fill" />
               {profile.rating?.toFixed(1) ?? "0.0"}
             </b>
             <small>Rating</small>
@@ -260,35 +228,35 @@ export function ProfileView({ profile }: { profile: Profile }) {
         <SectionTitle>Details</SectionTitle>
         <List>
           <Row>
-            <Mail className="lead" size={20} strokeWidth={2.2} />
+            <Mail className="lead" size={20} />
             <div className="body">
               <div className="k">Email</div>
               <div className={`v ${profile.email ? "" : "empty"}`}>{profile.email ?? "Not set"}</div>
             </div>
           </Row>
           <Row>
-            <Phone className="lead" size={20} strokeWidth={2.2} />
+            <Phone className="lead" size={20} />
             <div className="body">
               <div className="k">Phone</div>
               <div className={`v ${profile.phone ? "" : "empty"}`}>{profile.phone ?? "Not set"}</div>
             </div>
           </Row>
           <Row>
-            <MapPin className="lead" size={20} strokeWidth={2.2} />
+            <MapPin className="lead" size={20} />
             <div className="body">
               <div className="k">City</div>
               <div className={`v ${profile.city ? "" : "empty"}`}>{profile.city ?? "Not set"}</div>
             </div>
           </Row>
           <Row>
-            <CalendarDays className="lead" size={20} strokeWidth={2.2} />
+            <CalendarDays className="lead" size={20} />
             <div className="body">
               <div className="k">Birthday</div>
               <div className={`v ${dob ? "" : "empty"}`}>{dob ?? "Not set"}</div>
             </div>
           </Row>
           <Row>
-            <UserRound className="lead" size={20} strokeWidth={2.2} />
+            <UserRound className="lead" size={20} />
             <div className="body">
               <div className="k">Gender</div>
               <div className={`v ${profile.gender ? "" : "empty"}`}>
@@ -297,6 +265,18 @@ export function ProfileView({ profile }: { profile: Profile }) {
             </div>
           </Row>
         </List>
+
+        <SectionTitle>Money</SectionTitle>
+        <Panel>
+          <LinkRow
+            icon={Wallet}
+            title="Wallet"
+            description="Balance, escrow and payouts"
+            href="/wallet"
+            tone="green"
+            last
+          />
+        </Panel>
 
         <SectionTitle>Appearance</SectionTitle>
         <Panel>
@@ -335,15 +315,15 @@ export function ProfileView({ profile }: { profile: Profile }) {
 
         <Actions>
           <EditBtn href="/profile/edit">
-            <Pencil size={18} strokeWidth={2.4} /> Edit profile
+            <Pencil size={18} /> Edit profile
           </EditBtn>
           <form action={signOutAction} style={{ flex: 1, display: "flex" }}>
             <SignOut type="submit">
-              <LogOut size={18} strokeWidth={2.4} /> Sign out
+              <LogOut size={18} /> Sign out
             </SignOut>
           </form>
         </Actions>
       </Wrap>
-    </Page>
+    </>
   );
 }

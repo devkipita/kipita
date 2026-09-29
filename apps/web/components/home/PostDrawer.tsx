@@ -2,18 +2,7 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import styled from "styled-components";
-import {
-  CalendarDays,
-  Check,
-  ChevronDown,
-  Circle,
-  Clock,
-  Loader2,
-  MapPin,
-  Megaphone,
-  SlidersHorizontal,
-  Zap,
-} from "lucide-react";
+import { CalendarBlank as CalendarDays, Check, CaretDown as ChevronDown, Circle, Clock, CircleNotch as Loader2, MapPin, Megaphone, SlidersHorizontal, Lightning as Zap } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import {
@@ -57,7 +46,7 @@ const RouteCard = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 0.97rem;
+    font-size: ${({ theme }) => theme.type.body};
     font-weight: 700;
     color: ${({ theme }) => theme.color.text};
   }
@@ -79,9 +68,9 @@ const RouteCard = styled.div`
 
 const Prompt = styled.p`
   margin: 0;
-  font-size: 0.9rem;
+  font-size: ${({ theme }) => theme.type.body};
   line-height: 1.5;
-  color: ${({ theme }) => theme.color.muted};
+  color: ${({ theme }) => theme.color.textSoft};
 `;
 
 const Row = styled.div`
@@ -91,7 +80,7 @@ const Row = styled.div`
   gap: 12px;
 
   span.k {
-    font-size: 0.86rem;
+    font-size: ${({ theme }) => theme.type.label};
     font-weight: 700;
     color: ${({ theme }) => theme.color.textSoft};
   }
@@ -118,7 +107,7 @@ const Advanced = styled.button`
   background: ${({ theme }) => theme.color.surface2};
   color: ${({ theme }) => theme.color.text};
   font: inherit;
-  font-size: 0.9rem;
+  font-size: ${({ theme }) => theme.type.body};
   font-weight: 700;
   cursor: pointer;
 
@@ -127,7 +116,7 @@ const Advanced = styled.button`
   }
   svg.chev {
     margin-left: auto;
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
     transition: transform 0.18s ease;
   }
   &[aria-expanded="true"] svg.chev {
@@ -153,16 +142,16 @@ const Success = styled.div`
     color: ${({ theme }) => theme.color.onPrimary};
   }
   b {
-    font-size: 1.2rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.subhead};
+    font-weight: 700;
     color: ${({ theme }) => theme.color.text};
   }
   p {
     margin: 0;
     max-width: 34ch;
-    font-size: 0.92rem;
+    font-size: ${({ theme }) => theme.type.body};
     line-height: 1.5;
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.textSoft};
   }
 `;
 
@@ -319,7 +308,7 @@ export function PostDrawer({
       >
         <Success>
           <span className="burst">
-            <Check size={34} strokeWidth={2.6} />
+            <Check size={34} />
           </span>
           <b>{copy.postedTitle}</b>
           <p>
@@ -357,11 +346,11 @@ export function PostDrawer({
           >
             {pending ? (
               <>
-                <Loader2 size={18} strokeWidth={2.4} /> Posting…
+                <Loader2 size={18} /> Posting…
               </>
             ) : (
               <>
-                <Megaphone size={18} strokeWidth={2.4} />
+                <Megaphone size={18} />
                 {isDriver ? "Offer this ride" : "Request this ride"}
               </>
             )}
@@ -374,12 +363,12 @@ export function PostDrawer({
 
         <RouteCard>
           <div className="line">
-            <Circle className="start" size={10} strokeWidth={0} />
+            <Circle className="start" size={10} />
             {draft.from}
           </div>
           <div className="rail" />
           <div className="line">
-            <MapPin className="end" size={15} strokeWidth={2.4} />
+            <MapPin className="end" size={15} />
             {draft.to}
           </div>
         </RouteCard>
@@ -397,7 +386,7 @@ export function PostDrawer({
               onClick={() => chooseWhen("now")}
               disabled={pending}
             >
-              <Zap size={15} strokeWidth={2.4} /> Leaving now
+              <Zap size={15} /> Leaving now
             </SegmentButton>
             <SegmentButton
               type="button"
@@ -405,7 +394,7 @@ export function PostDrawer({
               onClick={() => chooseWhen("later")}
               disabled={pending}
             >
-              <CalendarDays size={15} strokeWidth={2.4} /> Pick a time
+              <CalendarDays size={15} /> Pick a time
             </SegmentButton>
           </Segmented>
         </FieldBlock>
@@ -415,7 +404,7 @@ export function PostDrawer({
             <FieldBlock>
               <FieldHead>
                 <label htmlFor="post-date">
-                  <CalendarDays size={14} strokeWidth={2.4} /> Date
+                  <CalendarDays size={14} /> Date
                 </label>
               </FieldHead>
               <TextInput
@@ -429,7 +418,7 @@ export function PostDrawer({
             <FieldBlock>
               <FieldHead>
                 <label htmlFor="post-time">
-                  <Clock size={14} strokeWidth={2.4} /> Time
+                  <Clock size={14} /> Time
                 </label>
               </FieldHead>
               <TextInput
@@ -486,9 +475,9 @@ export function PostDrawer({
             aria-expanded={showComfort}
             onClick={() => setShowComfort((v) => !v)}
           >
-            <SlidersHorizontal className="lead" size={17} strokeWidth={2.3} />
+            <SlidersHorizontal className="lead" size={17} />
             {copy.preferencesLabel}
-            <ChevronDown className="chev" size={18} strokeWidth={2.3} />
+            <ChevronDown className="chev" size={18} />
           </Advanced>
           {showComfort && (
             <div style={{ marginTop: 10 }}>

@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
+import { createClient } from "@/lib/supabase/client";
+import {
+  openSupportCaseAction,
+  sendSupportMessageAction,
+} from "@/lib/support/actions";
 import { nocturne } from "./nocturne";
 
 const popIn = keyframes`
@@ -307,9 +312,22 @@ const ChatIcon = ({ size = 22, fill }: { size?: number; fill: string }) => (
   </svg>
 );
 
+const MIN_DETAIL = 10;
+
+/** A subject short enough to scan in the case list, from the first message. */
+function subjectFrom(text: string, mode: Mode): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const short = clean.length > 78 ? `${clean.slice(0, 75)}…` : clean;
+  return mode === "report" ? `Reported: ${short}`.slice(0, 120) : short;
+}
+
 /**
  * Floating support dock: a launcher button and a chat panel with quick replies.
- * Bot replies are canned (no backend wired yet) — mirrors the design prototype.
+ *
+ * The first message opens a real `support_cases` row; every later message is
+ * appended to it. Cases are RLS'd to their owner, so a signed-out visitor is
+ * pointed at sign-in rather than being told a case was opened when none was.
+ *
  * `openSignal` lets sibling buttons (Live chat / Report an issue) open it in a mode.
  */
 export function SupportDock({
@@ -325,12 +343,29 @@ export function SupportDock({
   // icon-only circle. Hovering re-expands it so the label stays discoverable.
   const [intro, setIntro] = useState(true);
   const [hover, setHover] = useState(false);
+  const [caseId, setCaseId] = useState<string | null>(null);
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [sending, setSending] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const replyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setIntro(false), 2600);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void createClient()
+      .auth.getUser()
+      .then(({ data }) => {
+        if (alive) setAuthed(Boolean(data.user));
+      })
+      .catch(() => {
+        if (alive) setAuthed(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   const expanded = !open && (intro || hover);
@@ -340,6 +375,7 @@ export function SupportDock({
     if (!openSignal) return;
     setMode(openSignal.mode);
     setMessages([OPENING[openSignal.mode]]);
+    setCaseId(null);
     setOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openSignal?.nonce]);
@@ -351,27 +387,54 @@ export function SupportDock({
     });
   }, [messages, open]);
 
-  useEffect(
-    () => () => {
-      if (replyTimer.current) clearTimeout(replyTimer.current);
-    },
-    [],
-  );
+  const say = (text: string) =>
+    setMessages((m) => [...m, { from: "bot", text }]);
 
-  const send = (text: string) => {
+  const send = async (text: string) => {
     const t = text.trim();
-    if (!t) return;
+    if (!t || sending) return;
+
     setMessages((m) => [...m, { from: "me", text: t }]);
     setDraft("");
-    replyTimer.current = setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          from: "bot",
-          text: "Got it — an agent is picking this up now. Anything else you want to add while you wait?",
-        },
-      ]);
-    }, 700);
+
+    if (authed === false) {
+      say("Sign in and I can open a case for you — it keeps your fare held while we look into it.");
+      return;
+    }
+
+    if (!caseId && t.length < MIN_DETAIL) {
+      say("Give me a bit more than that — what happened, and when?");
+      return;
+    }
+
+    setSending(true);
+    try {
+      if (!caseId) {
+        const result = await openSupportCaseAction({
+          subject: subjectFrom(t, mode),
+          detail: t,
+          category: mode === "report" ? "report" : "general",
+        });
+        if (!result.ok) {
+          say(result.error);
+          return;
+        }
+        setCaseId(result.id);
+        say("Case opened. You can track it from the Support button anywhere in the app, and it stays there until it's closed.");
+        return;
+      }
+
+      const result = await sendSupportMessageAction(caseId, t);
+      if (!result.ok) {
+        say(result.error);
+        return;
+      }
+      say("Added to your case.");
+    } catch {
+      say("That didn't send. Check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -416,27 +479,30 @@ export function SupportDock({
           ))}
         </ChatBody>
 
-        <QuickRow>
-          {QUICK[mode].map((label) => (
-            <Quick key={label} onClick={() => send(label)}>
-              {label}
-            </Quick>
-          ))}
-        </QuickRow>
+        {!caseId && (
+          <QuickRow>
+            {QUICK[mode].map((label) => (
+              <Quick key={label} disabled={sending} onClick={() => void send(label)}>
+                {label}
+              </Quick>
+            ))}
+          </QuickRow>
+        )}
 
         <ChatForm
           onSubmit={(e) => {
             e.preventDefault();
-            send(draft);
+            void send(draft);
           }}
         >
           <ChatInput
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Type a message…"
+            placeholder={sending ? "Sending…" : "Type a message…"}
             aria-label="Message"
+            disabled={sending}
           />
-          <ChatSend type="submit" aria-label="Send">
+          <ChatSend type="submit" aria-label="Send" disabled={sending || !draft.trim()}>
             <svg
               width="20"
               height="20"

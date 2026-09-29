@@ -144,7 +144,7 @@ export const PrimaryButton = styled.button`
   font-size: 1.05rem;
   font-family: inherit;
   cursor: pointer;
-  box-shadow: ${({ theme }) => theme.shadow.card};
+  border: 1px solid ${({ theme }) => theme.color.line};
   transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease,
     opacity 0.2s ease;
 

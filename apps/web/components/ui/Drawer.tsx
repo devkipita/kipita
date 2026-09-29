@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
-import { X } from "lucide-react";
+import { X } from "@/components/icons";
 
 /**
  * The app's modal primitive — a bottom sheet on phones, a centred dialog on
@@ -329,7 +329,7 @@ export function Drawer({
             disabled={!dismissible}
             aria-label="Close"
           >
-            <X size={18} strokeWidth={2.4} />
+            <X size={18} />
           </Close>
         </Head>
         {children}

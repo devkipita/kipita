@@ -47,6 +47,12 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
       "https://lh3.googleusercontent.com",
       "https://avatars.githubusercontent.com",
       "https://graph.facebook.com",
+      "https://tiles.openfreemap.org",
+      // Destination photos for trip tickets, resolved server-side from
+      // Wikipedia. Wikimedia serves thumbnails from more than one host
+      // (upload.* and thumb.*), so this has to be the wildcard or roughly half
+      // the towns render blocked.
+      "https://*.wikimedia.org",
     ],
     "connect-src": [
       "'self'",
@@ -56,6 +62,8 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
       "wss://*.supabase.co",
       // Landing-page IP geolocation for the "from" field.
       "https://ipapi.co",
+      "https://ipwho.is",
+      "https://tiles.openfreemap.org",
       ...(isDev ? ["ws://localhost:*", "http://localhost:*"] : []),
     ],
     "frame-ancestors": ["'none'"],
@@ -79,5 +87,8 @@ export const STATIC_SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // frame-ancestors above covers modern browsers; this covers the rest.
   "X-Frame-Options": "DENY",
-  "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+  // Geolocation is allowed for our own origin only, and is requested at the
+  // point of use (Nearby, Closest, the alert composer) — never on page load.
+  "Permissions-Policy":
+    "camera=(), microphone=(), geolocation=(self), payment=()",
 };

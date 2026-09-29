@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import styled from "styled-components";
-import { BadgeCheck, Loader2, ShieldCheck } from "lucide-react";
+import { SealCheck as BadgeCheck, CircleNotch as Loader2, ShieldCheck } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { submitDriverKycAction } from "@/lib/driver/actions";
@@ -109,11 +109,11 @@ export function DriverKycForm({
           >
             {pending ? (
               <>
-                <Loader2 size={18} strokeWidth={2.4} /> Submitting…
+                <Loader2 size={18} /> Submitting…
               </>
             ) : (
               <>
-                <BadgeCheck size={18} strokeWidth={2.4} /> Submit for review
+                <BadgeCheck size={18} /> Submit for review
               </>
             )}
           </ButtonEl>
@@ -122,7 +122,7 @@ export function DriverKycForm({
     >
       <DrawerBody>
         <Intro>
-          <ShieldCheck size={19} strokeWidth={2.3} />
+          <ShieldCheck size={19} />
           <p>
             Your details go to our review team and are never shown to
             passengers. You can post rides as soon as you&apos;ve submitted.

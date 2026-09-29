@@ -1,14 +1,7 @@
 import Link from "next/link";
 import styled from "styled-components";
-import {
-  Compass,
-  Cookie,
-  FileText,
-  HandCoins,
-  MessageCircle,
-  ShieldCheck,
-  type LucideIcon,
-} from "lucide-react";
+import { Compass, Cookie, FileText, HandCoins, ChatCircle as MessageCircle, ShieldCheck } from "@/components/icons";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { SITE, LEGAL_LINKS } from "@/lib/site";
 import { Brand } from "@/components/ui/Brand";
 import { Container } from "@/components/ui/primitives";
@@ -232,7 +225,7 @@ export function SiteFooter({ mood = "brown" }: { mood?: FooterMood }) {
                 const Icon = LEGAL_ICONS[l.href] ?? FileText;
                 return (
                   <Link key={l.href} href={l.href}>
-                    <Icon size={18} strokeWidth={2.2} />
+                    <Icon size={18} />
                     {l.label}
                   </Link>
                 );
@@ -244,11 +237,11 @@ export function SiteFooter({ mood = "brown" }: { mood?: FooterMood }) {
             <h4>Company</h4>
             <Links>
               <Link href="/help#chat">
-                <MessageCircle size={18} strokeWidth={2.2} />
+                <MessageCircle size={18} />
                 Chat with us
               </Link>
               <Link href="/help#start">
-                <Compass size={18} strokeWidth={2.2} />
+                <Compass size={18} />
                 How it works
               </Link>
             </Links>

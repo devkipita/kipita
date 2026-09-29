@@ -1,15 +1,5 @@
-import {
-  Car,
-  CheckCircle2,
-  Flag,
-  Info,
-  Megaphone,
-  MessageCircle,
-  Navigation,
-  UserRoundSearch,
-  XCircle,
-  type LucideIcon,
-} from "lucide-react";
+import { Car, CheckCircle as CheckCircle2, Flag, Info, Megaphone, ChatCircle as MessageCircle, NavigationArrow as Navigation, UserFocus as UserRoundSearch, XCircle } from "@/components/icons";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppTheme, ToneName } from "@/lib/theme";
 import type { NotificationType } from "./types";
 

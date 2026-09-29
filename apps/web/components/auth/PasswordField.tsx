@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeSlash as EyeOff, Lock } from "@/components/icons";
 import styled from "styled-components";
 import { ControlShell, FieldError, Label } from "./ui";
 import { passwordScore } from "@/lib/validators/auth";
@@ -81,7 +81,7 @@ export function PasswordField({
   return (
     <div>
       <Label htmlFor={id}>
-        <Lock size={16} strokeWidth={2.2} /> {label}
+        <Lock size={16} /> {label}
       </Label>
       <ControlShell $error={!!error} $focused={focused}>
         <input

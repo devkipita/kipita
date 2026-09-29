@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import { Bell } from "lucide-react";
+import { Bell } from "@/components/icons";
 import { useNotifications } from "@/lib/notifications/useNotifications";
 import { NotificationToast } from "./NotificationToast";
 
@@ -62,7 +62,7 @@ export function NotificationBell({ userId }: { userId: string }) {
             : "Notifications"
         }
       >
-        <Bell size={19} strokeWidth={2.2} />
+        <Bell size={19} />
         {unread > 0 && <Badge>{unread > 99 ? "99+" : unread}</Badge>}
       </BellLink>
       <NotificationToast notification={incoming} />

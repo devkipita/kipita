@@ -103,6 +103,15 @@ serve(async (req) => {
       .select('*')
       .single();
 
+    await supabase.rpc('record_wallet_entry', {
+      p_user_id: booking.passenger_id,
+      p_amount: Number(payment.amount),
+      p_type: 'escrow_hold',
+      p_reference: payment_id,
+      p_description: `Fare held for booking ${booking.booking_reference ?? String(booking.id).slice(0, 8)}`,
+      p_booking_id: booking.id,
+    });
+
     // Update booking to confirmed
     await supabase
       .from('bookings')

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import styled from "styled-components";
-import { CarFront, UserRound } from "lucide-react";
+import { CarProfile as CarFront, UserCircle as UserRound } from "@/components/icons";
 import { setModeAction } from "@/lib/home/mode-actions";
 import type { AppMode } from "@/lib/home/mode";
 import { Segmented, SegmentButton } from "./fields";
@@ -75,7 +75,7 @@ export function ModeToggle({
           onClick={() => choose("passenger")}
           disabled={pending}
         >
-          <UserRound size={16} strokeWidth={2.4} />
+          <UserRound size={16} />
           Passenger
         </SegmentButton>
         <SegmentButton
@@ -86,7 +86,7 @@ export function ModeToggle({
           onClick={() => choose("driver")}
           disabled={pending}
         >
-          <CarFront size={16} strokeWidth={2.4} />
+          <CarFront size={16} />
           Driver
         </SegmentButton>
       </Segmented>

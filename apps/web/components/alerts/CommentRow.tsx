@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
-import { Heart } from "lucide-react";
+import { Heart } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { shortRelativeTime } from "@/lib/notifications/meta";
 import { formatCompactNumber, isDisplayableImage } from "@/lib/alerts/meta";
@@ -16,7 +16,7 @@ const Row = styled.li`
   padding: 14px 0;
 
   & + & {
-    border-top: 1px solid ${({ theme }) => theme.color.line};
+    border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
   }
 `;
 
@@ -142,7 +142,7 @@ export function CommentRow({
         aria-pressed={liked}
         aria-label={liked ? "Unlike comment" : "Like comment"}
       >
-        <Heart size={14} strokeWidth={2.4} fill={liked ? "currentColor" : "none"} />
+        <Heart size={14} weight={liked ? "fill" : "regular"} />
         {count > 0 && formatCompactNumber(count)}
       </Like>
     </Row>

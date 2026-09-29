@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { ButtonAnchor, ButtonLink } from "./primitives";
 
 type Variant = "primary" | "ghost" | "light";
@@ -25,9 +25,9 @@ export function Button({
 }) {
   const inner = (
     <>
-      {Icon && <Icon size={20} strokeWidth={2.2} />}
+      {Icon && <Icon size={20} />}
       {children}
-      {IconRight && <IconRight size={20} strokeWidth={2.2} />}
+      {IconRight && <IconRight size={20} />}
     </>
   );
 

@@ -17,13 +17,7 @@ export type VehicleType =
   | "minibus"
   | "pickup"
   | "motorbike";
-export type WalletTxnType =
-  | "credit"
-  | "debit"
-  | "refund"
-  | "payout"
-  | "topup"
-  | "fee";
+export type { WalletTxnType } from "@kipita/shared";
 export type DiscountType = "percentage" | "fixed";
 export type MediaType =
   | "avatar"
@@ -302,15 +296,12 @@ export interface Wallet {
   updated_at: string;
 }
 
-export interface WalletTransaction {
-  id: string;
-  wallet_id: string;
-  amount: number;
-  type: WalletTxnType;
-  reference: string | null;
-  description: string | null;
-  created_at: string;
-}
+export type {
+  WalletSummary,
+  WalletTransaction,
+  WalletWithdrawal,
+  WithdrawalStatus,
+} from "@kipita/shared";
 
 // ── Promo Codes ──
 export interface PromoCode {
@@ -466,12 +457,7 @@ export interface Rating {
 }
 
 // ── Location ──
-export interface KenyanTown {
-  name: string;
-  county: string;
-  lat: number;
-  lng: number;
-}
+export type { Town as KenyanTown } from "@kipita/shared";
 
 // ── Form Types ──
 export interface RouteSearchForm {

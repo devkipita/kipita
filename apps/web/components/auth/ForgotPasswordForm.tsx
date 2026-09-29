@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
-import { ArrowRight, Info, Mail, MailCheck } from "lucide-react";
+import { ArrowRight, Info, Envelope as Mail, EnvelopeSimple as MailCheck } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { emailSchema } from "@/lib/validators/auth";
 import { TextField } from "./TextField";
@@ -53,7 +53,7 @@ export function ForgotPasswordForm() {
     return (
       <div style={{ textAlign: "center" }}>
         <Burst>
-          <MailCheck size={38} strokeWidth={2.2} />
+          <MailCheck size={38} />
         </Burst>
         <Heading style={{ fontSize: "1.8rem" }}>Reset link sent</Heading>
         <Sub style={{ margin: "10px auto 24px" }}>
@@ -91,7 +91,7 @@ export function ForgotPasswordForm() {
           error={err}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>Send reset link <ArrowRight size={19} strokeWidth={2.4} /></>}
+          {busy ? <Spinner /> : <>Send reset link <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

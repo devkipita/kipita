@@ -121,6 +121,10 @@ export default function ProfileScreen() {
     router.push("/profile/edit" as any);
   }, [router]);
 
+  const openWallet = useCallback(() => {
+    router.push("/wallet" as any);
+  }, [router]);
+
   const handleSignOut = useCallback(() => {
     confirmAction(
       "Sign out",
@@ -387,6 +391,13 @@ export default function ProfileScreen() {
             label="View profile"
             subtitle="See how others see you"
             onPress={viewProfile}
+          />
+          <SettingsRow
+            icon="wallet-outline"
+            tone="secondary"
+            label="Wallet"
+            subtitle="Balance, escrow and payouts"
+            onPress={openWallet}
           />
           <SettingsRow
             icon="shield-checkmark-outline"

@@ -1,14 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
-import { MapPin } from "lucide-react";
+import { MapPin } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { shortRelativeTime } from "@/lib/notifications/meta";
-import { ALERT_META, isDisplayableImage, truncateWords } from "@/lib/alerts/meta";
+import {
+  ALERT_META,
+  isDisplayableImage,
+  truncateWords,
+  wasEdited,
+} from "@/lib/alerts/meta";
 import type { Alert } from "@/lib/alerts/types";
 import { CategoryBadge } from "./CategoryBadge";
-import { AlertEngagement } from "./AlertEngagement";
+import { AlertActions } from "./AlertActions";
+import { AlertEditor } from "./AlertEditor";
+import { AlertOwnerMenu } from "./AlertOwnerMenu";
 
 /**
  * One alert in the feed. Two layouts, as on mobile: an immersive media card
@@ -22,14 +30,22 @@ import { AlertEngagement } from "./AlertEngagement";
 const Shell = styled.article`
   position: relative;
   border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surface};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
   overflow: hidden;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.color.surfaceContainer};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
-const Body = styled(Link)`
+const Body = styled(Link)<{ $owned?: boolean }>`
   display: block;
-  padding: 16px 16px 10px;
+  padding: ${({ $owned }) => ($owned ? "16px 46px 10px 16px" : "16px 16px 10px")};
   text-decoration: none;
 `;
 
@@ -149,24 +165,80 @@ const Stamp = styled.span`
   color: ${({ theme }) => theme.color.muted};
 `;
 
+const Edited = styled.span`
+  flex: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: ${({ theme }) => theme.color.muted};
+`;
+
+const OwnerSlot = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 8px;
+  z-index: 2;
+`;
+
+const EditWrap = styled.div`
+  padding: 14px 14px 10px;
+`;
+
 export function AlertCard({
   alert,
   viewerId,
+  onChange,
   onRequireAuth,
+  onDeleted,
 }: {
   alert: Alert;
   viewerId: string | null;
+  onChange?: (next: Alert) => void;
   onRequireAuth?: () => void;
+  onDeleted?: (id: string) => void;
 }) {
+  const [editing, setEditing] = useState(false);
   const meta = ALERT_META[alert.category] ?? ALERT_META.general;
   const { body, truncated } = truncateWords(alert.content);
   const href = `/alerts/${alert.id}`;
-  const author = alert.user?.full_name?.trim() || meta.label;
+  // Never fall back to the category label — that renders "Road closed" as a
+  // person's name. Accounts created without a name have full_name = ''.
+  const author = alert.user?.full_name?.trim() || "Kipita user";
   const hasImage = isDisplayableImage(alert.image_url);
+  const mine = viewerId != null && alert.user_id === viewerId;
+  const edited = wasEdited(alert);
+
+  const ownerMenu = mine ? (
+    <OwnerSlot>
+      <AlertOwnerMenu
+        alertId={alert.id}
+        createdAt={alert.created_at}
+        onEdit={() => setEditing(true)}
+        onDeleted={() => onDeleted?.(alert.id)}
+      />
+    </OwnerSlot>
+  ) : null;
+
+  if (editing) {
+    return (
+      <Shell>
+        <EditWrap>
+          <AlertEditor
+            alert={alert}
+            onCancel={() => setEditing(false)}
+            onSaved={(next) => {
+              onChange?.(next);
+              setEditing(false);
+            }}
+          />
+        </EditWrap>
+      </Shell>
+    );
+  }
 
   if (hasImage) {
     return (
       <Shell>
+        {ownerMenu}
         <Media href={href}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={alert.image_url as string} alt="" />
@@ -176,8 +248,9 @@ export function AlertCard({
           </span>
           <span className="bottom">
             <span className="where">
-              <MapPin size={12} strokeWidth={2.6} /> {alert.location} ·{" "}
+              <MapPin size={12} /> {alert.location} ·{" "}
               {shortRelativeTime(alert.created_at)}
+              {edited && " · Edited"}
             </span>
             <span className="body">
               {body}
@@ -186,11 +259,11 @@ export function AlertCard({
           </span>
         </Media>
         <MediaFoot>
-          <AlertEngagement
+          <AlertActions
             alert={alert}
             viewerId={viewerId}
-            compact
             onMedia
+            onChange={onChange}
             onRequireAuth={onRequireAuth}
           />
         </MediaFoot>
@@ -200,17 +273,19 @@ export function AlertCard({
 
   return (
     <Shell>
-      <Body href={href}>
+      {ownerMenu}
+      <Body href={href} $owned={mine}>
         <Head>
           <Avatar name={author} src={alert.user?.avatar_url} size={38} />
           <div className="who">
             <div className="name">{author}</div>
             <div className="where">
-              <MapPin size={12} strokeWidth={2.6} /> {alert.location}
+              <MapPin size={12} /> {alert.location}
             </div>
           </div>
           <CategoryBadge category={alert.category} />
           <Stamp>{shortRelativeTime(alert.created_at)}</Stamp>
+          {edited && <Edited>· Edited</Edited>}
         </Head>
         <Text>
           {body}
@@ -218,10 +293,10 @@ export function AlertCard({
         </Text>
       </Body>
       <Foot>
-        <AlertEngagement
+        <AlertActions
           alert={alert}
           viewerId={viewerId}
-          compact
+          onChange={onChange}
           onRequireAuth={onRequireAuth}
         />
       </Foot>

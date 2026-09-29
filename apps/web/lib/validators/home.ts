@@ -69,6 +69,8 @@ export const alertSchema = z.object({
     .min(3, "Say what's happening")
     .max(1000, "Keep it under 1000 characters"),
   image_url: z.string().url().nullable().optional(),
+  lat: z.number().min(-90).max(90).nullable().optional(),
+  lng: z.number().min(-180).max(180).nullable().optional(),
 });
 
 export const commentSchema = z.object({

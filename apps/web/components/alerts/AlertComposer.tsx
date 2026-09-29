@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import styled from "styled-components";
-import { ImagePlus, Loader2, MapPin, Megaphone, X } from "lucide-react";
+import { ImageSquare as ImagePlus, CircleNotch as Loader2, MapPin, Megaphone, X } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { createClient } from "@/lib/supabase/client";
@@ -205,11 +205,11 @@ export function AlertComposer({
           >
             {pending ? (
               <>
-                <Loader2 size={18} strokeWidth={2.4} /> Posting…
+                <Loader2 size={18} /> Posting…
               </>
             ) : (
               <>
-                <Megaphone size={18} strokeWidth={2.4} /> Post alert
+                <Megaphone size={18} /> Post alert
               </>
             )}
           </ButtonEl>
@@ -234,7 +234,7 @@ export function AlertComposer({
                   $active={category === key}
                   onClick={() => setCategory(key)}
                 >
-                  <Icon size={14} strokeWidth={2.5} />
+                  <Icon size={14} />
                   {meta.label}
                 </Chip>
               );
@@ -245,7 +245,7 @@ export function AlertComposer({
         <FieldBlock>
           <FieldHead>
             <label htmlFor="alert-location">
-              <MapPin size={14} strokeWidth={2.4} /> Where is this?
+              <MapPin size={14} /> Where is this?
             </label>
           </FieldHead>
           <TextInput
@@ -277,7 +277,7 @@ export function AlertComposer({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview} alt="Selected" />
             <button type="button" onClick={clearImage} aria-label="Remove photo">
-              <X size={15} strokeWidth={2.6} />
+              <X size={15} />
             </button>
           </Preview>
         ) : (
@@ -286,7 +286,7 @@ export function AlertComposer({
             onClick={() => fileRef.current?.click()}
             disabled={pending}
           >
-            <ImagePlus size={16} strokeWidth={2.4} /> Add a photo
+            <ImagePlus size={16} /> Add a photo
           </PickImage>
         )}
         <input

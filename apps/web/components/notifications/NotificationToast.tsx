@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import styled, { keyframes } from "styled-components";
-import { X } from "lucide-react";
+import { X } from "@/components/icons";
 import {
   NOTIFICATION_META,
   notifToneColors,
@@ -12,6 +12,7 @@ import {
 import { notificationRoute } from "@/lib/notifications/route";
 import { dismissIncoming, markRead } from "@/lib/notifications/store";
 import type { AppNotification } from "@/lib/notifications/types";
+import { Z } from "@/lib/z";
 
 const DISMISS_AFTER_MS = 8000;
 
@@ -23,8 +24,8 @@ const slideIn = keyframes`
 const Dock = styled.div`
   position: fixed;
   right: clamp(12px, 3vw, 24px);
-  bottom: clamp(12px, 3vw, 24px);
-  z-index: 60;
+  bottom: calc(clamp(12px, 3vw, 24px) + var(--bottom-bar-space, 0px));
+  z-index: ${Z.notificationToast};
   width: min(360px, calc(100vw - 24px));
 `;
 
@@ -133,7 +134,7 @@ export function NotificationToast({
     <Dock role="status" aria-live="polite">
       <Card>
         <Lead $tone={meta.tone}>
-          <Icon size={19} strokeWidth={2.2} />
+          <Icon size={19} />
         </Lead>
         <Body>
           <b>{notification.title}</b>
@@ -151,7 +152,7 @@ export function NotificationToast({
           )}
         </Body>
         <Close type="button" onClick={dismissIncoming} aria-label="Dismiss">
-          <X size={16} strokeWidth={2.4} />
+          <X size={16} />
         </Close>
       </Card>
     </Dock>

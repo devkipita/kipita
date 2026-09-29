@@ -17,10 +17,40 @@ export const GlobalStyle = createGlobalStyle`
     box-sizing: border-box;
   }
 
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: ${({ theme }) => theme.color.outlineVariant} transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.color.outlineVariant};
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: ${({ theme }) => theme.color.onSurfaceVariant};
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   html {
     overflow-x: hidden;
     scroll-behavior: smooth;
-    scroll-padding-top: 90px;
+    scroll-padding-top: var(--sticky-top, 0px);
   }
 
   html,
@@ -47,9 +77,41 @@ export const GlobalStyle = createGlobalStyle`
     }
   }
 
+  /*
+   * Headings speak in the display face, body copy in the text face. Set once
+   * here rather than per component, so a heading anywhere in the app is already
+   * right and nothing has to remember. :where() keeps specificity at zero, so
+   * any component can still override it.
+   */
+  :where(h1, h2, h3, h4, h5, h6) {
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  :where(a, button):focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  @media (forced-colors: active) {
+    [data-active="true"] {
+      forced-color-adjust: none;
+      background: Highlight;
+      color: HighlightText;
+    }
   }
 
   /* Structural hooks for the GSAP word-mask heading (AnimatedHeading). */

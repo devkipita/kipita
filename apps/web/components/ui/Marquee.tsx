@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import styled, { keyframes } from "styled-components";
 
 const scroll = keyframes`
@@ -58,7 +58,7 @@ export function Marquee({
       <Track data-marquee-track>
         {row.map(({ icon: Icon, label }, i) => (
           <Item key={i}>
-            <Icon size={18} strokeWidth={2.2} />
+            <Icon size={18} />
             {label}
           </Item>
         ))}

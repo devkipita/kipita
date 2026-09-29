@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { Check } from "lucide-react";
+import { Check } from "@/components/icons";
 
 const Wrap = styled.div`
   display: flex;

@@ -4,41 +4,76 @@ What works on each platform, and what only looks like it works. Written against 
 code, not the roadmap: every "no" below was verified by reading the source or the
 migrations.
 
-Audited 2026-09-21, revised 2026-09-22. Update this file when a row changes.
+Audited 2026-09-21, revised 2026-09-22. Database section rewritten 2026-09-28.
+Update this file when a row changes.
 
 Legend: **Yes** — works end to end · **Partial** — ships but with a caveat in the notes ·
 **No** — not built · **Broken** — present in the UI but does not do what it appears to.
 
-> ## ⚠ The live database is at migration 001 — everything since is unapplied
+> ## ✅ The database is migrated — 001 through 021 applied 2026-09-28
 >
-> Probed `ipaqkfykfibycyqsmfsy` directly on 2026-09-22 with the publishable key.
-> `users`, `rides`, `ride_requests` and `bookings` exist. **`trips`, `cities`,
-> `trip_stops`, `saved_places`, `reports`, `comment_likes`, `wallet_transactions`,
-> `refund_requests`, `waitlist`, `faqs`, `promotions` and `route_interests` all
-> return 404** — PostgREST even hints "perhaps you meant `public.rides`", which is
-> the pre-003 name.
+> The earlier note here said the live database was "at migration 001". That was
+> wrong in an instructive way, and the real story is worth keeping:
 >
-> So migrations **003 through 020 have never run**. Until `supabase db push`
-> happens, nothing that touches the trip model works on either platform: ride
-> search, ride detail, seat reservation and M-Pesa all query `trips`, and
-> `bookings` still has `ride_id` rather than `trip_id`. The application code in
-> this repo is written against the intended schema and is correct; the database is
-> simply behind it.
+> `supabase_migrations.schema_migrations` **listed 001–020 as applied** while the
+> database contained none of them. `supabase db push` therefore reported "up to
+> date" and did nothing, every time. The history table had been stamped without
+> the SQL ever taking effect.
 >
-> The CLI here cannot push — it needs `SUPABASE_DB_PASSWORD`. Every row in the
-> tables below describes intended behaviour against the migrated schema.
+> What the database actually held was a **pre-Supabase-Auth schema** from an
+> earlier version of the app: `public.users` with `name` / `image` /
+> `password_hash` / `provider` (NextAuth's shape) rather than `auth_id` /
+> `full_name` / `avatar_url`, and `announcements.message` rather than
+> `content` / `location` / `category`. Migration 001's `CREATE TABLE public.users`
+> was never going to apply over that, which is the likeliest reason the push was
+> abandoned and the history stamped by hand.
+>
+> Resolved by dropping `public`, clearing the history table, and replaying
+> 001–021 in order. `auth`, `storage`, `realtime`, `vault` and `extensions` were
+> left untouched; all extensions live in `extensions`, so nothing was lost with
+> the schema. The 6 legacy accounts and 3 announcements that existed are backed
+> up outside the repo. Seeded afterwards with `seed.sql` + `seed-demo.sql`.
+>
+> **If `supabase migration list` and the actual schema ever disagree again,
+> believe the schema.** Check `pg_tables`, not the history table.
 
-> **Migrations 018–020 are written but not applied.** They add the `promotions`
-> table, the `alert-media` storage bucket, and route-targeted broadcasts. Until
-> `supabase db push` runs, the offers band stays hidden, alert photo uploads fail,
-> and new posts still notify every active user. Migrations 013, 015 and 017 have
-> also historically lagged — check they land too. Migration 013 in particular gates
-> escrow, so web M-Pesa needs it applied before it can hold funds.
+> **Migration 021 fixes a real RLS bug that only became visible once the schema
+> was applied.** Migration 004 revoked table-level SELECT on `public.users` and
+> re-granted it per column; 012 restored `auth_id`, but only to `authenticated`.
+> Because Postgres evaluates *every* permissive policy and OR's the results, an
+> anonymous SELECT on `faqs` or `promotions` still evaluated the admin policy,
+> which reads `users.auth_id`, and the whole request failed with
+> `42501 permission denied for table users` — so signed-out `/help` was empty and
+> the browser promotions client returned 401. 021 replaces those policies with a
+> `SECURITY DEFINER` `public.is_admin()` helper, mirroring `current_app_user_id()`
+> from 003, rather than widening anon's access to the auth-id space.
+
+> **Two long-standing bugs surfaced the moment the schema was applied**, both the
+> same root cause: the app selected columns that migration 004 revoked.
+> Column-level `GRANT` is not partial — asking for an ungranted column makes
+> Postgres deny **the whole table** with `42501`, not just that field.
 >
+> 1. `PERSON_COLUMNS` in `lib/home/search.ts` and `lib/ride-detail.server.ts`
+>    requested `phone`. Every trip and ride-request query therefore 403'd, and
+>    `.catch(() => [])` turned that into an empty home page. `phone` is now
+>    dropped from both. The driver call row on `/ride/[id]` degrades to hidden;
+>    restoring it needs a server route that checks the caller holds a booking,
+>    not a column grant.
+> 2. `PROFILE_COLUMNS` requested `email, phone`, so `getProfile()`'s select
+>    always 403'd and fell through to `synthesize(user)` — **whose `id` is the
+>    auth id, not `users.id`**. Every signed-in page was handing the wrong id to
+>    FK writes and storage paths. `getProfile()` now reads its own row through
+>    the `current_user_profile()` RPC (SECURITY DEFINER, added in 004 for exactly
+>    this), and only falls back afterwards.
+>
+> The lesson worth keeping: when a query against `users` returns
+> `permission denied for table users`, look at the *column list* before RLS.
+
 > **The Daraja secrets must be set on the edge functions** (`MPESA_CONSUMER_KEY`,
 > `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`,
 > and `MPESA_BASE_URL` for production rather than sandbox), or `initiate-payment`
-> throws and the web checkout reports that it couldn't reach M-Pesa.
+> throws and the web checkout reports that it couldn't reach M-Pesa. Still
+> outstanding — the migration work above does not cover them.
 
 ---
 
@@ -81,6 +116,51 @@ functions: phone entry → STK push → poll → confirmed / failed / still-wait
 
 Fixing mobile is small: call `createBooking` before opening the payment sheet, and
 drop the `temp-` short-circuit.
+
+## Wallet
+
+| Capability | Mobile | Web | Notes |
+|---|---|---|---|
+| Wallet screen | Yes | Yes | `app/wallet.tsx` on mobile, `/wallet` on web. Both read the same `wallet_summary()` RPC. |
+| Available balance | Yes | Yes | `wallets.balance` — money the user can actually spend or withdraw. |
+| "Held in escrow" | Yes | Yes | Derived from `payments` where `escrow_status = 'held'`, **not** from the balance. Escrow is Kipita's money-in-trust, never the passenger's spendable balance. |
+| Driver pending earnings | Yes | Yes | The driver's cut of fares still held, summed from `payments.driver_earning` joined through `bookings.driver_id`. |
+| Transaction ledger | Yes | Yes | `wallet_transactions`, newest first. Escrow holds/releases appear as entries with no balance movement (`movesBalance()` in `@kipita/shared`). |
+| Top up with M-Pesa | Yes | Yes | `topup-wallet` fires an STK push against `wallet_topups`; `mpesa-callback?topup_id=` credits the wallet. |
+| Withdraw to M-Pesa | Yes | Yes | `withdraw-wallet` debits first, then B2C. A B2C failure re-credits the wallet, so a failed payout can never eat the balance. |
+| Entry point | Profile → Wallet | Nav rail + Profile → Wallet | Web's bottom tab bar slices to 5 items, so Wallet is in `SECONDARY_NAV` and on `/profile` rather than the primary nav. |
+
+### How the escrow story reads to a user
+
+1. Passenger pays a fare → `confirm-payment` sets `escrow_status = 'held'` and writes
+   an `escrow_hold` ledger entry. The wallet shows it under **Held in escrow**; the
+   available balance does not move.
+2. Driver ends the ride → `release-escrow` credits the driver's wallet with
+   `driver_earning` (`payout`) and writes the passenger an `escrow_release` entry.
+3. Refund approved instead → `resolve-refund` credits the passenger's wallet
+   (`refund`), which *is* spendable balance.
+
+**Balance integrity.** `credit_wallet` / `debit_wallet` both take a row lock
+(`SELECT … FOR UPDATE`) and write `balance_after` onto the ledger row, so the
+ledger reconciles against the balance. `debit_wallet` raises `insufficient_funds`
+rather than going negative. `record_wallet_entry` is the escrow-only path: it
+writes a ledger row and deliberately leaves `balance` alone, and de-dupes on
+`(type, reference)` so a replayed edge-function call can't double-post.
+
+> **Migration 025 (`025_wallet_ledger.sql`) is not pushed yet.** Until it is, the
+> wallet screens render zeros: `wallet_summary()`, `debit_wallet()`,
+> `record_wallet_entry()`, `wallet_topups` and `wallet_withdrawals` do not exist,
+> and `credit_wallet` still has its old 5-argument signature — so the new
+> `p_booking_id` argument passed by `release-escrow` and `resolve-refund` will
+> fail until 025 lands. 025 also drops and recreates `credit_wallet`, so push it
+> before deploying the edge functions, not after.
+
+> **Withdrawals need the B2C secrets** (`MPESA_INITIATOR_NAME`,
+> `MPESA_SECURITY_CREDENTIAL`, `MPESA_B2C_SHORTCODE`, `MPESA_B2C_RESULT_URL`).
+> Without them `withdraw-wallet` still debits the wallet and records the request
+> as `pending` — the money is reserved but **nothing sends it**. There is no
+> worker draining that queue yet, so leave withdrawals off in production until
+> either the secrets are set or a payout job exists.
 
 ## Road alerts
 

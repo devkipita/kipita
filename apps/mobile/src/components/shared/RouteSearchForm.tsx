@@ -26,7 +26,7 @@ import type {
   RouteSearchForm as FormData,
   RidePreferences,
 } from "@/types";
-import towns from "@/assets/data/towns.json";
+import { KENYAN_TOWNS, searchTowns as searchTownList } from "@kipita/shared";
 
 interface RouteSearchFormProps {
   onSearch: (form: FormData) => void;
@@ -103,7 +103,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
     attemptedAutoFrom.current = true;
     let mounted = true;
 
-    detectNearestTownByIp(towns as KenyanTown[]).then((nearestTown) => {
+    detectNearestTownByIp().then((nearestTown) => {
       if (!mounted || !nearestTown || fromValueRef.current.trim().length > 0)
         return;
       setFrom(nearestTown.name);
@@ -126,15 +126,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   }, [from, to, date, time, prefs]);
 
   const searchTowns = useCallback((query: string): KenyanTown[] => {
-    if (query.length < 1) return [];
-    const q = query.toLowerCase();
-    return (towns as KenyanTown[])
-      .filter(
-        (t) =>
-          t.name.toLowerCase().includes(q) ||
-          t.county.toLowerCase().includes(q),
-      )
-      .slice(0, 6);
+    return searchTownList(query, 6);
   }, []);
 
   const handleFromChange = useCallback((text: string) => {
@@ -196,7 +188,7 @@ export const RouteSearchForm = memo(function RouteSearchForm({
   }, [scheduleMode, date, time]);
 
   const fallbackSuggestions = useMemo(() => {
-    const source = towns as KenyanTown[];
+    const source = KENYAN_TOWNS;
     const pinned =
       from.trim().length > 0
         ? source.find(

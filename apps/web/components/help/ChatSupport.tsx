@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { ArrowLeft, CheckCircle2, Plus, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle as CheckCircle2, Plus, PaperPlaneTilt as Send } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 
 /**
@@ -505,7 +505,7 @@ export function ChatSupport() {
         <SideHead>
           <b>Your chats</b>
           <NewBtn type="button" onClick={startNew}>
-            <Plus size={16} strokeWidth={2.6} />
+            <Plus size={16} />
             New chat
           </NewBtn>
         </SideHead>
@@ -554,7 +554,7 @@ export function ChatSupport() {
                 onClick={() => setView("list")}
                 aria-label="Back to chats"
               >
-                <ArrowLeft size={22} strokeWidth={2.4} />
+                <ArrowLeft size={22} />
               </Back>
               <Avatar name={active.agent} size={40} />
               <div>
@@ -573,7 +573,7 @@ export function ChatSupport() {
               <StatusPill $resolved={active.status === "resolved"}>
                 {active.status === "resolved" ? (
                   <>
-                    <CheckCircle2 size={14} strokeWidth={2.4} /> Resolved
+                    <CheckCircle2 size={14} /> Resolved
                   </>
                 ) : (
                   "Open"
@@ -609,7 +609,7 @@ export function ChatSupport() {
                 aria-label="Message support"
               />
               <SendBtn type="submit" disabled={!draft.trim()} aria-label="Send">
-                <Send size={20} strokeWidth={2.2} />
+                <Send size={20} />
               </SendBtn>
             </Composer>
           </>

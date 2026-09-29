@@ -25,7 +25,14 @@ export type SearchParams = {
   departure_time?: string | null;
 };
 
-export type HomeTrip = {
+export type RouteCoords = {
+  from_lat: number | null;
+  from_lng: number | null;
+  to_lat: number | null;
+  to_lng: number | null;
+};
+
+export type HomeTrip = RouteCoords & {
   kind: "trip";
   id: string;
   from_location: string;
@@ -36,9 +43,10 @@ export type HomeTrip = {
   price_per_seat: number;
   preferences: RidePreferences;
   person: RidePerson | null;
+  vehicle_color: string | null;
 };
 
-export type HomeRequest = {
+export type HomeRequest = RouteCoords & {
   kind: "request";
   id: string;
   from_location: string;
@@ -52,18 +60,23 @@ export type HomeRequest = {
 
 export type HomeItem = HomeTrip | HomeRequest;
 
+// No `phone`: migration 004 revoked it, and asking for an ungranted column
+// makes Postgres deny the whole `users` table (42501), not just that field.
 const PERSON_COLUMNS =
-  "id, full_name, avatar_url, is_verified, rating, total_trips, phone";
+  "id, full_name, avatar_url, is_verified, rating, total_trips";
+
+const COORD_COLUMNS = "from_lat, from_lng, to_lat, to_lng";
 
 const TRIP_SELECT = `
   id, from_location, to_location, departure_date, departure_time,
-  seats_available, price_per_seat, preferences,
-  driver:users!driver_id ( ${PERSON_COLUMNS} )
+  seats_available, price_per_seat, preferences, ${COORD_COLUMNS},
+  driver:users!driver_id ( ${PERSON_COLUMNS} ),
+  vehicle:vehicles!vehicle_id ( color )
 `;
 
 const REQUEST_SELECT = `
   id, from_location, to_location, preferred_date, preferred_time,
-  seats_needed, preferences,
+  seats_needed, preferences, ${COORD_COLUMNS},
   passenger:users!passenger_id ( ${PERSON_COLUMNS} )
 `;
 
@@ -73,6 +86,20 @@ const PAGE_SIZE = 20;
 function one<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
+}
+
+function num(value: unknown): number | null {
+  const n = typeof value === "string" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) ? n : null;
+}
+
+function coords(row: Record<string, unknown>): RouteCoords {
+  return {
+    from_lat: num(row.from_lat),
+    from_lng: num(row.from_lng),
+    to_lat: num(row.to_lat),
+    to_lng: num(row.to_lng),
+  };
 }
 
 function parseDateTime(
@@ -127,6 +154,7 @@ export async function searchTrips(
   return (data ?? [])
     .map((raw) => {
       const row = raw as Record<string, unknown>;
+      const vehicle = one(row.vehicle as { color?: string } | { color?: string }[] | null);
       return {
         kind: "trip" as const,
         id: row.id as string,
@@ -138,6 +166,8 @@ export async function searchTrips(
         price_per_seat: Number(row.price_per_seat ?? 0),
         preferences: (row.preferences as RidePreferences) ?? {},
         person: one(row.driver as RidePerson | RidePerson[] | null),
+        vehicle_color: vehicle?.color ?? null,
+        ...coords(row),
       };
     })
     .filter((trip) => {
@@ -183,6 +213,7 @@ export async function searchRequests(
         seats_needed: Number(row.seats_needed ?? 1),
         preferences: (row.preferences as RidePreferences) ?? {},
         person: one(row.passenger as RidePerson | RidePerson[] | null),
+        ...coords(row),
       };
     })
     .filter((request) => {

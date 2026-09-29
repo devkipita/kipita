@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, LogIn, Mail, Lock } from "lucide-react";
+import { Eye, SignIn as LogIn, Envelope as Mail, Lock } from "@/components/icons";
 import styled from "styled-components";
 import { Brand } from "@/components/ui/Brand";
 import {
@@ -146,7 +146,7 @@ function LoginForm() {
         <form onSubmit={submit}>
           <Field>
             <label htmlFor="email">
-              <Mail size={16} strokeWidth={2.2} />
+              <Mail size={16} />
               Email
             </label>
             <Input
@@ -160,7 +160,7 @@ function LoginForm() {
           </Field>
           <Field style={{ position: "relative" }}>
             <label htmlFor="password">
-              <Lock size={16} strokeWidth={2.2} />
+              <Lock size={16} />
               Password
             </label>
             <Input
@@ -174,7 +174,7 @@ function LoginForm() {
             <RevealToggle onClick={() => setShowPassword(!showPassword)} />
           </Field>
           <ButtonEl type="submit" style={{ width: "100%" }} disabled={busy}>
-            {!busy && <LogIn size={20} strokeWidth={2.2} />}
+            {!busy && <LogIn size={20} />}
             {busy ? "Signing in…" : "Sign in"}
           </ButtonEl>
         </form>
@@ -188,7 +188,7 @@ function LoginForm() {
           onClick={signInWithGoogle}
           disabled={busy}
         >
-          <GoogleLogo size={20} strokeWidth={2.2} />
+          <GoogleLogo size={20} />
           Sign in with Google
         </ButtonEl>
       </LoginCard>

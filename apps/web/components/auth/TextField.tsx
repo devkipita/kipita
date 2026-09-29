@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { ControlShell, FieldError, Label } from "./ui";
 
 type Props = {
@@ -19,7 +19,7 @@ export function TextField({ label, icon: Icon, error, trailing, ...input }: Prop
     <div>
       <Label htmlFor={id}>{label}</Label>
       <ControlShell $error={!!error} $focused={focused}>
-        {Icon && <Icon size={18} strokeWidth={2.2} />}
+        {Icon && <Icon size={18} />}
         <input
           id={id}
           onFocus={(e) => {

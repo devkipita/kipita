@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import styled, { css } from "styled-components";
 
 type Variant = "sage" | "green" | "tan";
@@ -48,7 +48,7 @@ export function IconBubble({
 }) {
   return (
     <Bubble $variant={variant}>
-      <Icon size={size} strokeWidth={2} />
+      <Icon size={size} />
     </Bubble>
   );
 }

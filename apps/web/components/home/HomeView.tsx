@@ -1,51 +1,59 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { AppHeader } from "@/components/app/AppHeader";
+import type { Town } from "@kipita/shared";
 import { AlertComposer } from "@/components/alerts/AlertComposer";
-import { DriverKycForm } from "@/components/driver/DriverKycForm";
+import { ContentWidth, useAppMode } from "@/components/nav/AppShell";
 import type { Alert } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
-import type { AppMode } from "@/lib/home/mode";
-import { setModeAction } from "@/lib/home/mode-actions";
+import { HOME_COPY } from "@/lib/home/copy";
+import { detectOrigin, type Coords } from "@/lib/home/geo";
+import { buildMapModel } from "@/lib/home/mapData";
 import type { HomeItem } from "@/lib/home/search";
 import { AlertsPanel } from "./AlertsPanel";
-import { ModeToggle } from "./ModeToggle";
+import { HomeMapBand } from "./HomeMapBand";
+import { LocalWeather } from "./LocalWeather";
+import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
 import { PostDrawer, type PostDraft } from "./PostDrawer";
+import { PromoBand } from "./PromoBand";
 import { RideCarousel } from "./RideCarousel";
-import { RouteSearchForm, type SearchForm } from "./RouteSearchForm";
+import type { SearchForm } from "./RouteSearchForm";
+import { SearchDock, type OriginStatus } from "./SearchDock";
+import { WhenModal } from "./WhenModal";
 import { useHomeSearch } from "./useHomeSearch";
 
-const Page = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const Wrap = styled.main`
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 20px clamp(16px, 4vw, 28px) 48px;
+const Wrap = styled(ContentWidth)`
+  padding-bottom: 56px;
   display: flex;
   flex-direction: column;
-  gap: 26px;
+  gap: 30px;
 `;
 
 const Greeting = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 14px;
   flex-wrap: wrap;
+  margin-top: 26px;
 
-  h1 {
+  .text {
     flex: 1;
     min-width: 200px;
+  }
+  h1 {
     margin: 0;
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: ${({ theme }) => theme.type.heading};
+    font-weight: 700;
     letter-spacing: -0.025em;
     color: ${({ theme }) => theme.color.text};
+  }
+  p {
+    margin: 3px 0 0;
+    font-size: ${({ theme }) => theme.type.body};
+    color: ${({ theme }) => theme.color.textSoft};
   }
 `;
 
@@ -53,102 +61,170 @@ function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] || "there";
 }
 
-/**
- * The signed-in home page — the web port of mobile's home tab.
- *
- * Four bands, top to bottom: route planner, available rides (or passenger
- * requests when driving), offers, road alerts. The mode toggle sits above them
- * because unlike mobile — where it lives on the profile screen — web has room
- * for it where it matters.
- *
- * `offersSlot` arrives as a prop rather than an import because it is a server
- * component and this is a client one.
- */
+function scheduleLabelFor(date: string | null, time: string | null): string | null {
+  if (!date) return null;
+  const dt = new Date(`${date}T${time ?? "00:00"}`);
+  if (Number.isNaN(dt.getTime())) return null;
+  const day = dt.toLocaleDateString("en-KE", {
+    weekday: "short",
+    day: "numeric",
+    month: time ? undefined : "short",
+  });
+  return time ? `${day}, ${time}` : day;
+}
+
 export function HomeView({
   profile,
-  mode: initialMode,
-  driverHasApplied,
   initialItems,
   initialAlerts,
   offersSlot,
+  destinationsSlot,
 }: {
   profile: Profile;
-  mode: AppMode;
-  driverHasApplied: boolean;
   initialItems: HomeItem[];
   initialAlerts: Alert[];
   offersSlot: ReactNode;
+  destinationsSlot: ReactNode;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<AppMode>(initialMode);
-  const [hasApplied, setHasApplied] = useState(driverHasApplied);
-  const [kycOpen, setKycOpen] = useState(false);
+  const { mode } = useAppMode();
   const [alertOpen, setAlertOpen] = useState(false);
   const [postDraft, setPostDraft] = useState<PostDraft | null>(null);
+
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [date, setDate] = useState<string | null>(null);
+  const [time, setTime] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<SearchForm["preferences"]>({});
+
+  const [placeField, setPlaceField] = useState<PlaceField | null>(null);
+  const [whenOpen, setWhenOpen] = useState(false);
+
+  const [originStatus, setOriginStatus] = useState<OriginStatus>("idle");
+  const [originCoords, setOriginCoords] = useState<Coords | null>(null);
+  const fromTouched = useRef(false);
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [fitKey, setFitKey] = useState(0);
 
   const search = useHomeSearch(mode, initialItems);
   const { items, phase, lastForm, searchRequested, run, clearSearchRequest } =
     search;
 
-  // Switching mode changes which table we're looking at, so re-run the search.
+  const mapModel = useMemo(() => buildMapModel(items), [items]);
+
   useEffect(() => {
-    if (mode === initialMode) return;
+    const controller = new AbortController();
+    setOriginStatus("detecting");
+
+    detectOrigin(controller.signal)
+      .then((origin) => {
+        if (!origin) {
+          setOriginStatus("failed");
+          return;
+        }
+        setOriginCoords(origin.coords);
+        setOriginStatus("ready");
+        if (!fromTouched.current) setFrom((current) => current || origin.town.name);
+      })
+      .catch(() => setOriginStatus("failed"));
+
+    return () => controller.abort();
+  }, []);
+
+  const firstMode = useRef(mode);
+  useEffect(() => {
+    if (mode === firstMode.current) return;
     void run(lastForm);
-    // `lastForm` is intentionally not a dependency: we want the route the user
-    // last searched, not a re-run every time it changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
+  const runSearch = useCallback(
+    (overrides: Partial<SearchForm> = {}) => {
+      const form: SearchForm = {
+        from,
+        to,
+        date,
+        departure_time: time,
+        preferences,
+        ...overrides,
+      };
+      void run(form, { deliberate: true }).then(() => setFitKey((k) => k + 1));
+    },
+    [from, to, date, time, preferences, run],
+  );
+
   const openPost = useCallback(
     (form: SearchForm | null) => {
-      const from = form?.from ?? lastForm?.from ?? "";
-      const to = form?.to ?? lastForm?.to ?? "";
-      if (from.trim().length < 2 || to.trim().length < 2) return;
+      const nextFrom = form?.from ?? from;
+      const nextTo = form?.to ?? to;
+      if (nextFrom.trim().length < 2 || nextTo.trim().length < 2) return;
 
       setPostDraft({
         role: mode,
-        from,
-        to,
-        date: form?.date ?? lastForm?.date ?? null,
-        departure_time: form?.departure_time ?? lastForm?.departure_time ?? null,
-        preferences: form?.preferences ?? lastForm?.preferences ?? {},
+        from: nextFrom,
+        to: nextTo,
+        date: form?.date ?? date,
+        departure_time: form?.departure_time ?? time,
+        preferences: form?.preferences ?? preferences,
       });
     },
-    [mode, lastForm],
+    [mode, from, to, date, time, preferences],
   );
 
-  // Post-on-empty, mirroring mobile. The `searchRequested` guard is what keeps
-  // a server-rendered empty list from popping a drawer on page load.
   useEffect(() => {
     if (!searchRequested || phase !== "ready") return;
     clearSearchRequest();
     if (items.length === 0) openPost(null);
   }, [searchRequested, phase, items.length, clearSearchRequest, openPost]);
 
-  return (
-    <Page>
-      <AppHeader
-        name={profile.full_name}
-        avatarUrl={profile.avatar_url}
-        userId={profile.id}
-      />
-      <Wrap>
-        <Greeting>
-          <h1>Hi {firstName(profile.full_name)}, where to?</h1>
-          <ModeToggle
-            mode={mode}
-            driverReady={hasApplied}
-            onModeChange={setMode}
-            onKycRequired={() => setKycOpen(true)}
-          />
-        </Greeting>
+  function pickTown(field: PlaceField, town: Town) {
+    if (field === "from") {
+      fromTouched.current = true;
+      setFrom(town.name);
+      setPlaceField("to");
+      return;
+    }
+    setTo(town.name);
+    setPlaceField(null);
+    runSearch({ to: town.name });
+  }
 
-        <RouteSearchForm
-          mode={mode}
-          busy={phase === "searching"}
-          initial={lastForm ?? undefined}
-          onSearch={(form) => void run(form, { deliberate: true })}
+  function pickRoute(fromName: string, toName: string) {
+    fromTouched.current = true;
+    setFrom(fromName);
+    setTo(toName);
+    pushRecent(toName);
+    setPlaceField(null);
+    runSearch({ from: fromName, to: toName });
+  }
+
+  return (
+    <>
+      <HomeMapBand
+        items={items}
+        hoveredId={hoveredId}
+        onHover={setHoveredId}
+        fitKey={fitKey}
+      />
+
+      <Wrap $max={1180}>
+        <SearchDock
+          from={from}
+          to={to}
+          scheduleLabel={scheduleLabelFor(date, time)}
+          originStatus={originStatus}
+          onOpenField={setPlaceField}
+          onOpenWhen={() => setWhenOpen(true)}
         />
+
+        <Greeting>
+          <div className="text">
+            <h1>{HOME_COPY.greeting(firstName(profile.full_name))}</h1>
+            <p>{HOME_COPY.greetingSub[mode]}</p>
+          </div>
+          <LocalWeather town={from} />
+        </Greeting>
 
         <RideCarousel
           mode={mode}
@@ -156,9 +232,15 @@ export function HomeView({
           items={items}
           onPost={() => openPost(null)}
           onRetry={() => void run(lastForm)}
+          hoveredId={hoveredId}
+          onHoverChange={setHoveredId}
         />
 
         {offersSlot}
+
+        {destinationsSlot}
+
+        <PromoBand />
 
         <AlertsPanel
           alerts={initialAlerts}
@@ -167,6 +249,37 @@ export function HomeView({
         />
       </Wrap>
 
+      <PlaceModal
+        field={placeField}
+        from={from}
+        to={to}
+        originCoords={originCoords}
+        onFieldChange={setPlaceField}
+        onPickTown={pickTown}
+        onPickRoute={pickRoute}
+        onClose={() => setPlaceField(null)}
+      />
+
+      <WhenModal
+        open={whenOpen}
+        mode={mode}
+        date={date}
+        time={time}
+        preferences={preferences}
+        onClose={() => setWhenOpen(false)}
+        onApply={(next) => {
+          setDate(next.date);
+          setTime(next.time);
+          setPreferences(next.preferences);
+          setWhenOpen(false);
+          runSearch({
+            date: next.date,
+            departure_time: next.time,
+            preferences: next.preferences,
+          });
+        }}
+      />
+
       <PostDrawer
         open={!!postDraft}
         draft={postDraft}
@@ -174,18 +287,6 @@ export function HomeView({
         onPosted={() => {
           setPostDraft(null);
           void run(lastForm);
-        }}
-      />
-
-      <DriverKycForm
-        open={kycOpen}
-        onClose={() => setKycOpen(false)}
-        onSubmitted={async () => {
-          setKycOpen(false);
-          setHasApplied(true);
-          // Only flip the cookie once the driver_profiles row genuinely exists.
-          const result = await setModeAction("driver");
-          if (result.ok) setMode("driver");
         }}
       />
 
@@ -198,6 +299,6 @@ export function HomeView({
           router.refresh();
         }}
       />
-    </Page>
+    </>
   );
 }

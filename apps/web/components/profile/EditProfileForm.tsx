@@ -3,15 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import {
-  CalendarDays,
-  Check,
-  Info,
-  MapPin,
-  PartyPopper,
-  UserRound,
-} from "lucide-react";
-import { AppHeader } from "@/components/app/AppHeader";
+import { ContentWidth } from "@/components/nav/AppShell";
+import { CalendarBlank as CalendarDays, Check, Info, MapPin, Confetti as PartyPopper, UserCircle as UserRound } from "@/components/icons";
 import { updateProfileAction, type ActionState } from "@/lib/auth/actions";
 import type { Profile } from "@/lib/auth/types";
 import { TextField } from "@/components/auth/TextField";
@@ -25,15 +18,8 @@ import {
   Sub,
 } from "@/components/auth/ui";
 
-const Page = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const Wrap = styled.main`
-  max-width: 560px;
-  margin: 0 auto;
-  padding: 8px clamp(18px, 4vw, 28px) 64px;
+const Wrap = styled(ContentWidth)`
+  padding-block: 16px 40px;
 `;
 
 const Welcome = styled.div`
@@ -110,12 +96,11 @@ export function EditProfileForm({
   }, [state.ok, welcome, router]);
 
   return (
-    <Page>
-      <AppHeader name={profile.full_name} avatarUrl={profile.avatar_url} userId={profile.id} />
-      <Wrap>
+    <>
+      <Wrap $max={620}>
         {welcome && (
           <Welcome>
-            <PartyPopper size={22} strokeWidth={2.2} />
+            <PartyPopper size={22} />
             You&apos;re in! Add a few details so riders know who they&apos;re travelling with.
           </Welcome>
         )}
@@ -153,7 +138,7 @@ export function EditProfileForm({
 
             <div>
               <Label>
-                <CalendarDays size={16} strokeWidth={2.2} /> Date of birth
+                <CalendarDays size={16} /> Date of birth
               </Label>
               <ControlShell $focused={dateFocus}>
                 <input
@@ -170,7 +155,7 @@ export function EditProfileForm({
 
             <div>
               <Label>
-                <UserRound size={16} strokeWidth={2.2} /> Gender
+                <UserRound size={16} /> Gender
               </Label>
               <input type="hidden" name="gender" value={gender} />
               <Chips>
@@ -188,11 +173,11 @@ export function EditProfileForm({
             </div>
 
             <PrimaryButton type="submit" disabled={pending}>
-              {pending ? <Spinner /> : <>Save changes <Check size={19} strokeWidth={2.6} /></>}
+              {pending ? <Spinner /> : <>Save changes <Check size={19} /></>}
             </PrimaryButton>
           </Group>
         </form>
       </Wrap>
-    </Page>
+    </>
   );
 }

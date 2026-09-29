@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import styled from "styled-components";
-import { BellRing, X } from "lucide-react";
+import { BellRinging as BellRing, X } from "@/components/icons";
 
 const DISMISS_KEY = "kipita-push-banner-dismissed";
 
@@ -126,7 +126,7 @@ export function PushBanner() {
   return (
     <Banner>
       <Lead>
-        <BellRing size={19} strokeWidth={2.4} />
+        <BellRing size={19} />
       </Lead>
       <div className="copy">
         <b>Get alerted the moment a ride appears</b>
@@ -136,7 +136,7 @@ export function PushBanner() {
         Allow
       </Enable>
       <Dismiss type="button" onClick={dismiss} aria-label="Dismiss">
-        <X size={16} strokeWidth={2.4} />
+        <X size={16} />
       </Dismiss>
     </Banner>
   );

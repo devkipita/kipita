@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Space_Grotesk } from "next/font/google";
+import { DM_Sans, Outfit, Space_Grotesk } from "next/font/google";
 import { SITE } from "@/lib/site";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -10,6 +10,22 @@ const dmSans = DM_Sans({
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   variable: "--font-dm-sans",
+});
+
+/**
+ * Display face for headings and titles.
+ *
+ * Google Sans is Google's proprietary typeface — it is not on Google Fonts and
+ * is not licensed for use outside Google's own products, so it cannot ship
+ * here. Outfit is the closest freely licensed match: the same geometric
+ * construction, circular bowls and tall x-height, which is what gives Google
+ * Sans its look at large sizes.
+ */
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-heading",
 });
 
 // Used only on the StepFlow cards on the landing.
@@ -107,7 +123,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${spaceGrotesk.variable} ${dmSans.className}`}
+      className={`${dmSans.variable} ${outfit.variable} ${spaceGrotesk.variable} ${dmSans.className}`}
       suppressHydrationWarning
     >
       <body>

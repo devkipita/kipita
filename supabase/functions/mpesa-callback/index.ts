@@ -27,15 +27,26 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const paymentId = url.searchParams.get('payment_id');
+    const topupId = url.searchParams.get('topup_id');
     const body = await req.json();
 
     const stk = body?.Body?.stkCallback;
-    if (!paymentId || !stk) {
-      console.error('mpesa-callback: missing payment_id or stkCallback', { paymentId });
+    if (!stk || (!paymentId && !topupId)) {
+      console.error('mpesa-callback: missing payment_id/topup_id or stkCallback', {
+        paymentId,
+        topupId,
+      });
       return ack();
     }
 
     const resultCode = Number(stk.ResultCode);
+
+    if (topupId) {
+      await settleTopup(supabase, topupId, resultCode, stk);
+      return ack();
+    }
+
+    if (!paymentId) return ack();
 
     // Guard against replays / already-settled payments.
     const { data: payment } = await supabase
@@ -106,3 +117,73 @@ serve(async (req) => {
     return ack();
   }
 });
+
+async function settleTopup(
+  supabase: ReturnType<typeof createClient>,
+  topupId: string,
+  resultCode: number,
+  stk: Record<string, any>,
+): Promise<void> {
+  const { data: topup } = await supabase
+    .from('wallet_topups')
+    .select('id, user_id, amount, status')
+    .eq('id', topupId)
+    .single();
+
+  if (!topup) {
+    console.error('mpesa-callback: topup not found', { topupId });
+    return;
+  }
+  if (topup.status === 'completed') return;
+
+  if (resultCode !== 0) {
+    await supabase
+      .from('wallet_topups')
+      .update({ status: 'failed', updated_at: new Date().toISOString() })
+      .eq('id', topupId);
+
+    await supabase.from('notifications').insert({
+      user_id: topup.user_id,
+      type: 'payment_failed',
+      title: 'Top-Up Not Completed',
+      body: stk.ResultDesc ?? 'The M-Pesa top-up was not completed.',
+      data: { topup_id: topupId },
+    });
+    return;
+  }
+
+  const items: Array<{ Name: string; Value?: string | number }> =
+    stk.CallbackMetadata?.Item ?? [];
+  const receipt = items.find((i) => i.Name === 'MpesaReceiptNumber')?.Value;
+
+  const { data: claimed } = await supabase
+    .from('wallet_topups')
+    .update({
+      status: 'completed',
+      transaction_reference: receipt ? String(receipt) : null,
+      paid_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', topupId)
+    .neq('status', 'completed')
+    .select('id')
+    .maybeSingle();
+
+  if (!claimed) return;
+
+  await supabase.rpc('credit_wallet', {
+    p_user_id: topup.user_id,
+    p_amount: Number(topup.amount),
+    p_type: 'topup',
+    p_reference: topupId,
+    p_description: receipt ? `M-Pesa top-up ${receipt}` : 'M-Pesa top-up',
+  });
+
+  await supabase.from('notifications').insert({
+    user_id: topup.user_id,
+    type: 'payment_success',
+    title: 'Wallet Topped Up',
+    body: `KES ${topup.amount} has been added to your Kipita wallet.`,
+    data: { topup_id: topupId },
+  });
+}

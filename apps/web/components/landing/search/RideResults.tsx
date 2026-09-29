@@ -1,7 +1,7 @@
 "use client";
 
 import styled, { keyframes } from "styled-components";
-import { ArrowRight, Star, Users } from "lucide-react";
+import { ArrowRight, Star, Users } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import {
   formatKes,
@@ -402,7 +402,7 @@ function RideCard({ ride, i }: { ride: Ride; i: number }) {
         <Who>
           <b>{ride.driverName}</b>
           <span>
-            <Star size={13} fill="currentColor" strokeWidth={0} />
+            <Star size={13} weight="fill" />
             {ride.driverRating > 0 ? ride.driverRating.toFixed(1) : "New"}
             {ride.driverTrips > 0 ? ` · ${ride.driverTrips} trips` : ""}
           </span>

@@ -20,7 +20,10 @@ export interface AlertAuthor {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  trusted_reporter: boolean;
 }
+
+export type ConfirmKind = "still_there" | "cleared";
 
 export interface Alert {
   id: string;
@@ -29,12 +32,23 @@ export interface Alert {
   category: AlertCategory;
   content: string;
   image_url: string | null;
+  lat: number | null;
+  lng: number | null;
   reactions_count: number;
   comments_count: number;
+  confirms_count: number;
+  cleared_count: number;
+  views_count: number;
   created_at: string;
+  updated_at: string;
   user: AlertAuthor | null;
   /** The caller's own reaction key, resolved by a separate scoped query. */
   user_reaction: string | null;
+  /** The caller's own Still-there / Cleared vote, resolved the same way. */
+  my_confirmation: ConfirmKind | null;
+  saved_by_me: boolean;
+  /** Kilometres from the viewer, when both ends are known. */
+  distance_km?: number | null;
 }
 
 export interface AlertComment {
@@ -50,14 +64,27 @@ export interface AlertComment {
 }
 
 export const ALERT_SELECT = `
-  id, user_id, location, category, content, image_url,
-  reactions_count, comments_count, created_at,
-  user:users!user_id ( id, full_name, avatar_url )
+  id, user_id, location, category, content, image_url, lat, lng,
+  reactions_count, comments_count, confirms_count, cleared_count, views_count,
+  created_at, updated_at,
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
+`;
+
+/**
+ * The same list without `views_count`, for deployments where migration 023 has
+ * not been applied yet. An undefined column fails the whole request, so asking
+ * for one that does not exist empties the feed rather than dropping a field.
+ */
+export const ALERT_SELECT_LEGACY = `
+  id, user_id, location, category, content, image_url, lat, lng,
+  reactions_count, comments_count, confirms_count, cleared_count,
+  created_at, updated_at,
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
 `;
 
 export const COMMENT_SELECT = `
   id, alert_id, user_id, content, image_url, likes_count, created_at,
-  user:users!user_id ( id, full_name, avatar_url )
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
 `;
 
 /**

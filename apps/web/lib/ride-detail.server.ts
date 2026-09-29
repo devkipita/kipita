@@ -17,8 +17,12 @@ import type {
  * shared link works for signed-out visitors too.
  */
 
+// No `phone`: migration 004 revoked it, and asking for an ungranted column
+// makes Postgres deny the whole `users` table (42501), not just that field.
+// The call row degrades to hidden — exposing it needs a server-side route that
+// checks the caller actually has a booking, not a column grant.
 const PERSON_COLUMNS =
-  "id, full_name, avatar_url, is_verified, rating, total_trips, phone";
+  "id, full_name, avatar_url, is_verified, rating, total_trips";
 
 const TRIP_SELECT = `
   id, from_location, to_location, departure_date, departure_time,

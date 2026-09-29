@@ -40,13 +40,32 @@ function mergedAvatarUrl(
   return authAvatarUrl(user) ?? rowAvatarUrl ?? null;
 }
 
+/**
+ * `users.full_name` is NOT NULL DEFAULT '', and `sync_auth_user_profile()` only
+ * fills it from `raw_user_meta_data`. A plain email signup therefore lands with
+ * an empty name, which surfaces as a blank byline everywhere. Fall back to the
+ * auth metadata, then to the email local part, before giving up.
+ */
+function displayName(rowName: string | null | undefined, user: User): string {
+  const fromRow = rowName?.trim();
+  if (fromRow) return fromRow;
+
+  const meta = user.user_metadata?.full_name;
+  if (typeof meta === "string" && meta.trim()) return meta.trim();
+
+  const local = user.email?.split("@")[0]?.replace(/[._-]+/g, " ").trim();
+  if (local) return local.replace(/\b\w/g, (c) => c.toUpperCase());
+
+  return "Kipita user";
+}
+
 /** A display-safe profile built from the auth record alone — used when the
  *  `users` row is missing (trigger not fired / RLS) so authed users never loop. */
 function synthesize(user: User): Profile {
   return {
     id: user.id,
     auth_id: user.id,
-    full_name: (user.user_metadata?.full_name as string | undefined) ?? "",
+    full_name: displayName(null, user),
     email: user.email ?? null,
     phone: user.phone ?? null,
     avatar_url: authAvatarUrl(user),
@@ -77,10 +96,20 @@ export async function getProfile(): Promise<Profile | null> {
 
   const merge = (row: Profile): Profile => ({
     ...row,
+    full_name: displayName(row.full_name, user),
     email: user.email ?? row.email ?? null,
     phone: user.phone ?? row.phone ?? null,
     avatar_url: mergedAvatarUrl(row.avatar_url, user),
   });
+
+  // `current_user_profile()` is SECURITY DEFINER and returns the caller's whole
+  // row. A plain select cannot: migration 004 revoked table-level SELECT on
+  // users and never re-granted `email`/`phone`, so asking for PROFILE_COLUMNS
+  // is denied for the entire table and this silently fell through to
+  // synthesize(), whose id is the AUTH id rather than users.id.
+  const { data: own } = await supabase.rpc("current_user_profile");
+  const ownRow = Array.isArray(own) ? own[0] : own;
+  if (ownRow) return merge(ownRow as Profile);
 
   const { data } = await supabase
     .from("users")
@@ -98,9 +127,13 @@ export async function getProfile(): Promise<Profile | null> {
       email: user.email ?? null,
       phone: user.phone ?? null,
     })
-    .select(PROFILE_COLUMNS)
+    .select("id, auth_id")
     .maybeSingle();
-  if (created) return merge(created as Profile);
+  if (created) {
+    const { data: after } = await supabase.rpc("current_user_profile");
+    const afterRow = Array.isArray(after) ? after[0] : after;
+    if (afterRow) return merge(afterRow as Profile);
+  }
 
   // Insert blocked (RLS) — render from the auth record so we don't loop.
   return synthesize(user);

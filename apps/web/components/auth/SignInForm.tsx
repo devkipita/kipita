@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Info, ArrowRight, Mail, Phone, RotateCw } from "lucide-react";
+import { Info, ArrowRight, Envelope as Mail, Phone, ArrowClockwise as RotateCw } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { isValidKeLocal, toE164 } from "@/lib/auth/phone";
 import { signInEmailSchema } from "@/lib/validators/auth";
@@ -162,10 +162,10 @@ export function SignInForm({ next = "/home" }: { next?: string }) {
 
       <Tabs role="tablist">
         <Tab type="button" $active={mode === "email"} onClick={() => { setMode("email"); setError(""); }}>
-          <Mail size={16} strokeWidth={2.4} /> Email
+          <Mail size={16} /> Email
         </Tab>
         <Tab type="button" $active={mode === "phone"} onClick={() => { setMode("phone"); setError(""); }}>
-          <Phone size={16} strokeWidth={2.4} /> Phone
+          <Phone size={16} /> Phone
         </Tab>
       </Tabs>
 
@@ -198,14 +198,14 @@ export function SignInForm({ next = "/home" }: { next?: string }) {
             <TextLink href="/auth/forgot-password">Forgot password?</TextLink>
           </RowBetween>
           <PrimaryButton type="submit" disabled={busy}>
-            {busy ? <Spinner /> : <>Sign in <ArrowRight size={19} strokeWidth={2.4} /></>}
+            {busy ? <Spinner /> : <>Sign in <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : !otpSent ? (
         <Form onSubmit={sendOtp}>
           <PhoneField value={phone} onChange={setPhone} />
           <PrimaryButton type="submit" disabled={busy || !isValidKeLocal(phone)}>
-            {busy ? <Spinner /> : <>Send code <ArrowRight size={19} strokeWidth={2.4} /></>}
+            {busy ? <Spinner /> : <>Send code <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : (
