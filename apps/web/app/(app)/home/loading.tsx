@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import styled, { keyframes } from "styled-components";
 
@@ -8,7 +8,7 @@ const shimmer = keyframes`
 `;
 
 const Page = styled.div`
-  min-height: 100vh;
+  min-height: 100dvh;
   background: ${({ theme }) => theme.color.bg};
 `;
 
@@ -86,3 +86,4 @@ export default function HomeLoading() {
     </Page>
   );
 }
+

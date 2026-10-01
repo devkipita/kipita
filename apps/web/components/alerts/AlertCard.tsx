@@ -45,7 +45,10 @@ const Shell = styled.article`
 
 const Body = styled(Link)<{ $owned?: boolean }>`
   display: block;
-  padding: ${({ $owned }) => ($owned ? "16px 46px 10px 16px" : "16px 16px 10px")};
+  padding: ${({ theme, $owned }) =>
+    $owned
+      ? `${theme.space.lg} 46px ${theme.space.md} ${theme.space.lg}`
+      : `${theme.space.lg} ${theme.space.lg} ${theme.space.md}`};
   text-decoration: none;
 `;
 

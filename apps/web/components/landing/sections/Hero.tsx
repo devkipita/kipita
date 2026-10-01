@@ -1,4 +1,4 @@
-import styled from "styled-components";
+﻿import styled from "styled-components";
 import { nocturne } from "../nocturne";
 import { Parallax } from "../../anim/Parallax";
 import { Reveal } from "../../anim/Reveal";
@@ -8,7 +8,7 @@ import { PulseDot } from "../primitives";
 
 const HeroShell = styled.section`
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
   align-items: center;
@@ -272,7 +272,7 @@ export function Hero() {
       <HeroCopy>
         <LivePill>
           <PulseDot />
-          <span>Share the ride · Save more</span>
+          <span>Share the ride Â· Save more</span>
         </LivePill>
 
         <Display
@@ -316,3 +316,4 @@ export function Hero() {
     </HeroShell>
   );
 }
+

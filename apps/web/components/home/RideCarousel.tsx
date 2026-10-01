@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -47,15 +47,9 @@ const Pager = styled.div`
   align-items: stretch;
   height: 36px;
   border-radius: 999px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
   box-shadow: ${({ theme }) => theme.shadow.soft};
   overflow: hidden;
-  transition: border-color 0.18s ease;
-
-  &:hover {
-    border-color: ${({ theme }) => theme.color.outline};
-  }
 
   @media (max-width: 559px) {
     display: none;
@@ -188,22 +182,23 @@ const SeeAll = styled.button`
   }
 `;
 
-const GAP = 16;
+const GAP = "var(--card-gap, 16px)";
 
 const Rail = styled.div<{ $wide?: boolean }>`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: ${({ $wide }) =>
     $wide
-      ? `calc((100% - ${GAP}px) / 2)`
-      : `calc((100% - 3 * ${GAP}px) / 4)`};
-  gap: ${GAP}px;
+      ? `calc((100% - ${GAP}) / 2)`
+      : `calc((100% - 3 * ${GAP}) / 4)`};
+  gap: ${GAP};
   overflow-x: auto;
   overflow-y: visible;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--page-pad);
   scroll-behavior: smooth;
-  padding: 34px 20px 16px;
-  margin: -6px -20px -10px;
+  padding: clamp(10px, 3vw, 34px) var(--page-pad) ${({ theme }) => theme.space.lg};
+  margin: -6px calc(-1 * var(--page-pad)) -10px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 
@@ -221,11 +216,11 @@ const Rail = styled.div<{ $wide?: boolean }>`
 
   @media (max-width: 1359px) {
     grid-auto-columns: ${({ $wide }) =>
-      $wide ? `calc((100% - ${GAP}px) / 2)` : `calc((100% - 2 * ${GAP}px) / 3)`};
+      $wide ? `calc((100% - ${GAP}) / 2)` : `calc((100% - 2 * ${GAP}) / 3)`};
   }
   @media (max-width: 999px) {
     grid-auto-columns: ${({ $wide }) =>
-      $wide ? "92%" : `calc((100% - ${GAP}px) / 2)`};
+      $wide ? "92%" : `calc((100% - ${GAP}) / 2)`};
   }
   @media (max-width: 559px) {
     grid-auto-columns: ${({ $wide }) => ($wide ? "94%" : "min(88%, 340px)")};
@@ -238,7 +233,7 @@ const Rail = styled.div<{ $wide?: boolean }>`
 const Grid = styled.div<{ $wide?: boolean }>`
   display: grid;
   grid-template-columns: repeat(${({ $wide }) => ($wide ? 2 : 4)}, minmax(0, 1fr));
-  gap: ${({ $wide }) => ($wide ? 34 : 24)}px ${GAP}px;
+  gap: ${({ $wide }) => ($wide ? 34 : 24)}px ${GAP};
   padding-top: ${({ $wide }) => ($wide ? 34 : 0)}px;
   margin-top: ${({ $wide }) => ($wide ? -6 : 0)}px;
 
@@ -694,3 +689,5 @@ export function RideCarousel({
     </section>
   );
 }
+
+

@@ -28,19 +28,19 @@ import { WhenModal } from "./WhenModal";
 import { useHomeSearch } from "./useHomeSearch";
 
 const Wrap = styled(ContentWidth)`
-  padding-bottom: 56px;
+  padding-bottom: clamp(32px, 7vw, 56px);
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: var(--band-gap);
 `;
 
 const Greeting = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: ${({ theme }) => theme.space.md};
   flex-wrap: wrap;
-  margin-top: 26px;
+  margin-top: clamp(12px, 3vw, 26px);
 
   .text {
     flex: 1;

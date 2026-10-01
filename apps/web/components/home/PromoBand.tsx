@@ -18,11 +18,13 @@ const Head = styled.h2`
 const Rail = styled.div`
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(268px, 1fr);
-  gap: 14px;
+  grid-auto-columns: minmax(min(268px, 84%), 1fr);
+  gap: var(--card-gap);
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  padding-bottom: 2px;
+  scroll-padding-inline: var(--page-pad);
+  padding: 0 var(--page-pad) 2px;
+  margin-inline: calc(-1 * var(--page-pad));
   scrollbar-width: none;
   -ms-overflow-style: none;
 
@@ -35,6 +37,8 @@ const Rail = styled.div`
   }
 
   @media (min-width: 760px) {
+    padding-inline: 0;
+    margin-inline: 0;
     grid-auto-flow: row;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     grid-auto-columns: auto;
@@ -45,8 +49,8 @@ const Rail = styled.div`
 const Card = styled(Link)<{ $tone: ToneName }>`
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px;
+  gap: ${({ theme }) => theme.space.md};
+  padding: ${({ theme }) => theme.space.lg};
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme, $tone }) => theme.tone[$tone].bg};
   color: ${({ theme, $tone }) => theme.tone[$tone].on};
@@ -71,7 +75,7 @@ const Card = styled(Link)<{ $tone: ToneName }>`
 const Top = styled.div`
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: ${({ theme }) => theme.space.md};
 
   .copy {
     flex: 1;

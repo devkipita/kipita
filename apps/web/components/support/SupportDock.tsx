@@ -91,11 +91,18 @@ const Launcher = styled.button`
 `;
 
 const Dismiss = styled.button`
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
   width: 26px;
   height: 26px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -9px;
+  }
   margin-right: 12px;
   border: none;
   border-radius: 999px;

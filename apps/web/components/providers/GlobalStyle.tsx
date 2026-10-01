@@ -11,10 +11,49 @@ import { createGlobalStyle } from "styled-components";
 export const GlobalStyle = createGlobalStyle`
   :root {
     color-scheme: light dark;
+
+    --r-xxs: 6px;
+    --r-xs: 8px;
+    --r-sm: 10px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+
+    --s-md: 10px;
+    --s-lg: 12px;
+    --s-xl: 16px;
+    --s-xxl: 20px;
+
+    --band-gap: 18px;
+    --card-gap: 10px;
+  }
+
+  @media (min-width: 560px) {
+    :root {
+      --r-xxs: 8px;
+      --r-xs: 11px;
+      --r-sm: 14px;
+      --r-md: 22px;
+      --r-lg: 30px;
+      --r-xl: 36px;
+
+      --s-md: 12px;
+      --s-lg: 16px;
+      --s-xl: 20px;
+      --s-xxl: 24px;
+
+      --band-gap: 30px;
+      --card-gap: 14px;
+    }
   }
 
   * {
     box-sizing: border-box;
+  }
+
+  :where(img, video, svg, canvas) {
+    max-width: 100%;
+    height: auto;
   }
 
   * {
@@ -48,9 +87,18 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   html {
-    overflow-x: hidden;
+    overflow-x: clip;
     scroll-behavior: smooth;
     scroll-padding-top: var(--sticky-top, 0px);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  @media (max-width: 600px) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: max(16px, 1em) !important;
+    }
   }
 
   html,
@@ -133,6 +181,14 @@ export const GlobalStyle = createGlobalStyle`
   @media (prefers-reduced-motion: reduce) {
     html {
       scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 `;

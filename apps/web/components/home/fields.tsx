@@ -36,20 +36,26 @@ export const FieldHead = styled.div`
 
 export const TextInput = styled.input`
   width: 100%;
+  min-height: 48px;
   padding: 13px 15px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1.5px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.text};
+  border: none;
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  color: ${({ theme }) => theme.color.onSurface};
   font: inherit;
   font-size: ${({ theme }) => theme.type.body};
+  transition: background 0.16s ease, box-shadow 0.16s ease;
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.color.primary};
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    box-shadow: inset 0 0 0 2px ${({ theme }) => theme.color.primary};
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -59,19 +65,24 @@ export const TextArea = styled.textarea`
   resize: vertical;
   padding: 13px 15px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1.5px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.text};
+  border: none;
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  color: ${({ theme }) => theme.color.onSurface};
   font: inherit;
   font-size: ${({ theme }) => theme.type.body};
   line-height: 1.5;
+  transition: background 0.16s ease, box-shadow 0.16s ease;
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
   &:focus {
     outline: none;
-    border-color: ${({ theme }) => theme.color.primary};
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    box-shadow: inset 0 0 0 2px ${({ theme }) => theme.color.primary};
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 

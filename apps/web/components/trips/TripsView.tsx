@@ -132,8 +132,8 @@ const Section = styled.section`
 
 const Cards = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: ${({ theme }) => theme.space.lg};
 
   @media (max-width: 680px) {
     grid-template-columns: 1fr;

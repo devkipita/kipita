@@ -23,12 +23,12 @@
  */
 
 const radius = {
-  xxs: "8px",
-  xs: "11px",
-  sm: "14px",
-  md: "22px",
-  lg: "30px",
-  xl: "36px",
+  xxs: "var(--r-xxs, 8px)",
+  xs: "var(--r-xs, 11px)",
+  sm: "var(--r-sm, 14px)",
+  md: "var(--r-md, 22px)",
+  lg: "var(--r-lg, 30px)",
+  xl: "var(--r-xl, 36px)",
   pill: "999px",
 } as const;
 
@@ -132,10 +132,10 @@ const space = {
   xxs: "2px",
   xs: "4px",
   sm: "8px",
-  md: "12px",
-  lg: "16px",
-  xl: "20px",
-  xxl: "24px",
+  md: "var(--s-md, 12px)",
+  lg: "var(--s-lg, 16px)",
+  xl: "var(--s-xl, 20px)",
+  xxl: "var(--s-xxl, 24px)",
 } as const;
 
 export type SpaceScale = typeof space;

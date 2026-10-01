@@ -42,7 +42,7 @@ const SeeAll = styled(Link)`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--card-gap);
 `;
 
 const Empty = styled.div`

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -32,7 +32,7 @@ const DockShell = styled.div<{ $open: boolean; $expanded: boolean }>`
   z-index: 96;
   width: ${({ $open, $expanded }) =>
     $open ? "min(360px, calc(100vw - 32px))" : $expanded ? PILL_W : CIRCLE};
-  height: ${({ $open }) => ($open ? "min(540px, calc(100vh - 32px))" : CIRCLE)};
+  height: ${({ $open }) => ($open ? "min(540px, calc(100dvh - 32px))" : CIRCLE)};
   max-width: calc(100vw - 32px);
   border-radius: ${({ $open }) => ($open ? "30px" : "999px")};
   background: ${({ $open }) => ($open ? nocturne.surface : nocturne.lime)};
@@ -302,7 +302,7 @@ const OPENING: Record<Mode, Message> = {
   },
   report: {
     from: "bot",
-    text: "Sorry that happened. Tell us the trip date and what went wrong — we'll open a case straight away.",
+    text: "Sorry that happened. Tell us the trip date and what went wrong â€” we'll open a case straight away.",
   },
 };
 
@@ -317,7 +317,7 @@ const MIN_DETAIL = 10;
 /** A subject short enough to scan in the case list, from the first message. */
 function subjectFrom(text: string, mode: Mode): string {
   const clean = text.replace(/\s+/g, " ").trim();
-  const short = clean.length > 78 ? `${clean.slice(0, 75)}…` : clean;
+  const short = clean.length > 78 ? `${clean.slice(0, 75)}â€¦` : clean;
   return mode === "report" ? `Reported: ${short}`.slice(0, 120) : short;
 }
 
@@ -398,12 +398,12 @@ export function SupportDock({
     setDraft("");
 
     if (authed === false) {
-      say("Sign in and I can open a case for you — it keeps your fare held while we look into it.");
+      say("Sign in and I can open a case for you â€” it keeps your fare held while we look into it.");
       return;
     }
 
     if (!caseId && t.length < MIN_DETAIL) {
-      say("Give me a bit more than that — what happened, and when?");
+      say("Give me a bit more than that â€” what happened, and when?");
       return;
     }
 
@@ -467,7 +467,7 @@ export function SupportDock({
             </ChatTitle>
           </ChatTopWho>
           <ChatClose aria-label="Close chat" onClick={() => setOpen(false)}>
-            ×
+            Ã—
           </ChatClose>
         </ChatTop>
 
@@ -498,7 +498,7 @@ export function SupportDock({
           <ChatInput
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={sending ? "Sending…" : "Type a message…"}
+            placeholder={sending ? "Sendingâ€¦" : "Type a messageâ€¦"}
             aria-label="Message"
             disabled={sending}
           />
@@ -518,3 +518,4 @@ export function SupportDock({
     </DockShell>
   );
 }
+

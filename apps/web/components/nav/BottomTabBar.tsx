@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -9,17 +9,16 @@ import { isNavItemActive, isNavItemCurrent, type NavItem } from "./nav-items";
 const Bar = styled.nav`
   position: fixed;
   left: 50%;
-  transform: translateX(calc(-50% - var(--scrollbar-gutter, 0px) / 2));
+  transform: translateX(-50%);
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: ${Z.bottomTabBar};
-  width: min(380px, calc(100vw - 24px));
+  width: min(380px, calc(100% - 24px));
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-around;
   padding: 0 6px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid ${({ theme }) => theme.color.line};
   box-shadow: ${({ theme }) => theme.shadow.card};
   background: ${({ theme }) =>
     theme.mode === "dark" ? "rgba(29,32,30,0.82)" : "rgba(255,255,255,0.86)"};
@@ -132,3 +131,4 @@ export function BottomTabBar({
     </Bar>
   );
 }
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import styled from "styled-components";
 import { CalendarBlank as CalendarDays, Circle, MagnifyingGlass, MapPin, NavigationArrow as Navigation } from "@/components/icons";
@@ -17,8 +17,7 @@ const Dock = styled.div`
   gap: 4px;
   padding: 7px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.color.surface};
-  border: 1px solid ${({ theme }) => theme.color.line};
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
   box-shadow: ${({ theme }) => theme.shadow.soft};
 
   @media (max-width: 860px) {
@@ -38,8 +37,7 @@ const Compact = styled.div`
     gap: 8px;
     padding: 7px 7px 7px 8px;
     border-radius: ${({ theme }) => theme.radius.pill};
-    background: ${({ theme }) => theme.color.surface};
-    border: 1px solid ${({ theme }) => theme.color.line};
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
     box-shadow: ${({ theme }) => theme.shadow.card};
   }
 `;
@@ -280,3 +278,5 @@ export function SearchDock({
     </>
   );
 }
+
+

@@ -1,4 +1,4 @@
-import styled from "styled-components";
+﻿import styled from "styled-components";
 import { nocturne, pulse } from "./nocturne";
 
 /**
@@ -6,10 +6,10 @@ import { nocturne, pulse } from "./nocturne";
  * place lets each section file stay focused on its own markup + local styles.
  */
 
-/** Landing root — sets the nocturne dark theme for the whole subtree. */
+/** Landing root â€” sets the nocturne dark theme for the whole subtree. */
 export const Root = styled.div`
   position: relative;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: ${nocturne.bg};
   color: ${nocturne.cream};
   font-family: var(--font-dm-sans), system-ui, sans-serif;
@@ -80,3 +80,4 @@ export const PulseDot = styled.span`
     animation: none;
   }
 `;
+

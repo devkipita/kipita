@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -15,6 +15,7 @@ import { HOME_COPY } from "@/lib/home/copy";
 import { nearbyTowns, type Coords } from "@/lib/home/geo";
 import { TextInput } from "./fields";
 import { useMedia } from "./useMedia";
+import { useScrollLock } from "@/lib/ui/useScrollLock";
 
 export type PlaceField = "from" | "to";
 
@@ -40,7 +41,7 @@ export function pushRecent(name: string): void {
     );
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   } catch {
-    /* blocked storage — recents just stay empty */
+    /* blocked storage â€” recents just stay empty */
   }
 }
 
@@ -57,7 +58,6 @@ const Sticky = styled.div`
 const Tabs = styled.div`
   display: flex;
   gap: 22px;
-  border-bottom: 1px solid ${({ theme }) => theme.color.line};
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
@@ -250,11 +250,18 @@ const ScreenHead = styled.header`
 `;
 
 const Back = styled.button`
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px -6px;
+  }
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -276,14 +283,12 @@ const FieldBox = styled.div`
   margin: 2px 16px 18px;
   padding: 4px 0;
   border-radius: ${({ theme }) => theme.radius.lg};
-  border: 1px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-  transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  transition: box-shadow 0.18s ease, background 0.18s ease;
 
   &:focus-within {
-    border-color: ${({ theme }) => theme.color.primary};
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.color.primary}33;
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    box-shadow: inset 0 0 0 2px ${({ theme }) => theme.color.primary};
   }
 
   &::after {
@@ -360,11 +365,18 @@ const FieldRow = styled.div<{ $active: boolean }>`
 `;
 
 const Clear = styled.button`
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -7px;
+  }
   border: none;
   border-radius: 50%;
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
@@ -437,12 +449,10 @@ export function PlaceModal({
     }
   }, [field]);
 
+  useScrollLock(field !== null);
+
   useEffect(() => {
     if (!phone || field === null) return;
-
-    const { style } = document.body;
-    const previous = style.overflow;
-    style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -451,10 +461,7 @@ export function PlaceModal({
 
     inputRef.current?.focus();
 
-    return () => {
-      style.overflow = previous;
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [phone, field, onClose]);
 
   const results = useMemo(() => searchTowns(query, 8), [query]);
@@ -777,3 +784,4 @@ export function PlaceModal({
     </Drawer>
   );
 }
+

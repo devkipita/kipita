@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import { Z } from "@/lib/z";
+import { useScrollLock } from "@/lib/ui/useScrollLock";
 
 const fade = keyframes`from { opacity: 0 } to { opacity: 1 }`;
 const slideIn = keyframes`
@@ -39,6 +40,7 @@ const Panel = styled.div`
   border-right: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
   animation: ${slideIn} 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
   padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -58,22 +60,17 @@ export function MobileNavDrawer({
 
   useEffect(() => setMounted(true), []);
 
+  useScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
-
-    const { style } = document.body;
-    const previous = style.overflow;
-    style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
     document.addEventListener("keydown", onKeyDown);
 
-    return () => {
-      style.overflow = previous;
-      document.removeEventListener("keydown", onKeyDown);
-    };
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
   if (!mounted || !open) return null;

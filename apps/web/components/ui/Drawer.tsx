@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import { X } from "@/components/icons";
+import { lockScroll, unlockScroll } from "@/lib/ui/useScrollLock";
 
 /**
  * The app's modal primitive — a bottom sheet on phones, a centred dialog on
@@ -27,40 +28,6 @@ import { X } from "@/components/icons";
    Drawers nest (the composer opens over the alerts panel; KYC over the mode
    toggle). A module-level stack means Escape only ever closes the topmost. */
 const stack: string[] = [];
-
-/* ── Scroll lock ──────────────────────────────────────────────────────────
-   Reference-counted, so closing an inner drawer doesn't unlock the page while
-   an outer one is still open. `position: fixed` rather than `overflow: hidden`
-   because iOS Safari ignores the latter and scrolls the body behind the sheet.
-   The scrollbar-width padding stops the sticky AppHeader jumping on lock. */
-let lockCount = 0;
-let lockedScrollY = 0;
-
-function lockScroll() {
-  if (lockCount++ > 0) return;
-  lockedScrollY = window.scrollY;
-  const gutter = window.innerWidth - document.documentElement.clientWidth;
-  const { style } = document.body;
-  style.position = "fixed";
-  style.top = `-${lockedScrollY}px`;
-  style.left = "0";
-  style.right = "0";
-  style.overflow = "hidden";
-  if (gutter > 0) style.paddingRight = `${gutter}px`;
-}
-
-function unlockScroll() {
-  if (--lockCount > 0) return;
-  lockCount = 0;
-  const { style } = document.body;
-  style.position = "";
-  style.top = "";
-  style.left = "";
-  style.right = "";
-  style.overflow = "";
-  style.paddingRight = "";
-  window.scrollTo(0, lockedScrollY);
-}
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -123,7 +90,7 @@ const Grip = styled.div`
   margin: 10px auto 0;
   border-radius: 999px;
   flex: none;
-  background: ${({ theme }) => theme.color.line};
+  background: ${({ theme }) => theme.color.outlineVariant};
 
   @media (min-width: 860px) {
     display: none;
@@ -132,9 +99,10 @@ const Grip = styled.div`
 
 const Head = styled.header`
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 18px 20px 12px;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.md};
+  padding: ${({ theme }) => theme.space.lg}
+    ${({ theme }) => theme.space.xl} ${({ theme }) => theme.space.md};
   flex: none;
 
   .copy {
@@ -143,39 +111,50 @@ const Head = styled.header`
   }
   h2 {
     margin: 0;
-    font-size: 1.22rem;
-    font-weight: 800;
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: ${({ theme }) => theme.type.subhead};
+    font-weight: 600;
     letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.text};
+    color: ${({ theme }) => theme.color.onSurface};
   }
   p {
     margin: 4px 0 0;
-    font-size: 0.89rem;
+    font-size: ${({ theme }) => theme.type.label};
     line-height: 1.45;
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
 `;
 
 const Close = styled.button`
+  position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
-  background: ${({ theme }) => theme.color.surface2};
-  color: ${({ theme }) => theme.color.textSoft};
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  color: ${({ theme }) => theme.color.onSurfaceVariant};
   cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
 
-  &:hover {
-    background: ${({ theme }) => theme.color.line};
-    color: ${({ theme }) => theme.color.text};
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainerHighest};
+      color: ${({ theme }) => theme.color.onSurface};
+    }
+  }
+  &:active {
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
   }
   &:disabled {
     opacity: 0.4;
     cursor: default;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -185,20 +164,42 @@ export const DrawerBody = styled.div`
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 4px 20px 20px;
+  padding: ${({ theme }) => theme.space.xs}
+    ${({ theme }) => theme.space.xl} ${({ theme }) => theme.space.xl};
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: ${({ theme }) => theme.space.lg};
+
+  scrollbar-width: thin;
+  scrollbar-color: ${({ theme }) => theme.color.outlineVariant} transparent;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.color.outlineVariant};
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 `;
 
 export const DrawerFooter = styled.footer`
   flex: none;
   display: flex;
-  gap: 12px;
-  padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
-  border-top: 1px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
+  gap: ${({ theme }) => theme.space.md};
+  padding: ${({ theme }) => theme.space.lg}
+    ${({ theme }) => theme.space.xl}
+    calc(${({ theme }) => theme.space.lg} + env(safe-area-inset-bottom));
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
   border-radius: 0 0 ${({ theme }) => theme.radius.lg} ${({ theme }) => theme.radius.lg};
+
+  > * {
+    min-height: 48px;
+  }
 `;
 
 export type DrawerProps = {
@@ -329,7 +330,7 @@ export function Drawer({
             disabled={!dismissible}
             aria-label="Close"
           >
-            <X size={18} />
+            <X size={20} weight="bold" />
           </Close>
         </Head>
         {children}

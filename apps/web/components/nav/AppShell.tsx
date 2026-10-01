@@ -103,7 +103,8 @@ export const ContentWidth = styled.div<{ $max?: number }>`
   width: 100%;
   max-width: ${({ $max }) => $max ?? 1180}px;
   margin: 0 auto;
-  padding-inline: var(--page-pad);
+  padding-left: max(var(--page-pad), env(safe-area-inset-left));
+  padding-right: max(var(--page-pad), env(safe-area-inset-right));
 `;
 
 const Aside = styled.aside`

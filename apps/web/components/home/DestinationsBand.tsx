@@ -61,10 +61,13 @@ const Rail = styled.div`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: calc((100% - 5 * 12px) / 6);
-  gap: 12px;
+  gap: ${({ theme }) => theme.space.md};
   overflow-x: auto;
   scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--page-pad);
   scroll-behavior: smooth;
+  padding-inline: var(--page-pad);
+  margin-inline: calc(-1 * var(--page-pad));
   scrollbar-width: none;
   -ms-overflow-style: none;
 
