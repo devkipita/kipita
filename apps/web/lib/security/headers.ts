@@ -31,6 +31,8 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
     "script-src": [
       "'self'",
       `'nonce-${nonce}'`,
+      "https://maps.googleapis.com",
+      "https://maps.gstatic.com",
       // Next's dev overlay and Fast Refresh evaluate generated code.
       ...(isDev ? ["'unsafe-eval'"] : []),
     ],
@@ -47,7 +49,11 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
       "https://lh3.googleusercontent.com",
       "https://avatars.githubusercontent.com",
       "https://graph.facebook.com",
-      "https://tiles.openfreemap.org",
+      "https://maps.googleapis.com",
+      "https://maps.gstatic.com",
+      "https://*.googleapis.com",
+      "https://*.gstatic.com",
+      "https://*.ggpht.com",
       // Destination photos for trip tickets, resolved server-side from
       // Wikipedia. Wikimedia serves thumbnails from more than one host
       // (upload.* and thumb.*), so this has to be the wildcard or roughly half
@@ -63,7 +69,9 @@ export function contentSecurityPolicy(nonce: string, isDev: boolean): string {
       // Landing-page IP geolocation for the "from" field.
       "https://ipapi.co",
       "https://ipwho.is",
-      "https://tiles.openfreemap.org",
+      "https://maps.googleapis.com",
+      "https://maps.gstatic.com",
+      "https://*.googleapis.com",
       ...(isDev ? ["ws://localhost:*", "http://localhost:*"] : []),
     ],
     "frame-ancestors": ["'none'"],

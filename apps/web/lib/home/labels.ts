@@ -57,3 +57,5 @@ export const MAX_SEATS = 8;
 
 /** Fares travellers pick most — one tap instead of typing (mirrors PostSheet). */
 export const PRICE_PRESETS = [900, 1500, 3000];
+
+export const DISCOUNTS = [10, 15, 20, 25];

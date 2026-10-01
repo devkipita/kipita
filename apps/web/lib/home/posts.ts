@@ -54,6 +54,66 @@ function writeError(error: { code?: string } | null, fallback: string): string {
   return fallback;
 }
 
+/**
+ * The car this ride is offered in. A driver keeps one vehicle, so posting
+ * updates it rather than creating a new row each time. Never fails the post:
+ * a ride without a car attached is still a ride.
+ */
+async function resolveVehicle(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  trip: PostTripInput,
+): Promise<string | null> {
+  const details = {
+    make: trip.vehicle_make?.trim() || null,
+    model: trip.vehicle_model?.trim() || null,
+    color: trip.vehicle_color?.trim() || null,
+    image_url: trip.vehicle_photo_url || null,
+  };
+
+  try {
+    const { data: existing } = await supabase
+      .from("vehicles")
+      .select("id")
+      .eq("driver_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const patch = Object.fromEntries(
+      Object.entries(details).filter(([, v]) => v !== null),
+    );
+
+    if (existing) {
+      if (Object.keys(patch).length > 0) {
+        await supabase.from("vehicles").update(patch).eq("id", existing.id);
+      }
+      return existing.id as string;
+    }
+
+    if (!details.make || !details.model) return null;
+
+    const { data } = await supabase
+      .from("vehicles")
+      .insert({
+        driver_id: userId,
+        make: details.make,
+        model: details.model,
+        color: details.color ?? "Unspecified",
+        year: new Date().getFullYear(),
+        plate_number: `PENDING-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        seats_available: trip.seats_total,
+        image_url: details.image_url,
+      })
+      .select("id")
+      .maybeSingle();
+
+    return (data?.id as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function createTripAction(input: PostTripInput): Promise<PostResult> {
   const parsed = postTripSchema.safeParse(input);
   if (!parsed.success) {
@@ -81,10 +141,13 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   }
 
   const trip = parsed.data;
+  const vehicleId = await resolveVehicle(supabase, session.userId, trip);
+
   const { data, error } = await supabase
     .from("trips")
     .insert({
       driver_id: session.userId,
+      vehicle_id: vehicleId,
       from_location: trip.from_location,
       to_location: trip.to_location,
       departure_date: trip.departure_date,
@@ -92,6 +155,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       seats_total: trip.seats_total,
       seats_available: trip.seats_total,
       price_per_seat: trip.price_per_seat,
+      discount_percent: trip.discount_percent ?? null,
       preferences: trip.preferences,
       status: "posted",
     })

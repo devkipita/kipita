@@ -37,12 +37,12 @@ export default async function HomePage() {
       initialItems={items}
       initialAlerts={alerts}
       offersSlot={
-        <Suspense fallback={null}>
+        <Suspense key="offers" fallback={null}>
           <OffersBand />
         </Suspense>
       }
       destinationsSlot={
-        <Suspense fallback={null}>
+        <Suspense key="destinations" fallback={null}>
           <DestinationsSlot userId={profile.id} />
         </Suspense>
       }

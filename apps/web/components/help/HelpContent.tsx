@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { ArrowDown, ArrowUpRight, Compass, Lifebuoy as LifeBuoy, Envelope as Mail, MapPin, ChatCircle as MessageCircle, MagnifyingGlass as Search, ShieldCheck, Sparkle as Sparkles, UserPlus, Wallet } from "@/components/icons";
+import { ArrowDown, ArrowUpRight, Compass, QuestionCircle as LifeBuoy, Envelope as Mail, MapPin, ChatCircle as MessageCircle, MagnifyingGlass as Search, ShieldCheck, Sparkle as Sparkles, UserPlus, Wallet } from "@/components/icons";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Container } from "@/components/ui/primitives";

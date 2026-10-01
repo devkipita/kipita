@@ -1,4 +1,4 @@
-import { Bell, CardStack, CompassRose, Grid, House, Lifebuoy as LifeBuoy, Scroll as ScrollText, UserCircle as UserRound, Wallet } from "@/components/icons";
+﻿import { Bell, CardStack, CompassRose, Gift, Grid, House, QuestionCircle as LifeBuoy, Scroll as ScrollText, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -9,7 +9,7 @@ export type NavItem = {
   shortLabel: string;
   icon: LucideIcon;
   requiresAuth?: boolean;
-  badge?: "notifications";
+  badge?: "notifications" | "alerts" | "trips";
   owns?: string[];
 };
 
@@ -34,6 +34,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       shortLabel: "Trips",
       icon: CardStack,
       requiresAuth: true,
+      badge: "trips",
       owns: ["/trips", "/ride"],
     },
     {
@@ -42,6 +43,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       label: "Road alerts",
       shortLabel: "Alerts",
       icon: Grid,
+      badge: "alerts",
       owns: ["/alerts"],
     },
     {
@@ -72,6 +74,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       shortLabel: "Rides",
       icon: CardStack,
       requiresAuth: true,
+      badge: "trips",
       owns: ["/trips", "/ride"],
     },
     {
@@ -80,6 +83,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       label: "Road alerts",
       shortLabel: "Alerts",
       icon: Grid,
+      badge: "alerts",
       owns: ["/alerts"],
     },
     {
@@ -126,6 +130,15 @@ export const SECONDARY_NAV: NavItem[] = [
     requiresAuth: true,
     owns: ["/wallet"],
   },
+  {
+    key: "referrals",
+    href: "/referrals",
+    label: "Invite friends",
+    shortLabel: "Invite",
+    icon: Gift,
+    requiresAuth: true,
+    owns: ["/referrals"],
+  },
   { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
   { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: ScrollText },
 ];
@@ -134,3 +147,4 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   if (!signedIn) return SIGNED_OUT_NAV;
   return PRIMARY_NAV[mode];
 }
+

@@ -6,6 +6,7 @@ import { CalendarBlank as CalendarDays, Check, CaretDown as ChevronDown, Circle,
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import {
+  DISCOUNTS,
   MAX_SEATS,
   MIN_SEATS,
   PRICE_PRESETS,
@@ -25,6 +26,7 @@ import {
   TextInput,
 } from "./fields";
 import { ComfortToggles } from "./ComfortToggles";
+import { VehicleField, type VehicleDraft } from "./VehicleField";
 
 export type PostDraft = {
   role: AppMode;
@@ -184,15 +186,23 @@ function nextQuarterHour(): { date: string; time: string } {
 export function PostDrawer({
   open,
   draft,
+  viewerId,
   onClose,
   onPosted,
 }: {
   open: boolean;
   draft: PostDraft | null;
+  viewerId: string;
   onClose: () => void;
   onPosted: () => void;
 }) {
   const isDriver = draft?.role === "driver";
+  const [vehicle, setVehicle] = useState<VehicleDraft>({
+    make: "",
+    model: "",
+    color: "",
+    photoUrl: null,
+  });
   const copy = ROLE_COPY[draft?.role ?? "passenger"];
 
   // Only treat the searched slot as a real schedule if it is still in the
@@ -208,6 +218,7 @@ export function PostDrawer({
   const [time, setTime] = useState("");
   const [seats, setSeats] = useState(1);
   const [price, setPrice] = useState("");
+  const [discount, setDiscount] = useState<number | null>(null);
   const [preferences, setPreferences] = useState<RidePreferences>({});
   const [showComfort, setShowComfort] = useState(false);
   const [error, setError] = useState("");
@@ -238,6 +249,12 @@ export function PostDrawer({
   if (!draft) return null;
 
   const priceNumber = Number(price);
+  const discountNote =
+    discount && priceNumber > 0
+      ? `Riders pay KSh ${Math.round(
+          priceNumber * (1 - discount / 100),
+        ).toLocaleString("en-KE")}`
+      : null;
   const scheduleReady = when === "now" || Boolean(date);
   const canPost =
     scheduleReady &&
@@ -268,11 +285,17 @@ export function PostDrawer({
             departure_time: useTime,
             seats_total: seats,
             price_per_seat: priceNumber,
+            discount_percent: discount,
+            vehicle_make: vehicle.make.trim() || undefined,
+            vehicle_model: vehicle.model.trim() || undefined,
+            vehicle_color: vehicle.color.trim() || undefined,
+            vehicle_photo_url: vehicle.photoUrl ?? undefined,
             preferences: {
               luggage: !!preferences.luggage,
               pets: !!preferences.pets,
               silent_ride: !!preferences.silent_ride,
               music: !!preferences.music,
+              no_smoking: !!preferences.no_smoking,
             },
           })
         : await createRideRequestAction({
@@ -286,6 +309,7 @@ export function PostDrawer({
               pets: !!preferences.pets,
               silent_ride: !!preferences.silent_ride,
               music: !!preferences.music,
+              no_smoking: !!preferences.no_smoking,
             },
           });
 
@@ -465,6 +489,47 @@ export function PostDrawer({
               value={price}
               onChange={(e) => setPrice(e.target.value.replace(/[^\d]/g, ""))}
               placeholder="Custom amount (KSh)"
+            />
+          </FieldBlock>
+        )}
+
+        {isDriver && (
+          <FieldBlock>
+            <FieldHead>
+              <label>Offer a discount</label>
+              {discountNote && <span className="v">{discountNote}</span>}
+            </FieldHead>
+            <ChipRow>
+              <Chip
+                type="button"
+                $active={discount === null}
+                onClick={() => setDiscount(null)}
+              >
+                No discount
+              </Chip>
+              {DISCOUNTS.map((value) => (
+                <Chip
+                  key={value}
+                  type="button"
+                  $active={discount === value}
+                  onClick={() => setDiscount(value)}
+                >
+                  {value}% off
+                </Chip>
+              ))}
+            </ChipRow>
+          </FieldBlock>
+        )}
+
+        {isDriver && viewerId && (
+          <FieldBlock>
+            <FieldHead>
+              <label>Your car</label>
+            </FieldHead>
+            <VehicleField
+              value={vehicle}
+              onChange={setVehicle}
+              userId={viewerId}
             />
           </FieldBlock>
         )}

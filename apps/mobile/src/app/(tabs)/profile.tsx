@@ -125,6 +125,10 @@ export default function ProfileScreen() {
     router.push("/wallet" as any);
   }, [router]);
 
+  const openReferrals = useCallback(() => {
+    router.push("/referrals" as any);
+  }, [router]);
+
   const handleSignOut = useCallback(() => {
     confirmAction(
       "Sign out",
@@ -398,6 +402,13 @@ export default function ProfileScreen() {
             label="Wallet"
             subtitle="Balance, escrow and payouts"
             onPress={openWallet}
+          />
+          <SettingsRow
+            icon="gift-outline"
+            tone="tertiary"
+            label="Invite friends"
+            subtitle="Share your code and earn credit"
+            onPress={openReferrals}
           />
           <SettingsRow
             icon="shield-checkmark-outline"

@@ -15,11 +15,10 @@ const LiveMap = dynamic(() => import("./LiveMap").then((m) => m.LiveMap), {
 
 const Band = styled.section`
   position: relative;
-  width: 100vw;
-  margin-inline: calc(50% - 50vw);
-  height: clamp(200px, 26vh, 320px);
-  background: ${({ theme }) => theme.color.bgAlt};
-  border-bottom: 1px solid ${({ theme }) => theme.color.line};
+  width: 100%;
+  height: clamp(168px, 20vh, 240px);
+  background: ${({ theme }) => theme.color.bg};
+  overflow: hidden;
 
   @media (max-width: 860px) {
     display: none;

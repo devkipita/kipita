@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { ImageSquare, Lifebuoy, PaperPlaneTilt, X } from "@/components/icons";
+import { Check, ImageSquare, PaperPlaneTilt, QuestionCircle, X } from "@/components/icons";
 import { palette } from "@/lib/theme";
 import { Z } from "@/lib/z";
 import { useSupport } from "./SupportProvider";
@@ -55,12 +55,25 @@ const Shell = styled.div<{ $open: boolean }>`
   }
 `;
 
-const Launcher = styled.button<{ $open: boolean }>`
+const Collapsed = styled.div<{ $open: boolean }>`
+  display: flex;
+  align-items: center;
+  height: ${PILL_H}px;
+  opacity: ${({ $open }) => ($open ? 0 : 1)};
+  pointer-events: ${({ $open }) => ($open ? "none" : "auto")};
+  transition: opacity 160ms ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const Launcher = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 10px;
   height: ${PILL_H}px;
-  padding: 0 20px;
+  padding: 0 10px 0 20px;
   border: none;
   background: transparent;
   color: ${palette.blackMid};
@@ -70,14 +83,40 @@ const Launcher = styled.button<{ $open: boolean }>`
   letter-spacing: -0.01em;
   white-space: nowrap;
   cursor: pointer;
-  opacity: ${({ $open }) => ($open ? 0 : 1)};
-  pointer-events: ${({ $open }) => ($open ? "none" : "auto")};
-  transition: opacity 160ms ease;
 
   svg {
     flex: none;
   }
   --icon-knockout: #ffffff;
+`;
+
+const Dismiss = styled.button`
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: ${palette.blackMid};
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 140ms ease, background 140ms ease;
+
+  &:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.08);
+  }
+  &:focus-visible {
+    opacity: 1;
+    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const Count = styled.span`
@@ -317,6 +356,8 @@ export function SupportDock() {
     sending,
     error,
     unread,
+    dismissed,
+    dismiss,
     send,
     close,
     markRead,
@@ -357,6 +398,7 @@ export function SupportDock() {
   }, [open]);
 
   if (openCases.length === 0) return null;
+  if (dismissed && !open) return null;
 
   async function submit() {
     if (sending) return;
@@ -371,20 +413,29 @@ export function SupportDock() {
 
   return (
     <Shell $open={open}>
-      <Launcher
-        type="button"
-        $open={open}
-        onClick={() => setOpen(true)}
-        aria-label={`Support — ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}`}
-      >
-        <Lifebuoy size={20} weight="fill" />
-        Support
-        {unread > 0 ? (
-          <Count>{unread > 9 ? "9+" : unread}</Count>
-        ) : (
-          <Count>{openCases.length}</Count>
-        )}
-      </Launcher>
+      <Collapsed $open={open}>
+        <Launcher
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={`Support — ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}`}
+        >
+          <QuestionCircle size={20} />
+          Support
+          {unread > 0 ? (
+            <Count>{unread > 9 ? "9+" : unread}</Count>
+          ) : (
+            <Count>{openCases.length}</Count>
+          )}
+        </Launcher>
+        <Dismiss
+          type="button"
+          onClick={dismiss}
+          title="Hide until the next reply"
+          aria-label="Hide support until the next reply"
+        >
+          <X size={15} weight="bold" />
+        </Dismiss>
+      </Collapsed>
 
       <Panel $open={open} role="dialog" aria-label="Support conversation">
         <Head>
@@ -407,7 +458,7 @@ export function SupportDock() {
                 });
               }}
             >
-              <Lifebuoy size={17} />
+              <Check size={17} weight="bold" />
             </HeadButton>
           )}
           <HeadButton

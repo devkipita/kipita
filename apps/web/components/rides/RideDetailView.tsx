@@ -157,17 +157,26 @@ const Chip = styled.span<{ $accent?: boolean }>`
 const Person = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: ${({ theme }) => theme.space.xl};
 
+  > .avatar {
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.color.elevated},
+      0 0 0 5px ${({ theme }) => theme.color.primaryContainer};
+  }
   .who {
     flex: 1;
     min-width: 0;
   }
   h2 {
-    margin: 0 0 8px;
-    font-size: 1.15rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: ${({ theme }) => theme.type.heading};
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  @media (max-width: 560px) {
+    gap: ${({ theme }) => theme.space.lg};
   }
 `;
 
@@ -493,7 +502,12 @@ export function RideDetailView({
         {person && (
           <Card>
             <Person>
-              <Avatar name={person.full_name ?? "Kipita user"} src={person.avatar_url} size={64} />
+              <Avatar
+                className="avatar"
+                name={person.full_name ?? "Kipita user"}
+                src={person.avatar_url}
+                size={104}
+              />
               <div className="who">
                 <h2>{person.full_name?.trim() || (isTrip ? "Kipita driver" : "Kipita passenger")}</h2>
                 <Chips style={{ marginTop: 0 }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { Briefcase, MusicNote as Music, PawPrint, SpeakerSimpleX as VolumeX } from "@/components/icons";
+import { Briefcase, MusicNote as Music, PawPrint, Prohibit, SpeakerSimpleX as VolumeX } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import { Switch } from "@/components/ui/Switch";
 import type { RidePreferences } from "@/lib/ride-detail";
@@ -38,6 +38,7 @@ const OPTIONS: { key: keyof RidePreferences; label: string; icon: LucideIcon }[]
   { key: "pets", label: "Pets", icon: PawPrint },
   { key: "silent_ride", label: "Quiet ride", icon: VolumeX },
   { key: "music", label: "Music", icon: Music },
+  { key: "no_smoking", label: "No smoking", icon: Prohibit },
 ];
 
 /** The four ride preferences, shared by the planner and the post drawer. */

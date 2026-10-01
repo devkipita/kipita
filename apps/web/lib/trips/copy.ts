@@ -1,4 +1,4 @@
-import { HandCoins, Lifebuoy, ShieldCheck, TrafficCone } from "@/components/icons";
+import { HandCoins, QuestionCircle, ShieldCheck, TrafficCone } from "@/components/icons";
 import type { KipitaIcon } from "@/components/icons";
 
 export const TRIP_FAQS: { q: string; a: string }[] = [
@@ -57,6 +57,6 @@ export const HELP_TOPICS: {
     subject: "Something else",
     category: "general",
     hint: "Anything the answers above do not cover.",
-    icon: Lifebuoy,
+    icon: QuestionCircle,
   },
 ];

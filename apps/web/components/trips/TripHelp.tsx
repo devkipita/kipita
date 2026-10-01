@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import styled from "styled-components";
-import { Check, Lifebuoy } from "@/components/icons";
+import { Check, QuestionCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
@@ -197,7 +197,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               onClick={submit}
               disabled={pending || detail.trim().length < 10}
             >
-              <Lifebuoy size={16} />
+              <QuestionCircle size={16} />
               {pending ? "Opening…" : "Open case"}
             </ButtonEl>
           </div>

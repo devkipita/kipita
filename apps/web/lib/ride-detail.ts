@@ -11,6 +11,7 @@ export type RidePreferences = {
   pets?: boolean;
   silent_ride?: boolean;
   music?: boolean;
+  no_smoking?: boolean;
 };
 
 /**

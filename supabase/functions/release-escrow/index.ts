@@ -183,6 +183,11 @@ serve(async (req) => {
       .update({ status: 'completed', updated_at: new Date().toISOString() })
       .eq('id', booking_id);
 
+    await supabase.rpc('convert_referral', {
+      p_referee_id: booking.passenger_id,
+      p_booking_id: booking_id,
+    });
+
     // Notify the driver of the settlement.
     await supabase.from('notifications').insert({
       user_id: booking.driver_id,

@@ -1,67 +1,271 @@
 "use client";
 
 import Link from "next/link";
-import styled from "styled-components";
-import { CaretRight, Users, VerifiedBadge, Warning } from "@/components/icons";
+import styled, { keyframes } from "styled-components";
+import {
+  ArrowRight,
+  CalendarSolid,
+  CarMinibus,
+  CarProfile,
+  CarSolid,
+  CarSuv,
+  CarVan,
+  ClockSolid,
+  Star,
+  Tag,
+  Users,
+  VerifiedBadge,
+  Warning,
+} from "@/components/icons";
+import type { KipitaIcon } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { formatKes } from "@/lib/rides";
-import { formatRideDate, formatRideTime, ratingLabel } from "@/lib/ride-detail";
-import type { HomeItem } from "@/lib/home/search";
+import { discountedFare } from "@/lib/home/offer";
+import { formatRideDate, formatRideTime } from "@/lib/ride-detail";
+import type { HomeItem, HomeTrip, VehicleType } from "@/lib/home/search";
+import { RequestCard } from "./RequestCard";
 import { RideAmenities } from "./RideAmenities";
 
 const SCARCE = 2;
+const MAX_AMENITIES = 1;
 
-const Card = styled(Link)`
+const CAR_ICON: Record<VehicleType, KipitaIcon> = {
+  sedan: CarProfile,
+  suv: CarSuv,
+  van: CarVan,
+  minibus: CarMinibus,
+  pickup: CarProfile,
+  motorbike: CarProfile,
+};
+
+const rise = keyframes`
+  from { opacity: 0; transform: translateY(16px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+`;
+
+const pop = keyframes`
+  0%   { opacity: 0; transform: scale(0.6) translateY(-4px); }
+  70%  { opacity: 1; transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+`;
+
+const Card = styled(Link)<{ $index: number }>`
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.space.lg};
   min-width: 0;
-  padding: ${({ theme }) => theme.space.lg};
   border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  background: ${({ theme }) => theme.color.elevated};
+  box-shadow: ${({ theme }) => theme.elevation[1]};
+  overflow: hidden;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  transition: background 0.18s ease, transform 0.18s ease;
+
+  animation: ${rise} ${({ theme }) => theme.motion.duration.long1}
+    ${({ theme }) => theme.motion.easing.emphasizedDecelerate} backwards;
+  animation-delay: ${({ $index }) => Math.min($index, 5) * 60}ms;
+
+  transition:
+    background ${({ theme }) => theme.motion.duration.short4}
+      ${({ theme }) => theme.motion.easing.standard},
+    border-radius ${({ theme }) => theme.motion.duration.short3}
+      ${({ theme }) => theme.motion.easing.standard},
+    transform ${({ theme }) => theme.motion.duration.medium2}
+      ${({ theme }) => theme.motion.easing.emphasized},
+    box-shadow ${({ theme }) => theme.motion.duration.medium2}
+      ${({ theme }) => theme.motion.easing.emphasized};
 
   &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainer};
-    transform: translateY(-2px);
+    background: ${({ theme }) => theme.color.elevatedHover};
+    box-shadow: ${({ theme }) => theme.elevation[3]};
+    transform: translateY(-4px);
   }
-  &:hover .go {
-    transform: translateX(3px);
+  &:hover .shot img {
+    transform: scale(1.06);
   }
-
+  &:hover .fare b {
+    letter-spacing: -0.02em;
+  }
+  &:active {
+    border-radius: ${({ theme }) => theme.radius.sm};
+    transform: translateY(0) scale(0.975);
+    box-shadow: ${({ theme }) => theme.elevation[1]};
+  }
   &:focus-visible {
     outline: 3px solid ${({ theme }) => theme.color.primary};
     outline-offset: 3px;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    animation: none;
+    transition: background ${({ theme }) => theme.motion.duration.short4} linear;
     &:hover,
-    &:hover .go {
+    &:active {
+      transform: none;
+      border-radius: ${({ theme }) => theme.radius.md};
+    }
+    &:hover .shot img {
       transform: none;
     }
+  }
+`;
+
+const Media = styled.div`
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: ${({ theme }) => theme.color.elevatedInset};
+
+  .shot {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
+  }
+  .shot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform ${({ theme }) => theme.motion.duration.long2}
+      ${({ theme }) => theme.motion.easing.emphasized};
+  }
+  .tags {
+    position: absolute;
+    inset: ${({ theme }) => theme.space.sm} ${({ theme }) => theme.space.sm} auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: ${({ theme }) => theme.space.sm};
+    pointer-events: none;
+  }
+`;
+
+const Deal = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 9px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.tone.deep.bg};
+  color: ${({ theme }) => theme.tone.deep.on};
+  font-size: ${({ theme }) => theme.type.micro};
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  animation: ${pop} ${({ theme }) => theme.motion.duration.medium4}
+    ${({ theme }) => theme.motion.easing.spring} 220ms backwards;
+
+  svg {
+    flex: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const Scarce = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.warningContainer};
+  color: ${({ theme }) => theme.color.onWarningContainer};
+  font-size: ${({ theme }) => theme.type.micro};
+  font-weight: 700;
+  white-space: nowrap;
+
+  svg {
+    flex: none;
+  }
+`;
+
+const Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding: ${({ theme }) => theme.space.lg};
+`;
+
+const Route = styled.h3`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.sm};
+  margin: 0 0 ${({ theme }) => theme.space.md};
+  min-width: 0;
+  font-family: ${({ theme }) => theme.fontHeading};
+  font-size: ${({ theme }) => theme.type.body};
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: ${({ theme }) => theme.color.onSurface};
+
+  .town {
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  svg {
+    flex: none;
+    color: ${({ theme }) => theme.color.primary};
+  }
+`;
+
+const Facts = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px ${({ theme }) => theme.space.md};
+  min-width: 0;
+`;
+
+const Fact = styled.span<{ $hue: "date" | "time" | "car" }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: ${({ theme }) => theme.type.label};
+  font-weight: 500;
+  color: ${({ theme }) => theme.color.onSurface};
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  svg {
+    flex: none;
+    color: ${({ theme, $hue }) =>
+      $hue === "date"
+        ? theme.color.info
+        : $hue === "time"
+          ? theme.color.tertiary
+          : theme.color.secondary};
   }
 `;
 
 const Who = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.space.md};
+  gap: ${({ theme }) => theme.space.sm};
+  margin-top: ${({ theme }) => theme.space.md};
   min-width: 0;
 
   .copy {
     min-width: 0;
+    flex: 1;
   }
   .name {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     min-width: 0;
-    font-size: ${({ theme }) => theme.type.body};
+    font-size: ${({ theme }) => theme.type.label};
     font-weight: 600;
     color: ${({ theme }) => theme.color.onSurface};
   }
@@ -75,231 +279,268 @@ const Who = styled.div`
   .name svg {
     flex: none;
     color: ${({ theme }) => theme.color.info};
-    --badge-knockout: ${({ theme }) => theme.color.surfaceContainerLow};
+    --badge-knockout: ${({ theme }) => theme.color.elevated};
   }
   .trust {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     margin-top: 2px;
-    font-size: ${({ theme }) => theme.type.label};
-    color: ${({ theme }) => theme.color.textSoft};
+    font-size: ${({ theme }) => theme.type.micro};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
     white-space: nowrap;
   }
-`;
-
-const When = styled.p`
-  margin: 0 0 ${({ theme }) => theme.space.md};
-  font-size: ${({ theme }) => theme.type.subhead};
-  font-weight: 600;
-  letter-spacing: -0.015em;
-  color: ${({ theme }) => theme.color.onSurface};
-`;
-
-const Route = styled.div`
-  display: grid;
-  grid-template-columns: 10px minmax(0, 1fr);
-  column-gap: ${({ theme }) => theme.space.md};
-  row-gap: 0;
-  align-items: center;
-
-  .mark {
-    position: relative;
-    display: grid;
-    place-items: center;
-    height: 26px;
+  .trust svg {
+    flex: none;
+    color: ${({ theme }) => theme.color.warning};
   }
-  .ring {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    border: 2.5px solid ${({ theme }) => theme.color.outline};
-  }
-  .pin {
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: ${({ theme }) => theme.color.primary};
-  }
-  .mark.start::after {
-    content: "";
-    position: absolute;
-    top: 20px;
-    width: 2px;
-    height: 12px;
-    border-radius: 2px;
-    background: ${({ theme }) => theme.color.outlineVariant};
-  }
-  .town {
-    font-size: ${({ theme }) => theme.type.body};
-    font-weight: 600;
+  .trust b {
+    font-weight: 700;
     color: ${({ theme }) => theme.color.onSurface};
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 `;
 
-const Foot = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  column-gap: ${({ theme }) => theme.space.md};
-  row-gap: ${({ theme }) => theme.space.sm};
-  padding-top: ${({ theme }) => theme.space.md};
-  border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-`;
-
-const Seats = styled.span<{ $scarce: boolean }>`
-  display: inline-flex;
+const Chips = styled.div`
+  display: flex;
   align-items: center;
   gap: 6px;
-  grid-column: 1;
+  margin: ${({ theme }) => theme.space.md} 0;
   min-width: 0;
+  overflow: hidden;
+`;
+
+const Seats = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  padding: 3px 10px 3px 8px;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.elevatedInset};
+  color: ${({ theme }) => theme.color.onSurfaceVariant};
+  font-size: ${({ theme }) => theme.type.micro};
+  font-weight: 500;
   white-space: nowrap;
-  font-size: ${({ theme }) => theme.type.label};
-  font-weight: ${({ $scarce }) => ($scarce ? 600 : 400)};
-  color: ${({ theme, $scarce }) =>
-    $scarce ? theme.color.warning : theme.color.textSoft};
 
   svg {
     flex: none;
   }
 `;
 
-const Amenities = styled.div`
-  grid-column: 1;
-  min-width: 0;
-`;
-
-const Price = styled.div<{ $accent: boolean }>`
-  grid-column: 2;
-  grid-row: 1 / span 2;
+const Fare = styled.div`
   display: flex;
   align-items: baseline;
-  gap: 4px;
-  align-self: center;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 2px ${({ theme }) => theme.space.sm};
+  min-width: 0;
+  margin-top: auto;
+  padding-top: ${({ theme }) => theme.space.md};
+  border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
 
   b {
     font-family: ${({ theme }) => theme.fontHeading};
     font-size: ${({ theme }) => theme.type.heading};
     font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    color: ${({ theme, $accent }) =>
-      $accent ? theme.color.primary : theme.color.onSurface};
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.color.primary};
+    transition: letter-spacing ${({ theme }) => theme.motion.duration.medium2}
+      ${({ theme }) => theme.motion.easing.emphasized};
+  }
+  s {
+    font-size: ${({ theme }) => theme.type.label};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    text-decoration-thickness: 1px;
   }
   small {
-    font-size: ${({ theme }) => theme.type.label};
-    color: ${({ theme }) => theme.color.textSoft};
+    margin-left: auto;
+    font-size: ${({ theme }) => theme.type.micro};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
-  .go {
-    align-self: center;
-    margin-left: 2px;
-    color: ${({ theme }) => theme.color.textSoft};
-    transition: transform 0.18s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    b {
+      transition: none;
+    }
   }
 `;
 
 export function RideCard({
   item,
+  index = 0,
   hovered = false,
   onHoverChange,
 }: {
   item: HomeItem;
+  index?: number;
   hovered?: boolean;
   onHoverChange?: (id: string | null) => void;
 }) {
-  const isTrip = item.kind === "trip";
+  if (item.kind === "request") {
+    return (
+      <RequestCard
+        item={item}
+        index={index}
+        hovered={hovered}
+        onHoverChange={onHoverChange}
+      />
+    );
+  }
+
+  return (
+    <TripCard
+      item={item}
+      index={index}
+      hovered={hovered}
+      onHoverChange={onHoverChange}
+    />
+  );
+}
+
+function TripCard({
+  item,
+  index,
+  hovered,
+  onHoverChange,
+}: {
+  item: HomeTrip;
+  index: number;
+  hovered: boolean;
+  onHoverChange?: (id: string | null) => void;
+}) {
   const person = item.person;
-  const name =
-    person?.full_name?.trim() || (isTrip ? "Kipita driver" : "Kipita passenger");
+  const name = person?.full_name?.trim() || "Kipita driver";
 
-  const date = formatRideDate(
-    isTrip ? item.departure_date : item.preferred_date,
-  );
-  const time = formatRideTime(
-    isTrip ? item.departure_time : item.preferred_time,
-  );
-  const when = [date ?? "Flexible", time].filter(Boolean).join(" · ");
+  const date = formatRideDate(item.departure_date) ?? "Flexible";
+  const time = formatRideTime(item.departure_time);
 
-  const seats = isTrip ? item.seats_available : item.seats_needed;
-  const scarce = isTrip && seats > 0 && seats <= SCARCE;
-  const price = isTrip ? formatKes(item.price_per_seat) : null;
+  const seats = item.seats_available;
+  const scarce = seats > 0 && seats <= SCARCE;
 
-  const seatLabel = isTrip
-    ? scarce
-      ? `Only ${seats} left`
-      : `${seats} seats left`
-    : `${seats} ${seats === 1 ? "seat" : "seats"} wanted`;
+  const off = item.discount_percent;
+  const price = formatKes(item.price_per_seat);
+  const deal = off ? discountedFare(item.price_per_seat, off) : null;
+
+  const seatLabel = `${seats} ${seats === 1 ? "seat" : "seats"}`;
+  const scarceLabel = `Only ${seats} left`;
+
+  const vehicle = item.vehicle;
+  const model = [vehicle?.make, vehicle?.model].filter(Boolean).join(" ");
+  const CarIcon = CAR_ICON[vehicle?.vehicle_type ?? "sedan"];
+
+  const rating = person?.rating && person.rating > 0 ? person.rating : null;
+  const trips = person?.total_trips ?? 0;
 
   return (
     <Card
-      href={`/ride/${item.id}${isTrip ? "" : "?kind=request"}`}
+      href={`/ride/${item.id}`}
+      $index={index}
       data-hovered={hovered ? "true" : "false"}
       onMouseEnter={() => onHoverChange?.(item.id)}
       onMouseLeave={() => onHoverChange?.(null)}
       onFocus={() => onHoverChange?.(item.id)}
       onBlur={() => onHoverChange?.(null)}
       aria-label={
-        `${when}, ${item.from_location} to ${item.to_location}, ` +
-        (isTrip ? `${price} per seat, ${seatLabel}` : seatLabel) +
-        `, with ${name}`
+        `${item.from_location} to ${item.to_location}, ${date}${time ? `, ${time}` : ""}` +
+        (model ? `, ${model}` : "") +
+        `, ${deal ? formatKes(deal) : price} per seat` +
+        (off ? `, ${off} percent off this ride` : "") +
+        `, ${scarce ? scarceLabel : seatLabel}, with ${name}`
       }
     >
-      <Who>
-        <Avatar name={name} src={person?.avatar_url} size={40} />
-        <span className="copy">
-          <span className="name">
-            <b>{name}</b>
-            {person?.is_verified && (
-              <>
-                <VerifiedBadge size={16} />
-                <VisuallyHidden>Verified</VisuallyHidden>
-              </>
-            )}
-          </span>
-          <span className="trust">
-            {ratingLabel(person?.rating, person?.total_trips)}
-          </span>
+      <Media>
+        <span className="shot">
+          {vehicle?.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={vehicle.image_url} alt="" loading="lazy" />
+          ) : (
+            <CarIcon size={44} />
+          )}
         </span>
-      </Who>
+        <span className="tags">
+          {off ? (
+            <Deal>
+              <Tag size={12} />
+              {off}% off
+            </Deal>
+          ) : null}
+          {scarce && (
+            <Scarce>
+              <Warning size={12} weight="fill" />
+              {scarceLabel}
+            </Scarce>
+          )}
+        </span>
+      </Media>
 
-      <div>
-        <When>{when}</When>
+      <Body>
         <Route>
-          <span className="mark start" aria-hidden="true">
-            <span className="ring" />
-          </span>
           <span className="town">{item.from_location}</span>
-
-          <span className="mark" aria-hidden="true">
-            <span className="pin" />
-          </span>
+          <ArrowRight size={15} aria-hidden="true" />
           <span className="town">{item.to_location}</span>
         </Route>
-      </div>
 
-      <Foot>
-        <Amenities>
-          <RideAmenities preferences={item.preferences} />
-        </Amenities>
-
-        <Seats $scarce={scarce}>
-          {scarce ? <Warning size={15} weight="fill" /> : <Users size={15} />}
-          {seatLabel}
-        </Seats>
-
-        <Price $accent={isTrip}>
-          {isTrip ? (
-            <>
-              <b>{price}</b>
-              <small>/ seat</small>
-            </>
-          ) : (
-            <b>{seats}</b>
+        <Facts>
+          <Fact $hue="date">
+            <CalendarSolid size={15} />
+            <VisuallyHidden>Date</VisuallyHidden>
+            {date}
+          </Fact>
+          {time && (
+            <Fact $hue="time">
+              <ClockSolid size={15} />
+              <VisuallyHidden>Departs</VisuallyHidden>
+              {time}
+            </Fact>
           )}
-          <CaretRight className="go" size={18} aria-hidden="true" />
-        </Price>
-      </Foot>
+          <Fact $hue="car">
+            <CarSolid size={15} />
+            <VisuallyHidden>Vehicle</VisuallyHidden>
+            {model || "Car to be confirmed"}
+          </Fact>
+        </Facts>
+
+        <Who>
+          <Avatar name={name} src={person?.avatar_url} size={34} />
+          <span className="copy">
+            <span className="name">
+              <b>{name}</b>
+              {person?.is_verified && (
+                <>
+                  <VerifiedBadge size={15} />
+                  <VisuallyHidden>Verified</VisuallyHidden>
+                </>
+              )}
+            </span>
+            <span className="trust">
+              <Star size={12} weight="fill" aria-hidden="true" />
+              {rating ? (
+                <>
+                  <b>{rating.toFixed(1)}</b>
+                  {trips > 0 && <span>· {trips} trips</span>}
+                </>
+              ) : (
+                <b>New driver</b>
+              )}
+            </span>
+          </span>
+        </Who>
+
+        <Chips>
+          <Seats>
+            <Users size={12} />
+            {seatLabel}
+          </Seats>
+          <RideAmenities preferences={item.preferences} max={MAX_AMENITIES} />
+        </Chips>
+
+        <Fare className="fare">
+          <b>{deal ? formatKes(deal) : price}</b>
+          {deal && <s>{price}</s>}
+          <small>per seat</small>
+        </Fare>
+      </Body>
     </Card>
   );
 }

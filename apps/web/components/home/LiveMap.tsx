@@ -3,21 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styled, { useTheme } from "styled-components";
-import {
-  Map as MapLibreMap,
-  type GeoJSONSource,
-  type MapLayerMouseEvent,
-} from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import { HOME_COPY } from "@/lib/home/copy";
-import { loadBaseStyle, tintStyle } from "@/lib/home/mapStyle";
-import {
-  arcsGeoJson,
-  buildMapModel,
-  carsGeoJson,
-  pinsGeoJson,
-  type MapModel,
-} from "@/lib/home/mapData";
+import { loadGoogleMaps, mapStyleFor } from "@/lib/home/googleMap";
+import { buildMapModel, type MapModel } from "@/lib/home/mapData";
 import { KENYA_BBOX, bearingAt, boundsOf, pointAt } from "@/lib/home/geometry";
 import type { HomeItem } from "@/lib/home/search";
 import { MapTeaser } from "./MapTeaser";
@@ -27,34 +15,27 @@ const Wrap = styled.div`
   width: 100%;
   height: 100%;
 
-  .maplibregl-ctrl-attrib {
+  .gm-style-cc,
+  .gmnoprint {
     font-size: ${({ theme }) => theme.type.micro};
-    background: ${({ theme }) => theme.color.surface}cc;
-  }
-  .maplibregl-ctrl-attrib a {
-    color: ${({ theme }) => theme.color.textSoft};
-  }
-  canvas:focus-visible {
-    outline: 3px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -3px;
   }
 `;
 
 const Canvas = styled.div`
   position: absolute;
-  inset: 0;
+  inset: 0 0 44px;
 `;
 
 const Scrim = styled.button`
   position: absolute;
-  inset: 0;
+  inset: 0 0 70px;
   z-index: 2;
   border: 0;
   background: transparent;
   cursor: pointer;
   display: grid;
-  place-items: end center;
-  padding-bottom: 46px;
+  place-items: start end;
+  padding: 10px 12px;
   font: inherit;
 
   span {
@@ -74,37 +55,43 @@ const Scrim = styled.button`
   }
 `;
 
-const CAR_SIZE = 26;
+const DART = "M 0,-7 L 4.6,6 L 0,3 L -4.6,6 Z";
 
-function carImage(fill: string, ink: string): ImageData | null {
-  if (typeof document === "undefined") return null;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const size = CAR_SIZE * dpr;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
+const MIN_ZOOM = 6.2;
+const MAX_ZOOM = 9;
 
-  ctx.scale(dpr, dpr);
-  const c = CAR_SIZE / 2;
+function frame(
+  maps: typeof google.maps,
+  map: google.maps.Map,
+  bounds: [[number, number], [number, number]],
+) {
+  const [[w, s], [e, n]] = bounds;
+  if (w === e && s === n) {
+    map.setCenter({ lat: s, lng: w });
+    map.setZoom(8);
+    return;
+  }
 
-  ctx.beginPath();
-  ctx.arc(c, c, c - 1, 0, Math.PI * 2);
-  ctx.fillStyle = fill;
-  ctx.fill();
+  map.fitBounds(new maps.LatLngBounds({ lat: s, lng: w }, { lat: n, lng: e }), {
+    top: 28,
+    bottom: 64,
+    left: 48,
+    right: 48,
+  });
 
-  ctx.fillStyle = ink;
-  ctx.beginPath();
-  ctx.moveTo(c, c - 6.5);
-  ctx.lineTo(c + 4.4, c + 6);
-  ctx.lineTo(c, c + 3.4);
-  ctx.lineTo(c - 4.4, c + 6);
-  ctx.closePath();
-  ctx.fill();
-
-  return ctx.getImageData(0, 0, size, size);
+  maps.event.addListenerOnce(map, "idle", () => {
+    const zoom = map.getZoom() ?? MIN_ZOOM;
+    if (zoom < MIN_ZOOM) map.setZoom(MIN_ZOOM);
+    else if (zoom > MAX_ZOOM) map.setZoom(MAX_ZOOM);
+  });
 }
+
+type Layers = {
+  arcs: google.maps.Polyline[];
+  glows: google.maps.Polyline[];
+  cars: google.maps.Marker[];
+  pins: Map<string, google.maps.Marker>;
+};
 
 export function LiveMap({
   items,
@@ -122,7 +109,10 @@ export function LiveMap({
   const theme = useTheme();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<MapLibreMap | null>(null);
+  const mapsRef = useRef<typeof google.maps | null>(null);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const layersRef = useRef<Layers>({ arcs: [], glows: [], cars: [], pins: new Map() });
+
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [interactive, setInteractive] = useState(false);
@@ -131,48 +121,37 @@ export function LiveMap({
   const modelRef = useRef(model);
   modelRef.current = model;
 
-  const hoverRef = useRef<string | null>(null);
   const onHoverRef = useRef(onHover);
   onHoverRef.current = onHover;
   const routerRef = useRef(router);
   routerRef.current = router;
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    let created: MapLibreMap | null = null;
     let cancelled = false;
-    const controller = new AbortController();
 
-    loadBaseStyle(controller.signal)
-      .then((base) => {
+    loadGoogleMaps()
+      .then((maps) => {
         if (cancelled || !containerRef.current) return;
 
-        const map = new MapLibreMap({
-          container: containerRef.current,
-          style: tintStyle(base, theme) as never,
-          bounds: KENYA_BBOX,
-          fitBoundsOptions: { padding: 24 },
-          maxBounds: [
-            [32.5, -6.0],
-            [43.2, 6.6],
-          ],
-          scrollZoom: false,
-          dragRotate: false,
-          pitchWithRotate: false,
-          touchPitch: false,
-          attributionControl: { compact: true },
-          fadeDuration: 0,
+        const map = new maps.Map(containerRef.current, {
+          center: { lat: 0.2, lng: 37.9 },
+          zoom: 6,
+          disableDefaultUI: true,
+          keyboardShortcuts: false,
+          clickableIcons: false,
+          gestureHandling: "none",
+          styles: mapStyleFor(theme),
+          restriction: {
+            latLngBounds: { north: 6.6, south: -6.0, west: 32.5, east: 43.2 },
+            strictBounds: false,
+          },
         });
 
-        created = map;
+        frame(maps, map, KENYA_BBOX);
+
+        mapsRef.current = maps;
         mapRef.current = map;
-        map.on("error", () => setFailed(true));
-        map.on("load", () => {
-          if (cancelled) return;
-          setReady(true);
-        });
+        setReady(true);
       })
       .catch(() => {
         if (!cancelled) setFailed(true);
@@ -180,8 +159,11 @@ export function LiveMap({
 
     return () => {
       cancelled = true;
-      controller.abort();
-      created?.remove();
+      const layers = layersRef.current;
+      for (const line of [...layers.arcs, ...layers.glows]) line.setMap(null);
+      for (const car of layers.cars) car.setMap(null);
+      for (const pin of layers.pins.values()) pin.setMap(null);
+      layersRef.current = { arcs: [], glows: [], cars: [], pins: new Map() };
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -190,277 +172,185 @@ export function LiveMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-
-    const image = carImage(theme.color.primary, theme.color.onPrimary);
-    if (image && !map.hasImage("kip-car")) {
-      map.addImage("kip-car", image, {
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-      });
-    }
-
-    const empty = { type: "FeatureCollection", features: [] } as never;
-
-    if (!map.getSource("kip-arcs")) {
-      map.addSource("kip-arcs", { type: "geojson", data: empty });
-    }
-    if (!map.getSource("kip-pins")) {
-      map.addSource("kip-pins", {
-        type: "geojson",
-        data: empty,
-        promoteId: "pinKey",
-      });
-    }
-    if (!map.getSource("kip-cars")) {
-      map.addSource("kip-cars", { type: "geojson", data: empty });
-    }
-
-    if (!map.getLayer("kip-arc-glow")) {
-      map.addLayer({
-        id: "kip-arc-glow",
-        type: "line",
-        source: "kip-arcs",
-        paint: {
-          "line-color": theme.color.primary,
-          "line-width": 6,
-          "line-opacity": 0.14,
-          "line-blur": 3,
-        },
-      });
-    }
-    if (!map.getLayer("kip-arc")) {
-      map.addLayer({
-        id: "kip-arc",
-        type: "line",
-        source: "kip-arcs",
-        paint: {
-          "line-color": [
-            "case",
-            ["boolean", ["get", "live"], false],
-            theme.tone.lime.bg,
-            theme.color.primary,
-          ],
-          "line-width": 2,
-          "line-opacity": 0.9,
-        },
-      });
-    }
-    if (!map.getLayer("kip-pin-halo")) {
-      map.addLayer({
-        id: "kip-pin-halo",
-        type: "circle",
-        source: "kip-pins",
-        paint: {
-          "circle-color": theme.color.primary,
-          "circle-opacity": [
-            "case",
-            ["boolean", ["feature-state", "hover"], false],
-            0.22,
-            0,
-          ],
-          "circle-radius": [
-            "case",
-            ["boolean", ["feature-state", "hover"], false],
-            18,
-            10,
-          ],
-        },
-      });
-    }
-    if (!map.getLayer("kip-pin")) {
-      map.addLayer({
-        id: "kip-pin",
-        type: "circle",
-        source: "kip-pins",
-        paint: {
-          "circle-color": [
-            "match",
-            ["get", "role"],
-            "from",
-            theme.color.primary,
-            theme.color.dangerText,
-          ],
-          "circle-stroke-color": theme.color.surface,
-          "circle-stroke-width": 2,
-          "circle-radius": [
-            "case",
-            ["boolean", ["feature-state", "hover"], false],
-            9,
-            6,
-          ],
-        },
-      });
-    }
-    if (!map.getLayer("kip-pin-label")) {
-      map.addLayer({
-        id: "kip-pin-label",
-        type: "symbol",
-        source: "kip-pins",
-        minzoom: 6.2,
-        layout: {
-          "text-field": ["get", "town"],
-          "text-size": 11,
-          "text-offset": [0, 1.1],
-          "text-anchor": "top",
-          "text-allow-overlap": false,
-        },
-        paint: {
-          "text-color": theme.color.text,
-          "text-halo-color": theme.color.bg,
-          "text-halo-width": 1.4,
-        },
-      });
-    }
-    if (!map.getLayer("kip-car")) {
-      map.addLayer({
-        id: "kip-car",
-        type: "symbol",
-        source: "kip-cars",
-        layout: {
-          "icon-image": "kip-car",
-          "icon-rotate": ["get", "bearing"],
-          "icon-rotation-alignment": "map",
-          "icon-allow-overlap": true,
-          "icon-size": 0.8,
-        },
-      });
-    }
-
-    const handleMove = (event: MapLayerMouseEvent) => {
-      const feature = event.features?.[0];
-      if (!feature) return;
-      const raw = feature.properties?.itemIds as string | undefined;
-      if (!raw) return;
-      try {
-        const ids = JSON.parse(raw) as string[];
-        onHoverRef.current(ids[0] ?? null);
-      } catch {
-        /* malformed property — ignore */
-      }
-      map.getCanvas().style.cursor = "pointer";
-    };
-
-    const handleLeave = () => {
-      onHoverRef.current(null);
-      map.getCanvas().style.cursor = "";
-    };
-
-    const handleClick = (event: MapLayerMouseEvent) => {
-      const raw = event.features?.[0]?.properties?.itemIds as string | undefined;
-      if (!raw) return;
-      try {
-        const ids = JSON.parse(raw) as string[];
-        const id = ids[0];
-        if (!id) return;
-        const item = modelRef.current.resolved.find((r) => r.item.id === id);
-        const suffix = item?.item.kind === "request" ? "?kind=request" : "";
-        routerRef.current.push(`/ride/${id}${suffix}`);
-      } catch {
-        /* malformed property — ignore */
-      }
-    };
-
-    map.on("mousemove", "kip-pin", handleMove);
-    map.on("mouseleave", "kip-pin", handleLeave);
-    map.on("click", "kip-pin", handleClick);
-
-    return () => {
-      map.off("mousemove", "kip-pin", handleMove);
-      map.off("mouseleave", "kip-pin", handleLeave);
-      map.off("click", "kip-pin", handleClick);
-    };
+    map.setOptions({ styles: mapStyleFor(theme) });
   }, [ready, theme]);
 
   useEffect(() => {
+    const maps = mapsRef.current;
     const map = mapRef.current;
-    if (!map || !ready) return;
+    if (!maps || !map || !ready) return;
 
-    const arcs = map.getSource("kip-arcs") as GeoJSONSource | undefined;
-    const pins = map.getSource("kip-pins") as GeoJSONSource | undefined;
-    arcs?.setData(arcsGeoJson(model.arcs) as never);
-    pins?.setData(pinsGeoJson(model.pins) as never);
-  }, [ready, model]);
+    const layers = layersRef.current;
+    for (const line of [...layers.arcs, ...layers.glows]) line.setMap(null);
+    for (const car of layers.cars) car.setMap(null);
+    for (const pin of layers.pins.values()) pin.setMap(null);
+
+    const glows: google.maps.Polyline[] = [];
+    const arcs: google.maps.Polyline[] = [];
+    const cars: google.maps.Marker[] = [];
+    const pins = new Map<string, google.maps.Marker>();
+
+    for (const arc of model.arcs) {
+      const path = arc.cache.points.map(([lng, lat]) => ({ lat, lng }));
+      const stroke = arc.live ? theme.color.primary : theme.color.outline;
+
+      glows.push(
+        new maps.Polyline({
+          map,
+          path,
+          clickable: false,
+          strokeColor: stroke,
+          strokeOpacity: 0.16,
+          strokeWeight: 8,
+          zIndex: 1,
+        }),
+      );
+      arcs.push(
+        new maps.Polyline({
+          map,
+          path,
+          clickable: false,
+          strokeColor: stroke,
+          strokeOpacity: 0,
+          zIndex: 2,
+          icons: [
+            {
+              icon: {
+                path: "M 0,-1 0,1",
+                strokeColor: stroke,
+                strokeOpacity: 0.95,
+                strokeWeight: 2,
+                scale: 3,
+              },
+              offset: "0",
+              repeat: "16px",
+            },
+          ],
+        }),
+      );
+
+      cars.push(
+        new maps.Marker({
+          map,
+          position: path[0],
+          clickable: false,
+          zIndex: 4,
+          icon: {
+            path: DART,
+            fillColor: theme.color.primary,
+            fillOpacity: 1,
+            strokeColor: theme.color.surface,
+            strokeWeight: 1.5,
+            scale: 1,
+            rotation: 0,
+            anchor: new maps.Point(0, 0),
+          },
+        }),
+      );
+    }
+
+    for (const pin of model.pins) {
+      const origin = pin.role === "from";
+      const marker = new maps.Marker({
+        map,
+        position: { lat: pin.lat, lng: pin.lng },
+        title: pin.town,
+        zIndex: 5,
+        icon: {
+          path: maps.SymbolPath.CIRCLE,
+          fillColor: origin ? theme.color.primary : theme.color.tertiary,
+          fillOpacity: 1,
+          strokeColor: theme.color.surface,
+          strokeWeight: 2,
+          scale: 6,
+          labelOrigin: new maps.Point(0, 3.1),
+        },
+        label: {
+          text: pin.town,
+          color: theme.color.text,
+          fontSize: "11px",
+          fontWeight: "700",
+        },
+      });
+
+      marker.addListener("mouseover", () => onHoverRef.current(pin.itemIds[0] ?? null));
+      marker.addListener("mouseout", () => onHoverRef.current(null));
+      marker.addListener("click", () => {
+        const id = pin.itemIds[0];
+        if (!id) return;
+        const entry = modelRef.current.resolved.find((r) => r.item.id === id);
+        const suffix = entry?.item.kind === "request" ? "?kind=request" : "";
+        routerRef.current.push(`/ride/${id}${suffix}`);
+      });
+
+      pins.set(pin.key, marker);
+    }
+
+    layersRef.current = { arcs, glows, cars, pins };
+
+    return () => {
+      for (const line of [...arcs, ...glows]) line.setMap(null);
+      for (const car of cars) car.setMap(null);
+      for (const pin of pins.values()) pin.setMap(null);
+    };
+  }, [ready, model, theme]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-
-    const previous = hoverRef.current;
-    if (previous) {
-      map.removeFeatureState({ source: "kip-pins", id: previous }, "hover");
-    }
-
+    if (!ready) return;
+    const pins = layersRef.current.pins;
     const key = hoveredId ? model.pinKeyByItemId.get(hoveredId) : null;
-    if (key) {
-      map.setFeatureState({ source: "kip-pins", id: key }, { hover: true });
+
+    for (const [pinKey, marker] of pins) {
+      const icon = marker.getIcon() as google.maps.Symbol | null;
+      if (!icon) continue;
+      const on = pinKey === key;
+      marker.setIcon({ ...icon, scale: on ? 9.5 : 6 });
+      marker.setZIndex(on ? 9 : 5);
     }
-    hoverRef.current = key ?? null;
   }, [ready, hoveredId, model]);
 
   useEffect(() => {
+    const maps = mapsRef.current;
     const map = mapRef.current;
-    if (!map || !ready || fitKey === 0) return;
-
-    const bounds = boundsOf(model.resolved);
-    if (!bounds) {
-      map.fitBounds(KENYA_BBOX, { padding: 24, duration: 700 });
-      return;
-    }
-
-    const [[w, s], [e, n]] = bounds;
-    if (w === e && s === n) {
-      map.flyTo({ center: [w, s], zoom: 8, essential: true });
-      return;
-    }
-
-    map.fitBounds(bounds, {
-      padding: { top: 40, bottom: 56, left: 48, right: 48 },
-      maxZoom: 8.5,
-      duration: 900,
-      essential: true,
-    });
+    if (!maps || !map || !ready) return;
+    frame(maps, map, boundsOf(model.resolved) ?? KENYA_BBOX);
   }, [ready, fitKey, model]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
+    if (!ready) return;
+    const { arcs, cars } = layersRef.current;
+    const entries = model.arcs;
+    if (entries.length === 0) return;
 
-    const cars = map.getSource("kip-cars") as GeoJSONSource | undefined;
-    if (!cars) return;
+    const progress = entries.map((_, i) => (i * 0.37) % 1);
 
-    const arcs = model.arcs;
-    if (arcs.length === 0) {
-      cars.setData({ type: "FeatureCollection", features: [] } as never);
-      return;
-    }
-
-    const progress = arcs.map((_, i) => (i * 0.37) % 1);
+    const place = () => {
+      for (let i = 0; i < entries.length; i += 1) {
+        const marker = cars[i];
+        if (!marker) continue;
+        const [lng, lat] = pointAt(entries[i].cache, progress[i]);
+        const icon = marker.getIcon() as google.maps.Symbol;
+        marker.setPosition({ lat, lng });
+        marker.setIcon({ ...icon, rotation: bearingAt(entries[i].cache, progress[i]) });
+      }
+    };
 
     if (!animate) {
-      const parked = arcs.map(() => 0.5);
-      cars.setData(carsGeoJson(arcs, parked, pointAt, bearingAt) as never);
-      map.setPaintProperty("kip-arc", "line-dasharray", [1, 0]);
+      for (let i = 0; i < progress.length; i += 1) progress[i] = 0.5;
+      place();
       return;
     }
 
-    const DASHES: Array<[number, number]> = [
-      [0, 4],
-      [1, 3],
-      [2, 2],
-      [3, 1],
-      [4, 0],
-      [0, 1, 3, 0],
-    ].slice(0, 5) as Array<[number, number]>;
-
     let frame = 0;
-    let dashIndex = 0;
-    let lastDash = 0;
     let last = performance.now();
+    let dash = 0;
+    let lastDash = 0;
     let visible = true;
     let onScreen = true;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        onScreen = entries[0]?.isIntersecting ?? true;
+      (entriesSeen) => {
+        onScreen = entriesSeen[0]?.isIntersecting ?? true;
       },
       { threshold: 0 },
     );
@@ -479,15 +369,20 @@ export function LiveMap({
       last = now;
       if (!visible || !onScreen) return;
 
-      for (let i = 0; i < arcs.length; i += 1) {
-        progress[i] = (progress[i] + dt / arcs[i].durationMs) % 1;
+      for (let i = 0; i < entries.length; i += 1) {
+        progress[i] = (progress[i] + dt / entries[i].durationMs) % 1;
       }
-      cars.setData(carsGeoJson(arcs, progress, pointAt, bearingAt) as never);
+      place();
 
-      if (now - lastDash > 55) {
+      if (now - lastDash > 70) {
         lastDash = now;
-        dashIndex = (dashIndex + 1) % DASHES.length;
-        map.setPaintProperty("kip-arc", "line-dasharray", DASHES[dashIndex]);
+        dash = (dash + 2) % 16;
+        for (const line of arcs) {
+          const icons = line.get("icons") as google.maps.IconSequence[] | undefined;
+          if (!icons?.length) continue;
+          icons[0].offset = `${dash}px`;
+          line.set("icons", icons);
+        }
       }
     };
 
@@ -499,15 +394,6 @@ export function LiveMap({
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [ready, model, animate]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !ready) return;
-    loadBaseStyle()
-      .then((base) => map.setStyle(tintStyle(base, theme) as never, { diff: true }))
-      .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [theme.mode]);
 
   if (failed) {
     return <MapTeaser label={HOME_COPY.mapUnavailable} />;
@@ -522,7 +408,7 @@ export function LiveMap({
           aria-label={HOME_COPY.mapHint}
           onClick={() => {
             setInteractive(true);
-            mapRef.current?.scrollZoom.enable();
+            mapRef.current?.setOptions({ gestureHandling: "cooperative" });
           }}
         >
           <span>{HOME_COPY.mapHint}</span>

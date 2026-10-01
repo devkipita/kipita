@@ -9,3 +9,4 @@ export * from './messages';
 export * from './payments';
 export * from './refunds';
 export * from './wallet';
+export * from './referrals';

@@ -10,12 +10,14 @@ import {
   txnSignedAmount,
   type WalletSummary,
   type WalletTransaction,
+  type WalletTxnType,
   type WalletWithdrawal,
 } from "@kipita/shared";
 import {
   ArrowDown,
   ArrowUpRight,
   Clock,
+  Gift,
   HandCoins,
   Lock,
   Plus,
@@ -24,6 +26,7 @@ import {
   TrendUp,
   Wallet,
 } from "@/components/icons";
+import type { KipitaIcon } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { ButtonEl } from "@/components/ui/primitives";
 import type { AppMode } from "@/lib/home/mode";
@@ -229,7 +232,7 @@ const Pending = styled.div`
   color: ${({ theme }) => theme.color.onTertiaryContainer};
 `;
 
-const TXN_GLYPH = {
+const TXN_GLYPH: Record<WalletTxnType, KipitaIcon> = {
   topup: Plus,
   payout: TrendUp,
   refund: ArrowDown,
@@ -239,7 +242,8 @@ const TXN_GLYPH = {
   fee: Receipt,
   credit: ArrowDown,
   debit: ArrowUpRight,
-} as const;
+  referral: Gift,
+};
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);

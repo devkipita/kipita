@@ -88,6 +88,10 @@ export function getServerSnapshot(): NotificationsState {
  * Switching users tears the old channel down first.
  */
 export function connectNotifications(userId: string): void {
+  if (!userId) {
+    if (activeUserId !== null) resetNotifications();
+    return;
+  }
   if (activeUserId === userId) return;
 
   resetNotifications();

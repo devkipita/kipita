@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   createContext,
@@ -34,6 +34,7 @@ import { AppTopBar } from "./AppTopBar";
 import { BottomTabBar } from "./BottomTabBar";
 import { MobileNavDrawer } from "./MobileNavDrawer";
 import { NavRail } from "./NavRail";
+import { useNavCounts } from "./useNavCounts";
 import { RailModeSwitch } from "./RailModeSwitch";
 import { SkipToContent } from "./SkipToContent";
 
@@ -201,6 +202,13 @@ export function AppShell({
     [mode, setMode, driverReady],
   );
 
+  const navCounts = useNavCounts(profile?.id ?? null, mode);
+  const counts = {
+    notifications: navCounts.notifications,
+    alerts: navCounts.alerts,
+    trips: navCounts.trips,
+  };
+
   const signInHref = `/auth/sign-in?next=${encodeURIComponent(pathname)}`;
   const railWidth = collapsed ? RAIL_W_COLLAPSED : RAIL_W_EXPANDED;
   const homeHref = profile ? "/home" : "/";
@@ -227,6 +235,7 @@ export function AppShell({
           onToggleCollapsed={toggleCollapsed}
           profile={profile}
           signInHref={signInHref}
+          counts={counts}
           modeSlot={modeSwitch}
         />
 
@@ -238,6 +247,7 @@ export function AppShell({
             onToggleCollapsed={toggleCollapsed}
             profile={profile}
             signInHref={signInHref}
+            counts={counts}
             modeSlot={modeSwitch}
             onNavigate={closeMenu}
           />
@@ -248,7 +258,7 @@ export function AppShell({
           <Main id="main" tabIndex={-1}>
             {children}
           </Main>
-          {profile && <BottomTabBar items={items} />}
+          {profile && <BottomTabBar items={items} counts={counts} />}
         </Column>
 
         {aside ? <Aside aria-label="More">{aside}</Aside> : <div />}
@@ -274,3 +284,4 @@ export function AppShell({
     </Ctx.Provider>
   );
 }
+

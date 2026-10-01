@@ -26,6 +26,7 @@ export const preferencesSchema = z.object({
   pets: z.boolean().default(false),
   silent_ride: z.boolean().default(false),
   music: z.boolean().default(false),
+  no_smoking: z.boolean().default(false),
 });
 
 // 1-8 matches `CHECK (seats_total >= 1 AND seats_total <= 8)` in migration 001.
@@ -41,7 +42,18 @@ export const postTripSchema = z.object({
     .number()
     .positive("Set a fare above zero")
     .max(100000, "That fare looks too high"),
+  discount_percent: z
+    .number()
+    .int()
+    .min(5, "The smallest discount is 5%")
+    .max(60, "The largest discount is 60%")
+    .nullable()
+    .optional(),
   preferences: preferencesSchema,
+  vehicle_make: z.string().trim().max(40).optional(),
+  vehicle_model: z.string().trim().max(40).optional(),
+  vehicle_color: z.string().trim().max(30).optional(),
+  vehicle_photo_url: z.string().url().max(500).optional(),
 });
 
 export const postRequestSchema = z.object({

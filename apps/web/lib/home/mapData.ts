@@ -70,12 +70,13 @@ export function buildMapModel(items: HomeItem[]): MapModel {
     ];
 
     for (const end of ends) {
-      const key = `${end.role}:${end.name.toLowerCase()}`;
+      const key = end.name.toLowerCase();
       const existing = pinMap.get(key);
       if (existing) {
         if (!existing.itemIds.includes(entry.item.id)) {
           existing.itemIds.push(entry.item.id);
         }
+        if (end.role === "from") existing.role = "from";
       } else {
         pinMap.set(key, {
           key,
@@ -133,54 +134,3 @@ export function buildMapModel(items: HomeItem[]): MapModel {
   };
 }
 
-type FeatureCollection = {
-  type: "FeatureCollection";
-  features: Array<Record<string, unknown>>;
-};
-
-export function pinsGeoJson(pins: PinEntry[]): FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: pins.map((pin) => ({
-      type: "Feature",
-      id: pin.key,
-      geometry: { type: "Point", coordinates: [pin.lng, pin.lat] },
-      properties: {
-        pinKey: pin.key,
-        role: pin.role,
-        town: pin.town,
-        itemIds: JSON.stringify(pin.itemIds),
-      },
-    })),
-  };
-}
-
-export function arcsGeoJson(arcs: ArcEntry[]): FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: arcs.map((arc) => ({
-      type: "Feature",
-      geometry: { type: "LineString", coordinates: arc.cache.points },
-      properties: { key: arc.key, live: arc.live },
-    })),
-  };
-}
-
-export function carsGeoJson(
-  arcs: ArcEntry[],
-  progress: number[],
-  pointAt: (cache: ArcCache, t: number) => [number, number],
-  bearingAt: (cache: ArcCache, t: number) => number,
-): FeatureCollection {
-  return {
-    type: "FeatureCollection",
-    features: arcs.map((arc, index) => {
-      const t = progress[index] ?? 0;
-      return {
-        type: "Feature",
-        geometry: { type: "Point", coordinates: pointAt(arc.cache, t) },
-        properties: { bearing: bearingAt(arc.cache, t), live: arc.live },
-      };
-    }),
-  };
-}

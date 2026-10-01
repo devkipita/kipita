@@ -20,7 +20,7 @@ export const PROMOS: readonly Promo[] = [
     headline: "Two seats, half the worry",
     body: "Invite someone who travels your route and you both ride easier.",
     cta: "Invite a friend",
-    href: "/help#start",
+    href: "/referrals",
     icon: Users,
     tone: "lime",
   },

@@ -100,10 +100,10 @@ const Dot = styled.span`
 
 export function BottomTabBar({
   items,
-  unreadCount,
+  counts,
 }: {
   items: NavItem[];
-  unreadCount?: number;
+  counts?: Partial<Record<NonNullable<NavItem["badge"]>, number>>;
 }) {
   const pathname = usePathname() ?? "/";
 
@@ -123,7 +123,7 @@ export function BottomTabBar({
               <Icon size={24} weight={active ? "fill" : "regular"} />
             </span>
             <span className="label">{item.shortLabel}</span>
-            {item.badge === "notifications" && unreadCount ? (
+            {item.badge && counts?.[item.badge] ? (
               <Dot aria-hidden="true" />
             ) : null}
           </Item>

@@ -60,6 +60,7 @@ const TXN_ICON: Record<WalletTxnType, IconName> = {
   fee: "receipt-outline",
   credit: "arrow-down-circle-outline",
   debit: "arrow-up-circle-outline",
+  referral: "gift-outline",
 };
 
 function normalisePhone(value: string): string {

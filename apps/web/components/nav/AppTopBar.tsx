@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { List as Hamburger } from "@/components/icons";
+import { MenuBars } from "@/components/icons";
 import { Brand } from "@/components/ui/Brand";
 import { Z } from "@/lib/z";
 import { TOPBAR_H } from "@/lib/nav/rail";
@@ -11,7 +11,7 @@ const Bar = styled.header`
   z-index: ${Z.appTopBar};
   height: ${TOPBAR_H}px;
   display: grid;
-  grid-template-columns: 42px 1fr 42px;
+  grid-template-columns: 46px 1fr 46px;
   align-items: center;
   padding: 0 6px;
   background: transparent;
@@ -31,8 +31,8 @@ const MenuButton = styled.button`
   flex: none;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   border: none;
   border-radius: 50%;
   background: transparent;
@@ -63,7 +63,7 @@ export function AppTopBar({
         aria-label="Open navigation"
         aria-haspopup="dialog"
       >
-        <Hamburger size={22} weight="bold" />
+        <MenuBars size={28} />
       </MenuButton>
 
       <Centre>

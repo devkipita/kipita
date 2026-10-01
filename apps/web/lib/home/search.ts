@@ -32,6 +32,22 @@ export type RouteCoords = {
   to_lng: number | null;
 };
 
+export type VehicleType =
+  | "sedan"
+  | "suv"
+  | "van"
+  | "minibus"
+  | "pickup"
+  | "motorbike";
+
+export type HomeVehicle = {
+  make: string | null;
+  model: string | null;
+  color: string | null;
+  vehicle_type: VehicleType | null;
+  image_url: string | null;
+};
+
 export type HomeTrip = RouteCoords & {
   kind: "trip";
   id: string;
@@ -41,9 +57,11 @@ export type HomeTrip = RouteCoords & {
   departure_time: string | null;
   seats_available: number;
   price_per_seat: number;
+  discount_percent: number | null;
   preferences: RidePreferences;
   person: RidePerson | null;
   vehicle_color: string | null;
+  vehicle: HomeVehicle | null;
 };
 
 export type HomeRequest = RouteCoords & {
@@ -69,9 +87,9 @@ const COORD_COLUMNS = "from_lat, from_lng, to_lat, to_lng";
 
 const TRIP_SELECT = `
   id, from_location, to_location, departure_date, departure_time,
-  seats_available, price_per_seat, preferences, ${COORD_COLUMNS},
+  seats_available, price_per_seat, discount_percent, preferences, ${COORD_COLUMNS},
   driver:users!driver_id ( ${PERSON_COLUMNS} ),
-  vehicle:vehicles!vehicle_id ( color )
+  vehicle:vehicles!vehicle_id ( color, make, model, vehicle_type, image_url )
 `;
 
 const REQUEST_SELECT = `
@@ -154,7 +172,14 @@ export async function searchTrips(
   return (data ?? [])
     .map((raw) => {
       const row = raw as Record<string, unknown>;
-      const vehicle = one(row.vehicle as { color?: string } | { color?: string }[] | null);
+      type VehicleRow = {
+        color?: string | null;
+        make?: string | null;
+        model?: string | null;
+        vehicle_type?: VehicleType | null;
+        image_url?: string | null;
+      };
+      const vehicle = one(row.vehicle as VehicleRow | VehicleRow[] | null);
       return {
         kind: "trip" as const,
         id: row.id as string,
@@ -164,9 +189,20 @@ export async function searchTrips(
         departure_time: (row.departure_time as string | null) ?? null,
         seats_available: Number(row.seats_available ?? 0),
         price_per_seat: Number(row.price_per_seat ?? 0),
+        discount_percent: num(row.discount_percent),
         preferences: (row.preferences as RidePreferences) ?? {},
         person: one(row.driver as RidePerson | RidePerson[] | null),
         vehicle_color: vehicle?.color ?? null,
+        vehicle: vehicle
+          ? {
+              make: (vehicle.make as string | null) ?? null,
+              model: (vehicle.model as string | null) ?? null,
+              color: (vehicle.color as string | null) ?? null,
+              vehicle_type:
+                (vehicle.vehicle_type as HomeVehicle["vehicle_type"]) ?? null,
+              image_url: (vehicle.image_url as string | null) ?? null,
+            }
+          : null,
         ...coords(row),
       };
     })

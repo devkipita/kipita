@@ -89,6 +89,13 @@ export const queryKeys = {
     status: (id: string) => ["payments", "status", id] as const,
   },
 
+  // Referrals
+  referrals: {
+    all: () => ["referrals"] as const,
+    summary: () => ["referrals", "summary"] as const,
+    list: () => ["referrals", "list"] as const,
+  },
+
   // Wallet
   wallet: {
     all: () => ["wallet"] as const,

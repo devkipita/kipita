@@ -10,7 +10,7 @@
 const ZONE = "Africa/Nairobi";
 
 /** Today's date in Nairobi as YYYY-MM-DD, independent of where this runs. */
-function nairobiToday(offsetDays = 0): string {
+export function nairobiToday(offsetDays = 0): string {
   const now = new Date();
   now.setUTCDate(now.getUTCDate() + offsetDays);
   return new Intl.DateTimeFormat("en-CA", {
@@ -43,6 +43,16 @@ export function formatTripDate(iso: string | null): string {
     month: "short",
     year: day.slice(0, 4) === nairobiToday().slice(0, 4) ? undefined : "numeric",
   }).format(date);
+}
+
+export function dayLabel(iso: string): string {
+  if (iso === nairobiToday()) return "Today";
+  if (iso === nairobiToday(1)) return "Tomorrow";
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZONE,
+    weekday: "short",
+    day: "numeric",
+  }).format(new Date(`${iso}T12:00:00Z`));
 }
 
 export function formatTripTime(value: string | null): string {

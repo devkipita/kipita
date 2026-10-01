@@ -162,6 +162,38 @@ writes a ledger row and deliberately leaves `balance` alone, and de-dupes on
 > worker draining that queue yet, so leave withdrawals off in production until
 > either the secrets are set or a payout job exists.
 
+## Referrals
+
+| Capability | Mobile | Web | Notes |
+|---|---|---|---|
+| Referral screen | Yes | Yes | `app/referrals.tsx`, `/referrals`. Both read `referral_summary()`. |
+| Personal code | Yes | Yes | `ensure_referral_code()` mints `<FIRSTNAME><4 hex>` on first read and is idempotent. |
+| Share | Native share sheet | Web Share API, clipboard fallback, WhatsApp link | |
+| Capture a referral | Manual code entry | `?ref=` link → cookie → claimed on next authed render | Mobile has no deep-link capture yet, so codes are typed in. |
+| Tiers | Yes | Yes | Bronze 0 / Silver 3 / Gold 10 → KES 200 / 250 / 300 per conversion. Referee always KES 100. |
+| Payout | — | — | Server-side only: `release-escrow` calls `convert_referral()` after the fare is released. |
+
+**Money only moves on a real completed ride.** A referral is `pending` from signup and
+converts when the referee's first booking releases escrow — so a farmed signup earns
+nothing, because converting it costs real M-Pesa money. `convert_referral` is
+`SECURITY DEFINER`, granted to `service_role` only, takes a row lock, and re-checks
+`status = 'pending'` in the UPDATE so a double release cannot pay twice. `claim_referral`
+refuses self-referral, unknown codes, accounts older than 30 days, and anyone who has
+already completed a ride.
+
+Rewards are computed **in SQL, not from the client** — the tier table in
+`@kipita/shared` is for display only, and `convert_referral` recomputes the band
+from the referrer's rewarded count.
+
+> **Migration `030_referrals.sql` is not pushed.** Until it is, `/referrals` and the
+> mobile screen render an empty code and zeroes, and `release-escrow` logs a failed
+> `convert_referral` RPC (it does not block the payout). 030 also adds a `referral`
+> value to `wallet_txn_type`, so it must land before any code path writes that type.
+
+> **`promo_codes` (migration 003) is still unused.** Referrals do not touch it — they
+> credit the wallet directly. Discount-at-checkout redemption remains unbuilt on both
+> platforms.
+
 ## Road alerts
 
 | Capability | Mobile | Web | Notes |

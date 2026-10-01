@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isValidReferralCode } from "@kipita/shared";
 import { updateSession } from "@/lib/supabase/middleware";
+import { REF_COOKIE, REF_MAX_AGE } from "@/lib/referrals/cookie";
 import {
   contentSecurityPolicy,
   STATIC_SECURITY_HEADERS,
@@ -23,6 +25,15 @@ export async function middleware(request: NextRequest) {
     [NONCE_HEADER]: nonce,
     "content-security-policy": csp,
   });
+
+  const ref = request.nextUrl.searchParams.get("ref");
+  if (ref && isValidReferralCode(ref)) {
+    response.cookies.set(REF_COOKIE, ref.trim().toUpperCase(), {
+      maxAge: REF_MAX_AGE,
+      sameSite: "lax",
+      path: "/",
+    });
+  }
 
   response.headers.set("Content-Security-Policy", csp);
   for (const [key, value] of Object.entries(STATIC_SECURITY_HEADERS)) {

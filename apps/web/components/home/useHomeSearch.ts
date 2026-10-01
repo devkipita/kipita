@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { searchForMode, type HomeItem } from "@/lib/home/search";
-import { recordRouteInterestAction } from "@/lib/home/posts";
+import { recordRouteInterest } from "@/lib/home/route-interest";
 import type { AppMode } from "@/lib/home/mode";
 import type { SearchForm } from "./RouteSearchForm";
 
@@ -23,16 +23,29 @@ export type SearchPhase = "ready" | "searching" | "error";
 export function useHomeSearch(mode: AppMode, initialItems: HomeItem[]) {
   const [items, setItems] = useState<HomeItem[]>(initialItems);
   const [phase, setPhase] = useState<SearchPhase>("ready");
+  const [refreshing, setRefreshing] = useState(false);
   const [lastForm, setLastForm] = useState<SearchForm | null>(null);
   const [searchRequested, setSearchRequested] = useState(false);
   const seq = useRef(0);
+
+  // Read inside `run` without making `items` a dependency — that would rebuild
+  // the callback on every result and re-fire the effects that depend on it.
+  const itemsRef = useRef(initialItems);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
 
   const run = useCallback(
     async (form: SearchForm | null, options: { deliberate?: boolean } = {}) => {
       const mine = ++seq.current;
       if (form) setLastForm(form);
       if (options.deliberate) setSearchRequested(true);
-      setPhase("searching");
+
+      // Skeletons only when there is nothing to keep on screen. Otherwise the
+      // current results stay put and the refresh happens behind them.
+      const hadItems = itemsRef.current.length > 0;
+      if (hadItems) setRefreshing(true);
+      else setPhase("searching");
 
       try {
         const found = await searchForMode(createClient(), mode, {
@@ -46,13 +59,13 @@ export function useHomeSearch(mode: AppMode, initialItems: HomeItem[]) {
         setPhase("ready");
       } catch {
         if (seq.current !== mine) return;
-        setPhase("error");
+        setPhase(hadItems ? "ready" : "error");
+      } finally {
+        if (seq.current === mine) setRefreshing(false);
       }
 
-      // Remember the route so migration 020's triggers can notify this user
-      // when someone posts it. Fire-and-forget; never blocks the results.
       if (form?.from && form?.to) {
-        void recordRouteInterestAction(form.from, form.to);
+        void recordRouteInterest(form.from, form.to);
       }
     },
     [mode],
@@ -64,6 +77,7 @@ export function useHomeSearch(mode: AppMode, initialItems: HomeItem[]) {
   return {
     items,
     phase,
+    refreshing,
     lastForm,
     searchRequested,
     run,

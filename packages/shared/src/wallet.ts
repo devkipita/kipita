@@ -9,7 +9,8 @@ export type WalletTxnType =
   | "fee"
   | "escrow_hold"
   | "escrow_release"
-  | "withdrawal";
+  | "withdrawal"
+  | "referral";
 
 export type WithdrawalStatus =
   | "pending"
@@ -79,6 +80,8 @@ export function txnLabel(type: WalletTxnType): string {
       return "Refund";
     case "withdrawal":
       return "Withdrawal";
+    case "referral":
+      return "Referral bonus";
     case "escrow_hold":
       return "Held in escrow";
     case "escrow_release":

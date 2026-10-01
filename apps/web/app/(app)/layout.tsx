@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { readMode } from "@/lib/home/mode.server";
 import { readRailCollapsed } from "@/lib/nav/rail.server";
+import { claimReferralFromCookie } from "@/lib/referrals/server";
 import { fetchOpenSupportCases } from "@/lib/support/server";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -20,6 +21,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     const kyc = await fetchDriverKyc(supabase, profile.id).catch(() => null);
     driverHasApplied = kyc?.hasApplied ?? false;
   }
+
+  if (profile) await claimReferralFromCookie();
 
   const supportCases = profile ? await fetchOpenSupportCases() : [];
 

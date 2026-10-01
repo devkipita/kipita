@@ -17,7 +17,12 @@ import {
   openSupportCaseAction,
   sendSupportMessageAction,
 } from "@/lib/support/actions";
-import { fetchMessages, signOne, subscribeToCase } from "@/lib/support/api";
+import {
+  fetchMessages,
+  signOne,
+  subscribeToCase,
+  subscribeToSupport,
+} from "@/lib/support/api";
 import { uploadSupportImage } from "@/lib/support/upload";
 import { isOpen, type SupportCase, type SupportMessage } from "@/lib/support/types";
 
@@ -40,6 +45,8 @@ interface SupportValue {
   sending: boolean;
   error: string;
   unread: number;
+  dismissed: boolean;
+  dismiss: () => void;
   setActiveId: (id: string | null) => void;
   addCase: (next: SupportCase) => void;
   openCase: (input: {
@@ -52,6 +59,8 @@ interface SupportValue {
   close: (id: string) => Promise<boolean>;
   markRead: () => void;
 }
+
+const DISMISS_KEY = "kipita-support-dismissed";
 
 const Ctx = createContext<SupportValue | null>(null);
 
@@ -77,8 +86,40 @@ export function SupportProvider({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [unread, setUnread] = useState(0);
+  const [dismissed, setDismissed] = useState(false);
 
   const loadedFor = useRef<string | null>(null);
+  const caseIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    caseIds.current = new Set(cases.map((c) => c.id));
+  }, [cases]);
+
+  useEffect(() => {
+    try {
+      setDismissed(sessionStorage.getItem(DISMISS_KEY) === "1");
+    } catch {
+      /* empty */
+    }
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setDismissed(true);
+    try {
+      sessionStorage.setItem(DISMISS_KEY, "1");
+    } catch {
+      /* empty */
+    }
+  }, []);
+
+  const restore = useCallback(() => {
+    setDismissed(false);
+    try {
+      sessionStorage.removeItem(DISMISS_KEY);
+    } catch {
+      /* empty */
+    }
+  }, []);
 
   const open = useMemo(() => cases.filter(isOpen), [cases]);
   const active = useMemo(
@@ -126,10 +167,30 @@ export function SupportProvider({
         setMessages((prev) =>
           prev.some((m) => m.id === signed.id) ? prev : [...prev, signed],
         );
-        if (signed.from_support) setUnread((n) => n + 1);
       })();
     });
   }, [activeId]);
+
+  // Account-wide, so a dismissed dock still hears a reply on any case — and on
+  // a case that isn't the active one.
+  useEffect(() => {
+    if (cases.length === 0) return;
+    const supabase = createClient();
+
+    return subscribeToSupport(supabase, (incoming) => {
+      if (!incoming.from_support) return;
+      if (!caseIds.current.has(incoming.case_id)) return;
+      setUnread((n) => n + 1);
+      setCases((prev) =>
+        prev.map((c) =>
+          c.id === incoming.case_id && c.status !== "resolved"
+            ? { ...c, status: "awaiting_reply" }
+            : c,
+        ),
+      );
+      restore();
+    });
+  }, [cases.length, restore]);
 
   const openCase = useCallback<SupportValue["openCase"]>(async (input) => {
     setError("");
@@ -231,6 +292,8 @@ export function SupportProvider({
       sending,
       error,
       unread,
+      dismissed,
+      dismiss,
       setActiveId,
       addCase,
       openCase,
@@ -248,6 +311,8 @@ export function SupportProvider({
       sending,
       error,
       unread,
+      dismissed,
+      dismiss,
       addCase,
       openCase,
       send,

@@ -12,7 +12,10 @@ import { HOME_COPY } from "@/lib/home/copy";
 import { detectOrigin, type Coords } from "@/lib/home/geo";
 import { buildMapModel } from "@/lib/home/mapData";
 import type { HomeItem } from "@/lib/home/search";
+import { SlidersHorizontal } from "@/components/icons";
+import { dayLabel } from "@/lib/trips/format";
 import { AlertsPanel } from "./AlertsPanel";
+import { DateStrip } from "./DateStrip";
 import { HomeMapBand } from "./HomeMapBand";
 import { LocalWeather } from "./LocalWeather";
 import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
@@ -45,15 +48,95 @@ const Greeting = styled.div`
   }
   h1 {
     margin: 0;
-    font-size: ${({ theme }) => theme.type.heading};
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: ${({ theme }) => theme.color.text};
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: ${({ theme }) => theme.type.title};
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: ${({ theme }) => theme.color.onSurface};
   }
   p {
-    margin: 3px 0 0;
+    margin: 4px 0 0;
     font-size: ${({ theme }) => theme.type.body};
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
+  }
+  .aside {
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.space.md};
+    flex: none;
+  }
+`;
+
+const FilterPill = styled.button<{ $on: boolean; $open: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 38px;
+  padding: 0 ${({ theme }) => theme.space.lg};
+  border: none;
+  border-radius: ${({ theme, $open }) =>
+    $open ? theme.radius.xxs : theme.radius.pill};
+  font: inherit;
+  font-size: ${({ theme }) => theme.type.label};
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  background: ${({ theme, $on, $open }) =>
+    $on
+      ? theme.color.primary
+      : $open
+        ? theme.color.secondaryContainer
+        : theme.color.elevatedInset};
+  color: ${({ theme, $on, $open }) =>
+    $on
+      ? theme.color.onPrimary
+      : $open
+        ? theme.color.onSecondaryContainer
+        : theme.color.onSurfaceVariant};
+
+  transition:
+    background ${({ theme }) => theme.motion.duration.short4}
+      ${({ theme }) => theme.motion.easing.standard},
+    color ${({ theme }) => theme.motion.duration.short4}
+      ${({ theme }) => theme.motion.easing.standard},
+    border-radius ${({ theme }) => theme.motion.duration.medium2}
+      ${({ theme }) => theme.motion.easing.emphasized},
+    transform ${({ theme }) => theme.motion.duration.short3}
+      ${({ theme }) => theme.motion.easing.standard};
+
+  svg {
+    flex: none;
+    transition: transform ${({ theme }) => theme.motion.duration.medium2}
+      ${({ theme }) => theme.motion.easing.emphasized};
+    transform: rotate(${({ $open }) => ($open ? "90deg" : "0deg")});
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme, $on }) =>
+        $on ? theme.color.primary : theme.color.secondaryContainer};
+      color: ${({ theme, $on }) =>
+        $on ? theme.color.onPrimary : theme.color.onSecondaryContainer};
+    }
+  }
+  &:active {
+    transform: scale(0.94);
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    svg {
+      transition: none;
+      transform: none;
+    }
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -99,6 +182,7 @@ export function HomeView({
 
   const [placeField, setPlaceField] = useState<PlaceField | null>(null);
   const [whenOpen, setWhenOpen] = useState(false);
+  const [datesOpen, setDatesOpen] = useState(false);
 
   const [originStatus, setOriginStatus] = useState<OriginStatus>("idle");
   const [originCoords, setOriginCoords] = useState<Coords | null>(null);
@@ -108,8 +192,15 @@ export function HomeView({
   const [fitKey, setFitKey] = useState(0);
 
   const search = useHomeSearch(mode, initialItems);
-  const { items, phase, lastForm, searchRequested, run, clearSearchRequest } =
-    search;
+  const {
+    items,
+    phase,
+    refreshing,
+    lastForm,
+    searchRequested,
+    run,
+    clearSearchRequest,
+  } = search;
 
   const mapModel = useMemo(() => buildMapModel(items), [items]);
 
@@ -223,12 +314,48 @@ export function HomeView({
             <h1>{HOME_COPY.greeting(firstName(profile.full_name))}</h1>
             <p>{HOME_COPY.greetingSub[mode]}</p>
           </div>
-          <LocalWeather town={from} />
+          <div className="aside">
+            <FilterPill
+              type="button"
+              $on={Boolean(date)}
+              $open={datesOpen}
+              aria-expanded={datesOpen}
+              aria-label={
+                date ? `Filtering by ${date}. Change date` : "Filter by date"
+              }
+              onClick={() => setDatesOpen((v) => !v)}
+            >
+              <SlidersHorizontal size={16} />
+              {date ? dayLabel(date) : "Any date"}
+            </FilterPill>
+            <LocalWeather town={from} />
+          </div>
         </Greeting>
+
+        {datesOpen && (
+          <DateStrip
+            value={date}
+            onChange={(next) => {
+              setDate(next);
+              void run(
+                {
+                  from: fromTouched.current ? from : "",
+                  to: lastForm?.to ?? to,
+                  date: next,
+                  departure_time: next ? null : time,
+                  preferences,
+                },
+                { deliberate: false },
+              ).then(() => setFitKey((k) => k + 1));
+            }}
+            onDismiss={() => setDatesOpen(false)}
+          />
+        )}
 
         <RideCarousel
           mode={mode}
           phase={phase}
+          refreshing={refreshing}
           items={items}
           onPost={() => openPost(null)}
           onRetry={() => void run(lastForm)}
@@ -283,10 +410,11 @@ export function HomeView({
       <PostDrawer
         open={!!postDraft}
         draft={postDraft}
+        viewerId={profile.id}
         onClose={() => setPostDraft(null)}
         onPosted={() => {
           setPostDraft(null);
-          void run(lastForm);
+          router.refresh();
         }}
       />
 

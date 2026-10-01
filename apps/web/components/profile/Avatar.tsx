@@ -38,7 +38,7 @@ export function initials(name: string) {
   );
 }
 
-function resolveAvatarSrc(src?: string | null): string | null {
+export function resolveAvatarSrc(src?: string | null): string | null {
   // Vet the protocol first: this value comes from the database and could be a
   // `javascript:` or `data:` URL. safeHttpUrl returns null for anything that
   // isn't http(s) or a same-origin relative path.

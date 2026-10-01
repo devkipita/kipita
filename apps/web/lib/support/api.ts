@@ -111,6 +111,28 @@ export async function signOne(
   return signed ?? message;
 }
 
+export function subscribeToSupport(
+  supabase: SupabaseClient,
+  onMessage: (message: SupportMessage) => void,
+): () => void {
+  const channel = supabase
+    .channel("support:all")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "support_case_messages",
+      },
+      (payload) => onMessage(toMessage(payload.new)),
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
 /** Live staff replies. Returns an unsubscribe. */
 export function subscribeToCase(
   supabase: SupabaseClient,

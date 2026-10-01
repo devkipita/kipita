@@ -3,7 +3,7 @@
 import Link from "next/link";
 import styled from "styled-components";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Cookie, FileText, Question as HelpCircle, Info, Lifebuoy as LifeBuoy, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Cookie, FileText, Gift, Question as HelpCircle, Info, QuestionCircle, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
 import { Switch } from "@/components/ui/Switch";
 import { useThemeMode } from "@/components/providers/ThemeRuntimeProvider";
@@ -274,6 +274,13 @@ export function ProfileView({ profile }: { profile: Profile }) {
             description="Balance, escrow and payouts"
             href="/wallet"
             tone="green"
+          />
+          <LinkRow
+            icon={Gift}
+            title="Invite friends"
+            description="Share your code and earn credit"
+            href="/referrals"
+            tone="lime"
             last
           />
         </Panel>
@@ -302,7 +309,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
         <Panel>
           <LinkRow icon={HelpCircle} title="Help & FAQ" description="Answers to common questions" href="/help" tone="mint" />
           <LinkRow icon={Info} title="How to use Kipita" description="A quick tour of the basics" href="/help#start" tone="green" />
-          <LinkRow icon={LifeBuoy} title="Contact support" description="We're here to help" href="mailto:support@kipita.app" external tone="amber" last />
+          <LinkRow icon={QuestionCircle} title="Contact support" description="We're here to help" href="mailto:support@kipita.app" external tone="amber" last />
         </Panel>
 
         <SectionTitle>Legal</SectionTitle>

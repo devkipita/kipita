@@ -23,6 +23,7 @@
  */
 
 const radius = {
+  xxs: "8px",
   xs: "11px",
   sm: "14px",
   md: "22px",
@@ -30,6 +31,60 @@ const radius = {
   xl: "36px",
   pill: "999px",
 } as const;
+
+export type RadiusScale = typeof radius;
+
+const easing = {
+  linear: "cubic-bezier(0, 0, 1, 1)",
+  standard: "cubic-bezier(0.2, 0, 0, 1)",
+  standardAccelerate: "cubic-bezier(0.3, 0, 1, 1)",
+  standardDecelerate: "cubic-bezier(0, 0, 0, 1)",
+  emphasized: "cubic-bezier(0.2, 0, 0, 1)",
+  emphasizedAccelerate: "cubic-bezier(0.3, 0, 0.8, 0.15)",
+  emphasizedDecelerate: "cubic-bezier(0.05, 0.7, 0.1, 1)",
+  spring: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+} as const;
+
+const duration = {
+  short1: "50ms",
+  short2: "100ms",
+  short3: "150ms",
+  short4: "200ms",
+  medium1: "250ms",
+  medium2: "300ms",
+  medium3: "350ms",
+  medium4: "400ms",
+  long1: "450ms",
+  long2: "500ms",
+  long3: "550ms",
+  long4: "600ms",
+  extraLong1: "700ms",
+  extraLong2: "800ms",
+} as const;
+
+const motion = { easing, duration } as const;
+
+export type MotionScale = typeof motion;
+
+export type ElevationScale = Record<0 | 1 | 2 | 3 | 4 | 5, string>;
+
+const lightElevation: ElevationScale = {
+  0: "none",
+  1: "0 1px 2px 0 rgba(16, 36, 24, 0.22), 0 1px 3px 1px rgba(16, 36, 24, 0.10)",
+  2: "0 1px 2px 0 rgba(16, 36, 24, 0.22), 0 2px 6px 2px rgba(16, 36, 24, 0.10)",
+  3: "0 1px 3px 0 rgba(16, 36, 24, 0.22), 0 4px 8px 3px rgba(16, 36, 24, 0.11)",
+  4: "0 2px 3px 0 rgba(16, 36, 24, 0.22), 0 6px 10px 4px rgba(16, 36, 24, 0.11)",
+  5: "0 4px 4px 0 rgba(16, 36, 24, 0.22), 0 8px 12px 6px rgba(16, 36, 24, 0.11)",
+};
+
+const darkElevation: ElevationScale = {
+  0: "none",
+  1: "0 1px 2px 0 rgba(0, 0, 0, 0.5), 0 1px 3px 1px rgba(0, 0, 0, 0.32)",
+  2: "0 1px 2px 0 rgba(0, 0, 0, 0.5), 0 2px 6px 2px rgba(0, 0, 0, 0.32)",
+  3: "0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 4px 8px 3px rgba(0, 0, 0, 0.34)",
+  4: "0 2px 3px 0 rgba(0, 0, 0, 0.5), 0 6px 10px 4px rgba(0, 0, 0, 0.34)",
+  5: "0 4px 4px 0 rgba(0, 0, 0, 0.5), 0 8px 12px 6px rgba(0, 0, 0, 0.34)",
+};
 
 const STACK =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
@@ -260,6 +315,12 @@ export interface AppColors {
   inverseOnSurface: string;
   inversePrimary: string;
 
+  // ── Lifted surfaces. Light steps brighter, dark steps lighter, so the
+  //    "raised" container is a different role in each mode. ──
+  elevated: string;
+  elevatedHover: string;
+  elevatedInset: string;
+
   // ── Legacy aliases, mapped onto the roles above ──
   primaryDark: string;
   bg: string;
@@ -284,15 +345,10 @@ export interface AppTheme {
   color: AppColors;
   tone: Record<ToneName, Tone>;
   accent: Record<AccentName, AccentSet>;
-  radius: {
-    xs: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    pill: string;
-  };
+  radius: RadiusScale;
   shadow: { card: string; soft: string };
+  elevation: ElevationScale;
+  motion: MotionScale;
   font: string;
   fontHeading: string;
   type: TypeScale;
@@ -301,6 +357,9 @@ export interface AppTheme {
 
 type Roles = Omit<
   AppColors,
+  | "elevated"
+  | "elevatedHover"
+  | "elevatedInset"
   | "primaryDark"
   | "bg"
   | "bgAlt"
@@ -319,9 +378,17 @@ type Roles = Omit<
   | "warnText"
 > & { surfaceBright: string };
 
-function withAliases(r: Roles, primaryDark: string, tanAccent: string): AppColors {
+function withAliases(
+  r: Roles,
+  primaryDark: string,
+  tanAccent: string,
+  lifted: { rest: string; hover: string; inset: string },
+): AppColors {
   return {
     ...r,
+    elevated: lifted.rest,
+    elevatedHover: lifted.hover,
+    elevatedInset: lifted.inset,
     primaryDark,
     bg: r.background,
     bgAlt: r.surfaceVariant,
@@ -444,7 +511,11 @@ const darkRoles: Roles = {
 
 const light: AppTheme = {
   mode: "light",
-  color: withAliases(lightRoles, "#17452F", "#D4B896"),
+  color: withAliases(lightRoles, "#17452F", "#D4B896", {
+    rest: lightRoles.surfaceContainerLow,
+    hover: lightRoles.surfaceContainerLowest,
+    inset: lightRoles.surfaceContainerHigh,
+  }),
   tone: {
     green: { bg: "#b0f1cc", on: "#002113" },
     mint: { bg: "#c4edc8", on: "#00210b" },
@@ -467,6 +538,8 @@ const light: AppTheme = {
     card: "0 24px 60px -30px rgba(12, 40, 26, 0.42)",
     soft: "0 12px 34px -20px rgba(16, 36, 24, 0.24)",
   },
+  elevation: lightElevation,
+  motion,
   font,
   fontHeading,
   type,
@@ -475,7 +548,11 @@ const light: AppTheme = {
 
 const dark: AppTheme = {
   mode: "dark",
-  color: withAliases(darkRoles, "#7EC3A0", "#D4B896"),
+  color: withAliases(darkRoles, "#7EC3A0", "#D4B896", {
+    rest: darkRoles.surfaceContainer,
+    hover: darkRoles.surfaceContainerHigh,
+    inset: darkRoles.surfaceContainerHighest,
+  }),
   tone: {
     green: { bg: "#14392a", on: "#b0f1cc" },
     mint: { bg: "#183524", on: "#c4edc8" },
@@ -498,6 +575,8 @@ const dark: AppTheme = {
     card: "0 30px 70px -30px rgba(0, 0, 0, 0.6)",
     soft: "0 12px 34px -20px rgba(0, 0, 0, 0.45)",
   },
+  elevation: darkElevation,
+  motion,
   font,
   fontHeading,
   type,

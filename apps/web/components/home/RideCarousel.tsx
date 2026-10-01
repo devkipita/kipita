@@ -23,10 +23,11 @@ const Head = styled.div`
 
   h2 {
     margin: 0;
+    font-family: ${({ theme }) => theme.fontHeading};
     font-size: ${({ theme }) => theme.type.subhead};
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.text};
+    color: ${({ theme }) => theme.color.onSurface};
   }
 `;
 
@@ -56,7 +57,7 @@ const Pager = styled.div`
     border-color: ${({ theme }) => theme.color.outline};
   }
 
-  @media (max-width: 660px) {
+  @media (max-width: 559px) {
     display: none;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -109,6 +110,24 @@ const Arrow = styled.button`
   }
 `;
 
+const spin = keyframes`to { transform: rotate(360deg); }`;
+
+const Refreshing = styled.span`
+  display: inline-flex;
+  align-items: center;
+  color: ${({ theme }) => theme.color.textSoft};
+
+  svg {
+    animation: ${spin} 0.9s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    svg {
+      animation: none;
+    }
+  }
+`;
+
 const Dots = styled.div`
   display: flex;
   align-items: center;
@@ -116,7 +135,7 @@ const Dots = styled.div`
   gap: 6px;
   margin-top: 14px;
 
-  @media (min-width: 661px) {
+  @media (min-width: 560px) {
     display: none;
   }
 `;
@@ -169,15 +188,22 @@ const SeeAll = styled.button`
   }
 `;
 
-const Rail = styled.div`
+const GAP = 16;
+
+const Rail = styled.div<{ $wide?: boolean }>`
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 3 * 14px) / 4);
-  gap: 14px;
+  grid-auto-columns: ${({ $wide }) =>
+    $wide
+      ? `calc((100% - ${GAP}px) / 2)`
+      : `calc((100% - 3 * ${GAP}px) / 4)`};
+  gap: ${GAP}px;
   overflow-x: auto;
+  overflow-y: visible;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
-  padding-bottom: 2px;
+  padding: 34px 20px 16px;
+  margin: -6px -20px -10px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 
@@ -193,69 +219,95 @@ const Rail = styled.div`
     outline-offset: 4px;
   }
 
-  @media (max-width: 1199px) {
-    grid-auto-columns: calc((100% - 2 * 14px) / 3);
+  @media (max-width: 1359px) {
+    grid-auto-columns: ${({ $wide }) =>
+      $wide ? `calc((100% - ${GAP}px) / 2)` : `calc((100% - 2 * ${GAP}px) / 3)`};
   }
-  @media (max-width: 899px) {
-    grid-auto-columns: calc((100% - 14px) / 2);
+  @media (max-width: 999px) {
+    grid-auto-columns: ${({ $wide }) =>
+      $wide ? "92%" : `calc((100% - ${GAP}px) / 2)`};
   }
-  @media (max-width: 660px) {
-    grid-auto-columns: 86%;
+  @media (max-width: 559px) {
+    grid-auto-columns: ${({ $wide }) => ($wide ? "94%" : "min(88%, 340px)")};
   }
   @media (prefers-reduced-motion: reduce) {
     scroll-behavior: auto;
   }
 `;
 
-const Grid = styled.div`
+const Grid = styled.div<{ $wide?: boolean }>`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(${({ $wide }) => ($wide ? 2 : 4)}, minmax(0, 1fr));
+  gap: ${({ $wide }) => ($wide ? 34 : 24)}px ${GAP}px;
+  padding-top: ${({ $wide }) => ($wide ? 34 : 0)}px;
+  margin-top: ${({ $wide }) => ($wide ? -6 : 0)}px;
 
-  @media (max-width: 1199px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (max-width: 1359px) {
+    grid-template-columns: repeat(${({ $wide }) => ($wide ? 2 : 3)}, minmax(0, 1fr));
   }
-  @media (max-width: 899px) {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  @media (max-width: 999px) {
+    grid-template-columns: ${({ $wide }) =>
+      $wide ? "1fr" : "repeat(2, minmax(0, 1fr))"};
   }
-  @media (max-width: 660px) {
+  @media (max-width: 559px) {
     grid-template-columns: 1fr;
   }
 `;
 
-/**
- * Mirrors RideCard row for row — avatar beside two lines, the "when" line, two
- * route towns, a rule, then amenities and the price. Same container, same
- * padding, same gaps, so nothing shifts when the real cards land.
- */
 const Skeleton = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.space.lg};
-  padding: ${({ theme }) => theme.space.lg};
   border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  background: ${({ theme }) => theme.color.elevated};
+  box-shadow: ${({ theme }) => theme.elevation[1]};
+  overflow: hidden;
 
   .bar {
-    border-radius: ${({ theme }) => theme.radius.xs};
+    border-radius: ${({ theme }) => theme.radius.xxs};
     background: linear-gradient(
       90deg,
-      ${({ theme }) => theme.color.surfaceContainer} 0px,
-      ${({ theme }) => theme.color.surfaceContainerHigh} 160px,
-      ${({ theme }) => theme.color.surfaceContainer} 320px
+      ${({ theme }) => theme.color.elevatedInset} 0px,
+      ${({ theme }) => theme.color.surfaceVariant} 160px,
+      ${({ theme }) => theme.color.elevatedInset} 320px
     );
     background-size: 640px 100%;
     animation: ${shimmer} 1.15s linear infinite;
   }
 
+  .media {
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: ${({ theme }) => theme.space.lg};
+  }
+  .facts {
+    display: grid;
+    gap: 7px;
+    margin-top: ${({ theme }) => theme.space.md};
+  }
+  .fact {
+    display: flex;
+    align-items: center;
+    gap: ${({ theme }) => theme.space.sm};
+  }
+  .glyph {
+    width: 22px;
+    height: 22px;
+    flex: none;
+  }
   .who {
     display: flex;
     align-items: center;
-    gap: ${({ theme }) => theme.space.md};
+    gap: ${({ theme }) => theme.space.sm};
+    margin-top: ${({ theme }) => theme.space.md};
   }
   .avatar {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     flex: none;
   }
@@ -264,23 +316,19 @@ const Skeleton = styled.div`
     gap: 5px;
     flex: 1;
   }
-
-  .journey {
-    display: grid;
-    gap: ${({ theme }) => theme.space.sm};
-  }
-  .foot {
+  .chips {
     display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: ${({ theme }) => theme.space.md};
-    padding-top: ${({ theme }) => theme.space.md};
-    border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
+    gap: 6px;
+    margin: ${({ theme }) => theme.space.md} 0;
   }
-  .foot-left {
-    display: grid;
+  .fare {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
     gap: ${({ theme }) => theme.space.sm};
-    flex: 1;
+    margin-top: auto;
+    padding-top: ${({ theme }) => theme.space.md};
+    border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -290,29 +338,129 @@ const Skeleton = styled.div`
   }
 `;
 
-function CardSkeleton() {
+const WideSkeleton = styled.div`
+  display: grid;
+  grid-template-columns: minmax(96px, 25%) 1fr;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.color.elevated};
+  box-shadow: ${({ theme }) => theme.elevation[1]};
+  overflow: hidden;
+
+  .bar {
+    border-radius: ${({ theme }) => theme.radius.xxs};
+    background: linear-gradient(
+      90deg,
+      ${({ theme }) => theme.color.elevatedInset} 0px,
+      ${({ theme }) => theme.color.surfaceVariant} 160px,
+      ${({ theme }) => theme.color.elevatedInset} 320px
+    );
+    background-size: 640px 100%;
+    animation: ${shimmer} 1.15s linear infinite;
+  }
+
+  .face {
+    border-radius: 0;
+    min-height: 178px;
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    padding: ${({ theme }) => theme.space.lg} ${({ theme }) => theme.space.lg}
+      ${({ theme }) => theme.space.lg} ${({ theme }) => theme.space.xxl};
+  }
+  .head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: ${({ theme }) => theme.space.md};
+  }
+  .who {
+    display: grid;
+    gap: 6px;
+    flex: 1;
+  }
+  .facts {
+    display: flex;
+    gap: ${({ theme }) => theme.space.md};
+    margin-top: ${({ theme }) => theme.space.md};
+  }
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${({ theme }) => theme.space.md};
+    margin-top: auto;
+    padding-top: ${({ theme }) => theme.space.md};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bar {
+      animation: none;
+    }
+  }
+`;
+
+const FACT_WIDTHS = ["58%", "38%", "66%"];
+
+function CardSkeleton({ $wide }: { $wide?: boolean }) {
+  if ($wide) {
+    return (
+      <WideSkeleton aria-hidden="true">
+        <div className="bar face" />
+        <div className="body">
+          <div className="head">
+            <div className="who">
+              <div className="bar" style={{ height: 18, width: "56%" }} />
+              <div className="bar" style={{ height: 12, width: "42%" }} />
+            </div>
+            <div className="bar" style={{ height: 26, width: 108, borderRadius: 999 }} />
+          </div>
+          <div className="bar" style={{ height: 17, width: "62%", marginTop: 14 }} />
+          <div className="facts">
+            <div className="bar" style={{ height: 14, width: 78 }} />
+            <div className="bar" style={{ height: 14, width: 66 }} />
+          </div>
+          <div className="foot">
+            <div className="bar" style={{ height: 22, width: 128, borderRadius: 999 }} />
+            <div className="bar" style={{ height: 14, width: 94 }} />
+          </div>
+        </div>
+      </WideSkeleton>
+    );
+  }
+
   return (
     <Skeleton aria-hidden="true">
-      <div className="who">
-        <div className="bar avatar" />
-        <div className="who-copy">
-          <div className="bar" style={{ height: 15, width: "62%" }} />
-          <div className="bar" style={{ height: 12, width: "38%" }} />
-        </div>
-      </div>
+      <div className="bar media" />
+      <div className="body">
+        <div className="bar" style={{ height: 19, width: "86%" }} />
 
-      <div className="journey">
-        <div className="bar" style={{ height: 17, width: "56%" }} />
-        <div className="bar" style={{ height: 14, width: "72%" }} />
-        <div className="bar" style={{ height: 14, width: "64%" }} />
-      </div>
-
-      <div className="foot">
-        <div className="foot-left">
-          <div className="bar" style={{ height: 14, width: "42%" }} />
-          <div className="bar" style={{ height: 12, width: "56%" }} />
+        <div className="facts">
+          {FACT_WIDTHS.map((width) => (
+            <div className="fact" key={width}>
+              <div className="bar glyph" />
+              <div className="bar" style={{ height: 13, width }} />
+            </div>
+          ))}
         </div>
-        <div className="bar" style={{ height: 24, width: 96 }} />
+
+        <div className="who">
+          <div className="bar avatar" />
+          <div className="who-copy">
+            <div className="bar" style={{ height: 13, width: "58%" }} />
+            <div className="bar" style={{ height: 11, width: "34%" }} />
+          </div>
+        </div>
+
+        <div className="chips">
+          <div className="bar" style={{ height: 22, width: 68, borderRadius: 999 }} />
+          <div className="bar" style={{ height: 22, width: 80, borderRadius: 999 }} />
+        </div>
+
+        <div className="fare">
+          <div className="bar" style={{ height: 25, width: 112 }} />
+          <div className="bar" style={{ height: 11, width: 52 }} />
+        </div>
       </div>
     </Skeleton>
   );
@@ -348,6 +496,7 @@ export type CarouselPhase = "ready" | "searching" | "error";
 export function RideCarousel({
   mode,
   phase,
+  refreshing = false,
   items,
   onPost,
   onRetry,
@@ -356,13 +505,20 @@ export function RideCarousel({
 }: {
   mode: AppMode;
   phase: CarouselPhase;
+  refreshing?: boolean;
   items: HomeItem[];
   onPost: () => void;
   onRetry: () => void;
   hoveredId?: string | null;
   onHoverChange?: (id: string | null) => void;
 }) {
-  const copy = ROLE_COPY[mode];
+  const shown: AppMode =
+    items.length > 0
+      ? items[0].kind === "request"
+        ? "driver"
+        : "passenger"
+      : mode;
+  const copy = ROLE_COPY[shown];
   const railRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [atStart, setAtStart] = useState(true);
@@ -406,6 +562,8 @@ export function RideCarousel({
   }
 
   const showTools = phase === "ready" && items.length > 0;
+  const wide = shown === "driver";
+  const perPage = wide ? 2 : 4;
 
   return (
     <section>
@@ -413,7 +571,12 @@ export function RideCarousel({
         <h2>{copy.carouselTitle}</h2>
         {showTools && (
           <Tools>
-            {items.length > 4 && (
+            {refreshing && (
+              <Refreshing aria-label="Updating results">
+                <RotateCw size={15} />
+              </Refreshing>
+            )}
+            {items.length > perPage && (
               <SeeAll type="button" onClick={() => setExpanded((v) => !v)}>
                 {expanded ? "Show less" : `See all ${items.length}`}
               </SeeAll>
@@ -443,9 +606,9 @@ export function RideCarousel({
       </Head>
 
       {phase === "searching" && (
-        <Grid aria-busy>
-          {[0, 1, 2, 3].map((i) => (
-            <CardSkeleton key={i} />
+        <Grid aria-busy $wide={wide}>
+          {Array.from({ length: perPage }, (_, i) => (
+            <CardSkeleton key={i} $wide={wide} />
           ))}
         </Grid>
       )}
@@ -480,11 +643,12 @@ export function RideCarousel({
             </span>
           </Center>
         ) : expanded ? (
-          <Grid>
-            {items.map((item) => (
+          <Grid $wide={wide}>
+            {items.map((item, i) => (
               <RideCard
                 key={item.id}
                 item={item}
+                index={i}
                 hovered={hoveredId === item.id}
                 onHoverChange={onHoverChange}
               />
@@ -494,14 +658,16 @@ export function RideCarousel({
           <>
             <Rail
               ref={railRef}
+              $wide={wide}
               tabIndex={0}
               role="group"
               aria-label={`${copy.carouselTitle}, ${items.length} results. Scroll horizontally.`}
             >
-              {items.map((item) => (
+              {items.map((item, i) => (
                 <RideCard
                   key={item.id}
                   item={item}
+                  index={i}
                   hovered={hoveredId === item.id}
                   onHoverChange={onHoverChange}
                 />

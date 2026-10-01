@@ -134,7 +134,7 @@ export function NavRail({
   collapsed,
   onToggleCollapsed,
   profile,
-  unreadCount,
+  counts,
   modeSlot,
   signInHref,
   variant = "rail",
@@ -144,7 +144,7 @@ export function NavRail({
   collapsed: boolean;
   onToggleCollapsed: () => void;
   profile: Profile | null;
-  unreadCount?: number;
+  counts?: Partial<Record<NonNullable<NavItem["badge"]>, number>>;
   modeSlot?: React.ReactNode;
   signInHref?: string;
   variant?: "rail" | "drawer";
@@ -175,7 +175,7 @@ export function NavRail({
                 active={isNavItemActive(item, pathname)}
                 current={isNavItemCurrent(item, pathname)}
                 collapsed={isCollapsed}
-                badgeCount={item.badge === "notifications" ? unreadCount : undefined}
+                badgeCount={item.badge ? counts?.[item.badge] : undefined}
               />
             </li>
           ))}

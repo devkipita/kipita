@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, Ticket, CaretRight as ChevronRight } from "@/components/icons";
+import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, QuestionCircle, Ticket, CaretRight as ChevronRight } from "@/components/icons";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
 import { Container, Grid, H2, Lead } from "@/components/ui/primitives";
@@ -45,6 +45,19 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
             </FeatureTitle>
             <FeatureBody>
               Add and edit the questions shown on the /help page.
+            </FeatureBody>
+          </FeatureCardLink>
+
+          <FeatureCardLink href="/admin/support">
+            <IconBubble icon={QuestionCircle} variant="green" />
+            <FeatureTitle>
+              Support
+              <InlineChevron data-chevron>
+                <ChevronRight size={18} />
+              </InlineChevron>
+            </FeatureTitle>
+            <FeatureBody>
+              Read and answer open support cases from passengers and drivers.
             </FeatureBody>
           </FeatureCardLink>
 
