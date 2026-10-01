@@ -54,7 +54,6 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const REVEAL_DELAY = 1800;
 
 // Fixed brand colours — the mark keeps the exact design colours in every theme,
-// it is not tied to theme tokens.
 const MARK_BODY = '#064e3b';
 const MARK_LEAF = '#9ec5a2';
 
