@@ -2,7 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { CalendarBlank as CalendarDays, CaretDown as ChevronDown, Circle, Clock, CircleNotch as Loader2, MapPin, MagnifyingGlass as Search, SlidersHorizontal, Lightning as Zap } from "@/components/icons";
+import {
+  CalendarBlank as CalendarDays,
+  CaretDown as ChevronDown,
+  Circle,
+  Clock,
+  CircleNotch as Loader2,
+  MapPin,
+  MagnifyingGlass as Search,
+  SlidersHorizontal,
+  Lightning as Zap,
+} from "@/components/icons";
 import { fetchTowns, type Town } from "@/lib/rides";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { ROLE_COPY } from "@/lib/home/labels";
@@ -26,6 +36,8 @@ export type SearchForm = {
   /** "HH:mm", or null for "leaving now". */
   departure_time: string | null;
   preferences: RidePreferences;
+  /** Passengers; defaults to 1 when absent. */
+  seats?: number;
 };
 
 const Card = styled.section`
@@ -278,7 +290,11 @@ export function RouteSearchForm({
           <Suggestions style={{ marginTop: 10 }}>
             {suggestions.map((town) => (
               <li key={`${town.name}-${town.county ?? ""}`}>
-                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(town)}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => pick(town)}
+                >
                   {town.name}
                   {town.county && <small>{town.county}</small>}
                 </button>

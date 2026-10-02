@@ -177,6 +177,7 @@ export function HomeView({
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<SearchForm["preferences"]>({});
+  const [seats, setSeats] = useState(1);
 
   const [placeField, setPlaceField] = useState<PlaceField | null>(null);
   const [whenOpen, setWhenOpen] = useState(false);
@@ -234,11 +235,12 @@ export function HomeView({
         date,
         departure_time: time,
         preferences,
+        seats,
         ...overrides,
       };
       void run(form, { deliberate: true });
     },
-    [from, to, date, time, preferences, run],
+    [from, to, date, time, preferences, seats, run],
   );
 
   const openPost = useCallback(
@@ -269,6 +271,7 @@ export function HomeView({
     to ||
     date ||
     time ||
+    seats > 1 ||
     (from && from !== originTown) ||
     Object.values(preferences ?? {}).some(Boolean),
   );
@@ -282,11 +285,24 @@ export function HomeView({
     setDate(null);
     setTime(null);
     setPreferences({});
+    setSeats(1);
     setDatesOpen(false);
     void run(
-      { from: "", to: "", date: null, departure_time: null, preferences: {} },
+      {
+        from: "",
+        to: "",
+        date: null,
+        departure_time: null,
+        preferences: {},
+        seats: 1,
+      },
       { deliberate: false },
     );
+  }
+
+  function changeSeats(next: number) {
+    setSeats(next);
+    runSearch({ seats: next });
   }
 
   function pickTown(field: PlaceField, town: Town) {
@@ -323,6 +339,9 @@ export function HomeView({
           onSearch={() => runSearch()}
           onClear={clearSearch}
           canClear={searchActive}
+          seats={seats}
+          onSeatsChange={changeSeats}
+          showSeats={mode === "passenger"}
         />
 
         <Greeting>
@@ -360,6 +379,7 @@ export function HomeView({
                   date: next,
                   departure_time: next ? null : time,
                   preferences,
+                  seats,
                 },
                 { deliberate: false },
               );

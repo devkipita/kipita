@@ -53,6 +53,7 @@ export function useHomeSearch(mode: AppMode, initialItems: HomeItem[]) {
           to: form?.to,
           date: form?.date,
           departure_time: form?.departure_time,
+          seats: form?.seats,
         });
         if (seq.current !== mine) return; // a newer search already landed
         setItems(found);

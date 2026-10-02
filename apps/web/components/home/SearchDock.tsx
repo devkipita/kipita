@@ -1,12 +1,17 @@
 ﻿"use client";
 
+import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import {
   CalendarBlank as CalendarDays,
+  CaretDown,
   Circle,
   MagnifyingGlass,
   MapPin,
+  Minus,
   NavigationArrow as Navigation,
+  Plus,
+  Users,
   X,
 } from "@/components/icons";
 import { HOME_COPY } from "@/lib/home/copy";
@@ -14,22 +19,7 @@ import type { PlaceField } from "./PlaceModal";
 
 export type OriginStatus = "idle" | "detecting" | "ready" | "failed";
 
-/** Material "near_me", rotated 45deg so the arrow points right. */
-function SendArrow({ size = 22 }: { size?: number }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      height={size}
-      width={size}
-      viewBox="0 -960 960 960"
-      fill="currentColor"
-      aria-hidden="true"
-      style={{ transform: "rotate(45deg)", flex: "none" }}
-    >
-      <path d="M409.33-409.33 139-515.67q-11-4.33-16-13.16-5-8.84-5-18.5 0-9.67 5.17-17.84 5.16-8.16 16.16-12.5l632-236.66q10-4.34 19.34-1.67 9.33 2.67 16 9.33 6.66 6.67 9.33 16 2.67 9.34-1.67 19.34l-236.66 632q-4.34 11-12.5 16.16Q557-118 547.33-118q-9.66 0-18.5-5-8.83-5-13.16-16L409.33-409.33Zm134.67 164L726-726 246-544l214.67 83.33L544-245.33Zm-83.33-215.34Z" />
-    </svg>
-  );
-}
+const MAX_SEATS = 8;
 
 const Dock = styled.div`
   position: relative;
@@ -44,7 +34,7 @@ const Dock = styled.div`
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
   box-shadow: ${({ theme }) => theme.shadow.soft};
 
-  @media (max-width: 1020px) {
+  @media (max-width: 1100px) {
     display: none;
   }
 `;
@@ -52,7 +42,7 @@ const Dock = styled.div`
 const Compact = styled.div`
   display: none;
 
-  @media (max-width: 1020px) {
+  @media (max-width: 1100px) {
     position: relative;
     z-index: 5;
     margin-top: 18px;
@@ -134,7 +124,7 @@ const Divider = styled.span`
   height: 30px;
   background: ${({ theme }) => theme.color.line};
 
-  @media (max-width: 1020px) {
+  @media (max-width: 1100px) {
     display: none;
   }
 `;
@@ -203,35 +193,13 @@ const Pin = styled(MapPin)`
   color: ${({ theme }) => theme.color.dangerText};
 `;
 
-const When = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  height: 42px;
-  padding: 0 16px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.tone.jungle.bg};
-  color: ${({ theme }) => theme.tone.jungle.on};
-  font: inherit;
-  font-size: ${({ theme }) => theme.type.label};
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: 3px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
-  }
-`;
-
 const Actions = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
 `;
 
-const IconButton = styled.button<{ $solid?: boolean }>`
+const IconButton = styled.button`
   display: inline-grid;
   place-items: center;
   flex: none;
@@ -242,13 +210,9 @@ const IconButton = styled.button<{ $solid?: boolean }>`
   border-radius: ${({ theme }) => theme.radius.pill};
   font: inherit;
   cursor: pointer;
-  background: ${({ theme, $solid }) =>
-    $solid ? theme.color.primary : theme.color.surface2};
-  color: ${({ theme, $solid }) =>
-    $solid ? theme.color.onPrimary : theme.color.textSoft};
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+  background: ${({ theme }) => theme.color.surface2};
+  color: ${({ theme }) => theme.color.textSoft};
+  transition: transform 0.15s ease;
 
   @media (hover: hover) {
     &:hover {
@@ -267,27 +231,175 @@ const IconButton = styled.button<{ $solid?: boolean }>`
   }
 `;
 
+const SearchButton = styled.button`
+  flex: none;
+  height: 48px;
+  padding: 0 28px;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.primary};
+  color: ${({ theme }) => theme.color.onPrimary};
+  font: inherit;
+  font-size: ${({ theme }) => theme.type.body};
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const Panel = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 16px;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.surface2};
+  color: ${({ theme }) => theme.color.text};
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+
+  svg {
+    flex: none;
+    color: ${({ theme }) => theme.color.textSoft};
+  }
+  .text {
+    min-width: 0;
+  }
+  small {
+    display: block;
+    font-size: ${({ theme }) => theme.type.micro};
+    font-weight: 500;
+    color: ${({ theme }) => theme.color.textSoft};
+  }
+  b {
+    display: block;
+    font-size: ${({ theme }) => theme.type.label};
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      box-shadow: inset 0 0 0 1px ${({ theme }) => theme.color.outlineVariant};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+`;
+
+const SeatsWrap = styled.div`
+  position: relative;
+`;
+
+const SeatsMenu = styled.div`
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.space.lg};
+  min-width: 250px;
+  padding: 14px 16px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.color.elevated};
+  box-shadow: ${({ theme }) => theme.elevation[3]};
+
+  .label b {
+    display: block;
+    font-size: ${({ theme }) => theme.type.body};
+    font-weight: 700;
+  }
+  .label small {
+    font-size: ${({ theme }) => theme.type.micro};
+    color: ${({ theme }) => theme.color.textSoft};
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stepper output {
+    min-width: 20px;
+    text-align: center;
+    font-weight: 700;
+  }
+`;
+
+function seatsLabel(seats: number): string {
+  return `${seats} ${seats === 1 ? "passenger" : "passengers"}`;
+}
+
 export function SearchDock({
   from,
   to,
   scheduleLabel,
   originStatus,
   canClear,
+  seats,
+  showSeats,
   onOpenField,
   onOpenWhen,
   onSearch,
   onClear,
+  onSeatsChange,
 }: {
   from: string;
   to: string;
   scheduleLabel: string | null;
   originStatus: OriginStatus;
   canClear: boolean;
+  seats: number;
+  showSeats: boolean;
   onOpenField: (field: PlaceField) => void;
   onOpenWhen: () => void;
   onSearch: () => void;
   onClear: () => void;
+  onSeatsChange: (seats: number) => void;
 }) {
+  const [seatsOpen, setSeatsOpen] = useState(false);
+  const seatsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!seatsOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!seatsRef.current?.contains(e.target as Node)) setSeatsOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSeatsOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [seatsOpen]);
+
   const fromText =
     from ||
     (originStatus === "detecting"
@@ -322,14 +434,9 @@ export function SearchDock({
             <X size={18} />
           </IconButton>
         )}
-        <IconButton
-          type="button"
-          $solid
-          onClick={onSearch}
-          aria-label="Search rides"
-        >
-          <SendArrow size={22} />
-        </IconButton>
+        <SearchButton type="button" onClick={onSearch}>
+          Search
+        </SearchButton>
       </Compact>
 
       <Dock>
@@ -359,10 +466,59 @@ export function SearchDock({
         </Field>
 
         <Actions>
-          <When type="button" onClick={onOpenWhen}>
-            <CalendarDays size={15} />
-            {scheduleLabel ?? HOME_COPY.whenLater}
-          </When>
+          <Panel type="button" onClick={onOpenWhen}>
+            <CalendarDays size={20} />
+            <span className="text">
+              <small>Select dates</small>
+              <b>{scheduleLabel ?? HOME_COPY.whenLater}</b>
+            </span>
+          </Panel>
+
+          {showSeats && (
+            <SeatsWrap ref={seatsRef}>
+              <Panel
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={seatsOpen}
+                onClick={() => setSeatsOpen((v) => !v)}
+              >
+                <Users size={20} />
+                <span className="text">
+                  <small>Passengers</small>
+                  <b>{seatsLabel(seats)}</b>
+                </span>
+                <CaretDown size={16} />
+              </Panel>
+
+              {seatsOpen && (
+                <SeatsMenu role="dialog" aria-label="Passengers">
+                  <span className="label">
+                    <b>Passengers</b>
+                    <small>Seats you need</small>
+                  </span>
+                  <span className="stepper">
+                    <IconButton
+                      type="button"
+                      aria-label="Fewer passengers"
+                      disabled={seats <= 1}
+                      onClick={() => onSeatsChange(seats - 1)}
+                    >
+                      <Minus size={16} />
+                    </IconButton>
+                    <output aria-live="polite">{seats}</output>
+                    <IconButton
+                      type="button"
+                      aria-label="More passengers"
+                      disabled={seats >= MAX_SEATS}
+                      onClick={() => onSeatsChange(seats + 1)}
+                    >
+                      <Plus size={16} />
+                    </IconButton>
+                  </span>
+                </SeatsMenu>
+              )}
+            </SeatsWrap>
+          )}
 
           {canClear && (
             <IconButton
@@ -373,14 +529,9 @@ export function SearchDock({
               <X size={18} />
             </IconButton>
           )}
-          <IconButton
-            type="button"
-            $solid
-            onClick={onSearch}
-            aria-label="Search rides"
-          >
-            <SendArrow size={22} />
-          </IconButton>
+          <SearchButton type="button" onClick={onSearch}>
+            Search
+          </SearchButton>
         </Actions>
       </Dock>
     </>

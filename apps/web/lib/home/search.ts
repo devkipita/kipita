@@ -23,6 +23,8 @@ export type SearchParams = {
   date?: string | null;
   /** "HH:mm" */
   departure_time?: string | null;
+  /** Passengers travelling; trips with fewer free seats are dropped. */
+  seats?: number;
 };
 
 export type RouteCoords = {
@@ -165,7 +167,7 @@ export async function searchTrips(
     .from("trips")
     .select(TRIP_SELECT)
     .eq("status", "posted")
-    .gt("seats_available", 0)
+    .gte("seats_available", Math.max(1, params.seats ?? 1))
     .or(`departure_date.gte.${today},departure_date.is.null`)
     .order("departure_date", { ascending: true })
     .order("departure_time", { ascending: true })
