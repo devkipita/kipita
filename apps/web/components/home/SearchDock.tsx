@@ -7,11 +7,29 @@ import {
   MagnifyingGlass,
   MapPin,
   NavigationArrow as Navigation,
+  X,
 } from "@/components/icons";
 import { HOME_COPY } from "@/lib/home/copy";
 import type { PlaceField } from "./PlaceModal";
 
 export type OriginStatus = "idle" | "detecting" | "ready" | "failed";
+
+/** Material "near_me", rotated 45deg so the arrow points right. */
+function SendArrow({ size = 22 }: { size?: number }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      height={size}
+      width={size}
+      viewBox="0 -960 960 960"
+      fill="currentColor"
+      aria-hidden="true"
+      style={{ transform: "rotate(45deg)", flex: "none" }}
+    >
+      <path d="M409.33-409.33 139-515.67q-11-4.33-16-13.16-5-8.84-5-18.5 0-9.67 5.17-17.84 5.16-8.16 16.16-12.5l632-236.66q10-4.34 19.34-1.67 9.33 2.67 16 9.33 6.66 6.67 9.33 16 2.67 9.34-1.67 19.34l-236.66 632q-4.34 11-12.5 16.16Q557-118 547.33-118q-9.66 0-18.5-5-8.83-5-13.16-16L409.33-409.33Zm134.67 164L726-726 246-544l214.67 83.33L544-245.33Zm-83.33-215.34Z" />
+    </svg>
+  );
+}
 
 const Dock = styled.div`
   position: relative;
@@ -207,20 +225,68 @@ const When = styled.button`
   }
 `;
 
+const Actions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
+const IconButton = styled.button<{ $solid?: boolean }>`
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  font: inherit;
+  cursor: pointer;
+  background: ${({ theme, $solid }) =>
+    $solid ? theme.color.primary : theme.color.surface2};
+  color: ${({ theme, $solid }) =>
+    $solid ? theme.color.onPrimary : theme.color.textSoft};
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: scale(1.06);
+    }
+  }
+  &:active {
+    transform: scale(0.94);
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 export function SearchDock({
   from,
   to,
   scheduleLabel,
   originStatus,
+  canClear,
   onOpenField,
   onOpenWhen,
+  onSearch,
+  onClear,
 }: {
   from: string;
   to: string;
   scheduleLabel: string | null;
   originStatus: OriginStatus;
+  canClear: boolean;
   onOpenField: (field: PlaceField) => void;
   onOpenWhen: () => void;
+  onSearch: () => void;
+  onClear: () => void;
 }) {
   const fromText =
     from ||
@@ -250,6 +316,20 @@ export function SearchDock({
           <CalendarDays size={15} />
           {scheduleLabel ?? HOME_COPY.whenLater}
         </CompactLater>
+
+        {canClear && (
+          <IconButton type="button" onClick={onClear} aria-label="Clear search">
+            <X size={18} />
+          </IconButton>
+        )}
+        <IconButton
+          type="button"
+          $solid
+          onClick={onSearch}
+          aria-label="Search rides"
+        >
+          <SendArrow size={22} />
+        </IconButton>
       </Compact>
 
       <Dock>
@@ -278,10 +358,30 @@ export function SearchDock({
           </span>
         </Field>
 
-        <When type="button" onClick={onOpenWhen}>
-          <CalendarDays size={15} />
-          {scheduleLabel ?? HOME_COPY.whenNow}
-        </When>
+        <Actions>
+          <When type="button" onClick={onOpenWhen}>
+            <CalendarDays size={15} />
+            {scheduleLabel ?? HOME_COPY.whenLater}
+          </When>
+
+          {canClear && (
+            <IconButton
+              type="button"
+              onClick={onClear}
+              aria-label="Clear search"
+            >
+              <X size={18} />
+            </IconButton>
+          )}
+          <IconButton
+            type="button"
+            $solid
+            onClick={onSearch}
+            aria-label="Search rides"
+          >
+            <SendArrow size={22} />
+          </IconButton>
+        </Actions>
       </Dock>
     </>
   );

@@ -184,6 +184,7 @@ export function HomeView({
 
   const [originStatus, setOriginStatus] = useState<OriginStatus>("idle");
   const [originCoords, setOriginCoords] = useState<Coords | null>(null);
+  const [originTown, setOriginTown] = useState("");
   const fromTouched = useRef(false);
 
   const search = useHomeSearch(mode, initialItems);
@@ -208,6 +209,7 @@ export function HomeView({
           return;
         }
         setOriginCoords(origin.coords);
+        setOriginTown(origin.town.name);
         setOriginStatus("ready");
         if (!fromTouched.current)
           setFrom((current) => current || origin.town.name);
@@ -263,6 +265,30 @@ export function HomeView({
     if (items.length === 0) openPost(null);
   }, [searchRequested, phase, items.length, clearSearchRequest, openPost]);
 
+  const searchActive = Boolean(
+    to ||
+    date ||
+    time ||
+    (from && from !== originTown) ||
+    Object.values(preferences ?? {}).some(Boolean),
+  );
+
+  // Empty form = every upcoming ride, not a deliberate search, so the post
+  // drawer must not open when the list is short.
+  function clearSearch() {
+    fromTouched.current = true;
+    setFrom("");
+    setTo("");
+    setDate(null);
+    setTime(null);
+    setPreferences({});
+    setDatesOpen(false);
+    void run(
+      { from: "", to: "", date: null, departure_time: null, preferences: {} },
+      { deliberate: false },
+    );
+  }
+
   function pickTown(field: PlaceField, town: Town) {
     if (field === "from") {
       fromTouched.current = true;
@@ -294,6 +320,9 @@ export function HomeView({
           originStatus={originStatus}
           onOpenField={setPlaceField}
           onOpenWhen={() => setWhenOpen(true)}
+          onSearch={() => runSearch()}
+          onClear={clearSearch}
+          canClear={searchActive}
         />
 
         <Greeting>
@@ -315,7 +344,7 @@ export function HomeView({
               <SlidersHorizontal size={16} />
               {date ? dayLabel(date) : "Any date"}
             </FilterPill>
-            <LocalWeather town={from} />
+            <LocalWeather town={from || originTown} />
           </div>
         </Greeting>
 
