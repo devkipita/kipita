@@ -1,31 +1,39 @@
 ﻿import styled from "styled-components";
-import { nocturne } from "../nocturne";
+import { themes } from "@/lib/theme";
 import { Reveal } from "../../anim/Reveal";
 import { TrickleHeading } from "../TrickleHeading";
 import { HeroSearch } from "../search/HeroSearch";
 import { PulseDot } from "../primitives";
 
+/** The landing is always dark, so it reads the dark theme's M3 roles. */
+const c = themes.dark.color;
+
 const HeroShell = styled.section`
   position: relative;
-  min-height: 100dvh;
+  min-height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: clamp(32px, 5vw, 56px);
+  gap: clamp(28px, 5vw, 56px);
   padding: 120px clamp(16px, 5vw, 72px) clamp(28px, 4vw, 48px);
-  /* Gradient keeps the headline legible; the colour shows until the photo loads. */
+  /* The scrim keeps the headline legible; the surface colour shows until the photo loads. */
   background:
     linear-gradient(
       180deg,
-      rgba(8, 16, 12, 0.74) 0%,
-      rgba(8, 16, 12, 0.36) 40%,
-      rgba(8, 16, 12, 0.88) 100%
+      ${c.background}cc 0%,
+      ${c.background}59 42%,
+      ${c.background}f2 100%
     ),
     url("/home/nairobi-hero.jpg") center / cover no-repeat,
-    ${nocturne.bg};
+    ${c.background};
 
   @media (max-width: 900px) {
-    padding-top: 116px;
+    padding-top: 104px;
+  }
+  /* Leaves room under the search for the floating support button. */
+  @media (max-width: 640px) {
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 `;
 
@@ -37,18 +45,24 @@ const HeroTop = styled.div`
   align-items: flex-end;
   justify-content: space-between;
   gap: 32px;
+
+  @media (max-width: 640px) {
+    gap: 22px;
+  }
 `;
 
 const Credit = styled.a`
-  position: absolute;
-  right: clamp(16px, 5vw, 72px);
-  bottom: 10px;
+  align-self: flex-end;
+  margin-top: -12px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${c.onSurfaceVariant};
   text-decoration: none;
 
   &:hover {
     text-decoration: underline;
+  }
+  @media (max-width: 640px) {
+    align-self: flex-start;
   }
 `;
 
@@ -62,7 +76,7 @@ const HeroCopy = styled.div`
   max-width: 760px;
 
   @media (max-width: 640px) {
-    gap: 24px;
+    gap: 18px;
   }
 `;
 
@@ -70,17 +84,16 @@ const LivePill = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 20px;
+  padding: 8px 16px;
   border-radius: 999px;
-  background: ${nocturne.greenDeep};
-  border: 1px solid ${nocturne.green};
+  background: ${c.secondaryContainer};
 
   span:last-child {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: ${nocturne.sage};
+    color: ${c.onSecondaryContainer};
   }
 `;
 
@@ -90,17 +103,17 @@ const Display = styled(TrickleHeading)`
   font-size: clamp(40px, 6.6vw, 112px);
   line-height: 0.92;
   letter-spacing: -0.035em;
-  color: ${nocturne.cream};
+  color: ${c.onSurface};
   text-wrap: balance;
 
   & span {
     display: inline-block;
   }
   & .accent-sage {
-    color: ${nocturne.sage};
+    color: ${c.primary};
   }
   & .accent-tan {
-    color: ${nocturne.tan};
+    color: ${c.tertiary};
   }
 `;
 
@@ -109,7 +122,8 @@ const HeroLead = styled.p`
   max-width: 540px;
   font-size: clamp(17px, 1.35vw, 21px);
   line-height: 1.55;
-  color: ${nocturne.muted};
+  color: ${c.onSurfaceVariant};
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.5);
 `;
 
 const HeroActions = styled.div`
@@ -121,14 +135,8 @@ const HeroActions = styled.div`
 
   @media (max-width: 640px) {
     width: 100%;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    gap: 12px;
+    justify-content: flex-start;
     margin-top: 16px;
-  }
-
-  @media (max-width: 420px) {
-    gap: 10px;
   }
 `;
 
@@ -139,26 +147,21 @@ const BtnGreen = styled.a`
   gap: 10px;
   padding: 18px 36px;
   border-radius: 999px;
-  background: ${nocturne.greenDeep};
-  color: ${nocturne.lime};
+  /* Filled-tonal: the quieter of the two actions, next to the primary Search. */
+  background: ${c.secondaryContainer};
+  color: ${c.onSecondaryContainer};
   font-size: 17px;
   font-weight: 700;
-  transition: background 0.2s ease;
+  transition: filter 0.2s ease;
 
   &:hover {
-    background: ${nocturne.green};
+    filter: brightness(1.15);
   }
 
   @media (max-width: 640px) {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 16px 18px;
+    flex: 0 0 auto;
+    padding: 14px 26px;
     font-size: 15px;
-  }
-
-  @media (max-width: 420px) {
-    padding: 14px 14px;
-    font-size: 14px;
   }
 `;
 
@@ -172,6 +175,10 @@ const HeroStats = styled.div`
   @media (max-width: 900px) {
     justify-content: flex-start;
   }
+  /* The stats band further down repeats these; on a phone they only crowd the fold. */
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const HeroStat = styled.div`
@@ -183,18 +190,18 @@ const HeroStat = styled.div`
     font-family: var(--font-dm-sans), system-ui, sans-serif;
     font-size: 26px;
     font-weight: 700;
-    color: ${nocturne.cream};
+    color: ${c.onSurface};
   }
   span {
     font-size: 13px;
-    color: ${nocturne.muted3};
+    color: ${c.onSurfaceVariant};
   }
 `;
 
 const HeroDivider = styled.div`
   width: 1px;
   height: 34px;
-  background: rgba(255, 255, 255, 0.22);
+  background: ${c.outlineVariant};
 `;
 
 export function Hero() {

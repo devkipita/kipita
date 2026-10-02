@@ -39,7 +39,10 @@ export function LocalWeather({ town }: { town: string }) {
   const Icon = WEATHER_ICON[weather.kind];
 
   return (
-    <Chip $role={WEATHER_ROLE[weather.kind]} title={`${weather.label} in ${town}`}>
+    <Chip
+      $role={WEATHER_ROLE[weather.kind]}
+      title={`${weather.label} in ${town}`}
+    >
       <Icon size={30} />
       <span className="temp">{formatTemp(weather.tempC)}</span>
       <span className="town">{town}</span>

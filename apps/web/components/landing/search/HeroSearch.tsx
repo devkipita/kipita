@@ -14,8 +14,21 @@ import {
   Users,
   X,
 } from "@/components/icons";
-import { nocturne } from "../nocturne";
+import { themes } from "@/lib/theme";
 import { scrollToFind, useSharedRideSearch } from "./RideSearchContext";
+
+/** The landing is always dark, so it reads the dark theme's M3 roles. */
+const c = themes.dark.color;
+
+/** Roles under the short names this file's styles already use. */
+const nocturne = {
+  sage: c.primary,
+  lime: c.primary,
+  cream: c.onSurface,
+  muted2: c.onSurfaceVariant,
+  muted3: c.outline,
+  greenDeep: c.onPrimary,
+} as const;
 
 const MAX_SEATS = 8;
 
@@ -37,8 +50,8 @@ const Dock = styled.div`
   gap: 6px;
   padding: 8px;
   border-radius: 999px;
-  background: rgba(12, 22, 16, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: ${c.surfaceContainerLow}e6;
+  border: 1px solid ${c.outlineVariant};
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
@@ -74,7 +87,18 @@ const Slot = styled.div<{ $area: string }>`
       top: 22%;
       bottom: 22%;
       width: 1px;
-      background: rgba(255, 255, 255, 0.16);
+      background: ${c.outlineVariant};
+    }
+  }
+  @media (max-width: 560px) {
+    &[data-slot="to"]::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      left: 14px;
+      right: 14px;
+      height: 1px;
+      background: ${c.outlineVariant};
     }
   }
 `;
@@ -104,7 +128,7 @@ const Field = styled.label`
     background: rgba(255, 255, 255, 0.1);
     box-shadow:
       inset 0 0 0 2px ${nocturne.sage},
-      0 0 0 4px rgba(158, 197, 162, 0.16);
+      0 0 0 4px ${c.primary}29;
   }
   &:focus-within svg,
   &:focus-within small {
@@ -170,7 +194,7 @@ const Field = styled.label`
     -webkit-text-fill-color: ${nocturne.cream};
     caret-color: ${nocturne.lime};
     transition: background-color 9999s ease-out;
-    box-shadow: 0 0 0 1000px #17201a inset;
+    box-shadow: 0 0 0 1000px ${c.surfaceContainerLow} inset;
   }
   input:disabled {
     opacity: 0.5;
@@ -188,8 +212,8 @@ const Suggestions = styled.ul`
   padding: 6px;
   list-style: none;
   border-radius: 20px;
-  background: #17201a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: ${c.surfaceContainerHigh};
+  border: 1px solid ${c.outlineVariant};
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 
   button {
@@ -251,7 +275,7 @@ const Panel = styled.button`
   padding: 0 18px;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
+  background: ${c.surfaceContainerHighest};
   color: ${nocturne.cream};
   font: inherit;
   text-align: left;
@@ -332,8 +356,8 @@ const Cal = styled.div`
   width: min(330px, 86vw);
   padding: 14px;
   border-radius: 24px;
-  background: #17201a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: ${c.surfaceContainerHigh};
+  border: 1px solid ${c.outlineVariant};
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
   color: ${nocturne.cream};
 
@@ -437,8 +461,8 @@ const Menu = styled.div`
   min-width: 260px;
   padding: 14px 16px;
   border-radius: 20px;
-  background: #17201a;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: ${c.surfaceContainerHigh};
+  border: 1px solid ${c.outlineVariant};
   box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
   color: ${nocturne.cream};
 
@@ -473,7 +497,7 @@ const Round = styled.button`
   padding: 0;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: ${c.surfaceContainerHighest};
   color: ${nocturne.cream};
   cursor: pointer;
   transition:
@@ -481,7 +505,7 @@ const Round = styled.button`
     transform 0.12s ease;
 
   &:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.18);
+    background: ${c.outlineVariant};
   }
   &:active:not(:disabled) {
     transform: scale(0.92);
@@ -526,13 +550,13 @@ const SearchBtn = styled.button`
     transform 0.15s ease;
 
   &:hover {
-    background: ${nocturne.cream};
+    background: ${c.primaryFixed};
   }
   &:active {
     transform: scale(0.97);
   }
   &:disabled {
-    background: ${nocturne.sage};
+    background: ${c.primaryFixedDim};
     cursor: progress;
     opacity: 0.8;
     transform: none;

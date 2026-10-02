@@ -13,7 +13,8 @@ export const HOME_COPY = {
   mapTeaserCta: "Show live map",
   mapHide: "Hide map",
   mapEmpty: "Quiet roads today — these are the routes people travel most.",
-  mapUnavailable: "The map is unavailable right now. Search and booking still work.",
+  mapUnavailable:
+    "The map is unavailable right now. Search and booking still work.",
 
   fromLabel: "From",
   fromDetecting: "Locating you…",
@@ -34,7 +35,8 @@ export const HOME_COPY = {
 
   planTitle: "Plan your ride",
   placeTitleFrom: "Where are you starting?",
-  placeDescFrom: "We guessed from your connection — change it if we got it wrong.",
+  placeDescFrom:
+    "We guessed from your connection — change it if we got it wrong.",
   placeTitleTo: "Where are you headed?",
   placeDescTo: "Pick a town, or tap a route to fill both ends at once.",
   placeInputFrom: "Leaving from…",
@@ -47,7 +49,7 @@ export const HOME_COPY = {
   noMatch: (q: string) => `No town called "${q}". Try the county instead.`,
 
   whenTitle: "When are you travelling?",
-  whenDesc: "Leave it on \"now\" and we'll show everything coming up.",
+  whenDesc: 'Leave it on "now" and we\'ll show everything coming up.',
 
   ridesCount: (n: number) =>
     n === 1 ? "1 going your way" : `${n} going your way`,
@@ -61,7 +63,8 @@ export const HOME_COPY = {
   alertsSeeAll: "See all",
   alertsPost: "Post an alert",
   emptyAlerts: "No alerts nearby",
-  emptyAlertsBody: "Nothing reported on these roads yet. Post an alert if you see something.",
+  emptyAlertsBody:
+    "Nothing reported on these roads yet. Post an alert if you see something.",
 
   errorTitle: "That didn't load",
   errorBody: "Check your connection and try again.",

@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import styled from "styled-components";
-import { ArrowLeft, ArrowRight, Circle, MapPin, NavigationArrow as Navigation, Square, X } from "@/components/icons";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Circle,
+  MapPin,
+  NavigationArrow as Navigation,
+  Square,
+  X,
+} from "@/components/icons";
 import {
   KENYAN_TOWNS,
   POPULAR_ROUTES,
@@ -27,7 +35,9 @@ function readRecent(): string[] {
     const raw = localStorage.getItem(RECENT_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? (parsed as string[]).slice(0, RECENT_MAX) : [];
+    return Array.isArray(parsed)
+      ? (parsed as string[]).slice(0, RECENT_MAX)
+      : [];
   } catch {
     return [];
   }
@@ -139,7 +149,9 @@ const Row = styled.button<{ $active?: boolean }>`
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.14s ease, transform 0.14s ease;
+  transition:
+    background 0.14s ease,
+    transform 0.14s ease;
 
   @media (hover: hover) {
     &:hover {
@@ -284,7 +296,9 @@ const FieldBox = styled.div`
   padding: 4px 0;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
-  transition: box-shadow 0.18s ease, background 0.18s ease;
+  transition:
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 
   &:focus-within {
     background: ${({ theme }) => theme.color.surfaceContainerHighest};
@@ -522,7 +536,8 @@ export function PlaceModal({
     out.push({
       title: HOME_COPY.sectionPopular,
       entries: POPULAR_ROUTES.slice(0, 6).map(
-        (r) => ({ kind: "route", from: r.from, to: r.to, blurb: r.blurb }) as Entry,
+        (r) =>
+          ({ kind: "route", from: r.from, to: r.to, blurb: r.blurb }) as Entry,
       ),
     });
 
@@ -815,7 +830,9 @@ export function PlaceModal({
             placeholder={
               isFrom ? HOME_COPY.placeInputFrom : HOME_COPY.placeInputTo
             }
-            aria-label={isFrom ? HOME_COPY.placeTitleFrom : HOME_COPY.placeTitleTo}
+            aria-label={
+              isFrom ? HOME_COPY.placeTitleFrom : HOME_COPY.placeTitleTo
+            }
           />
         </Sticky>
 
@@ -827,4 +844,3 @@ export function PlaceModal({
     </Drawer>
   );
 }
-
