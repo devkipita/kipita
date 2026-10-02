@@ -1,29 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Outfit, Space_Grotesk } from "next/font/google";
+import { Nunito, Space_Grotesk } from "next/font/google";
+import localFont from "next/font/local";
 import { SITE } from "@/lib/site";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
 
-const dmSans = DM_Sans({
+const dmSans = Nunito({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   display: "swap",
   variable: "--font-dm-sans",
 });
 
-/**
- * Display face for headings and titles.
- *
- * Google Sans is Google's proprietary typeface — it is not on Google Fonts and
- * is not licensed for use outside Google's own products, so it cannot ship
- * here. Outfit is the closest freely licensed match: the same geometric
- * construction, circular bowls and tall x-height, which is what gives Google
- * Sans its look at large sizes.
- */
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+// Tall, condensed titles. The CSS variable keeps its old name so no call sites change.
+const outfit = localFont({
+  src: [
+    {
+      path: "../public/assets/barlow-condensed-500.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../public/assets/barlow-condensed-600.ttf",
+      weight: "600",
+      style: "normal",
+    },
+  ],
   display: "swap",
   variable: "--font-heading",
 });

@@ -1,4 +1,5 @@
 ﻿import styled from "styled-components";
+import { preload } from "react-dom";
 import { themes } from "@/lib/theme";
 import { Reveal } from "../../anim/Reveal";
 import { TrickleHeading } from "../TrickleHeading";
@@ -8,8 +9,11 @@ import { PulseDot } from "../primitives";
 /** The landing is always dark, so it reads the dark theme's M3 roles. */
 const c = themes.dark.color;
 
+const POSTER = "/home/nairobi-hero.jpg";
+
 const HeroShell = styled.section`
   position: relative;
+  isolation: isolate;
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
@@ -17,15 +21,9 @@ const HeroShell = styled.section`
   justify-content: space-between;
   gap: clamp(28px, 5vw, 56px);
   padding: 120px clamp(16px, 5vw, 72px) clamp(28px, 4vw, 48px);
-  /* The scrim keeps the headline legible; the surface colour shows until the photo loads. */
+  /* Static photo; the scrim below keeps the headline and search legible. */
   background:
-    linear-gradient(
-      180deg,
-      ${c.background}cc 0%,
-      ${c.background}59 42%,
-      ${c.background}f2 100%
-    ),
-    url("/home/nairobi-hero.jpg") center / cover no-repeat,
+    url("${POSTER}") center / cover no-repeat,
     ${c.background};
 
   @media (max-width: 900px) {
@@ -51,19 +49,18 @@ const HeroTop = styled.div`
   }
 `;
 
-const Credit = styled.a`
-  align-self: flex-end;
-  margin-top: -12px;
-  font-size: 12px;
-  color: ${c.onSurfaceVariant};
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-  @media (max-width: 640px) {
-    align-self: flex-start;
-  }
+const Scrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* Keeps the headline and the search legible over moving footage. */
+  background: linear-gradient(
+    180deg,
+    ${c.background}cc 0%,
+    ${c.background}59 42%,
+    ${c.background}f2 100%
+  );
 `;
 
 const HeroCopy = styled.div`
@@ -100,9 +97,9 @@ const LivePill = styled.div`
 const Display = styled(TrickleHeading)`
   margin: 0;
   font-weight: 700;
-  font-size: clamp(40px, 6.6vw, 112px);
-  line-height: 0.92;
-  letter-spacing: -0.035em;
+  font-size: clamp(48px, 8vw, 132px);
+  line-height: 0.9;
+  letter-spacing: -0.01em;
   color: ${c.onSurface};
   text-wrap: balance;
 
@@ -205,8 +202,12 @@ const HeroDivider = styled.div`
 `;
 
 export function Hero() {
+  // CSS backgrounds are found late; preloading gets the poster painting sooner.
+  preload(POSTER, { as: "image", fetchPriority: "high" });
+
   return (
     <HeroShell id="top">
+      <Scrim aria-hidden />
       <HeroTop>
         <HeroCopy>
           <LivePill>
@@ -249,14 +250,6 @@ export function Hero() {
       </HeroTop>
 
       <HeroSearch />
-
-      <Credit
-        href="https://commons.wikimedia.org/wiki/File:Nairobi_skyline_from_Gem_Hotel.jpg"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Photo: Daniel Case, CC BY-SA 4.0
-      </Credit>
     </HeroShell>
   );
 }

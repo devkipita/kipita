@@ -1,19 +1,25 @@
-import { DM_Sans } from "next/font/google";
+import { Nunito } from "next/font/google";
+import localFont from "next/font/local";
 
-/**
- * The web uses the SAME typeface as the mobile app — DM Sans — for brand
- * consistency. The landing's CSS module references `--font-outfit` (headings)
- * and `--font-inter` (body); both resolve to DM Sans, so no module changes
- * are needed.
- */
-const heading = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+// `--font-outfit` is the heading variable and `--font-inter` the body one; names kept so CSS modules need no changes.
+const heading = localFont({
+  src: [
+    {
+      path: "../../public/assets/barlow-condensed-500.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "../../public/assets/barlow-condensed-600.ttf",
+      weight: "600",
+      style: "normal",
+    },
+  ],
   display: "swap",
   variable: "--font-outfit",
 });
 
-const body = DM_Sans({
+const body = Nunito({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",

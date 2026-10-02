@@ -90,14 +90,14 @@ const STACK =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
 
 /** Body copy, form fields, labels — everything that is read rather than scanned. */
-const font = `var(--font-dm-sans), "DM Sans", ${STACK}`;
+const font = `var(--font-dm-sans), "Nunito", ${STACK}`;
 
 /**
  * Headings and titles. A second, more geometric face so a heading is a
  * different voice rather than just a larger size — the pairing Material's own
  * site uses (Google Sans over Roboto).
  */
-const fontHeading = `var(--font-heading), "Outfit", var(--font-dm-sans), ${STACK}`;
+const fontHeading = `var(--font-heading), "Barlow Condensed", var(--font-dm-sans), ${STACK}`;
 
 /**
  * The type scale. Seven steps, and nothing between them.

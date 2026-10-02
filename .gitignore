@@ -57,5 +57,13 @@ mpesa-dev/
 # ── Crash dumps ──
 *.stackdump
 
+# ── Raw video masters (GitHub rejects files > 100 MB). Commit only the
+#    optimised web encodes in apps/web/public/video/. ──
+*.mov
+*.mkv
+*.avi
+apps/web/public/*.mp4
+media-src/
+
 # ── Expo generated ──
 expo-env.d.ts

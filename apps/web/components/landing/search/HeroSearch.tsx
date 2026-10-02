@@ -204,10 +204,12 @@ const Field = styled.label`
 
 const Suggestions = styled.ul`
   position: absolute;
-  top: calc(100% + 10px);
+  bottom: calc(100% + 10px);
   left: 0;
   z-index: 40;
   min-width: max(100%, 240px);
+  max-height: min(60vh, 320px);
+  overflow-y: auto;
   margin: 0;
   padding: 6px;
   list-style: none;
@@ -350,10 +352,12 @@ const Cell = styled.div<{ $area: string }>`
 
 const Cal = styled.div`
   position: absolute;
-  top: calc(100% + 10px);
+  bottom: calc(100% + 10px);
   left: 0;
   z-index: 30;
   width: min(330px, 86vw);
+  max-height: 70vh;
+  overflow-y: auto;
   padding: 14px;
   border-radius: 24px;
   background: ${c.surfaceContainerHigh};
@@ -451,7 +455,7 @@ const Cal = styled.div`
 
 const Menu = styled.div`
   position: absolute;
-  top: calc(100% + 10px);
+  bottom: calc(100% + 10px);
   right: 0;
   z-index: 30;
   display: flex;
