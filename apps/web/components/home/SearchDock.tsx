@@ -32,7 +32,21 @@ const Dock = styled.div`
   padding: 7px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  border: 1.5px solid ${({ theme }) => theme.color.outline};
   box-shadow: ${({ theme }) => theme.shadow.soft};
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+
+  &:hover {
+    border-color: ${({ theme }) => theme.color.onSurfaceVariant};
+  }
+  &:focus-within {
+    border-color: ${({ theme }) => theme.color.primary};
+    box-shadow:
+      ${({ theme }) => theme.shadow.soft},
+      0 0 0 1px ${({ theme }) => theme.color.primary};
+  }
 
   @media (max-width: 1100px) {
     display: none;
@@ -52,7 +66,21 @@ const Compact = styled.div`
     padding: 7px 7px 7px 8px;
     border-radius: ${({ theme }) => theme.radius.pill};
     background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    border: 1.5px solid ${({ theme }) => theme.color.outline};
     box-shadow: ${({ theme }) => theme.shadow.card};
+    transition:
+      border-color 0.18s ease,
+      box-shadow 0.18s ease;
+
+    &:hover {
+      border-color: ${({ theme }) => theme.color.onSurfaceVariant};
+    }
+    &:focus-within {
+      border-color: ${({ theme }) => theme.color.primary};
+      box-shadow:
+        ${({ theme }) => theme.shadow.card},
+        0 0 0 1px ${({ theme }) => theme.color.primary};
+    }
   }
 `;
 
