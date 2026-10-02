@@ -27,10 +27,10 @@ const Head = styled.div`
 
   h2 {
     margin: 0;
-    font-family: ${({ theme }) => theme.fontHeading};
+    font-family: ${({ theme }) => theme.font};
     font-size: ${({ theme }) => theme.type.heading};
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     color: ${({ theme }) => theme.color.onSurface};
   }
 `;

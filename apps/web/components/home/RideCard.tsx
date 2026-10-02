@@ -197,10 +197,10 @@ const Route = styled.h3`
   gap: ${({ theme }) => theme.space.sm};
   margin: 0 0 6px;
   min-width: 0;
-  font-family: ${({ theme }) => theme.fontHeading};
+  font-family: ${({ theme }) => theme.font};
   font-size: ${({ theme }) => theme.type.subhead};
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   color: ${({ theme }) => theme.color.onSurface};
 
   .town {
@@ -337,10 +337,10 @@ const Fare = styled.div`
   text-align: right;
 
   b {
-    font-family: ${({ theme }) => theme.fontHeading};
+    font-family: ${({ theme }) => theme.font};
     font-size: ${({ theme }) => theme.type.heading};
-    font-weight: 700;
-    letter-spacing: -0.035em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     line-height: 1.05;
     white-space: nowrap;
     color: ${({ theme }) => theme.color.primary};
