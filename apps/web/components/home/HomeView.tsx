@@ -1,26 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import type { Town } from "@kipita/shared";
-import { AlertComposer } from "@/components/alerts/AlertComposer";
 import { ContentWidth, useAppMode } from "@/components/nav/AppShell";
-import type { Alert } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { HOME_COPY } from "@/lib/home/copy";
 import { detectOrigin, type Coords } from "@/lib/home/geo";
-import { buildMapModel } from "@/lib/home/mapData";
 import type { HomeItem } from "@/lib/home/search";
 import { SlidersHorizontal } from "@/components/icons";
 import { dayLabel } from "@/lib/trips/format";
-import { AlertsPanel } from "./AlertsPanel";
 import { DateStrip } from "./DateStrip";
-import { HomeMapBand } from "./HomeMapBand";
 import { LocalWeather } from "./LocalWeather";
 import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
 import { PostDrawer, type PostDraft } from "./PostDrawer";
-import { PromoBand } from "./PromoBand";
 import { RideCarousel } from "./RideCarousel";
 import type { SearchForm } from "./RouteSearchForm";
 import { SearchDock, type OriginStatus } from "./SearchDock";
@@ -144,7 +144,10 @@ function firstName(full: string): string {
   return full.trim().split(/\s+/)[0] || "there";
 }
 
-function scheduleLabelFor(date: string | null, time: string | null): string | null {
+function scheduleLabelFor(
+  date: string | null,
+  time: string | null,
+): string | null {
   if (!date) return null;
   const dt = new Date(`${date}T${time ?? "00:00"}`);
   if (Number.isNaN(dt.getTime())) return null;
@@ -159,19 +162,14 @@ function scheduleLabelFor(date: string | null, time: string | null): string | nu
 export function HomeView({
   profile,
   initialItems,
-  initialAlerts,
   offersSlot,
-  destinationsSlot,
 }: {
   profile: Profile;
   initialItems: HomeItem[];
-  initialAlerts: Alert[];
   offersSlot: ReactNode;
-  destinationsSlot: ReactNode;
 }) {
   const router = useRouter();
   const { mode } = useAppMode();
-  const [alertOpen, setAlertOpen] = useState(false);
   const [postDraft, setPostDraft] = useState<PostDraft | null>(null);
 
   const [from, setFrom] = useState("");
@@ -188,9 +186,6 @@ export function HomeView({
   const [originCoords, setOriginCoords] = useState<Coords | null>(null);
   const fromTouched = useRef(false);
 
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [fitKey, setFitKey] = useState(0);
-
   const search = useHomeSearch(mode, initialItems);
   const {
     items,
@@ -201,8 +196,6 @@ export function HomeView({
     run,
     clearSearchRequest,
   } = search;
-
-  const mapModel = useMemo(() => buildMapModel(items), [items]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -216,7 +209,8 @@ export function HomeView({
         }
         setOriginCoords(origin.coords);
         setOriginStatus("ready");
-        if (!fromTouched.current) setFrom((current) => current || origin.town.name);
+        if (!fromTouched.current)
+          setFrom((current) => current || origin.town.name);
       })
       .catch(() => setOriginStatus("failed"));
 
@@ -240,7 +234,7 @@ export function HomeView({
         preferences,
         ...overrides,
       };
-      void run(form, { deliberate: true }).then(() => setFitKey((k) => k + 1));
+      void run(form, { deliberate: true });
     },
     [from, to, date, time, preferences, run],
   );
@@ -292,13 +286,6 @@ export function HomeView({
 
   return (
     <>
-      <HomeMapBand
-        items={items}
-        hoveredId={hoveredId}
-        onHover={setHoveredId}
-        fitKey={fitKey}
-      />
-
       <Wrap $max={1180}>
         <SearchDock
           from={from}
@@ -346,7 +333,7 @@ export function HomeView({
                   preferences,
                 },
                 { deliberate: false },
-              ).then(() => setFitKey((k) => k + 1));
+              );
             }}
             onDismiss={() => setDatesOpen(false)}
           />
@@ -359,21 +346,9 @@ export function HomeView({
           items={items}
           onPost={() => openPost(null)}
           onRetry={() => void run(lastForm)}
-          hoveredId={hoveredId}
-          onHoverChange={setHoveredId}
         />
 
         {offersSlot}
-
-        {destinationsSlot}
-
-        <PromoBand />
-
-        <AlertsPanel
-          alerts={initialAlerts}
-          viewerId={profile.id}
-          onPost={() => setAlertOpen(true)}
-        />
       </Wrap>
 
       <PlaceModal
@@ -414,16 +389,6 @@ export function HomeView({
         onClose={() => setPostDraft(null)}
         onPosted={() => {
           setPostDraft(null);
-          router.refresh();
-        }}
-      />
-
-      <AlertComposer
-        open={alertOpen}
-        viewerId={profile.id}
-        onClose={() => setAlertOpen(false)}
-        onPosted={() => {
-          setAlertOpen(false);
           router.refresh();
         }}
       />

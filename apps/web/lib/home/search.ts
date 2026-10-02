@@ -153,18 +153,28 @@ export async function searchTrips(
   params: SearchParams = {},
 ): Promise<HomeTrip[]> {
   const target = scheduleTarget(params);
+  const today = [
+    target.getFullYear(),
+    String(target.getMonth() + 1).padStart(2, "0"),
+    String(target.getDate()).padStart(2, "0"),
+  ].join("-");
 
+  // Past rides must be excluded here: the page limit would otherwise be spent
+  // on stale rows that the time filter below then throws away.
   let query = supabase
     .from("trips")
     .select(TRIP_SELECT)
     .eq("status", "posted")
     .gt("seats_available", 0)
+    .or(`departure_date.gte.${today},departure_date.is.null`)
     .order("departure_date", { ascending: true })
     .order("departure_time", { ascending: true })
     .limit(PAGE_SIZE);
 
-  if (params.from?.trim()) query = query.ilike("from_location", likeTerm(params.from));
-  if (params.to?.trim()) query = query.ilike("to_location", likeTerm(params.to));
+  if (params.from?.trim())
+    query = query.ilike("from_location", likeTerm(params.from));
+  if (params.to?.trim())
+    query = query.ilike("to_location", likeTerm(params.to));
 
   const { data, error } = await query;
   if (error) throw error;
@@ -230,8 +240,10 @@ export async function searchRequests(
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 
-  if (params.from?.trim()) query = query.ilike("from_location", likeTerm(params.from));
-  if (params.to?.trim()) query = query.ilike("to_location", likeTerm(params.to));
+  if (params.from?.trim())
+    query = query.ilike("from_location", likeTerm(params.from));
+  if (params.to?.trim())
+    query = query.ilike("to_location", likeTerm(params.to));
 
   const { data, error } = await query;
   if (error) throw error;

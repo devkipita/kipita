@@ -4,10 +4,8 @@ import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { readMode } from "@/lib/home/mode.server";
 import { searchForMode } from "@/lib/home/search";
-import { fetchAlertsServer } from "@/lib/alerts/server";
 import { HomeView } from "@/components/home/HomeView";
 import { OffersBand } from "@/components/home/OffersBand";
-import { DestinationsSlot } from "@/components/home/DestinationsSlot";
 
 export const metadata: Metadata = {
   title: "Home",
@@ -25,25 +23,16 @@ export default async function HomePage() {
   const mode = await readMode();
   const supabase = await createClient();
 
-  const [items, alerts] = await Promise.all([
-    // An un-filtered search: whatever is on offer right now.
-    searchForMode(supabase, mode).catch(() => []),
-    fetchAlertsServer({ limit: 5 }).catch(() => []),
-  ]);
+  // An un-filtered search: whatever is on offer right now.
+  const items = await searchForMode(supabase, mode).catch(() => []);
 
   return (
     <HomeView
       profile={profile}
       initialItems={items}
-      initialAlerts={alerts}
       offersSlot={
         <Suspense key="offers" fallback={null}>
           <OffersBand />
-        </Suspense>
-      }
-      destinationsSlot={
-        <Suspense key="destinations" fallback={null}>
-          <DestinationsSlot userId={profile.id} />
         </Suspense>
       }
     />

@@ -5,11 +5,7 @@ import styled, { keyframes } from "styled-components";
 import {
   ArrowRight,
   CalendarSolid,
-  CarMinibus,
-  CarProfile,
   CarSolid,
-  CarSuv,
-  CarVan,
   ClockSolid,
   Star,
   Tag,
@@ -17,7 +13,6 @@ import {
   VerifiedBadge,
   Warning,
 } from "@/components/icons";
-import type { KipitaIcon } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { formatKes } from "@/lib/rides";
@@ -30,13 +25,13 @@ import { RideAmenities } from "./RideAmenities";
 const SCARCE = 2;
 const MAX_AMENITIES = 1;
 
-const CAR_ICON: Record<VehicleType, KipitaIcon> = {
-  sedan: CarProfile,
-  suv: CarSuv,
-  van: CarVan,
-  minibus: CarMinibus,
-  pickup: CarProfile,
-  motorbike: CarProfile,
+const CAR_EMOJI: Record<VehicleType, string> = {
+  sedan: "🚗",
+  suv: "🚙",
+  van: "🚐",
+  minibus: "🚌",
+  pickup: "🛻",
+  motorbike: "🏍️",
 };
 
 const rise = keyframes`
@@ -82,9 +77,6 @@ const Card = styled(Link)<{ $index: number }>`
     box-shadow: ${({ theme }) => theme.elevation[3]};
     transform: translateY(-4px);
   }
-  &:hover .shot img {
-    transform: scale(1.06);
-  }
   &:hover .fare b {
     letter-spacing: -0.02em;
   }
@@ -106,41 +98,47 @@ const Card = styled(Link)<{ $index: number }>`
       transform: none;
       border-radius: ${({ theme }) => theme.radius.md};
     }
-    &:hover .shot img {
-      transform: none;
-    }
   }
 `;
 
-const Media = styled.div`
-  position: relative;
-  aspect-ratio: 16 / 9;
-  background: ${({ theme }) => theme.color.elevatedInset};
+const Head = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.md};
+  flex: 1 1 300px;
+  min-width: 0;
 
-  .shot {
-    position: absolute;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+  .details {
+    flex: 1;
+    min-width: 0;
   }
-  .shot img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform ${({ theme }) => theme.motion.duration.long2}
-      ${({ theme }) => theme.motion.easing.emphasized};
-  }
-  .tags {
-    position: absolute;
-    inset: ${({ theme }) => theme.space.sm} ${({ theme }) => theme.space.sm} auto;
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: ${({ theme }) => theme.space.sm};
-    pointer-events: none;
-  }
+`;
+
+const Row = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: ${({ theme }) => theme.space.lg} ${({ theme }) => theme.space.xl};
+  min-width: 0;
+`;
+
+const Emoji = styled.span`
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  background: ${({ theme }) => theme.color.elevatedInset};
+  font-size: 30px;
+  line-height: 1;
+`;
+
+const Tags = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${({ theme }) => theme.space.sm};
+  margin-bottom: ${({ theme }) => theme.space.md};
 `;
 
 const Deal = styled.span`
@@ -197,12 +195,12 @@ const Route = styled.h3`
   display: flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.sm};
-  margin: 0 0 ${({ theme }) => theme.space.md};
+  margin: 0 0 6px;
   min-width: 0;
   font-family: ${({ theme }) => theme.fontHeading};
-  font-size: ${({ theme }) => theme.type.body};
-  font-weight: 600;
-  letter-spacing: -0.015em;
+  font-size: ${({ theme }) => theme.type.subhead};
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: ${({ theme }) => theme.color.onSurface};
 
   .town {
@@ -233,7 +231,7 @@ const Fact = styled.span<{ $hue: "date" | "time" | "car" }>`
   max-width: 100%;
   font-size: ${({ theme }) => theme.type.label};
   font-weight: 500;
-  color: ${({ theme }) => theme.color.onSurface};
+  color: ${({ theme }) => theme.color.onSurfaceVariant};
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -251,9 +249,9 @@ const Fact = styled.span<{ $hue: "date" | "time" | "car" }>`
 
 const Who = styled.div`
   display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.space.sm};
-  margin-top: ${({ theme }) => theme.space.md};
+  align-items: flex-start;
+  gap: ${({ theme }) => theme.space.md};
+  flex: 1 1 340px;
   min-width: 0;
 
   .copy {
@@ -263,15 +261,15 @@ const Who = styled.div`
   .name {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     min-width: 0;
-    font-size: ${({ theme }) => theme.type.label};
-    font-weight: 600;
+    font-size: ${({ theme }) => theme.type.body};
+    font-weight: 700;
     color: ${({ theme }) => theme.color.onSurface};
   }
   .name b {
     min-width: 0;
-    font-weight: 600;
+    font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -303,8 +301,9 @@ const Who = styled.div`
 const Chips = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 6px;
-  margin: ${({ theme }) => theme.space.md} 0;
+  margin-top: ${({ theme }) => theme.space.sm};
   min-width: 0;
   overflow: hidden;
 `;
@@ -329,13 +328,13 @@ const Seats = styled.span`
 
 const Fare = styled.div`
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 2px ${({ theme }) => theme.space.sm};
-  min-width: 0;
-  margin-top: auto;
-  padding-top: ${({ theme }) => theme.space.md};
-  border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  flex-direction: column;
+  align-items: flex-end;
+  flex: none;
+  gap: 2px;
+  min-width: 96px;
+  margin-left: auto;
+  text-align: right;
 
   b {
     font-family: ${({ theme }) => theme.fontHeading};
@@ -354,9 +353,19 @@ const Fare = styled.div`
     text-decoration-thickness: 1px;
   }
   small {
-    margin-left: auto;
     font-size: ${({ theme }) => theme.type.micro};
     color: ${({ theme }) => theme.color.onSurfaceVariant};
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: row;
+    align-items: baseline;
+    flex-basis: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+    padding-top: ${({ theme }) => theme.space.md};
+    border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
+    text-align: left;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -427,7 +436,7 @@ function TripCard({
 
   const vehicle = item.vehicle;
   const model = [vehicle?.make, vehicle?.model].filter(Boolean).join(" ");
-  const CarIcon = CAR_ICON[vehicle?.vehicle_type ?? "sedan"];
+  const emoji = CAR_EMOJI[vehicle?.vehicle_type ?? "sedan"];
 
   const rating = person?.rating && person.rating > 0 ? person.rating : null;
   const trips = person?.total_trips ?? 0;
@@ -449,97 +458,99 @@ function TripCard({
         `, ${scarce ? scarceLabel : seatLabel}, with ${name}`
       }
     >
-      <Media>
-        <span className="shot">
-          {vehicle?.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={vehicle.image_url} alt="" loading="lazy" />
-          ) : (
-            <CarIcon size={44} />
-          )}
-        </span>
-        <span className="tags">
-          {off ? (
-            <Deal>
-              <Tag size={12} />
-              {off}% off
-            </Deal>
-          ) : null}
-          {scarce && (
-            <Scarce>
-              <Warning size={12} weight="fill" />
-              {scarceLabel}
-            </Scarce>
-          )}
-        </span>
-      </Media>
-
       <Body>
-        <Route>
-          <span className="town">{item.from_location}</span>
-          <ArrowRight size={15} aria-hidden="true" />
-          <span className="town">{item.to_location}</span>
-        </Route>
+        {(off || scarce) && (
+          <Tags>
+            {off ? (
+              <Deal>
+                <Tag size={12} />
+                {off}% off
+              </Deal>
+            ) : null}
+            {scarce && (
+              <Scarce>
+                <Warning size={12} weight="fill" />
+                {scarceLabel}
+              </Scarce>
+            )}
+          </Tags>
+        )}
 
-        <Facts>
-          <Fact $hue="date">
-            <CalendarSolid size={15} />
-            <VisuallyHidden>Date</VisuallyHidden>
-            {date}
-          </Fact>
-          {time && (
-            <Fact $hue="time">
-              <ClockSolid size={15} />
-              <VisuallyHidden>Departs</VisuallyHidden>
-              {time}
-            </Fact>
-          )}
-          <Fact $hue="car">
-            <CarSolid size={15} />
-            <VisuallyHidden>Vehicle</VisuallyHidden>
-            {model || "Car to be confirmed"}
-          </Fact>
-        </Facts>
+        <Row>
+          <Who>
+            <Avatar name={name} src={person?.avatar_url} size={48} />
+            <span className="copy">
+              <span className="name">
+                <b>{name}</b>
+                {person?.is_verified && (
+                  <>
+                    <VerifiedBadge size={16} />
+                    <VisuallyHidden>Verified</VisuallyHidden>
+                  </>
+                )}
+              </span>
+              <span className="trust">
+                <Star size={12} weight="fill" aria-hidden="true" />
+                {rating ? (
+                  <>
+                    <b>{rating.toFixed(1)}</b>
+                    {trips > 0 && <span>· {trips} trips</span>}
+                  </>
+                ) : (
+                  <b>New driver</b>
+                )}
+              </span>
 
-        <Who>
-          <Avatar name={name} src={person?.avatar_url} size={34} />
-          <span className="copy">
-            <span className="name">
-              <b>{name}</b>
-              {person?.is_verified && (
-                <>
-                  <VerifiedBadge size={15} />
-                  <VisuallyHidden>Verified</VisuallyHidden>
-                </>
-              )}
+              <Chips>
+                <Seats>
+                  <Users size={12} />
+                  {seatLabel}
+                </Seats>
+                <RideAmenities
+                  preferences={item.preferences}
+                  max={MAX_AMENITIES}
+                />
+              </Chips>
             </span>
-            <span className="trust">
-              <Star size={12} weight="fill" aria-hidden="true" />
-              {rating ? (
-                <>
-                  <b>{rating.toFixed(1)}</b>
-                  {trips > 0 && <span>· {trips} trips</span>}
-                </>
-              ) : (
-                <b>New driver</b>
-              )}
-            </span>
-          </span>
-        </Who>
+          </Who>
 
-        <Chips>
-          <Seats>
-            <Users size={12} />
-            {seatLabel}
-          </Seats>
-          <RideAmenities preferences={item.preferences} max={MAX_AMENITIES} />
-        </Chips>
+          <Head>
+            <Emoji aria-hidden="true">{emoji}</Emoji>
+            <div className="details">
+              <Route>
+                <span className="town">{item.from_location}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+                <span className="town">{item.to_location}</span>
+              </Route>
 
-        <Fare className="fare">
-          <b>{deal ? formatKes(deal) : price}</b>
-          {deal && <s>{price}</s>}
-          <small>per seat</small>
-        </Fare>
+              <Facts>
+                <Fact $hue="date">
+                  <CalendarSolid size={15} />
+                  <VisuallyHidden>Date</VisuallyHidden>
+                  {date}
+                </Fact>
+                {time && (
+                  <Fact $hue="time">
+                    <ClockSolid size={15} />
+                    <VisuallyHidden>Departs</VisuallyHidden>
+                    {time}
+                  </Fact>
+                )}
+                <Fact $hue="car">
+                  <CarSolid size={15} />
+                  <VisuallyHidden>Vehicle</VisuallyHidden>
+                  {model || "Car to be confirmed"}
+                </Fact>
+              </Facts>
+            </div>
+          </Head>
+
+          <Fare className="fare">
+            <b>{deal ? formatKes(deal) : price}</b>
+            {deal && <s>{price}</s>}
+            <small>per seat</small>
+          </Fare>
+        </Row>
       </Body>
     </Card>
   );

@@ -1,8 +1,12 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { CarProfile as CarFront, CaretLeft as ChevronLeft, CaretRight as ChevronRight, ArrowClockwise as RotateCw, UserFocus as UserRoundSearch } from "@/components/icons";
+import {
+  CarProfile as CarFront,
+  ArrowClockwise as RotateCw,
+  UserFocus as UserRoundSearch,
+} from "@/components/icons";
 import { ButtonEl } from "@/components/ui/primitives";
 import { ROLE_COPY } from "@/lib/home/labels";
 import type { AppMode } from "@/lib/home/mode";
@@ -42,68 +46,6 @@ const Tools = styled.div`
   }
 `;
 
-const Pager = styled.div`
-  display: inline-flex;
-  align-items: stretch;
-  height: 36px;
-  border-radius: 999px;
-  background: ${({ theme }) => theme.color.surfaceContainerHigh};
-  box-shadow: ${({ theme }) => theme.shadow.soft};
-  overflow: hidden;
-
-  @media (max-width: 559px) {
-    display: none;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const Arrow = styled.button`
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  border: none;
-  background: transparent;
-  color: ${({ theme }) => theme.color.onSurfaceVariant};
-  cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease;
-
-  & + &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 9px;
-    bottom: 9px;
-    width: 1px;
-    background: ${({ theme }) => theme.color.outlineVariant};
-  }
-
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: ${({ theme }) => theme.color.primaryContainer};
-      color: ${({ theme }) => theme.color.onPrimaryContainer};
-    }
-  }
-  &:active:not(:disabled) {
-    background: ${({ theme }) => theme.color.primary};
-    color: ${({ theme }) => theme.color.onPrimary};
-  }
-  &:disabled {
-    color: ${({ theme }) => theme.color.outlineVariant};
-    cursor: default;
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -3px;
-    border-radius: 999px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
 const spin = keyframes`to { transform: rotate(360deg); }`;
 
 const Refreshing = styled.span`
@@ -122,131 +64,17 @@ const Refreshing = styled.span`
   }
 `;
 
-const Dots = styled.div`
+const MoreRow = styled.div`
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 6px;
-  margin-top: 14px;
-
-  @media (min-width: 560px) {
-    display: none;
-  }
+  margin-top: ${({ theme }) => theme.space.lg};
 `;
 
-const Dot = styled.button<{ $active: boolean }>`
-  position: relative;
-  height: 6px;
-  width: ${({ $active }) => ($active ? "22px" : "6px")};
-  padding: 0;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1), background 0.2s ease;
-  background: ${({ theme, $active }) =>
-    $active ? theme.color.primary : theme.color.outlineVariant};
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: -11px -5px;
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      background: ${({ theme, $active }) =>
-        $active ? theme.color.primary : theme.color.onSurfaceVariant};
-    }
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const SeeAll = styled.button`
-  border: none;
-  background: transparent;
-  padding: 6px 4px;
-  font: inherit;
-  font-size: ${({ theme }) => theme.type.label};
-  font-weight: 700;
-  color: ${({ theme }) => theme.color.primary};
-  cursor: pointer;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
-const GAP = "var(--card-gap, 16px)";
-
-const Rail = styled.div<{ $wide?: boolean }>`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: ${({ $wide }) =>
-    $wide
-      ? `calc((100% - ${GAP}) / 2)`
-      : `calc((100% - 3 * ${GAP}) / 4)`};
-  gap: ${GAP};
-  overflow-x: auto;
-  overflow-y: visible;
-  scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--page-pad);
-  scroll-behavior: smooth;
-  padding: clamp(10px, 3vw, 34px) var(--page-pad) ${({ theme }) => theme.space.lg};
-  margin: -6px calc(-1 * var(--page-pad)) -10px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-
-  > * {
-    scroll-snap-align: start;
-  }
-
-  &:focus-visible {
-    outline-offset: 4px;
-  }
-
-  @media (max-width: 1359px) {
-    grid-auto-columns: ${({ $wide }) =>
-      $wide ? `calc((100% - ${GAP}) / 2)` : `calc((100% - 2 * ${GAP}) / 3)`};
-  }
-  @media (max-width: 999px) {
-    grid-auto-columns: ${({ $wide }) =>
-      $wide ? "92%" : `calc((100% - ${GAP}) / 2)`};
-  }
-  @media (max-width: 559px) {
-    grid-auto-columns: ${({ $wide }) => ($wide ? "94%" : "min(88%, 340px)")};
-  }
-  @media (prefers-reduced-motion: reduce) {
-    scroll-behavior: auto;
-  }
-`;
-
-const Grid = styled.div<{ $wide?: boolean }>`
-  display: grid;
-  grid-template-columns: repeat(${({ $wide }) => ($wide ? 2 : 4)}, minmax(0, 1fr));
-  gap: ${({ $wide }) => ($wide ? 34 : 24)}px ${GAP};
-  padding-top: ${({ $wide }) => ($wide ? 34 : 0)}px;
-  margin-top: ${({ $wide }) => ($wide ? -6 : 0)}px;
-
-  @media (max-width: 1359px) {
-    grid-template-columns: repeat(${({ $wide }) => ($wide ? 2 : 3)}, minmax(0, 1fr));
-  }
-  @media (max-width: 999px) {
-    grid-template-columns: ${({ $wide }) =>
-      $wide ? "1fr" : "repeat(2, minmax(0, 1fr))"};
-  }
-  @media (max-width: 559px) {
-    grid-template-columns: 1fr;
-  }
+const Column = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 8px;
 `;
 
 const Skeleton = styled.div`
@@ -408,15 +236,24 @@ function CardSkeleton({ $wide }: { $wide?: boolean }) {
               <div className="bar" style={{ height: 18, width: "56%" }} />
               <div className="bar" style={{ height: 12, width: "42%" }} />
             </div>
-            <div className="bar" style={{ height: 26, width: 108, borderRadius: 999 }} />
+            <div
+              className="bar"
+              style={{ height: 26, width: 108, borderRadius: 999 }}
+            />
           </div>
-          <div className="bar" style={{ height: 17, width: "62%", marginTop: 14 }} />
+          <div
+            className="bar"
+            style={{ height: 17, width: "62%", marginTop: 14 }}
+          />
           <div className="facts">
             <div className="bar" style={{ height: 14, width: 78 }} />
             <div className="bar" style={{ height: 14, width: 66 }} />
           </div>
           <div className="foot">
-            <div className="bar" style={{ height: 22, width: 128, borderRadius: 999 }} />
+            <div
+              className="bar"
+              style={{ height: 22, width: 128, borderRadius: 999 }}
+            />
             <div className="bar" style={{ height: 14, width: 94 }} />
           </div>
         </div>
@@ -426,7 +263,6 @@ function CardSkeleton({ $wide }: { $wide?: boolean }) {
 
   return (
     <Skeleton aria-hidden="true">
-      <div className="bar media" />
       <div className="body">
         <div className="bar" style={{ height: 19, width: "86%" }} />
 
@@ -448,8 +284,14 @@ function CardSkeleton({ $wide }: { $wide?: boolean }) {
         </div>
 
         <div className="chips">
-          <div className="bar" style={{ height: 22, width: 68, borderRadius: 999 }} />
-          <div className="bar" style={{ height: 22, width: 80, borderRadius: 999 }} />
+          <div
+            className="bar"
+            style={{ height: 22, width: 68, borderRadius: 999 }}
+          />
+          <div
+            className="bar"
+            style={{ height: 22, width: 80, borderRadius: 999 }}
+          />
         </div>
 
         <div className="fare">
@@ -486,6 +328,8 @@ const Center = styled.div`
   }
 `;
 
+const PAGE_SIZE = 6;
+
 export type CarouselPhase = "ready" | "searching" | "error";
 
 export function RideCarousel({
@@ -514,51 +358,16 @@ export function RideCarousel({
         : "passenger"
       : mode;
   const copy = ROLE_COPY[shown];
-  const railRef = useRef<HTMLDivElement>(null);
-  const [expanded, setExpanded] = useState(false);
-  const [atStart, setAtStart] = useState(true);
-  const [atEnd, setAtEnd] = useState(false);
-  const [pages, setPages] = useState(1);
-  const [page_, setPage] = useState(0);
+  const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const sync = useCallback(() => {
-    const el = railRef.current;
-    if (!el) return;
-    setAtStart(el.scrollLeft <= 2);
-    setAtEnd(el.scrollLeft + el.clientWidth >= el.scrollWidth - 2);
-    const width = el.clientWidth || 1;
-    setPages(Math.max(1, Math.ceil(el.scrollWidth / width)));
-    setPage(Math.round(el.scrollLeft / width));
-  }, []);
-
-  useEffect(() => {
-    if (expanded) return;
-    sync();
-    const el = railRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-    return () => {
-      el.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-    };
-  }, [expanded, sync, items.length]);
-
-  function page(direction: 1 | -1) {
-    const el = railRef.current;
-    if (!el) return;
-    el.scrollBy({ left: direction * el.clientWidth, behavior: "smooth" });
-  }
-
-  function goToPage(index: number) {
-    const el = railRef.current;
-    if (!el) return;
-    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
-  }
+  // A new search or mode swaps the result set; start from the first page again.
+  const firstId = items[0]?.id;
+  useEffect(() => setVisible(PAGE_SIZE), [firstId, items.length]);
 
   const showTools = phase === "ready" && items.length > 0;
   const wide = shown === "driver";
-  const perPage = wide ? 2 : 4;
+  const shownItems = items.slice(0, visible);
+  const remaining = items.length - shownItems.length;
 
   return (
     <section>
@@ -571,41 +380,17 @@ export function RideCarousel({
                 <RotateCw size={15} />
               </Refreshing>
             )}
-            {items.length > perPage && (
-              <SeeAll type="button" onClick={() => setExpanded((v) => !v)}>
-                {expanded ? "Show less" : `See all ${items.length}`}
-              </SeeAll>
-            )}
-            {!expanded && (
-              <Pager>
-                <Arrow
-                  type="button"
-                  onClick={() => page(-1)}
-                  disabled={atStart}
-                  aria-label="Previous rides"
-                >
-                  <ChevronLeft size={16} weight="bold" />
-                </Arrow>
-                <Arrow
-                  type="button"
-                  onClick={() => page(1)}
-                  disabled={atEnd}
-                  aria-label="More rides"
-                >
-                  <ChevronRight size={16} weight="bold" />
-                </Arrow>
-              </Pager>
-            )}
+            <span className="count">{items.length} available</span>
           </Tools>
         )}
       </Head>
 
       {phase === "searching" && (
-        <Grid aria-busy $wide={wide}>
-          {Array.from({ length: perPage }, (_, i) => (
+        <Column aria-busy>
+          {Array.from({ length: 3 }, (_, i) => (
             <CardSkeleton key={i} $wide={wide} />
           ))}
-        </Grid>
+        </Column>
       )}
 
       {phase === "error" && (
@@ -637,57 +422,33 @@ export function RideCarousel({
               </ButtonEl>
             </span>
           </Center>
-        ) : expanded ? (
-          <Grid $wide={wide}>
-            {items.map((item, i) => (
-              <RideCard
-                key={item.id}
-                item={item}
-                index={i}
-                hovered={hoveredId === item.id}
-                onHoverChange={onHoverChange}
-              />
-            ))}
-          </Grid>
         ) : (
           <>
-            <Rail
-              ref={railRef}
-              $wide={wide}
-              tabIndex={0}
-              role="group"
-              aria-label={`${copy.carouselTitle}, ${items.length} results. Scroll horizontally.`}
-            >
-              {items.map((item, i) => (
+            <Column>
+              {shownItems.map((item, i) => (
                 <RideCard
                   key={item.id}
                   item={item}
-                  index={i}
+                  index={i % PAGE_SIZE}
                   hovered={hoveredId === item.id}
                   onHoverChange={onHoverChange}
                 />
               ))}
-            </Rail>
+            </Column>
 
-            {pages > 1 && (
-              <Dots role="tablist" aria-label="Ride pages">
-                {Array.from({ length: pages }, (_, i) => (
-                  <Dot
-                    key={i}
-                    type="button"
-                    role="tab"
-                    $active={i === page_}
-                    aria-selected={i === page_}
-                    aria-label={`Page ${i + 1} of ${pages}`}
-                    onClick={() => goToPage(i)}
-                  />
-                ))}
-              </Dots>
+            {remaining > 0 && (
+              <MoreRow>
+                <ButtonEl
+                  type="button"
+                  $variant="ghost"
+                  onClick={() => setVisible((v) => v + PAGE_SIZE)}
+                >
+                  View more ({remaining} left)
+                </ButtonEl>
+              </MoreRow>
             )}
           </>
         ))}
     </section>
   );
 }
-
-

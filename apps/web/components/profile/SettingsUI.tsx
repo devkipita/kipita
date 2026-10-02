@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import styled, { css } from "styled-components";
@@ -7,26 +7,31 @@ import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
 
 export const SectionTitle = styled.h2`
-  font-size: 0.82rem;
-  font-weight: 800;
+  font-size: ${({ theme }) => theme.type.label};
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: ${({ theme }) => theme.color.muted};
-  margin: 30px 4px 10px;
+  color: ${({ theme }) => theme.color.onSurfaceVariant};
+  margin: ${({ theme }) => theme.space.xxl} ${({ theme }) => theme.space.xs}
+    ${({ theme }) => theme.space.sm};
 `;
 
 export const Panel = styled.div`
-  background: ${({ theme }) => theme.color.surface};
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: transparent;
   border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.color.line};
   overflow: hidden;
 `;
 
 const rowBase = css`
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
+  gap: ${({ theme }) => theme.space.md};
+  min-height: 60px;
+  padding: ${({ theme }) => theme.space.md} ${({ theme }) => theme.space.lg};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
   text-align: left;
 `;
 
@@ -34,12 +39,14 @@ const Lead = styled.span<{ $tone?: ToneName }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: ${({ theme }) => theme.radius.sm};
   flex: none;
-  background: ${({ theme, $tone }) => ($tone ? theme.tone[$tone].bg : theme.color.surface2)};
-  color: ${({ theme, $tone }) => ($tone ? theme.tone[$tone].on : theme.color.primary)};
+  background: ${({ theme, $tone }) =>
+    $tone ? theme.tone[$tone].bg : theme.color.surfaceContainerHighest};
+  color: ${({ theme, $tone }) =>
+    $tone ? theme.tone[$tone].on : theme.color.onSurfaceVariant};
 `;
 
 const Body = styled.span`
@@ -47,21 +54,16 @@ const Body = styled.span`
   min-width: 0;
   .t {
     display: block;
+    font-size: ${({ theme }) => theme.type.body};
     font-weight: 600;
-    color: ${({ theme }) => theme.color.text};
+    color: ${({ theme }) => theme.color.onSurface};
   }
   .d {
     display: block;
-    font-size: 0.85rem;
-    color: ${({ theme }) => theme.color.muted};
+    font-size: ${({ theme }) => theme.type.label};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
     margin-top: 2px;
   }
-`;
-
-const Divide = styled.div`
-  height: 1px;
-  background: ${({ theme }) => theme.color.line};
-  margin-left: 72px;
 `;
 
 const rowInteractive = css`
@@ -69,11 +71,19 @@ const rowInteractive = css`
   text-decoration: none;
   transition: background 0.15s ease;
   svg.chev {
-    color: ${({ theme }) => theme.color.muted};
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
     flex: none;
   }
-  &:hover {
-    background: ${({ theme }) => theme.color.surface2};
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainer};
+    }
+  }
+  &:active {
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
@@ -110,7 +120,7 @@ export function LinkRow({
   const inner = (
     <>
       <Lead $tone={tone}>
-        <Icon size={19} />
+        <Icon size={20} />
       </Lead>
       <Body>
         <span className="t">{title}</span>
@@ -119,17 +129,12 @@ export function LinkRow({
       <ChevronRight className="chev" size={20} />
     </>
   );
-  return (
-    <>
-      {external ? (
-        <RowAnchor href={href} target="_blank" rel="noreferrer">
-          {inner}
-        </RowAnchor>
-      ) : (
-        <RowLink href={href}>{inner}</RowLink>
-      )}
-      {!last && <Divide />}
-    </>
+  return external ? (
+    <RowAnchor href={href} target="_blank" rel="noreferrer">
+      {inner}
+    </RowAnchor>
+  ) : (
+    <RowLink href={href}>{inner}</RowLink>
   );
 }
 
@@ -150,18 +155,16 @@ export function ControlRow({
   tone?: ToneName;
 }) {
   return (
-    <>
-      <RowDiv>
-        <Lead $tone={tone}>
-          <Icon size={19} />
-        </Lead>
-        <Body>
-          <span className="t">{title}</span>
-          {description && <span className="d">{description}</span>}
-        </Body>
-        {children}
-      </RowDiv>
-      {!last && <Divide />}
-    </>
+    <RowDiv>
+      <Lead $tone={tone}>
+        <Icon size={20} />
+      </Lead>
+      <Body>
+        <span className="t">{title}</span>
+        {description && <span className="d">{description}</span>}
+      </Body>
+      {children}
+    </RowDiv>
   );
 }
+

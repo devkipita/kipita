@@ -1,7 +1,13 @@
 ﻿"use client";
 
 import styled from "styled-components";
-import { CalendarBlank as CalendarDays, Circle, MagnifyingGlass, MapPin, NavigationArrow as Navigation } from "@/components/icons";
+import {
+  CalendarBlank as CalendarDays,
+  Circle,
+  MagnifyingGlass,
+  MapPin,
+  NavigationArrow as Navigation,
+} from "@/components/icons";
 import { HOME_COPY } from "@/lib/home/copy";
 import type { PlaceField } from "./PlaceModal";
 
@@ -10,9 +16,9 @@ export type OriginStatus = "idle" | "detecting" | "ready" | "failed";
 const Dock = styled.div`
   position: relative;
   z-index: 5;
-  margin-top: -34px;
+  margin-top: clamp(12px, 3vw, 26px);
   display: grid;
-  grid-template-columns: 1fr auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px;
   padding: 7px;
@@ -20,7 +26,7 @@ const Dock = styled.div`
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
   box-shadow: ${({ theme }) => theme.shadow.soft};
 
-  @media (max-width: 860px) {
+  @media (max-width: 1020px) {
     display: none;
   }
 `;
@@ -28,7 +34,7 @@ const Dock = styled.div`
 const Compact = styled.div`
   display: none;
 
-  @media (max-width: 860px) {
+  @media (max-width: 1020px) {
     position: relative;
     z-index: 5;
     margin-top: 18px;
@@ -110,7 +116,7 @@ const Divider = styled.span`
   height: 30px;
   background: ${({ theme }) => theme.color.line};
 
-  @media (max-width: 860px) {
+  @media (max-width: 1020px) {
     display: none;
   }
 `;
@@ -218,7 +224,9 @@ export function SearchDock({
 }) {
   const fromText =
     from ||
-    (originStatus === "detecting" ? HOME_COPY.fromDetecting : HOME_COPY.fromIdle);
+    (originStatus === "detecting"
+      ? HOME_COPY.fromDetecting
+      : HOME_COPY.fromIdle);
 
   return (
     <>
@@ -278,5 +286,3 @@ export function SearchDock({
     </>
   );
 }
-
-

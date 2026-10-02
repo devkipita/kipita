@@ -14,13 +14,21 @@ import type { PlaceCard } from "@/lib/places";
 const cache = new Map<string, PlaceCard>();
 const inFlight = new Set<string>();
 
-export function usePlaces(towns: (string | null | undefined)[]): Map<string, PlaceCard> {
+export function usePlaces(
+  towns: (string | null | undefined)[],
+): Map<string, PlaceCard> {
   const wanted = [
     ...new Set(
-      towns.filter(Boolean).map((t) => (t as string).trim()).filter(Boolean),
+      towns
+        .filter(Boolean)
+        .map((t) => (t as string).trim())
+        .filter(Boolean),
     ),
   ];
-  const key = wanted.map((t) => t.toLowerCase()).sort().join("|");
+  const key = wanted
+    .map((t) => t.toLowerCase())
+    .sort()
+    .join("|");
 
   const [, bump] = useState(0);
 
@@ -31,7 +39,6 @@ export function usePlaces(towns: (string | null | undefined)[]): Map<string, Pla
     if (missing.length === 0) return;
 
     for (const t of missing) inFlight.add(t.toLowerCase());
-    let alive = true;
 
     void (async () => {
       try {
@@ -39,7 +46,8 @@ export function usePlaces(towns: (string | null | undefined)[]): Map<string, Pla
           `/api/places?towns=${encodeURIComponent(missing.join(","))}`,
         );
         if (!response.ok) return;
-        const data: { places: Record<string, PlaceCard> } = await response.json();
+        const data: { places: Record<string, PlaceCard> } =
+          await response.json();
         for (const [name, card] of Object.entries(data.places ?? {})) {
           cache.set(name, card);
         }
@@ -54,17 +62,15 @@ export function usePlaces(towns: (string | null | undefined)[]): Map<string, Pla
             });
           }
         }
-        if (alive) bump((n) => n + 1);
+        // No unmount guard: Strict Mode's throwaway first mount owns the fetch,
+        // and the remounted instance is skipped by `inFlight`, so it must bump.
+        bump((n) => n + 1);
       } catch {
         // Cards render without enrichment.
       } finally {
         for (const t of missing) inFlight.delete(t.toLowerCase());
       }
     })();
-
-    return () => {
-      alive = false;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import styled from "styled-components";
@@ -87,7 +87,7 @@ const Row = styled.div`
   gap: 14px;
   padding: 16px 20px;
   & + & {
-    border-top: 1px solid ${({ theme }) => theme.color.line};
+    border-top: none;
   }
   svg.lead {
     color: ${({ theme }) => theme.color.primary};
@@ -135,7 +135,7 @@ const EditBtn = styled(Link)`
   color: ${({ theme }) => theme.color.onPrimary};
   font-weight: 700;
   text-decoration: none;
-  border: 1px solid ${({ theme }) => theme.color.line};
+  border: none;
   transition: background 0.2s ease, transform 0.15s ease;
   &:hover {
     background: ${({ theme }) => theme.color.primaryDark};
@@ -143,7 +143,7 @@ const EditBtn = styled(Link)`
   }
 `;
 
-/* Deep red field, vivid red ink — an unmistakable danger action. */
+/* Deep red field, vivid red ink â€” an unmistakable danger action. */
 const SignOut = styled.button`
   display: inline-flex;
   align-items: center;
@@ -334,3 +334,4 @@ export function ProfileView({ profile }: { profile: Profile }) {
     </>
   );
 }
+
