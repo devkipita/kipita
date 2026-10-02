@@ -12,7 +12,7 @@
  *   success / warning / info / error semantic status, same quad shape
  *   surfaceContainer*                elevation: Lowest is highest-lifted here,
  *                                    because light mode steps BRIGHTER toward
- *                                    sage-white rather than darker
+ *                                    white rather than darker
  *   outline / outlineVariant         interactive borders / dividers
  *
  * Pair every base with its `on-` partner. Picking a background and guessing a
@@ -70,11 +70,11 @@ export type ElevationScale = Record<0 | 1 | 2 | 3 | 4 | 5, string>;
 
 const lightElevation: ElevationScale = {
   0: "none",
-  1: "0 1px 2px 0 rgba(16, 36, 24, 0.22), 0 1px 3px 1px rgba(16, 36, 24, 0.10)",
-  2: "0 1px 2px 0 rgba(16, 36, 24, 0.22), 0 2px 6px 2px rgba(16, 36, 24, 0.10)",
-  3: "0 1px 3px 0 rgba(16, 36, 24, 0.22), 0 4px 8px 3px rgba(16, 36, 24, 0.11)",
-  4: "0 2px 3px 0 rgba(16, 36, 24, 0.22), 0 6px 10px 4px rgba(16, 36, 24, 0.11)",
-  5: "0 4px 4px 0 rgba(16, 36, 24, 0.22), 0 8px 12px 6px rgba(16, 36, 24, 0.11)",
+  1: "0 1px 2px 0 rgba(0, 0, 0, 0.16), 0 1px 3px 1px rgba(0, 0, 0, 0.07)",
+  2: "0 1px 2px 0 rgba(0, 0, 0, 0.16), 0 2px 6px 2px rgba(0, 0, 0, 0.07)",
+  3: "0 1px 3px 0 rgba(0, 0, 0, 0.16), 0 4px 8px 3px rgba(0, 0, 0, 0.08)",
+  4: "0 2px 3px 0 rgba(0, 0, 0, 0.16), 0 6px 10px 4px rgba(0, 0, 0, 0.08)",
+  5: "0 4px 4px 0 rgba(0, 0, 0, 0.16), 0 8px 12px 6px rgba(0, 0, 0, 0.08)",
 };
 
 const darkElevation: ElevationScale = {
@@ -315,6 +315,24 @@ export interface AppColors {
   inverseOnSurface: string;
   inversePrimary: string;
 
+  // ── M3 add-on roles ──
+  surfaceTint: string;
+  scrim: string;
+  shadow: string;
+  /** Fixed accents keep the same tone in light and dark, unlike containers. */
+  primaryFixed: string;
+  primaryFixedDim: string;
+  onPrimaryFixed: string;
+  onPrimaryFixedVariant: string;
+  secondaryFixed: string;
+  secondaryFixedDim: string;
+  onSecondaryFixed: string;
+  onSecondaryFixedVariant: string;
+  tertiaryFixed: string;
+  tertiaryFixedDim: string;
+  onTertiaryFixed: string;
+  onTertiaryFixedVariant: string;
+
   // ── Lifted surfaces. Light steps brighter, dark steps lighter, so the
   //    "raised" container is a different role in each mode. ──
   elevated: string;
@@ -438,24 +456,40 @@ const lightRoles: Roles = {
   errorContainer: "#FFDAD6",
   onErrorContainer: "#410002",
 
-  background: "#DBE8D6",
-  onBackground: "#161D17",
-  surfaceRole: "#DBE8D6",
-  onSurface: "#161D17",
-  surfaceVariant: "#CBDBC6",
-  onSurfaceVariant: "#404A41",
-  surfaceDim: "#C1D1BB",
-  surfaceBright: "#F5FBF2",
-  surfaceContainerLowest: "#F7FCF5",
-  surfaceContainerLow: "#EFF7EC",
-  surfaceContainer: "#E9F2E5",
-  surfaceContainerHigh: "#E3EDDF",
-  surfaceContainerHighest: "#DDE8D8",
-  outline: "#6E796E",
-  outlineVariant: "#BCC8B8",
+  background: "#FFFFFF",
+  onBackground: "#1A1C1A",
+  surfaceRole: "#FFFFFF",
+  onSurface: "#1A1C1A",
+  surfaceVariant: "#E2E3DF",
+  onSurfaceVariant: "#454745",
+  surfaceDim: "#DADAD7",
+  surfaceBright: "#FFFFFF",
+  surfaceContainerLowest: "#FFFFFF",
+  surfaceContainerLow: "#F4F4F0",
+  surfaceContainer: "#EEEEEB",
+  surfaceContainerHigh: "#E8E8E5",
+  surfaceContainerHighest: "#E2E3DF",
+  outline: "#707972",
+  outlineVariant: "#C0C9C1",
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",
   inversePrimary: "#95D4B1",
+
+  surfaceTint: "#2C694D",
+  scrim: "#000000",
+  shadow: "#000000",
+  primaryFixed: "#B0F1CC",
+  primaryFixedDim: "#95D4B1",
+  onPrimaryFixed: "#002113",
+  onPrimaryFixedVariant: "#0E5136",
+  secondaryFixed: "#C4EDC8",
+  secondaryFixedDim: "#A9D0AD",
+  onSecondaryFixed: "#00210B",
+  onSecondaryFixedVariant: "#2C4E33",
+  tertiaryFixed: "#FCDEBA",
+  tertiaryFixedDim: "#DFC29F",
+  onTertiaryFixed: "#281903",
+  onTertiaryFixedVariant: "#574329",
 };
 
 const darkRoles: Roles = {
@@ -507,6 +541,22 @@ const darkRoles: Roles = {
   inverseSurface: "#E1E3DF",
   inverseOnSurface: "#2E312E",
   inversePrimary: "#2C694D",
+
+  surfaceTint: "#95D4B1",
+  scrim: "#000000",
+  shadow: "#000000",
+  primaryFixed: "#B0F1CC",
+  primaryFixedDim: "#95D4B1",
+  onPrimaryFixed: "#002113",
+  onPrimaryFixedVariant: "#0E5136",
+  secondaryFixed: "#C4EDC8",
+  secondaryFixedDim: "#A9D0AD",
+  onSecondaryFixed: "#00210B",
+  onSecondaryFixedVariant: "#2C4E33",
+  tertiaryFixed: "#FCDEBA",
+  tertiaryFixedDim: "#DFC29F",
+  onTertiaryFixed: "#281903",
+  onTertiaryFixedVariant: "#574329",
 };
 
 const light: AppTheme = {
@@ -525,7 +575,7 @@ const light: AppTheme = {
     lav: { bg: "#e7d8ff", on: "#25084f" },
     deep: { bg: "#0e5136", on: "#b0f1cc" },
     dark: { bg: "#16201b", on: "#dfeee5" },
-    surface: { bg: "#f7fcf5", on: "#161d17" },
+    surface: { bg: "#f4f4f0", on: "#1a1c1a" },
     forest: { bg: "#013330", on: "#e5ffc3" },
     peach: { bg: "#f8a783", on: "#2a1002" },
     lilac: { bg: "#ddb8fb", on: "#3b0a63" },
@@ -535,8 +585,8 @@ const light: AppTheme = {
   accent: lightAccent,
   radius,
   shadow: {
-    card: "0 24px 60px -30px rgba(12, 40, 26, 0.42)",
-    soft: "0 12px 34px -20px rgba(16, 36, 24, 0.24)",
+    card: "0 24px 60px -30px rgba(0, 0, 0, 0.3)",
+    soft: "0 12px 34px -20px rgba(0, 0, 0, 0.2)",
   },
   elevation: lightElevation,
   motion,

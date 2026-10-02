@@ -2,9 +2,15 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { Calendar, CaretDown as ChevronDown, MapPin, NavigationArrow as Navigation, MagnifyingGlass as Search } from "@/components/icons";
+import {
+  Calendar,
+  CaretDown as ChevronDown,
+  MapPin,
+  NavigationArrow as Navigation,
+  MagnifyingGlass as Search,
+} from "@/components/icons";
 import { nocturne } from "../nocturne";
-import { useRideSearch } from "./useRideSearch";
+import { useSharedRideSearch } from "./RideSearchContext";
 import { RideResults } from "./RideResults";
 
 /* ══════════════ layout ══════════════ */
@@ -47,7 +53,9 @@ const Pill = styled.div<{ $expanded: boolean }>`
   border-radius: ${({ $expanded }) => ($expanded ? "28px" : "999px")};
   padding: ${({ $expanded }) => ($expanded ? "8px" : "6px 6px 6px 8px")};
   box-shadow: ${({ $expanded }) =>
-    $expanded ? "0 30px 70px rgba(0, 0, 0, 0.45)" : "0 12px 30px rgba(0,0,0,0.28)"};
+    $expanded
+      ? "0 30px 70px rgba(0, 0, 0, 0.45)"
+      : "0 12px 30px rgba(0,0,0,0.28)"};
   transition:
     border-radius 0.45s cubic-bezier(0.65, 0, 0.35, 1),
     border-color 0.3s ease,
@@ -193,8 +201,10 @@ const WhenBtn = styled.button<{ $active: boolean }>`
   gap: 8px;
   padding: 12px 16px;
   border-radius: 999px;
-  border: 1px solid ${({ $active }) => ($active ? nocturne.green : nocturne.line)};
-  background: ${({ $active }) => ($active ? nocturne.greenDeep : "transparent")};
+  border: 1px solid
+    ${({ $active }) => ($active ? nocturne.green : nocturne.line)};
+  background: ${({ $active }) =>
+    $active ? nocturne.greenDeep : "transparent"};
   color: ${nocturne.cream};
   font-family: inherit;
   font-size: 14px;
@@ -237,7 +247,8 @@ const WhenOpt = styled.button<{ $active: boolean }>`
   padding: 12px 14px;
   border-radius: 12px;
   border: none;
-  background: ${({ $active }) => ($active ? nocturne.greenDeep : "transparent")};
+  background: ${({ $active }) =>
+    $active ? nocturne.greenDeep : "transparent"};
   color: ${nocturne.cream};
   font-family: inherit;
   font-size: 15px;
@@ -417,7 +428,7 @@ function whenLabel(when: { mode: "now" } | { mode: "schedule"; date: string }) {
 }
 
 export function RideSearch() {
-  const search = useRideSearch();
+  const search = useSharedRideSearch();
   const {
     expanded,
     from,
@@ -519,7 +530,9 @@ export function RideSearch() {
                   <small>From</small>
                   <Input
                     value={from}
-                    placeholder={detecting ? "Detecting your town…" : "Where from?"}
+                    placeholder={
+                      detecting ? "Detecting your town…" : "Where from?"
+                    }
                     onChange={(e) => search.setFrom(e.target.value)}
                     onFocus={() => {
                       setActiveField("from");

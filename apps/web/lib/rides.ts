@@ -37,9 +37,7 @@ export type Ride = {
 };
 
 /** When the traveller wants to leave. */
-export type When =
-  | { mode: "now" }
-  | { mode: "schedule"; date: string };
+export type When = { mode: "now" } | { mode: "schedule"; date: string };
 
 /**
  * The outcome of a search, as a discriminated union so the UI can tell the
@@ -153,6 +151,7 @@ export async function searchRides(
   from: string,
   to: string,
   when: When,
+  seats = 1,
 ): Promise<SearchOutcome> {
   const fromQ = from.trim();
   const toQ = to.trim();
@@ -171,7 +170,7 @@ export async function searchRides(
          driver:users!driver_id ( full_name, avatar_url, rating, total_trips )`,
       )
       .in("status", ["posted", "active"])
-      .gt("seats_available", 0)
+      .gte("seats_available", Math.max(1, seats))
       .ilike("from_location", `%${fromQ}%`)
       .ilike("to_location", `%${toQ}%`)
       .gte("departure_date", onOrAfter)
@@ -241,7 +240,8 @@ export function formatWhen(date: string, time: string): string {
   const dt = new Date(`${date}T00:00:00`);
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  if (date === tomorrow.toISOString().slice(0, 10)) return `Tomorrow · ${clock}`;
+  if (date === tomorrow.toISOString().slice(0, 10))
+    return `Tomorrow · ${clock}`;
 
   const day = dt.toLocaleDateString("en-KE", { weekday: "short" });
   return `${day} · ${clock}`;

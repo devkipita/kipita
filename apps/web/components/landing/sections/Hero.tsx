@@ -1,58 +1,54 @@
 ﻿import styled from "styled-components";
 import { nocturne } from "../nocturne";
-import { Parallax } from "../../anim/Parallax";
 import { Reveal } from "../../anim/Reveal";
 import { TrickleHeading } from "../TrickleHeading";
-import { HeroCarousel } from "../HeroCarousel";
+import { HeroSearch } from "../search/HeroSearch";
 import { PulseDot } from "../primitives";
 
 const HeroShell = styled.section`
   position: relative;
   min-height: 100dvh;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
-  align-items: center;
-  gap: 40px;
-  padding: 50px clamp(16px, 5vw, 72px) 80px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: clamp(32px, 5vw, 56px);
+  padding: 120px clamp(16px, 5vw, 72px) clamp(28px, 4vw, 48px);
+  /* Gradient keeps the headline legible; the colour shows until the photo loads. */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 12, 0.74) 0%,
+      rgba(8, 16, 12, 0.36) 40%,
+      rgba(8, 16, 12, 0.88) 100%
+    ),
+    url("/home/nairobi-hero.jpg") center / cover no-repeat,
+    ${nocturne.bg};
 
   @media (max-width: 900px) {
     padding-top: 116px;
   }
 `;
 
-const HeroPattern = styled.div`
-  position: absolute;
-  inset: -10%;
-  background-image: url("/landing/car-pattern-t.png");
-  background-size: 520px;
-  opacity: 0.13;
-  pointer-events: none;
+const HeroTop = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
 `;
 
-const HeroPeopleLeft = styled(Parallax)`
+const Credit = styled.a`
   position: absolute;
-  left: -70px;
-  bottom: -40px;
-  width: min(300px, 22vw);
-  opacity: 0.5;
-  pointer-events: none;
+  right: clamp(16px, 5vw, 72px);
+  bottom: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
 
-  @media (max-width: 900px) {
-    display: none;
-  }
-`;
-
-const HeroPeopleRight = styled(Parallax)`
-  position: absolute;
-  right: -50px;
-  bottom: -60px;
-  width: min(280px, 20vw);
-  opacity: 0.35;
-  pointer-events: none;
-
-  @media (max-width: 900px) {
-    display: none;
+  &:hover {
+    text-decoration: underline;
   }
 `;
 
@@ -91,7 +87,7 @@ const LivePill = styled.div`
 const Display = styled(TrickleHeading)`
   margin: 0;
   font-weight: 700;
-  font-size: clamp(44px, 8.4vw, 148px);
+  font-size: clamp(40px, 6.6vw, 112px);
   line-height: 0.92;
   letter-spacing: -0.035em;
   color: ${nocturne.cream};
@@ -133,40 +129,6 @@ const HeroActions = styled.div`
 
   @media (max-width: 420px) {
     gap: 10px;
-  }
-`;
-
-const BtnLime = styled.a`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 18px 36px;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
-  font-size: 17px;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    color 0.2s ease;
-
-  &:hover {
-    background: ${nocturne.cream};
-  }
-
-  @media (max-width: 640px) {
-    flex: 1 1 0;
-    min-width: 0;
-    padding: 16px 18px;
-    font-size: 15px;
-  }
-
-  @media (max-width: 420px) {
-    padding: 14px 14px;
-    font-size: 14px;
   }
 `;
 
@@ -232,73 +194,38 @@ const HeroStat = styled.div`
 const HeroDivider = styled.div`
   width: 1px;
   height: 34px;
-  background: #2a2a2a;
-`;
-
-const HeroVisual = styled.div`
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(24px, 3vw, 40px);
-`;
-
-const HeroVisualInner = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: rgba(255, 255, 255, 0.22);
 `;
 
 export function Hero() {
   return (
     <HeroShell id="top">
-      <HeroPattern aria-hidden />
-      <HeroPeopleLeft amount={40}>
-        <img
-          src="/landing/people-left.png"
-          alt=""
-          style={{ width: "100%", display: "block" }}
-        />
-      </HeroPeopleLeft>
-      <HeroPeopleRight amount={30}>
-        <img
-          src="/landing/people-right.png"
-          alt=""
-          style={{ width: "100%", display: "block" }}
-        />
-      </HeroPeopleRight>
+      <HeroTop>
+        <HeroCopy>
+          <LivePill>
+            <PulseDot />
+            <span>Share the ride · Save more</span>
+          </LivePill>
 
-      <HeroCopy>
-        <LivePill>
-          <PulseDot />
-          <span>Share the ride Â· Save more</span>
-        </LivePill>
+          <Display
+            parts={[
+              { text: "Ride." },
+              { text: "Share.", className: "accent-sage" },
+              { text: "Connect.", className: "accent-tan" },
+            ]}
+          />
 
-        <Display
-          parts={[
-            { text: "Ride." },
-            { text: "Share.", className: "accent-sage" },
-            { text: "Connect.", className: "accent-tan" },
-          ]}
-        />
+          <Reveal stagger={0.12} delay={0.55}>
+            <HeroLead>
+              Make every journey count. Share the ride. Split the cost. Meet
+              people going your way.
+            </HeroLead>
+            <HeroActions>
+              <BtnGreen href="#download">Offer a ride</BtnGreen>
+            </HeroActions>
+          </Reveal>
+        </HeroCopy>
 
-        <Reveal stagger={0.12} delay={0.55}>
-          <HeroLead>
-            Make every journey count. Share the ride. Split the cost. Meet
-            people going your way.
-          </HeroLead>
-          <HeroActions>
-            <BtnLime href="#find">Find a ride</BtnLime>
-            <BtnGreen href="#download">Offer a ride</BtnGreen>
-          </HeroActions>
-        </Reveal>
-      </HeroCopy>
-
-      <HeroVisual>
-        <HeroVisualInner>
-          <HeroCarousel />
-        </HeroVisualInner>
         <Reveal delay={0.5}>
           <HeroStats>
             <HeroStat>
@@ -312,8 +239,17 @@ export function Hero() {
             </HeroStat>
           </HeroStats>
         </Reveal>
-      </HeroVisual>
+      </HeroTop>
+
+      <HeroSearch />
+
+      <Credit
+        href="https://commons.wikimedia.org/wiki/File:Nairobi_skyline_from_Gem_Hotel.jpg"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Photo: Daniel Case, CC BY-SA 4.0
+      </Credit>
     </HeroShell>
   );
 }
-

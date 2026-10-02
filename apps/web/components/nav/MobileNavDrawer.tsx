@@ -16,7 +16,7 @@ const Overlay = styled.div`
   position: fixed;
   inset: 0;
   z-index: ${Z.drawerOverlay};
-  background: ${({ theme }) => theme.color.bg}c4;
+  background: ${({ theme }) => theme.color.scrim}52;
   backdrop-filter: blur(4px);
   animation: ${fade} 0.2s ease both;
 
@@ -36,7 +36,7 @@ const Panel = styled.div`
   flex-direction: column;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: ${({ theme }) => theme.color.bg};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
   border-right: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
   animation: ${slideIn} 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
   padding-bottom: env(safe-area-inset-bottom);

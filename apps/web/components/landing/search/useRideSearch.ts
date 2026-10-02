@@ -19,6 +19,8 @@ export type RideSearchState = {
   from: string;
   to: string;
   when: When;
+  /** Passengers travelling; rides with fewer free seats are hidden. */
+  seats: number;
   /** All active towns, for the destination suggestions. */
   towns: Town[];
   /** True while we're auto-detecting the user's city from their IP. */
@@ -34,6 +36,7 @@ const INITIAL: RideSearchState = {
   from: "",
   to: "",
   when: { mode: "now" },
+  seats: 1,
   towns: [],
   detecting: false,
   fromAutofilled: false,
@@ -91,13 +94,26 @@ export function useRideSearch() {
     setState((prev) => ({ ...prev, from, fromAutofilled: false }));
   }, []);
 
-  const setTo = useCallback((to: string) => {
-    patch({ to });
-  }, [patch]);
+  const setTo = useCallback(
+    (to: string) => {
+      patch({ to });
+    },
+    [patch],
+  );
 
-  const setWhen = useCallback((when: When) => {
-    patch({ when });
-  }, [patch]);
+  const setWhen = useCallback(
+    (when: When) => {
+      patch({ when });
+    },
+    [patch],
+  );
+
+  const setSeats = useCallback(
+    (seats: number) => {
+      patch({ seats });
+    },
+    [patch],
+  );
 
   /** Run the search. `to` is required; `from` falls back to the typed value. */
   const run = useCallback(
@@ -115,13 +131,13 @@ export function useRideSearch() {
         phase: "searching",
       }));
 
-      const outcome = await searchRides(from, to, state.when);
+      const outcome = await searchRides(from, to, state.when, state.seats);
 
       // Ignore a stale response if a newer search has started.
       if (seq !== searchSeq.current) return;
       setState((prev) => ({ ...prev, phase: "settled", outcome }));
     },
-    [state.from, state.to, state.when],
+    [state.from, state.to, state.when, state.seats],
   );
 
   const reset = useCallback(() => {
@@ -142,6 +158,7 @@ export function useRideSearch() {
     setFrom,
     setTo,
     setWhen,
+    setSeats,
     run,
     reset,
   };

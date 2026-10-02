@@ -2,7 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
-import { SidebarSimple as PanelLeftClose, Sidebar as PanelLeftOpen } from "@/components/icons";
+import {
+  SidebarSimple as PanelLeftClose,
+  Sidebar as PanelLeftOpen,
+} from "@/components/icons";
 import { Brand } from "@/components/ui/Brand";
 import { Z } from "@/lib/z";
 import { RAIL_COMPACT_MAX } from "@/lib/nav/rail";
@@ -29,7 +32,7 @@ const Aside = styled.aside<{ $drawer?: boolean }>`
   gap: 10px;
   padding: 14px 10px 16px;
   border-right: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-  background: ${({ theme }) => theme.color.bg};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
 
   @media (max-width: 899px) {
     display: ${({ $drawer }) => ($drawer ? "flex" : "none")};
@@ -51,7 +54,8 @@ const BrandBlock = styled.div<{ $collapsed: boolean }>`
   display: flex;
   align-items: center;
   padding-inline: ${({ $collapsed }) => ($collapsed ? "0" : "12px")};
-  justify-content: ${({ $collapsed }) => ($collapsed ? "center" : "flex-start")};
+  justify-content: ${({ $collapsed }) =>
+    $collapsed ? "center" : "flex-start"};
 
   img {
     max-width: ${({ $collapsed }) => ($collapsed ? "36px" : "none")};
@@ -101,7 +105,8 @@ const Toggle = styled.button<{ $collapsed: boolean }>`
   gap: 10px;
   height: 44px;
   padding-inline: ${({ $collapsed }) => ($collapsed ? "0" : "14px")};
-  justify-content: ${({ $collapsed }) => ($collapsed ? "center" : "flex-start")};
+  justify-content: ${({ $collapsed }) =>
+    $collapsed ? "center" : "flex-start"};
   border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: transparent;
@@ -186,16 +191,18 @@ export function NavRail({
 
       <nav aria-label="Support" onClick={drawer ? onNavigate : undefined}>
         <Secondary>
-          {SECONDARY_NAV.filter((item) => profile || !item.requiresAuth).map((item) => (
-            <li key={item.key}>
-              <NavRailItem
-                item={item}
-                active={isNavItemActive(item, pathname)}
-                current={isNavItemCurrent(item, pathname)}
-                collapsed={isCollapsed}
-              />
-            </li>
-          ))}
+          {SECONDARY_NAV.filter((item) => profile || !item.requiresAuth).map(
+            (item) => (
+              <li key={item.key}>
+                <NavRailItem
+                  item={item}
+                  active={isNavItemActive(item, pathname)}
+                  current={isNavItemCurrent(item, pathname)}
+                  collapsed={isCollapsed}
+                />
+              </li>
+            ),
+          )}
         </Secondary>
       </nav>
 
