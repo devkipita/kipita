@@ -15,6 +15,7 @@ import {
   X,
 } from "@/components/icons";
 import { HOME_COPY } from "@/lib/home/copy";
+import type { AppMode } from "@/lib/home/mode";
 import type { PlaceField } from "./PlaceModal";
 
 export type OriginStatus = "idle" | "detecting" | "ready" | "failed";
@@ -390,6 +391,7 @@ export function SearchDock({
   canClear,
   seats,
   showSeats,
+  mode,
   onOpenField,
   onOpenWhen,
   onSearch,
@@ -403,6 +405,7 @@ export function SearchDock({
   canClear: boolean;
   seats: number;
   showSeats: boolean;
+  mode: AppMode;
   onOpenField: (field: PlaceField) => void;
   onOpenWhen: () => void;
   onSearch: () => void;
@@ -444,7 +447,7 @@ export function SearchDock({
         >
           <MagnifyingGlass size={19} weight="bold" />
           <b data-empty={to ? "false" : "true"}>
-            {to || HOME_COPY.toPlaceholder}
+            {to || HOME_COPY.searchPlaceholder[mode]}
           </b>
         </CompactField>
 
@@ -462,9 +465,6 @@ export function SearchDock({
             <X size={18} />
           </IconButton>
         )}
-        <SearchButton type="button" onClick={onSearch}>
-          Search
-        </SearchButton>
       </Compact>
 
       <Dock>

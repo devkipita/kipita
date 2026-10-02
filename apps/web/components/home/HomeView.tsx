@@ -50,9 +50,12 @@ const Greeting = styled.div`
     margin: 0;
     font-family: ${({ theme }) => theme.fontHeading};
     font-size: ${({ theme }) => theme.type.title};
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.03em;
     color: ${({ theme }) => theme.color.onSurface};
+  }
+  h1 .who {
+    color: ${({ theme }) => theme.color.primary};
   }
   p {
     margin: 4px 0 0;
@@ -326,6 +329,8 @@ export function HomeView({
     runSearch({ from: fromName, to: toName });
   }
 
+  const greeting = HOME_COPY.greeting(firstName(profile.full_name));
+
   return (
     <>
       <Wrap $max={1180}>
@@ -342,11 +347,16 @@ export function HomeView({
           seats={seats}
           onSeatsChange={changeSeats}
           showSeats={mode === "passenger"}
+          mode={mode}
         />
 
         <Greeting>
           <div className="text">
-            <h1>{HOME_COPY.greeting(firstName(profile.full_name))}</h1>
+            <h1>
+              {greeting.lead}
+              <span className="who">{greeting.name}</span>
+              {greeting.tail}
+            </h1>
             <p>{HOME_COPY.greetingSub[mode]}</p>
           </div>
           <div className="aside">
@@ -408,6 +418,11 @@ export function HomeView({
         onFieldChange={setPlaceField}
         onPickTown={pickTown}
         onPickRoute={pickRoute}
+        onSearch={() => {
+          setPlaceField(null);
+          runSearch();
+        }}
+        searchLabel={HOME_COPY.searchCta[mode]}
         onClose={() => setPlaceField(null)}
       />
 

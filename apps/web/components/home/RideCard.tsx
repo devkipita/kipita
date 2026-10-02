@@ -264,12 +264,12 @@ const Who = styled.div`
     gap: 5px;
     min-width: 0;
     font-size: ${({ theme }) => theme.type.body};
-    font-weight: 700;
+    font-weight: 600;
     color: ${({ theme }) => theme.color.onSurface};
   }
   .name b {
     min-width: 0;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

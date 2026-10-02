@@ -406,6 +406,38 @@ const ScreenList = styled.div`
   align-content: start;
 `;
 
+const ScreenFooter = styled.div`
+  flex: none;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  background: ${({ theme }) => theme.color.bg};
+`;
+
+const FindButton = styled.button`
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.primary};
+  color: ${({ theme }) => theme.color.onPrimary};
+  font: inherit;
+  font-size: ${({ theme }) => theme.type.body};
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 type Entry =
   | { kind: "town"; town: Town }
   | { kind: "route"; from: string; to: string; blurb: string };
@@ -418,6 +450,8 @@ export function PlaceModal({
   onFieldChange,
   onPickTown,
   onPickRoute,
+  onSearch,
+  searchLabel,
   onClose,
 }: {
   field: PlaceField | null;
@@ -427,6 +461,9 @@ export function PlaceModal({
   onFieldChange: (field: PlaceField) => void;
   onPickTown: (field: PlaceField, town: Town) => void;
   onPickRoute: (fromName: string, toName: string) => void;
+  /** Runs the search with the fields as they stand and closes the screen. */
+  onSearch: () => void;
+  searchLabel: string;
   onClose: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -726,6 +763,12 @@ export function PlaceModal({
           {groups.length === 0 && <Empty>{HOME_COPY.noMatch(query)}</Empty>}
           {rows}
         </ScreenList>
+
+        <ScreenFooter>
+          <FindButton type="button" onClick={onSearch}>
+            {searchLabel}
+          </FindButton>
+        </ScreenFooter>
       </Screen>,
       document.body,
     );

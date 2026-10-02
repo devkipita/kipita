@@ -1,7 +1,7 @@
 import type { AppMode } from "./mode";
 
 export const HOME_COPY = {
-  greeting: (name: string) => `Karibu, ${name}.`,
+  greeting: (name: string) => ({ lead: "Karibu, ", name, tail: "." }),
   greetingSub: {
     passenger: "Rides on your routes, updated as drivers post them.",
     driver: "Passengers looking for a seat on the routes you drive.",
@@ -21,6 +21,10 @@ export const HOME_COPY = {
   fromHint: "Guessed from your connection",
   toLabel: "Where to",
   toPlaceholder: "Anywhere in Kenya",
+  searchPlaceholder: {
+    passenger: "Find a ride",
+    driver: "Find passengers",
+  } satisfies Record<AppMode, string>,
   whenNow: "Leave now",
   whenLater: "Later",
   searchCta: {

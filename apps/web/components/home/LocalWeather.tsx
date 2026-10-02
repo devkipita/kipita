@@ -2,10 +2,11 @@
 
 import styled from "styled-components";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
-import { WEATHER_ICON, formatTemp } from "@/lib/places/meta";
+import { WEATHER_ICON, WEATHER_ROLE, formatTemp } from "@/lib/places/meta";
+import type { AppColors } from "@/lib/theme";
 import { usePlaces } from "./usePlaces";
 
-const Chip = styled.span`
+const Chip = styled.span<{ $role: keyof AppColors }>`
   display: inline-flex;
   align-items: center;
   gap: ${({ theme }) => theme.space.sm};
@@ -14,7 +15,7 @@ const Chip = styled.span`
 
   svg {
     flex: none;
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${({ theme, $role }) => theme.color[$role]};
   }
   .temp {
     font-family: ${({ theme }) => theme.fontHeading};
@@ -38,7 +39,7 @@ export function LocalWeather({ town }: { town: string }) {
   const Icon = WEATHER_ICON[weather.kind];
 
   return (
-    <Chip title={`${weather.label} in ${town}`}>
+    <Chip $role={WEATHER_ROLE[weather.kind]} title={`${weather.label} in ${town}`}>
       <Icon size={30} />
       <span className="temp">{formatTemp(weather.tempC)}</span>
       <span className="town">{town}</span>

@@ -7,6 +7,7 @@ import {
   Sun,
 } from "@/components/icons";
 import type { KipitaIcon } from "@/components/icons";
+import type { AppColors } from "@/lib/theme";
 import type { WeatherKind } from "./weather";
 
 export const WEATHER_ICON: Record<WeatherKind, KipitaIcon> = {
@@ -17,6 +18,17 @@ export const WEATHER_ICON: Record<WeatherKind, KipitaIcon> = {
   drizzle: CloudRain,
   rain: CloudRain,
   storm: CloudLightning,
+};
+
+/** The M3 role each condition is drawn in, so it adapts to light and dark. */
+export const WEATHER_ROLE: Record<WeatherKind, keyof AppColors> = {
+  clear: "warning",
+  cloudy: "tertiary",
+  overcast: "secondary",
+  fog: "outline",
+  drizzle: "info",
+  rain: "info",
+  storm: "error",
 };
 
 /** Kenya is metric. Celsius, no decimal — a card is not a forecast. */
