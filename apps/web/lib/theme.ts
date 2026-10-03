@@ -87,7 +87,7 @@ const darkElevation: ElevationScale = {
 };
 
 const STACK =
-  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+  'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'; 
 
 /** Body copy, form fields, labels — everything that is read rather than scanned. */
 const font = `var(--font-dm-sans), "Nunito", ${STACK}`;
@@ -97,6 +97,7 @@ const font = `var(--font-dm-sans), "Nunito", ${STACK}`;
  * different voice rather than just a larger size — the pairing Material's own
  * site uses (Google Sans over Roboto).
  */
+
 const fontHeading = `var(--font-heading), "Barlow Condensed", var(--font-dm-sans), ${STACK}`;
 
 /**

@@ -1,8 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import styled, { keyframes } from "styled-components";
-import { ArrowDown, ArrowUpRight, Compass, QuestionCircle as LifeBuoy, Envelope as Mail, MapPin, ChatCircle as MessageCircle, MagnifyingGlass as Search, ShieldCheck, Sparkle as Sparkles, UserPlus, Wallet } from "@/components/icons";
+import styled from "styled-components";
+import {
+  ArrowDown,
+  ArrowUpRight,
+  Compass,
+  QuestionCircle as LifeBuoy,
+  Envelope as Mail,
+  MapPin,
+  ChatCircle as MessageCircle,
+  MagnifyingGlass as Search,
+  ShieldCheck,
+  Sparkle as Sparkles,
+  UserPlus,
+  Wallet,
+} from "@/components/icons";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Container } from "@/components/ui/primitives";
@@ -12,62 +25,50 @@ import { SITE } from "@/lib/site";
 import { fetchPublishedFaqs } from "@/lib/faqs";
 import type { ToneName } from "@/lib/theme";
 
-/* Brand shapes drift gently behind the hero — the same playful motion the
-   landing uses, kept subtle so the copy stays legible. */
-const drift = keyframes`
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
-  50% { transform: translate3d(0, -18px, 0) rotate(3deg); }
-`;
-
 /* ── Hero ─────────────────────────────────────────────────────────────── */
 
 const Hero = styled.section`
   position: relative;
   /* Wider than the 1080px content column, and short — a wide banner, not a
      tall block. Vertical padding stays tight so height comes from the copy. */
-  width: min(1280px, calc(100% - 40px));
-  margin: 28px auto 20px;
+  width: 100%;
+  margin: 28px 0 20px;
   padding: clamp(28px, 3.5vw, 44px) clamp(24px, 5vw, 72px);
-  border-radius: ${({ theme }) => theme.radius.xl};
+  border-radius: 0;
   overflow: hidden;
-  background: ${({ theme }) => theme.tone.deep.bg};
-  color: ${({ theme }) => theme.tone.deep.on};
-  border: 1px solid ${({ theme }) => theme.color.line};
+  background: #090b0a;
+  color: #f7f8f5;
 `;
 
-/* Two layers of the brand-shape sheet, offset and drifting out of phase, give
-   the banner depth without any extra assets. */
-const HeroShapes = styled.div`
+const HeroVideo = styled.video`
   position: absolute;
-  inset: -20% -10%;
-  background-image: url("/backgrounds/white.svg");
-  background-size: clamp(520px, 60vw, 760px);
-  opacity: 0.06;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   pointer-events: none;
-  animation: ${drift} 22s ease-in-out infinite;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: inherit;
-    background-size: inherit;
-    background-position: 40% 60%;
-    opacity: 0.6;
-    animation: ${drift} 30s ease-in-out infinite reverse;
-  }
 
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    &::after {
-      animation: none;
-    }
+    display: none;
   }
+`;
+
+const HeroScrim = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 9, 0.48) 0%,
+    rgba(8, 10, 9, 0.62) 100%
+  );
+  pointer-events: none;
 `;
 
 const HeroInner = styled.div`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   max-width: 720px;
   margin: 0 auto;
   text-align: center;
@@ -83,7 +84,8 @@ const HeroEyebrow = styled.span`
   text-transform: uppercase;
   padding: 8px 16px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  background: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 16%, transparent);
+  background: rgba(255, 255, 255, 0.14);
+  color: #d4f1df;
 `;
 
 const HeroTitle = styled.h1`
@@ -97,7 +99,7 @@ const HeroTitle = styled.h1`
   em {
     font-style: italic;
     font-weight: 500;
-    color: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 82%, #ffffff);
+    color: #f7f8f5;
   }
 `;
 
@@ -106,12 +108,12 @@ const HeroLead = styled.p`
   max-width: 44ch;
   font-size: clamp(1rem, 1.6vw, 1.15rem);
   line-height: 1.55;
-  color: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 78%, transparent);
+  color: rgba(247, 248, 245, 0.88);
 `;
 
 const SearchBar = styled.form`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -122,17 +124,19 @@ const SearchBar = styled.form`
   background: rgba(0, 0, 0, 0.32);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1.5px solid color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 22%, transparent);
-  transition: border-color 0.2s ease, background 0.2s ease;
+  border: 1.5px solid rgba(255, 255, 255, 0.34);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 
   &:focus-within {
-    border-color: ${({ theme }) => theme.tone.deep.on};
-    background: rgba(0, 0, 0, 0.42);
+    border-color: rgba(255, 255, 255, 0.76);
+    background: rgba(8, 10, 9, 0.72);
   }
 
   svg {
     flex: none;
-    color: ${({ theme }) => theme.tone.deep.on};
+    color: #f7f8f5;
   }
 
   input {
@@ -140,13 +144,13 @@ const SearchBar = styled.form`
     min-width: 0;
     border: none;
     background: transparent;
-    color: ${({ theme }) => theme.tone.deep.on};
+    color: #f7f8f5;
     font-family: inherit;
     font-size: 1rem;
     padding: 12px 0;
 
     &::placeholder {
-      color: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 60%, transparent);
+      color: rgba(247, 248, 245, 0.72);
     }
     &:focus {
       outline: none;
@@ -164,8 +168,8 @@ const SearchGo = styled.button`
   border-radius: ${({ theme }) => theme.radius.pill};
   border: none;
   cursor: pointer;
-  background: ${({ theme }) => theme.tone.deep.on};
-  color: ${({ theme }) => theme.tone.deep.bg};
+  background: #d4f1df;
+  color: #10241a;
   transition: transform 0.15s ease;
 
   &:hover {
@@ -180,7 +184,7 @@ const SearchGo = styled.button`
 
 const Topics = styled.div`
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -197,14 +201,16 @@ const Topic = styled.a`
   font-weight: 600;
   font-size: 0.9rem;
   text-decoration: none;
-  color: ${({ theme }) => theme.tone.deep.on};
-  background: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 12%, transparent);
-  border: 1px solid color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 22%, transparent);
-  transition: background 0.16s ease, transform 0.16s ease;
+  color: #f7f8f5;
+  background: rgba(8, 10, 9, 0.46);
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  transition:
+    background 0.16s ease,
+    transform 0.16s ease;
 
   &:hover {
     transform: translateY(-2px);
-    background: color-mix(in srgb, ${({ theme }) => theme.tone.deep.on} 22%, transparent);
+    background: rgba(8, 10, 9, 0.7);
   }
   svg {
     flex: none;
@@ -259,7 +265,11 @@ const Step = styled.div<{ $tone: ToneName }>`
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme, $tone }) => theme.tone[$tone].bg};
   /* Brighten the on-tone text toward white so it pops on the muted cards. */
-  color: color-mix(in srgb, ${({ theme, $tone }) => theme.tone[$tone].on} 70%, #ffffff);
+  color: color-mix(
+    in srgb,
+    ${({ theme, $tone }) => theme.tone[$tone].on} 70%,
+    #ffffff
+  );
 
   .top {
     display: flex;
@@ -267,7 +277,8 @@ const Step = styled.div<{ $tone: ToneName }>`
     justify-content: space-between;
   }
   .num {
-    font-family: var(--font-space-grotesk), var(--font-dm-sans), system-ui, sans-serif;
+    font-family:
+      var(--font-space-grotesk), var(--font-dm-sans), system-ui, sans-serif;
     font-size: 3.2rem;
     font-weight: 700;
     line-height: 1;
@@ -281,7 +292,11 @@ const Step = styled.div<{ $tone: ToneName }>`
     width: 56px;
     height: 56px;
     border-radius: 999px;
-    background: color-mix(in srgb, ${({ theme, $tone }) => theme.tone[$tone].on} 14%, transparent);
+    background: color-mix(
+      in srgb,
+      ${({ theme, $tone }) => theme.tone[$tone].on} 14%,
+      transparent
+    );
   }
   h3 {
     margin: 8px 0 0;
@@ -292,7 +307,11 @@ const Step = styled.div<{ $tone: ToneName }>`
     margin: 0;
     font-size: 1.05rem;
     line-height: 1.5;
-    color: color-mix(in srgb, ${({ theme, $tone }) => theme.tone[$tone].on} 82%, #ffffff);
+    color: color-mix(
+      in srgb,
+      ${({ theme, $tone }) => theme.tone[$tone].on} 82%,
+      #ffffff
+    );
   }
 `;
 
@@ -352,7 +371,9 @@ const Q = styled.button<{ $open: boolean }>`
       $open ? theme.color.primary : theme.color.bgAlt};
     color: ${({ theme, $open }) =>
       $open ? theme.color.onPrimary : theme.color.primaryDark};
-    transition: background 0.2s ease, color 0.2s ease;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
   }
   .q {
     flex: 1;
@@ -405,7 +426,9 @@ const ContactCard = styled.a<{ $tone: ToneName }>`
   background: ${({ theme, $tone }) => theme.tone[$tone].bg};
   color: ${({ theme, $tone }) => theme.tone[$tone].on};
   text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.18s ease;
 
   &:hover {
     transform: translateY(-3px);
@@ -427,7 +450,11 @@ const ContactCard = styled.a<{ $tone: ToneName }>`
     font-size: 1.02rem;
   }
   small {
-    color: color-mix(in srgb, ${({ theme, $tone }) => theme.tone[$tone].on} 76%, transparent);
+    color: color-mix(
+      in srgb,
+      ${({ theme, $tone }) => theme.tone[$tone].on} 76%,
+      transparent
+    );
   }
 `;
 
@@ -440,17 +467,61 @@ const CATS: {
   href: string;
   tone: ToneName;
 }[] = [
-  { icon: Compass, t: "Getting started", d: "New here? Set up and take your first ride.", href: "#start", tone: "green" },
-  { icon: Sparkles, t: "Popular questions", d: "Answers to what riders ask most.", href: "#faq", tone: "amber" },
-  { icon: ShieldCheck, t: "Trust & safety", d: "How we keep every trip and payment safe.", href: "#faq", tone: "blue" },
-  { icon: LifeBuoy, t: "Get help", d: "Chat with our support team.", href: "#chat", tone: "lav" },
+  {
+    icon: Compass,
+    t: "Getting started",
+    d: "New here? Set up and take your first ride.",
+    href: "#start",
+    tone: "green",
+  },
+  {
+    icon: Sparkles,
+    t: "Popular questions",
+    d: "Answers to what riders ask most.",
+    href: "#faq",
+    tone: "amber",
+  },
+  {
+    icon: ShieldCheck,
+    t: "Trust & safety",
+    d: "How we keep every trip and payment safe.",
+    href: "#faq",
+    tone: "blue",
+  },
+  {
+    icon: LifeBuoy,
+    t: "Get help",
+    d: "Chat with our support team.",
+    href: "#chat",
+    tone: "lav",
+  },
 ];
 
 const HOW: { icon: typeof UserPlus; t: string; d: string; tone: ToneName }[] = [
-  { icon: UserPlus, t: "Create your account", d: "Sign up with email or phone in seconds — set a password and add a photo.", tone: "green" },
-  { icon: Search, t: "Find your ride", d: "Search your route and pick a driver heading your way at a price you like.", tone: "amber" },
-  { icon: Wallet, t: "Pay with M-Pesa", d: "Your fare is held safely in escrow and only released once the trip is done.", tone: "lav" },
-  { icon: MapPin, t: "Travel together", d: "Meet at the pickup point, share the ride, and rate each other after.", tone: "blue" },
+  {
+    icon: UserPlus,
+    t: "Create your account",
+    d: "Sign up with email or phone in seconds — set a password and add a photo.",
+    tone: "green",
+  },
+  {
+    icon: Search,
+    t: "Find your ride",
+    d: "Search your route and pick a driver heading your way at a price you like.",
+    tone: "amber",
+  },
+  {
+    icon: Wallet,
+    t: "Pay with M-Pesa",
+    d: "Your fare is held safely in escrow and only released once the trip is done.",
+    tone: "lav",
+  },
+  {
+    icon: MapPin,
+    t: "Travel together",
+    d: "Meet at the pickup point, share the ride, and rate each other after.",
+    tone: "blue",
+  },
 ];
 
 type FaqItem = { question: string; answer: string };
@@ -458,12 +529,36 @@ type FaqItem = { question: string; answer: string };
 // Fallback shown before the DB loads (or if the faqs table isn't there yet).
 // The admin FAQ manager writes to the `faqs` table, which then overrides these.
 const DEFAULT_FAQS: FaqItem[] = [
-  { question: "How does payment work?", answer: "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed — so your money is protected." },
-  { question: "Is my ride safe?", answer: "Riders and drivers are verified, every trip is rated, and payments are escrow-protected. Share your trip details with a friend any time from the app." },
-  { question: "Can I sign up with my phone number?", answer: "Yes. Choose the Phone tab on sign in, enter your Kenyan number, and we'll text you a 6-digit code to verify it." },
-  { question: "How do I become a driver?", answer: "Create an account, then submit your licence and ID for KYC verification from the app. Once approved, you can start offering seats." },
-  { question: "What if I need to cancel?", answer: "You can cancel from your bookings. Refunds follow our refund policy — escrow-held fares are returned when eligible." },
-  { question: "How do I change my email or phone?", answer: "Head to your profile, edit your details, and confirm the change via the code or link we send you." },
+  {
+    question: "How does payment work?",
+    answer:
+      "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed — so your money is protected.",
+  },
+  {
+    question: "Is my ride safe?",
+    answer:
+      "Riders and drivers are verified, every trip is rated, and payments are escrow-protected. Share your trip details with a friend any time from the app.",
+  },
+  {
+    question: "Can I sign up with my phone number?",
+    answer:
+      "Yes. Choose the Phone tab on sign in, enter your Kenyan number, and we'll text you a 6-digit code to verify it.",
+  },
+  {
+    question: "How do I become a driver?",
+    answer:
+      "Create an account, then submit your licence and ID for KYC verification from the app. Once approved, you can start offering seats.",
+  },
+  {
+    question: "What if I need to cancel?",
+    answer:
+      "You can cancel from your bookings. Refunds follow our refund policy — escrow-held fares are returned when eligible.",
+  },
+  {
+    question: "How do I change my email or phone?",
+    answer:
+      "Head to your profile, edit your details, and confirm the change via the code or link we send you.",
+  },
 ];
 
 export function HelpContent() {
@@ -478,7 +573,9 @@ export function HelpContent() {
     fetchPublishedFaqs()
       .then((rows) => {
         if (alive && rows.length) {
-          setFaqs(rows.map((r) => ({ question: r.question, answer: r.answer })));
+          setFaqs(
+            rows.map((r) => ({ question: r.question, answer: r.answer })),
+          );
         }
       })
       .catch(() => {});
@@ -501,48 +598,57 @@ export function HelpContent() {
     <>
       <SiteNav />
       <Hero>
-        <HeroShapes aria-hidden />
-          <HeroInner>
-            <HeroEyebrow>
-              <LifeBuoy size={15} />
-              Help center
-            </HeroEyebrow>
-            <HeroTitle>
-              Questions?{" "}
-              <em>We&apos;re here to help.</em>
-            </HeroTitle>
-            <HeroLead>
-              Everything you need to ride, share, and get moving with {SITE.name}.
-            </HeroLead>
-          </HeroInner>
-          <SearchBar
-            role="search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              document
-                .getElementById("faq")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            <Search size={20} />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search help articles…"
-              aria-label="Search help articles"
-            />
-            <SearchGo type="submit" aria-label="Search">
-              <ArrowUpRight size={20} />
-            </SearchGo>
-          </SearchBar>
-          <Topics>
-            {CATS.map(({ icon: Icon, t, href }) => (
-              <Topic key={t} href={href}>
-                <Icon size={15} />
-                {t}
-              </Topic>
-            ))}
-          </Topics>
+        <HeroVideo
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
+        >
+          <source src="/video/hero-720.mp4" type="video/mp4" />
+        </HeroVideo>
+        <HeroScrim aria-hidden />
+        <HeroInner>
+          <HeroEyebrow>
+            <LifeBuoy size={15} />
+            Help center
+          </HeroEyebrow>
+          <HeroTitle>
+            Questions? <em>We&apos;re here to help.</em>
+          </HeroTitle>
+          <HeroLead>
+            Everything you need to ride, share, and get moving with {SITE.name}.
+          </HeroLead>
+        </HeroInner>
+        <SearchBar
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            document
+              .getElementById("faq")
+              ?.scrollIntoView({ behavior: "smooth" });
+          }}
+        >
+          <Search size={20} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search help articles…"
+            aria-label="Search help articles"
+          />
+          <SearchGo type="submit" aria-label="Search">
+            <ArrowUpRight size={20} />
+          </SearchGo>
+        </SearchBar>
+        <Topics>
+          {CATS.map(({ icon: Icon, t, href }) => (
+            <Topic key={t} href={href}>
+              <Icon size={15} />
+              {t}
+            </Topic>
+          ))}
+        </Topics>
       </Hero>
 
       <Container>
@@ -576,7 +682,9 @@ export function HelpContent() {
             <div>
               <Kicker>Frequently asked</Kicker>
               <Title>
-                {query.trim() ? `Results for “${query.trim()}”` : "Common questions"}
+                {query.trim()
+                  ? `Results for “${query.trim()}”`
+                  : "Common questions"}
               </Title>
             </div>
           </SectionHead>
