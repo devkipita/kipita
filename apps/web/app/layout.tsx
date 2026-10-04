@@ -47,23 +47,10 @@ export const metadata: Metadata = {
   },
   description: SITE.description,
   applicationName: SITE.name,
-  keywords: [
-    "carpooling Kenya",
-    "rideshare Kenya",
-    "Nairobi carpool",
-    "share a ride Kenya",
-    "M-Pesa ride payments",
-    "cheap travel Kenya",
-    "intercity rides Kenya",
-    "Kipita",
-  ],
   authors: [{ name: SITE.name, url: SITE.websiteUrl }],
   creator: SITE.name,
   publisher: SITE.name,
   category: "travel",
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     title: `${SITE.name} — ${SITE.tagline}`,
     description: SITE.description,

@@ -1,7 +1,10 @@
 import { requireAdmin } from "@/lib/auth";
 import { AdminRefundsView } from "@/components/admin/AdminRefundsView";
 
-export const metadata = { title: "Refund review" };
+export const metadata = {
+  title: "Refund review",
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminRefundsPage() {
   const admin = await requireAdmin();
