@@ -14,7 +14,7 @@ const Bar = styled.nav`
   bottom: max(12px, env(safe-area-inset-bottom));
   z-index: ${Z.bottomTabBar};
   width: min(380px, calc(100% - 24px));
-  height: 60px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -47,7 +47,7 @@ const Item = styled(Link)`
   min-width: 64px;
   height: 52px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${nocturne.muted2};
+  color: ${nocturne.muted};
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
@@ -62,9 +62,9 @@ const Item = styled(Link)`
   }
 
   .label {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
   }
 
   &[data-active="true"] {

@@ -50,6 +50,21 @@ const Head = styled.header`
     gap: 12px;
     flex-wrap: wrap;
   }
+
+  @media (max-width: 599px) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+
+    .controls {
+      display: contents;
+    }
+    .controls > div:nth-child(2) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      min-width: 0;
+    }
+  }
 `;
 
 const Tabs = styled.div`
@@ -89,10 +104,12 @@ const Search = styled.div`
   flex: 1;
   min-width: 220px;
   min-height: 40px;
-  padding: 0 14px;
+  padding: 0 16px;
+  min-height: 48px;
+  border: 1.5px solid ${({ theme }) => theme.color.outline};
   border-radius: 999px;
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
-  color: ${({ theme }) => theme.color.onSurfaceVariant};
+  background: ${({ theme }) => theme.color.surface};
+  color: ${({ theme }) => theme.color.onSurface};
 
   &:focus-within {
     outline: 2px solid ${({ theme }) => theme.color.primary};
@@ -111,8 +128,13 @@ const Search = styled.div`
   input:focus {
     outline: none;
   }
+  input::placeholder {
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    opacity: 1;
+  }
   svg {
     flex: none;
+    color: ${({ theme }) => theme.color.primary};
   }
 `;
 
@@ -228,7 +250,7 @@ export function TripsView({
 
           {searchable && (
             <Search>
-              <MagnifyingGlass size={18} />
+              <MagnifyingGlass size={22} weight="bold" aria-hidden />
               <input
                 type="search"
                 value={query}
