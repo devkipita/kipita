@@ -92,7 +92,7 @@ const Kicker = styled.div`
   text-transform: uppercase;
 
   @media (max-width: 640px) {
-    font-size: 10px;
+    font-size: 12px;
   }
 `;
 
@@ -108,6 +108,11 @@ const Display = styled(TrickleHeading)`
   & .line-2 {
     display: block;
     color: ${nocturne.sage};
+  }
+
+  /* The masks clip each word's rise; a little lead-out keeps descenders whole. */
+  & .tk-mask {
+    margin-bottom: -0.06em;
   }
 
   @media (max-width: 960px) {

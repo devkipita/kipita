@@ -147,7 +147,7 @@ export function NavRail({
 }: {
   items: NavItem[];
   collapsed: boolean;
-  onToggleCollapsed: () => void;
+  onToggleCollapsed?: () => void;
   profile: Profile | null;
   counts?: Partial<Record<NonNullable<NavItem["badge"]>, number>>;
   modeSlot?: React.ReactNode;

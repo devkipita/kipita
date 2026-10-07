@@ -52,7 +52,7 @@ const Item = styled.div`
       font-size: 16px;
     }
     span {
-      font-size: 10px;
+      font-size: 12px;
     }
   }
 `;
@@ -83,7 +83,7 @@ const Mpesa = styled(Item)`
     flex-direction: column;
   }
   .label strong {
-    font-size: 13px;
+    font-size: 15px;
   }
 `;
 

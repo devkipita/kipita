@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito, Space_Grotesk } from "next/font/google";
 import localFont from "next/font/local";
 import { SITE } from "@/lib/site";
+import { landingFonts } from "@/components/landing/fonts";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
@@ -114,7 +115,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${outfit.variable} ${spaceGrotesk.variable} ${dmSans.className}`}
+      className={`${landingFonts} ${dmSans.variable} ${outfit.variable} ${spaceGrotesk.variable}`}
       suppressHydrationWarning
     >
       <body>

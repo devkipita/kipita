@@ -278,7 +278,7 @@ const Step = styled.div<{ $tone: ToneName }>`
   }
   .num {
     font-family:
-      var(--font-space-grotesk), var(--font-dm-sans), system-ui, sans-serif;
+      var(--font-manrope), var(--font-dm), system-ui, sans-serif;
     font-size: 3.2rem;
     font-weight: 700;
     line-height: 1;

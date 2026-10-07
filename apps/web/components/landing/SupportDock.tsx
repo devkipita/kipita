@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -139,8 +139,8 @@ const ChatAvatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
-  font-size: 13px;
+  font-family: var(--font-dm), system-ui, sans-serif;
+  font-size: 15px;
   font-weight: 700;
   color: ${nocturne.sage};
 `;
@@ -151,7 +151,7 @@ const ChatTitle = styled.div`
   line-height: 1.25;
 
   b {
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-family: var(--font-dm), system-ui, sans-serif;
     font-size: 16px;
     font-weight: 600;
     color: ${nocturne.cream};
@@ -218,7 +218,7 @@ const Quick = styled.button`
   border: 1px solid ${nocturne.line};
   background: transparent;
   color: ${nocturne.sage};
-  font-size: 13px;
+  font-size: 15px;
   font-family: inherit;
   cursor: pointer;
   transition:

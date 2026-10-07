@@ -69,6 +69,7 @@ const Head = styled.header`
 
   h2 {
     margin: 0;
+    font-family: ${({ theme }) => theme.fontHeading};
     font-size: clamp(2.1rem, 5vw, 3.6rem);
     font-weight: 800;
     letter-spacing: -0.045em;
@@ -77,6 +78,7 @@ const Head = styled.header`
   }
   p {
     margin: 0;
+    font-family: ${({ theme }) => theme.font};
     font-size: clamp(1rem, 1.4vw, 1.15rem);
     font-weight: 600;
     color: ${palette.orangeDark};
@@ -139,6 +141,7 @@ const Card = styled.article<{ $skin: Skin; $tall?: boolean }>`
   h3 {
     position: relative;
     margin: 0;
+    font-family: ${({ theme }) => theme.fontHeading};
     font-size: ${({ $tall }) =>
       $tall
         ? "clamp(1.85rem, 2.8vw, 2.6rem)"
@@ -200,49 +203,16 @@ export function WhyKipita() {
       const sides = gsap.utils.toArray<HTMLElement>("[data-why='side']");
       if (!hero) return;
 
+      // One settled entrance per card: lift and fade, no 3D swing and no
+      // scrub — tying a rotation to scroll position made the band lurch.
       const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: el,
-          start: "top 92%",
-          end: "top 25%",
-          scrub: 0.6,
-        },
+        scrollTrigger: { trigger: el, start: "top 82%", once: true },
+        defaults: { ease: "expo.out", duration: 0.9 },
       });
 
-      tl.from(
-        hero,
-        {
-          scale: 1.16,
-          rotateY: -18,
-          rotateX: 7,
-          yPercent: 12,
-          transformOrigin: "50% 100%",
-          ease: "none",
-        },
-        0,
-      ).from(
-        sides,
-        {
-          yPercent: 26,
-          opacity: 0,
-          scale: 0.94,
-          stagger: 0.08,
-          ease: "none",
-        },
-        0.04,
-      );
-
-      gsap.from(el.querySelector("h2"), {
-        yPercent: 40,
-        opacity: 0,
-        ease: "none",
-        scrollTrigger: {
-          trigger: el,
-          start: "top 95%",
-          end: "top 55%",
-          scrub: 0.6,
-        },
-      });
+      tl.from(el.querySelector("h2"), { y: 28, opacity: 0 }, 0)
+        .from(hero, { y: 34, opacity: 0, scale: 0.98 }, 0.1)
+        .from(sides, { y: 26, opacity: 0, stagger: 0.09 }, 0.2);
     }, el);
 
     return () => ctx.revert();

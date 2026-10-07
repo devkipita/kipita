@@ -59,54 +59,80 @@ const Input = styled.textarea`
   }
 `;
 
-const Chosen = styled.button<{ $accent: string }>`
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.xs};
-  background: ${({ theme }) => theme.color.secondaryContainer};
-  color: ${({ theme }) => theme.color.onSecondaryContainer};
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  svg {
-    color: ${({ $accent }) => $accent};
-    flex: none;
-  }
-
-  &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainerHighest};
-  }
+const FieldLabel = styled.span`
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: ${({ theme }) => theme.color.textSoft};
 `;
 
 const Where = styled.div`
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.86rem;
-  color: ${({ theme }) => theme.color.primary};
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.surface2};
+  font-size: 16px;
+  color: ${({ theme }) => theme.color.text};
 
+  > svg {
+    flex: none;
+    color: ${({ theme }) => theme.color.primary};
+  }
   input {
     flex: 1;
     min-width: 0;
     border: none;
     background: transparent;
     font: inherit;
-    color: ${({ theme }) => theme.color.primary};
+    font-size: 16px;
+    font-weight: 600;
+    color: ${({ theme }) => theme.color.text};
     padding: 6px 0;
   }
   input::placeholder {
-    color: ${({ theme }) => theme.color.primary};
-    opacity: 0.7;
+    color: ${({ theme }) => theme.color.muted};
+    font-weight: 400;
   }
   input:focus {
     outline: none;
+  }
+  &:focus-within {
+    border-color: ${({ theme }) => theme.color.primary};
+  }
+`;
+
+const Locate = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  border-radius: 10px;
+  background: ${({ theme }) => theme.color.surface};
+  color: ${({ theme }) => theme.color.primary};
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: ${({ theme }) => theme.color.secondaryContainer};
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
   }
 `;
 
@@ -171,37 +197,34 @@ const Tool = styled.button<{ $on?: boolean }>`
 
 const Types = styled.div`
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 2px;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  flex-wrap: wrap;
+  gap: 8px;
 `;
 
 const TypeChip = styled.button<{ $accent: string; $active: boolean }>`
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid
-    ${({ theme, $active }) =>
-      $active ? "transparent" : theme.color.outlineVariant};
-  border-radius: ${({ theme }) => theme.radius.xs};
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1.5px solid
+    ${({ theme, $active, $accent }) =>
+      $active ? $accent : theme.color.outlineVariant};
+  border-radius: 10px;
   background: ${({ theme, $active }) =>
-    $active ? theme.color.secondaryContainer : "transparent"};
+    $active ? theme.color.secondaryContainer : theme.color.surface};
   color: ${({ theme, $active }) =>
     $active ? theme.color.onSecondaryContainer : theme.color.onSurfaceVariant};
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: ${({ $active }) => ($active ? 600 : 500)};
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? 700 : 500)};
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 
   svg {
     color: ${({ $accent }) => $accent};
@@ -210,7 +233,11 @@ const TypeChip = styled.button<{ $accent: string; $active: boolean }>`
 
   &:hover {
     color: ${({ theme }) => theme.color.onSurface};
-    border-color: ${({ theme }) => theme.color.outline};
+    border-color: ${({ $accent }) => $accent};
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -364,18 +391,13 @@ export function AlertComposerInline({
 
         {open && (
           <>
-            <Chosen
-              type="button"
-              $accent={meta.color}
-              onClick={() => setShowTypes((v) => !v)}
-              aria-expanded={showTypes}
-            >
-              <ChosenIcon size={16} />
-              {meta.label}
-            </Chosen>
-
-            {showTypes && (
-              <Types role="group" aria-label="Alert type">
+            <div>
+              <FieldLabel id="alert-type-label">What kind of alert?</FieldLabel>
+              <Types
+                role="group"
+                aria-labelledby="alert-type-label"
+                style={{ marginTop: 8 }}
+              >
                 {ALERT_CATEGORIES.map((key) => {
                   const m = ALERT_META[key];
                   const Icon = m.icon;
@@ -386,30 +408,44 @@ export function AlertComposerInline({
                       $accent={m.color}
                       $active={category === key}
                       aria-pressed={category === key}
-                      onClick={() => {
-                        setCategory(key);
-                        setShowTypes(false);
-                      }}
+                      onClick={() => setCategory(key)}
                     >
-                      <Icon size={16} />
+                      <Icon size={18} aria-hidden />
                       {m.label}
                     </TypeChip>
                   );
                 })}
               </Types>
-            )}
+            </div>
 
-            <Where>
-              <MapPin size={24} weight="fill" />
-              <input
-                ref={whereRef}
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Add the road or place"
-                maxLength={120}
-                aria-label="Where is this?"
-              />
-            </Where>
+            <div>
+              <FieldLabel id="alert-where-label">Where is this?</FieldLabel>
+              <Where style={{ marginTop: 8 }}>
+                <MapPin size={20} weight="fill" aria-hidden />
+                <input
+                  ref={whereRef}
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder={
+                    locating ? "Finding you…" : "Road, town or landmark"
+                  }
+                  maxLength={120}
+                  aria-labelledby="alert-where-label"
+                />
+                <Locate
+                  type="button"
+                  disabled={locating}
+                  onClick={() => void useMyLocation()}
+                >
+                  <Crosshair size={16} aria-hidden />
+                  {locating
+                    ? "Locating…"
+                    : coords
+                      ? "Update"
+                      : "Use my location"}
+                </Locate>
+              </Where>
+            </div>
 
             {previewUrl && (
               <Preview>
@@ -442,30 +478,6 @@ export function AlertComposerInline({
             hidden
             onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
           />
-
-          <Tool
-            type="button"
-            $on={Boolean(coords)}
-            disabled={locating}
-            onClick={() => void useMyLocation()}
-            aria-label="Use my location"
-            title="Use my location"
-          >
-            <Crosshair size={20} />
-          </Tool>
-
-          <Tool
-            type="button"
-            $on={open && showTypes}
-            onClick={() => {
-              setOpen(true);
-              setShowTypes((v) => !v);
-            }}
-            aria-label="Choose alert type"
-            title="Choose alert type"
-          >
-            <Tag size={20} />
-          </Tool>
 
           <span className="spacer" />
 

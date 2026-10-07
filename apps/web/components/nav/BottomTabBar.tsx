@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { Z } from "@/lib/z";
+import { nocturne } from "@/lib/nocturne";
 import { isNavItemActive, isNavItemCurrent, type NavItem } from "./nav-items";
 
 const Bar = styled.nav`
@@ -19,13 +20,13 @@ const Bar = styled.nav`
   justify-content: space-around;
   padding: 0 6px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  background: ${({ theme }) =>
-    theme.mode === "dark" ? "rgba(29,32,30,0.82)" : "rgba(255,255,255,0.86)"};
+  box-shadow: ${nocturne.panelShadow};
+  border: 1px solid ${nocturne.line};
+  background: ${nocturne.surface};
   backdrop-filter: saturate(1.3) blur(18px);
 
   @supports not (backdrop-filter: blur(1px)) {
-    background: ${({ theme }) => theme.color.surface};
+    background: ${nocturne.surface};
   }
 
   @media (min-width: 900px) {
@@ -46,7 +47,7 @@ const Item = styled(Link)`
   min-width: 64px;
   height: 52px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${({ theme }) => theme.color.textSoft};
+  color: ${nocturne.muted2};
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
@@ -61,15 +62,15 @@ const Item = styled(Link)`
   }
 
   .label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: -0.01em;
   }
 
   &[data-active="true"] {
-    color: ${({ theme }) => theme.color.onPrimaryContainer};
+    color: ${nocturne.accent};
     .well {
-      background: ${({ theme }) => theme.color.primaryContainer};
+      background: ${nocturne.surface2};
     }
     .label {
       font-weight: 800;
@@ -94,7 +95,7 @@ const Dot = styled.span`
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: ${({ theme }) => theme.color.primary};
+  background: ${nocturne.ctaBg};
 `;
 
 export function BottomTabBar({

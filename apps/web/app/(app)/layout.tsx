@@ -4,16 +4,11 @@ import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { readMode } from "@/lib/home/mode.server";
-import { readRailCollapsed } from "@/lib/nav/rail.server";
 import { claimReferralFromCookie } from "@/lib/referrals/server";
 import { fetchOpenSupportCases } from "@/lib/support/server";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const [profile, mode, railCollapsed] = await Promise.all([
-    getProfile(),
-    readMode(),
-    readRailCollapsed(),
-  ]);
+  const [profile, mode] = await Promise.all([getProfile(), readMode()]);
 
   let driverHasApplied = false;
   if (profile) {
@@ -31,7 +26,6 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       profile={profile}
       mode={mode}
       driverHasApplied={driverHasApplied}
-      railCollapsed={railCollapsed}
       supportCases={supportCases}
     >
       {children}

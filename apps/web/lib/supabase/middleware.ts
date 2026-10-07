@@ -18,7 +18,7 @@ type SupabaseCookie = {
  * Every other route still gates itself with `requireProfile` / `requireAdmin`;
  * this list is a performance and polish measure, not the security boundary.
  */
-const STREAMING_AUTHED_ROUTES = ["/home"];
+const STREAMING_AUTHED_ROUTES: string[] = [];
 
 /**
  * Refresh the Supabase auth session cookie on every matched request.

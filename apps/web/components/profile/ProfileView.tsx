@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import { ContentWidth } from "@/components/nav/AppShell";
-import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Cookie, FileText, Gift, Question as HelpCircle, Info, QuestionCircle, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { ContentWidth, useAppMode } from "@/components/nav/AppShell";
+import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Car, Cookie, FileText, Gift, Question as HelpCircle, Info, QuestionCircle, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { ToneName } from "@/lib/theme";
 import { Switch } from "@/components/ui/Switch";
 import { useThemeMode } from "@/components/providers/ThemeRuntimeProvider";
@@ -177,6 +177,12 @@ const GENDER_LABEL: Record<string, string> = {
 
 export function ProfileView({ profile }: { profile: Profile }) {
   const { mode, toggle } = useThemeMode();
+  const {
+    mode: appMode,
+    setMode: setAppMode,
+    driverReady,
+    requireKyc,
+  } = useAppMode();
   const dob = profile.date_of_birth
     ? new Date(profile.date_of_birth).toLocaleDateString("en-KE", {
         day: "numeric",
@@ -283,6 +289,37 @@ export function ProfileView({ profile }: { profile: Profile }) {
             tone="lime"
             last
           />
+        </Panel>
+
+        <SectionTitle>How you use Kipita</SectionTitle>
+        <Panel>
+          <ControlRow
+            icon={Car}
+            title="Driver mode"
+            description={
+              appMode === "driver"
+                ? "You are offering rides"
+                : "Switch to offer seats instead of booking them"
+            }
+            tone="green"
+            last
+          >
+            <Switch
+              checked={appMode === "driver"}
+              onChange={() => {
+                if (appMode === "driver") {
+                  setAppMode("passenger");
+                  return;
+                }
+                if (!driverReady) {
+                  requireKyc();
+                  return;
+                }
+                setAppMode("driver");
+              }}
+              label="Driver mode"
+            />
+          </ControlRow>
         </Panel>
 
         <SectionTitle>Appearance</SectionTitle>

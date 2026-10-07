@@ -1,6 +1,7 @@
 "use client";
 
 import { createGlobalStyle } from "styled-components";
+import { nocturneDark, nocturneLight, nocturneVars } from "@/lib/nocturne";
 
 /**
  * Document-level resets and base typography. Theme-driven values come from the
@@ -9,6 +10,16 @@ import { createGlobalStyle } from "styled-components";
  * the JS theme settles on mount.
  */
 export const GlobalStyle = createGlobalStyle`
+  :root {
+    ${nocturneVars(nocturneLight)}
+    --n-selection-fg: #ffffff;
+  }
+
+  html[data-theme="dark"] {
+    ${nocturneVars(nocturneDark)}
+    --n-selection-fg: ${nocturneDark["--n-cream"]};
+  }
+
   :root {
     color-scheme: light dark;
 
@@ -93,6 +104,16 @@ export const GlobalStyle = createGlobalStyle`
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Safari zooms the viewport when a focused control is under 16px. Applies on
+     iPad too, so this is not width-scoped. */
+  @supports (-webkit-touch-callout: none) {
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: max(16px, 1em) !important;
+    }
+  }
+
   @media (max-width: 600px) {
     input:not([type="checkbox"]):not([type="radio"]),
     select,
@@ -108,7 +129,7 @@ export const GlobalStyle = createGlobalStyle`
   }
 
   body {
-    font-family: ${({ theme }) => theme.font};
+    font-family: var(--font-dm), ${({ theme }) => theme.font};
     color: ${({ theme }) => theme.color.text};
     background: ${({ theme }) => theme.color.bg};
     -webkit-font-smoothing: antialiased;
@@ -132,7 +153,7 @@ export const GlobalStyle = createGlobalStyle`
    * any component can still override it.
    */
   :where(h1, h2, h3, h4, h5, h6) {
-    font-family: ${({ theme }) => theme.fontHeading};
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     font-weight: 600;
     letter-spacing: -0.025em;
     line-height: 1.1;

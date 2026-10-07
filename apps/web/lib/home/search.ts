@@ -58,6 +58,7 @@ export type HomeTrip = RouteCoords & {
   departure_date: string | null;
   departure_time: string | null;
   seats_available: number;
+  seats_total: number | null;
   price_per_seat: number;
   discount_percent: number | null;
   preferences: RidePreferences;
@@ -89,7 +90,7 @@ const COORD_COLUMNS = "from_lat, from_lng, to_lat, to_lng";
 
 const TRIP_SELECT = `
   id, from_location, to_location, departure_date, departure_time,
-  seats_available, price_per_seat, discount_percent, preferences, ${COORD_COLUMNS},
+  seats_available, seats_total, price_per_seat, discount_percent, preferences, ${COORD_COLUMNS},
   driver:users!driver_id ( ${PERSON_COLUMNS} ),
   vehicle:vehicles!vehicle_id ( color, make, model, vehicle_type, image_url )
 `;
@@ -100,7 +101,11 @@ const REQUEST_SELECT = `
   passenger:users!passenger_id ( ${PERSON_COLUMNS} )
 `;
 
-const PAGE_SIZE = 20;
+/**
+ * Headroom for the client-side filters on the find-a-ride page: filtering a
+ * 20-row page can empty a list that has plenty of matches just past the cap.
+ */
+const PAGE_SIZE = 50;
 
 /** Supabase types an embedded one-to-one join as an array in some shapes. */
 function one<T>(value: T | T[] | null | undefined): T | null {
@@ -200,6 +205,7 @@ export async function searchTrips(
         departure_date: (row.departure_date as string | null) ?? null,
         departure_time: (row.departure_time as string | null) ?? null,
         seats_available: Number(row.seats_available ?? 0),
+        seats_total: num(row.seats_total),
         price_per_seat: Number(row.price_per_seat ?? 0),
         discount_percent: num(row.discount_percent),
         preferences: (row.preferences as RidePreferences) ?? {},

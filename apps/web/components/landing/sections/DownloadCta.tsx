@@ -93,12 +93,12 @@ const StoreLabel = styled.span`
   text-align: left;
 
   small {
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 500;
     opacity: 0.7;
   }
   b {
-    font-family: var(--font-dm-sans), system-ui, sans-serif;
+    font-family: var(--font-dm), system-ui, sans-serif;
     font-size: 17px;
     font-weight: 700;
   }
@@ -157,7 +157,7 @@ export function DownloadCta() {
           </DownloadLead>
           <StoreRow>
             <StoreBtn href="#contact" $variant="light">
-              <AppleIcon size={30} fill="#14392A" />
+              <AppleIcon size={30} />
               <StoreLabel>
                 <small>Coming to</small>
                 <b>App Store</b>

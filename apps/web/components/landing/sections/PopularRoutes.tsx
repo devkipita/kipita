@@ -176,7 +176,7 @@ export async function PopularRoutes() {
           <Overline>Popular this week</Overline>
           <Title>Where Kenya is going</Title>
         </div>
-        <SeeAll href="#top">
+        <SeeAll href="/home">
           Explore all routes <ArrowRight size={18} />
         </SeeAll>
       </Head>
@@ -184,7 +184,10 @@ export async function PopularRoutes() {
       {routes.length ? (
         <Grid stagger={0.08}>
           {routes.map((r) => (
-            <Card key={`${r.from}-${r.to}`} href="#top">
+            <Card
+              key={`${r.from}-${r.to}`}
+              href={`/home?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`}
+            >
               <Art $src={r.image} aria-hidden />
               <Body>
                 <Places>

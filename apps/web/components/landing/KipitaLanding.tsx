@@ -2,7 +2,6 @@ import type { Profile } from "@/lib/auth/types";
 import { landingFonts } from "./fonts";
 import { Root } from "./primitives";
 import { RideSearchProvider } from "./search/RideSearchContext";
-import { HeroResults } from "./search/HeroResults";
 import { LandingNav } from "./sections/LandingNav";
 import { Hero } from "./sections/Hero";
 import { TrustStrip } from "./sections/TrustStrip";
@@ -20,7 +19,6 @@ export function KipitaLanding({ profile }: { profile: Profile | null }) {
       <LandingNav profile={profile} />
       <RideSearchProvider>
         <Hero />
-        <HeroResults />
         <TrustStrip />
       </RideSearchProvider>
       <RideSteps />

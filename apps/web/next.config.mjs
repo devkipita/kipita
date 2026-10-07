@@ -4,6 +4,12 @@ const nextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Compile the shared workspace package (ships raw TS, no build step).
   transpilePackages: ["@kipita/shared"],
+  async redirects() {
+    return [
+      // Find-a-ride moved to /home; the query string is preserved automatically.
+      { source: "/rides", destination: "/home", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

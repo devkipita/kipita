@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import styled from "styled-components";
+import { useRouter } from "next/navigation";
+import styled, { keyframes, css } from "styled-components";
 import {
   Calendar,
   CaretDown,
@@ -17,9 +18,28 @@ import {
   X,
 } from "@/components/icons";
 import { nocturne } from "../nocturne";
-import { scrollToFind, useSharedRideSearch } from "./RideSearchContext";
+import { useSharedRideSearch } from "./RideSearchContext";
 
 const MAX_SEATS = 8;
+
+const popIn = keyframes`
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to   { opacity: 1; transform: none; }
+`;
+
+const slotIn = keyframes`
+  from { opacity: 0; width: 0; margin-right: -6px; transform: scale(0.85); }
+  to   { opacity: 1; width: 44px; margin-right: 0; transform: scale(1); }
+`;
+
+const enters = css`
+  animation: ${popIn} 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: top left;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
 
 const Wrap = styled.div`
   width: 100%;
@@ -49,7 +69,7 @@ const Eyebrow = styled.div`
   align-items: center;
   gap: 8px;
   padding: 2px 8px 11px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -125,7 +145,7 @@ const Field = styled.label`
   small {
     display: block;
     margin-bottom: 3px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -191,6 +211,8 @@ const Suggestions = styled.ul`
   background: ${nocturne.surface};
   border: 1px solid ${nocturne.line};
   box-shadow: ${nocturne.panelShadow};
+  transform-origin: bottom left;
+  ${enters}
 
   button {
     display: flex;
@@ -267,7 +289,7 @@ const PickerButton = styled.button`
   small {
     display: block;
     margin-bottom: 3px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -322,7 +344,7 @@ const SeatsField = styled.div`
   small {
     display: block;
     margin-bottom: 3px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -365,6 +387,8 @@ const Cal = styled.div`
   border: 1px solid ${nocturne.line};
   box-shadow: ${nocturne.panelShadow};
   color: ${nocturne.cream};
+  transform-origin: bottom left;
+  ${enters}
 
   @media (max-width: 640px) {
     left: auto;
@@ -392,7 +416,7 @@ const Cal = styled.div`
   .week span {
     padding: 6px 0;
     text-align: center;
-    font-size: 11px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -506,14 +530,20 @@ const ClearBtn = styled.button`
   place-items: center;
   flex: none;
   width: 44px;
+  overflow: hidden;
   border: 1px solid ${nocturne.line};
   border-radius: 15px;
   background: transparent;
   color: ${nocturne.muted2};
   cursor: pointer;
+  animation: ${slotIn} 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
   transition:
     background 0.18s ease,
     color 0.18s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   &:hover {
     background: ${nocturne.bg};
@@ -581,7 +611,7 @@ const Hint = styled.p`
   align-items: center;
   gap: 6px;
   margin: 10px 8px 0;
-  font-size: 11px;
+  font-size: 14px;
   color: ${nocturne.muted2};
 
   svg {
@@ -589,7 +619,7 @@ const Hint = styled.p`
   }
   @media (max-width: 640px) {
     overflow: hidden;
-    font-size: 9px;
+    font-size: 12px;
     white-space: nowrap;
   }
 `;
@@ -626,6 +656,7 @@ function monthCells(y: number, m: number): (number | null)[] {
 }
 
 export function HeroSearch() {
+  const router = useRouter();
   const search = useSharedRideSearch();
   const { from, to, when, seats, towns, detecting, phase } = search;
 
@@ -747,8 +778,13 @@ export function HeroSearch() {
     }
     setCalOpen(false);
     setActive(null);
-    void search.run();
-    scrollToFind();
+
+    const params = new URLSearchParams();
+    if (from.trim()) params.set("from", from.trim());
+    params.set("to", to.trim());
+    if (when.mode === "schedule") params.set("date", when.date);
+    if (seats > 1) params.set("seats", String(seats));
+    router.push(`/home?${params.toString()}`);
   }
 
   function clear() {

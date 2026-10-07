@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { POPULAR_ROUTES } from "@/components/landing/data";
+import type { Ride } from "@/lib/rides";
 
 export type RouteCard = {
   from: string;
@@ -68,3 +69,77 @@ export async function fetchPopularRoutes(limit = 3): Promise<RouteCard[]> {
 }
 
 export { FALLBACK_IMAGE };
+
+export type TripQuery = {
+  from?: string;
+  to?: string;
+  date?: string;
+  seats?: number;
+};
+
+type TripRow = {
+  id: string;
+  from_location: string;
+  to_location: string;
+  departure_date: string;
+  departure_time: string;
+  seats_available: number;
+  price_per_seat: number | string;
+  driver: {
+    full_name: string | null;
+    avatar_url: string | null;
+    rating: number | null;
+    total_trips: number | null;
+  } | null;
+};
+
+function localToday(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+export async function searchTrips(q: TripQuery): Promise<Ride[]> {
+  const seats = Math.max(1, q.seats ?? 1);
+  const onOrAfter = q.date?.trim() || localToday();
+
+  try {
+    const supabase = await createClient();
+    let query = supabase
+      .from("trips")
+      .select(
+        `id, from_location, to_location, departure_date, departure_time,
+         seats_available, price_per_seat,
+         driver:users!driver_id ( full_name, avatar_url, rating, total_trips )`,
+      )
+      .in("status", ["posted", "active"])
+      .gte("seats_available", seats)
+      .gte("departure_date", onOrAfter)
+      .order("departure_date", { ascending: true })
+      .order("departure_time", { ascending: true })
+      .limit(30);
+
+    if (q.from?.trim()) query = query.ilike("from_location", `%${q.from.trim()}%`);
+    if (q.to?.trim()) query = query.ilike("to_location", `%${q.to.trim()}%`);
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return (data as unknown as TripRow[]).map((r) => ({
+      id: r.id,
+      from: r.from_location,
+      to: r.to_location,
+      date: r.departure_date,
+      time: (r.departure_time ?? "").slice(0, 5),
+      seatsAvailable: r.seats_available,
+      price: Number(r.price_per_seat),
+      driverName: r.driver?.full_name?.trim() || "Kipita driver",
+      driverAvatar: r.driver?.avatar_url ?? null,
+      driverRating: Number(r.driver?.rating ?? 0),
+      driverTrips: Number(r.driver?.total_trips ?? 0),
+    }));
+  } catch {
+    return [];
+  }
+}

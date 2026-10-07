@@ -90,7 +90,7 @@ const STACK =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'; 
 
 /** Body copy, form fields, labels — everything that is read rather than scanned. */
-const font = `var(--font-dm-sans), "Nunito", ${STACK}`;
+const font = `var(--font-dm), var(--font-dm-sans), "DM Sans", "Nunito", ${STACK}`;
 
 /**
  * Headings and titles. A second, more geometric face so a heading is a
@@ -98,7 +98,7 @@ const font = `var(--font-dm-sans), "Nunito", ${STACK}`;
  * site uses (Google Sans over Roboto).
  */
 
-const fontHeading = `var(--font-heading), "Barlow Condensed", var(--font-dm-sans), ${STACK}`;
+const fontHeading = `var(--font-manrope), "Manrope", var(--font-heading), ${STACK}`;
 
 /**
  * The type scale. Seven steps, and nothing between them.
@@ -457,21 +457,25 @@ const lightRoles: Roles = {
   errorContainer: "#FFDAD6",
   onErrorContainer: "#410002",
 
-  background: "#FFFFFF",
-  onBackground: "#1A1C1A",
-  surfaceRole: "#FFFFFF",
-  onSurface: "#1A1C1A",
-  surfaceVariant: "#E2E3DF",
-  onSurfaceVariant: "#454745",
-  surfaceDim: "#DADAD7",
+  // Surface family tracks the Figma palette (see lib/nocturne.ts) so the app
+  // chrome and the marketing site are one surface system.
+  background: "#F8F6EF",
+  onBackground: "#112B22",
+  surfaceRole: "#FFFEFB",
+  onSurface: "#112B22",
+  surfaceVariant: "#F2F0E8",
+  onSurfaceVariant: "#40564E",
+  surfaceDim: "#EDEBE3",
   surfaceBright: "#FFFFFF",
+  // Cards are paper-white on the cream page. The mint tint (#EAF3E7) is an
+  // accent surface, not a container — assigning it here turned every card green.
   surfaceContainerLowest: "#FFFFFF",
-  surfaceContainerLow: "#F4F4F0",
-  surfaceContainer: "#EEEEEB",
-  surfaceContainerHigh: "#E8E8E5",
-  surfaceContainerHighest: "#E2E3DF",
-  outline: "#707972",
-  outlineVariant: "#C0C9C1",
+  surfaceContainerLow: "#FFFEFB",
+  surfaceContainer: "#FBFAF4",
+  surfaceContainerHigh: "#F5F3EB",
+  surfaceContainerHighest: "#EDEBE3",
+  outline: "#718078",
+  outlineVariant: "#DCE4DC",
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",
   inversePrimary: "#95D4B1",
@@ -524,20 +528,22 @@ const darkRoles: Roles = {
   errorContainer: "#93000A",
   onErrorContainer: "#FFDAD6",
 
-  background: "#111412",
-  onBackground: "#E1E3DF",
-  surfaceRole: "#111412",
-  onSurface: "#E1E3DF",
-  surfaceVariant: "#404943",
-  onSurfaceVariant: "#C0C9C1",
-  surfaceDim: "#111412",
+  // Cards sit a full step above the page (#0C0F0D → #1D201E) so elevation
+  // reads without relying on shadow, which barely registers on near-black.
+  background: "#0C0F0D",
+  onBackground: "#FAF8F4",
+  surfaceRole: "#1D201E",
+  onSurface: "#FAF8F4",
+  surfaceVariant: "#272B28",
+  onSurfaceVariant: "#A0A6A1",
+  surfaceDim: "#0C0F0D",
   surfaceBright: "#373A37",
-  surfaceContainerLowest: "#0C0F0D",
+  surfaceContainerLowest: "#1D201E",
   surfaceContainerLow: "#191C1A",
   surfaceContainer: "#1D201E",
   surfaceContainerHigh: "#272B28",
   surfaceContainerHighest: "#323633",
-  outline: "#8A938C",
+  outline: "#878D88",
   outlineVariant: "#404943",
   inverseSurface: "#E1E3DF",
   inverseOnSurface: "#2E312E",

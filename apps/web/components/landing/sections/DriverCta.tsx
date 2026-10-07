@@ -118,7 +118,7 @@ const Benefits = styled.div`
   display: flex;
   gap: 25px;
   margin: 20px 0 32px;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
 
   span {

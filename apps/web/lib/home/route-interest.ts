@@ -5,10 +5,13 @@ export async function recordRouteInterest(
   to: string,
 ): Promise<void> {
   try {
-    await createClient().rpc("record_route_interest", {
-      p_from: from,
-      p_to: to,
-    });
+    const supabase = createClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    // The RPC is scoped to auth.uid(); anonymous browsing should not call it.
+    if (!session) return;
+    await supabase.rpc("record_route_interest", { p_from: from, p_to: to });
   } catch {
     /* empty */
   }

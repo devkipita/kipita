@@ -74,7 +74,7 @@ const WaitlistBtn = styled.button`
 const Note = styled.p<{ $tone: "ok" | "err" }>`
   width: 100%;
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: 15px;
   line-height: 1.4;
   color: ${({ $tone }) => ($tone === "ok" ? nocturne.sage : "#e88b7a")};
 `;

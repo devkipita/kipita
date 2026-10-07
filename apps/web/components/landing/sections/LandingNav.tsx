@@ -133,7 +133,7 @@ const NavCta = styled.a`
   @media (max-width: 640px) {
     gap: 6px;
     padding: 9px 14px;
-    font-size: 13px;
+    font-size: 15px;
   }
 
   @media (max-width: 420px) {
@@ -193,9 +193,9 @@ export function LandingNav({ profile }: { profile: Profile | null }) {
         <Brand href="#top" light priority />
       </NavLogo>
       <NavRight>
-        <NavLink href="#top">Find a ride</NavLink>
-        <NavLink href="#routes">Routes</NavLink>
-        <NavLink href="#drive">Publish a ride</NavLink>
+        <NavLink href="/home">Find a ride</NavLink>
+        <NavLink href="/#routes">Routes</NavLink>
+        <NavLink href="/#drive">Publish a ride</NavLink>
         {profile ? (
           <NavProfile href="/home" aria-label="Go to your Kipita home">
             <Avatar name={name} src={profile.avatar_url} size={32} />

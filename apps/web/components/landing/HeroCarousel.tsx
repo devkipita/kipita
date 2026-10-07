@@ -46,7 +46,7 @@ const CarSeats = styled.span`
   border-radius: 999px;
   background: ${nocturne.greenDeep};
   color: ${nocturne.lime};
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;

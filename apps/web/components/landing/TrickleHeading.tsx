@@ -6,19 +6,15 @@ import { useIsoLayoutEffect } from "../anim/useIsoLayoutEffect";
 
 /**
  * Renders an <h1> and forwards `className` to it, so callers can style it via
- * `styled(TrickleHeading)`. The animation targets `.tk-char` glyphs inside.
+ * `styled(TrickleHeading)`. Each word rides up out of its own clipping mask.
  */
 
 type Part = { text: string; className?: string };
 
-/**
- * Hero headline with a per-character "trickle" reveal — each glyph rises,
- * un-rotates and un-blurs into place. Mirrors the design's `data-trickle`.
- */
 export function TrickleHeading({
   parts,
   className,
-  speed = 0.032,
+  speed = 0.075,
 }: {
   parts: Part[];
   className?: string;
@@ -30,50 +26,59 @@ export function TrickleHeading({
     const el = ref.current;
     if (!el) return;
 
-    const chars = el.querySelectorAll<HTMLElement>(".tk-char");
+    const words = el.querySelectorAll<HTMLElement>(".tk-word");
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      gsap.set(chars, { yPercent: 0, opacity: 1, rotateX: 0, filter: "none" });
+      gsap.set(words, { yPercent: 0, opacity: 1 });
       return;
     }
 
     const ctx = gsap.context(() => {
-      gsap.from(chars, {
-        yPercent: 120,
-        opacity: 0,
-        rotateX: -75,
-        filter: "blur(8px)",
-        duration: 0.9,
-        ease: "power3.out",
-        stagger: speed,
-        delay: 0.15,
-      });
+      gsap.fromTo(
+        words,
+        { yPercent: 118, opacity: 0 },
+        {
+          yPercent: 0,
+          opacity: 1,
+          duration: 1.15,
+          ease: "expo.out",
+          stagger: speed,
+          delay: 0.12,
+        },
+      );
     }, el);
 
     return () => ctx.revert();
   }, [speed]);
 
   return (
-    <h1 ref={ref} className={className} style={{ perspective: 600 }}>
+    <h1 ref={ref} className={className}>
       {parts.map((part, pi) => (
-        <span
-          key={pi}
-          className={part.className}
-          style={{ display: "inline-block", whiteSpace: "nowrap" }}
-        >
-          {[...part.text].map((ch, ci) => (
+        <span key={pi} className={part.className}>
+          {part.text.split(" ").map((word, wi) => (
             <span
-              key={ci}
-              className="tk-char"
+              key={wi}
+              className="tk-mask"
               style={{
                 display: "inline-block",
-                whiteSpace: "pre",
-                willChange: "transform,opacity,filter",
+                overflow: "hidden",
+                verticalAlign: "bottom",
+                paddingBottom: "0.06em",
               }}
             >
-              {ch}
+              <span
+                className="tk-word"
+                style={{
+                  display: "inline-block",
+                  whiteSpace: "pre",
+                  willChange: "transform, opacity",
+                }}
+              >
+                {word}
+                {wi < part.text.split(" ").length - 1 ? " " : null}
+              </span>
             </span>
           ))}
-          {pi < parts.length - 1 ? " " : null}
+          {pi < parts.length - 1 ? " " : null}
         </span>
       ))}
     </h1>

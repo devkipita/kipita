@@ -1,27 +1,12 @@
-﻿import styled, { css } from "styled-components";
-import { nocturne, nocturneDark, nocturneLight, pulse } from "./nocturne";
+import styled from "styled-components";
+import { nocturne, pulse } from "./nocturne";
 
 /**
  * Styled primitives shared across the landing sections. Keeping them in one
  * place lets each section file stay focused on its own markup + local styles.
  */
 
-const vars = (set: Record<string, string>) =>
-  css`
-    ${Object.entries(set)
-      .map(([k, v]) => `${k}: ${v};`)
-      .join("\n")}
-  `;
-
 export const Root = styled.div`
-  ${vars(nocturneLight)}
-  --n-selection-fg: #ffffff;
-
-  html[data-theme="dark"] & {
-    ${vars(nocturneDark)}
-    --n-selection-fg: ${nocturneDark["--n-cream"]};
-  }
-
   position: relative;
   min-height: 100dvh;
   background: ${nocturne.bg};
@@ -52,7 +37,7 @@ export const Root = styled.div`
 `;
 
 export const Eyebrow = styled.span<{ $tone?: "green" | "tan" | "lime" }>`
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
