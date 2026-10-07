@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo } from "react";
+import React, { memo, useState, useCallback, useEffect, useMemo } from "react";
 import { View, Modal, Pressable, StyleSheet, ScrollView } from "react-native";
 import Animated, {
   FadeIn,
@@ -15,6 +15,8 @@ import {
   addMonths,
   subMonths,
   startOfMonth,
+  startOfDay,
+  parseISO,
   getDaysInMonth,
   getDay,
 } from "date-fns";
@@ -54,10 +56,28 @@ export const DatePicker = memo(function DatePicker({
   const [open, setOpen] = useState(false);
 
   const today = useMemo(() => new Date(), []);
-  const parsedValue = value ? new Date(value) : null;
+  // parseISO reads "yyyy-MM-dd" as local time; new Date() would use UTC and
+  // can shift the day.
+  const parsedValue = useMemo(() => {
+    if (!value) return null;
+    const d = parseISO(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }, [value]);
+
+  // A minDate of `new Date()` carries a time of day, which would otherwise
+  // make today itself count as past.
+  const minDay = useMemo(
+    () => (minDate ? startOfDay(minDate).getTime() : null),
+    [minDate?.getTime()],
+  );
 
   const [viewMonth, setViewMonth] = useState<Date>(parsedValue ?? today);
   const [selected, setSelected] = useState<Date | null>(parsedValue);
+
+  useEffect(() => {
+    setSelected(parsedValue);
+    if (parsedValue) setViewMonth(parsedValue);
+  }, [parsedValue]);
 
   const displayLabel = selected ? format(selected, "EEE, d MMM yyyy") : null;
   const filled = Boolean(displayLabel);
@@ -74,21 +94,21 @@ export const DatePicker = memo(function DatePicker({
   const handleSelectDay = useCallback(
     (day: number) => {
       const date = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-      if (minDate && date < minDate) return;
+      if (minDay !== null && date.getTime() < minDay) return;
       setSelected(date);
       onChange(format(date, "yyyy-MM-dd"));
       setOpen(false);
     },
-    [viewMonth, minDate, onChange],
+    [viewMonth, minDay, onChange],
   );
 
   const isPastDay = useCallback(
     (day: number) => {
-      if (!minDate) return false;
+      if (minDay === null) return false;
       const date = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), day);
-      return date < minDate;
+      return date.getTime() < minDay;
     },
-    [viewMonth, minDate],
+    [viewMonth, minDay],
   );
 
   const isSelectedDay = useCallback(

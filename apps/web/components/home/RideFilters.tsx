@@ -68,29 +68,40 @@ const Panel = styled.div`
 
 const Group = styled.fieldset`
   margin: 0;
-  padding: 20px 0;
+  padding: 8px 0 4px;
   border: none;
-  border-bottom: 1px solid ${nocturne.line};
 
   &:first-child {
-    padding-top: 4px;
+    padding-top: 0;
+  }
+  &:last-child {
+    padding-bottom: 0;
+  }
+  &:last-child > label:last-child {
+    margin-bottom: 0;
   }
 `;
 
 const Legend = styled.legend`
+  float: left;
+  width: 100%;
   padding: 0;
-  margin-bottom: 14px;
+  margin: 0 0 12px;
   font-size: 17px;
   font-weight: 700;
   color: ${nocturne.cream};
 `;
 
 const Row = styled.label`
+  clear: both;
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 4px 0;
-  padding: 7px 0;
+  gap: 12px;
+  margin: 0 0 8px;
+  padding: 0 14px;
+  min-height: 48px;
+  border: 1px solid ${nocturne.line};
+  border-radius: 12px;
   font-size: 15px;
   line-height: 1.4;
   color: ${nocturne.muted};
@@ -98,8 +109,8 @@ const Row = styled.label`
 
   input {
     flex: none;
-    width: 19px;
-    height: 19px;
+    width: 22px;
+    height: 22px;
     margin: 0;
     accent-color: ${nocturne.accent};
     cursor: pointer;
@@ -108,8 +119,14 @@ const Row = styled.label`
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
-  &:hover {
-    color: ${nocturne.cream};
+  &:hover,
+  &:has(input:checked) {
+    background: #e5ffc3;
+    color: #12301f;
+  }
+  &:has(input:checked) {
+    border-color: #b9e08a;
+    font-weight: 600;
   }
 `;
 
@@ -138,9 +155,11 @@ const Reset = styled.button`
 export function RideFilters({
   value,
   onChange,
+  hideReset = false,
 }: {
   value: RideFilterState;
   onChange: (next: RideFilterState) => void;
+  hideReset?: boolean;
 }) {
   const active = value.times.length + value.prefs.length;
 
@@ -192,7 +211,7 @@ export function RideFilters({
         ))}
       </Group>
 
-      {active > 0 && (
+      {active > 0 && !hideReset && (
         <Reset type="button" onClick={() => onChange(EMPTY_FILTERS)}>
           Clear {active} {active === 1 ? "filter" : "filters"}
         </Reset>

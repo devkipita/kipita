@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styled, { css, keyframes } from "styled-components";
 import { ArrowRight, Car, SealCheck, SlidersHorizontal, Star } from "@/components/icons";
-import { Drawer } from "@/components/ui/Drawer";
+import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
+import { ButtonEl } from "@/components/ui/primitives";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import type { HomeTrip } from "@/lib/home/search";
@@ -104,6 +105,17 @@ const HeadTools = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 760px) {
+    width: 100%;
+    gap: 12px;
+
+    > button {
+      flex: 1 1 0;
+      min-width: 0;
+      justify-content: center;
+    }
+  }
 `;
 
 const SortGroup = styled.div`
@@ -111,6 +123,71 @@ const SortGroup = styled.div`
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
+const SortBtn = styled.button`
+  display: none;
+
+  @media (max-width: 760px) {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border: 1px solid ${nocturne.line};
+    border-radius: 10px;
+    background: ${nocturne.surface};
+    color: ${nocturne.cream};
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  &:focus-visible {
+    outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 4px ${nocturne.ring};
+  }
+  small {
+    color: ${nocturne.muted};
+    font-size: 13px;
+    font-weight: 500;
+  }
+`;
+
+const SortOption = styled.button<{ $on: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 14px;
+  background: ${({ $on }) => ($on ? "#e5ffc3" : "transparent")};
+  color: ${({ $on }) => ($on ? "#12301f" : nocturne.cream)};
+  font: inherit;
+  font-size: 16px;
+  font-weight: ${({ $on }) => ($on ? 700 : 500)};
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: #e5ffc3;
+    color: #12301f;
+  }
+  .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid ${({ $on }) => ($on ? "#12301f" : nocturne.line)};
+    background: ${({ $on }) => ($on ? "#12301f" : "transparent")};
+    box-shadow: ${({ $on }) => ($on ? "inset 0 0 0 3px #e5ffc3" : "none")};
+  }
 `;
 
 const Chip = styled.button<{ $on: boolean }>`
@@ -559,6 +636,7 @@ export function FindRideView({
   const [filters, setFilters] = useState<RideFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<Sort>("time");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
 
   const trips = useMemo(
@@ -659,6 +737,14 @@ export function FindRideView({
                 <SlidersHorizontal size={18} aria-hidden />
                 Filters
               </FilterBtn>
+              <SortBtn
+                type="button"
+                aria-haspopup="dialog"
+                onClick={() => setSortOpen(true)}
+              >
+                <small>Sort</small>
+                {SORTS.find((s) => s.key === sort)?.label.replace(" departure", "")}
+              </SortBtn>
               <SortGroup role="group" aria-label="Sort rides">
                 {SORTS.map((s) => (
                   <Chip
@@ -808,8 +894,53 @@ export function FindRideView({
         open={sheetOpen}
         onClose={() => setSheetOpen(false)}
         title="Filter rides"
+        footer={
+          <DrawerFooter>
+            <ButtonEl
+              type="button"
+              $variant="light"
+              style={{ flex: 1, justifyContent: "center" }}
+              disabled={!filters.times.length && !filters.prefs.length}
+              onClick={() => setFilters(EMPTY_FILTERS)}
+            >
+              Clear
+            </ButtonEl>
+            <ButtonEl
+              type="button"
+              $variant="primary"
+              style={{ flex: 1, justifyContent: "center" }}
+              onClick={() => setSheetOpen(false)}
+            >
+              Show {visible.length} {visible.length === 1 ? "ride" : "rides"}
+            </ButtonEl>
+          </DrawerFooter>
+        }
       >
-        <RideFilters value={filters} onChange={setFilters} />
+        <DrawerBody style={{ paddingBottom: 12 }}>
+          <RideFilters value={filters} onChange={setFilters} hideReset />
+        </DrawerBody>
+      </Drawer>
+
+      <Drawer
+        open={sortOpen}
+        onClose={() => setSortOpen(false)}
+        title="Sort rides"
+      >
+        {SORTS.map((s) => (
+          <SortOption
+            key={s.key}
+            type="button"
+            $on={sort === s.key}
+            aria-pressed={sort === s.key}
+            onClick={() => {
+              setSort(s.key);
+              setSortOpen(false);
+            }}
+          >
+            {s.label}
+            <span className="dot" aria-hidden="true" />
+          </SortOption>
+        ))}
       </Drawer>
     </Page>
   );

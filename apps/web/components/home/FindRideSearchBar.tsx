@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useId, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -14,6 +14,10 @@ import {
   X,
 } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
+import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
+import { ButtonEl } from "@/components/ui/primitives";
+import { dayLabel, nairobiToday } from "@/lib/trips/format";
+import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
 
 const MAX_SEATS = 8;
 
@@ -156,13 +160,17 @@ const Field = styled.label`
  * label and keyboard behaviour; it is laid over the trigger at zero opacity so
  * the native picker still opens on click and on the keyboard.
  */
-const DateField = styled.div`
+const DateField = styled.button`
   ${fieldBox}
   position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
   min-width: 0;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
 
   > svg {
@@ -211,6 +219,63 @@ const DateField = styled.div`
   }
   &:focus-within {
     ${focusRing}
+  }
+`;
+
+const DayChips = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  button {
+    height: 40px;
+    padding: 0 16px;
+    border: 1.5px solid ${nocturne.line};
+    border-radius: 999px;
+    background: ${nocturne.bg};
+    color: ${nocturne.cream};
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  button:hover {
+    border-color: ${nocturne.accent};
+  }
+  button[data-on="true"] {
+    background: ${nocturne.accent};
+    border-color: ${nocturne.accent};
+    color: #fff;
+  }
+`;
+
+const PickRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: ${nocturne.bg};
+  border: 1px solid ${nocturne.line};
+  color: ${nocturne.cream};
+
+  svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+  label {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  input {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 15px;
   }
 `;
 
@@ -441,14 +506,8 @@ function seatsLabel(n: number) {
 }
 
 function dateLabel(value: string) {
-  if (!value) return "Any day";
-  const d = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(d.getTime())) return "Any day";
-  return d.toLocaleDateString("en-KE", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
+  if (!value) return "Today";
+  return dayLabel(value);
 }
 
 export function FindRideSearchBar({
@@ -464,6 +523,9 @@ export function FindRideSearchBar({
 }) {
   const [form, setForm] = useState<SearchBarValue>(value);
   const [seatsOpen, setSeatsOpen] = useState(false);
+  const [placeField, setPlaceField] = useState<PlaceField | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [draftDate, setDraftDate] = useState("");
   const seatsRef = useRef<HTMLDivElement>(null);
   const seatsBtnRef = useRef<HTMLButtonElement>(null);
   const seatsPopId = useId();
@@ -512,7 +574,14 @@ export function FindRideSearchBar({
             <span className="lbl">Leaving from</span>
             <input
               value={form.from}
-              onChange={(e) => patch({ from: e.target.value })}
+              readOnly
+              onClick={() => setPlaceField("from")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setPlaceField("from");
+                }
+              }}
               placeholder="Where from?"
               aria-label="Leaving from"
               autoComplete="off"
@@ -526,7 +595,14 @@ export function FindRideSearchBar({
             <span className="lbl">Going to</span>
             <input
               value={form.to}
-              onChange={(e) => patch({ to: e.target.value })}
+              readOnly
+              onClick={() => setPlaceField("to")}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  setPlaceField("to");
+                }
+              }}
               placeholder="Where are you going?"
               aria-label="Going to"
               autoComplete="off"
@@ -534,19 +610,20 @@ export function FindRideSearchBar({
           </span>
         </Field>
 
-        <DateField>
+        <DateField
+          type="button"
+          onClick={() => {
+            setDraftDate(form.date);
+            setDateOpen(true);
+          }}
+          aria-haspopup="dialog"
+          aria-label="Choose travel date"
+        >
           <Calendar size={20} aria-hidden />
           <span className="text">
             <span className="lbl">When</span>
-            <b data-empty={!form.date}>{dateLabel(form.date)}</b>
+            <b>{dateLabel(form.date)}</b>
           </span>
-          <input
-            type="date"
-            value={form.date}
-            min={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => patch({ date: e.target.value })}
-            aria-label="Travel date, leave empty for any day"
-          />
         </DateField>
 
         <Cell ref={seatsRef}>
@@ -616,10 +693,83 @@ export function FindRideSearchBar({
           )}
           <Submit type="submit" disabled={busy}>
             <MagnifyingGlass size={20} aria-hidden />
-            {busy ? "Searchingâ€¦" : "Search"}
+            {busy ? "Searching…" : "Search"}
           </Submit>
         </Actions>
       </Grid>
+      <PlaceModal
+        field={placeField}
+        from={form.from}
+        to={form.to}
+        originCoords={null}
+        onFieldChange={setPlaceField}
+        onPickTown={(field, town) => {
+          patch({ [field]: town.name });
+          setPlaceField(field === "from" ? "to" : null);
+        }}
+        onPickRoute={(fromName, toName) => {
+          patch({ from: fromName, to: toName });
+          pushRecent(toName);
+          setPlaceField(null);
+        }}
+        onSearch={() => {
+          setPlaceField(null);
+          onSubmit(form);
+        }}
+        searchLabel="Search"
+        onClose={() => setPlaceField(null)}
+      />
+
+      <Drawer
+        open={dateOpen}
+        onClose={() => setDateOpen(false)}
+        size="md"
+        title="When are you travelling?"
+        description="Pick a day, or leave it on today."
+        footer={
+          <DrawerFooter>
+            <ButtonEl type="button" $variant="ghost" onClick={() => setDateOpen(false)}>
+              Cancel
+            </ButtonEl>
+            <ButtonEl
+              type="button"
+              $variant="primary"
+              onClick={() => {
+                patch({ date: draftDate });
+                setDateOpen(false);
+              }}
+            >
+              Apply
+            </ButtonEl>
+          </DrawerFooter>
+        }
+      >
+        <DrawerBody>
+          <DayChips role="group" aria-label="Quick dates">
+            {Array.from({ length: 14 }, (_, i) => nairobiToday(i)).map((iso) => (
+              <button
+                key={iso}
+                type="button"
+                data-on={draftDate === iso || (!draftDate && iso === nairobiToday())}
+                onClick={() => setDraftDate(iso)}
+              >
+                {dayLabel(iso)}
+              </button>
+            ))}
+          </DayChips>
+          <PickRow>
+            <Calendar size={18} aria-hidden />
+            <label htmlFor="find-ride-date">Or choose another date</label>
+            <input
+              id="find-ride-date"
+              type="date"
+              min={nairobiToday()}
+              value={draftDate}
+              onChange={(e) => setDraftDate(e.target.value)}
+            />
+          </PickRow>
+        </DrawerBody>
+      </Drawer>
     </Card>
   );
 }

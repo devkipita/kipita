@@ -1,16 +1,13 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+
 import styled from "styled-components";
 import {
-  ArrowLeft,
   ArrowRight,
   Circle,
   MapPin,
   NavigationArrow as Navigation,
-  Square,
-  X,
 } from "@/components/icons";
 import {
   KENYAN_TOWNS,
@@ -19,11 +16,13 @@ import {
   type Town,
 } from "@kipita/shared";
 import { Drawer, DrawerBody } from "@/components/ui/Drawer";
+import { TownThumb } from "./TownThumb";
+import { usePlaces } from "./usePlaces";
 import { HOME_COPY } from "@/lib/home/copy";
 import { nearbyTowns, type Coords } from "@/lib/home/geo";
 import { TextInput } from "./fields";
-import { useMedia } from "./useMedia";
-import { useScrollLock } from "@/lib/ui/useScrollLock";
+
+
 
 export type PlaceField = "from" | "to";
 
@@ -51,7 +50,7 @@ export function pushRecent(name: string): void {
     );
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   } catch {
-    /* blocked storage â€” recents just stay empty */
+    /* blocked storage — recents just stay empty */
   }
 }
 
@@ -234,224 +233,6 @@ const Empty = styled.p`
   color: ${({ theme }) => theme.color.textSoft};
 `;
 
-const Screen = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const ScreenHead = styled.header`
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: calc(10px + env(safe-area-inset-top)) 8px 10px;
-
-  h2 {
-    flex: 1;
-    margin: 0 44px 0 0;
-    text-align: center;
-    font-size: ${({ theme }) => theme.type.subhead};
-    font-weight: 700;
-    letter-spacing: -0.015em;
-    color: ${({ theme }) => theme.color.text};
-  }
-`;
-
-const Back = styled.button`
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: -2px -6px;
-  }
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  color: ${({ theme }) => theme.color.text};
-  cursor: pointer;
-
-  &:active {
-    background: ${({ theme }) => theme.color.surface2};
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -2px;
-  }
-`;
-
-const FieldBox = styled.div`
-  position: relative;
-  flex: none;
-  margin: 2px 16px 18px;
-  padding: 4px 0;
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.color.surfaceContainerHigh};
-  transition:
-    box-shadow 0.18s ease,
-    background 0.18s ease;
-
-  &:focus-within {
-    background: ${({ theme }) => theme.color.surfaceContainerHighest};
-    box-shadow: inset 0 0 0 2px ${({ theme }) => theme.color.primary};
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    left: 27px;
-    top: 34px;
-    height: 28px;
-    width: 2px;
-    border-radius: 1px;
-    background: ${({ theme }) => theme.color.outlineVariant};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const FieldRow = styled.div<{ $active: boolean }>`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 0 14px;
-  height: 54px;
-
-  .glyph {
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: ${({ theme }) => theme.color.surfaceContainerLow};
-    color: ${({ theme, $active }) =>
-      $active ? theme.color.primary : theme.color.onSurfaceVariant};
-  }
-  input,
-  button.ghost {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    border: none;
-    background: transparent;
-    font: inherit;
-    font-size: ${({ theme }) => theme.type.body};
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    text-align: left;
-    color: ${({ theme }) => theme.color.text};
-    padding: 0;
-  }
-  input::placeholder,
-  button.ghost[data-empty="true"] {
-    color: ${({ theme }) => theme.color.textSoft};
-    font-weight: 500;
-  }
-  input:focus,
-  button.ghost:focus {
-    outline: none;
-  }
-  button.ghost {
-    cursor: pointer;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-radius: ${({ theme }) => theme.radius.xs};
-  }
-  button.ghost:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
-  }
-`;
-
-const Clear = styled.button`
-  position: relative;
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: -7px;
-  }
-  border: none;
-  border-radius: 50%;
-  background: ${({ theme }) => theme.color.surfaceContainerHigh};
-  color: ${({ theme }) => theme.color.onSurfaceVariant};
-  cursor: pointer;
-
-  @media (hover: hover) {
-    &:hover {
-      color: ${({ theme }) => theme.color.onSurface};
-    }
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
-  }
-`;
-
-const ScreenList = styled.div`
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding: 0 8px calc(20px + env(safe-area-inset-bottom));
-  display: grid;
-  gap: 18px;
-  align-content: start;
-`;
-
-const ScreenFooter = styled.div`
-  flex: none;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-  border-top: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  background: ${({ theme }) => theme.color.bg};
-`;
-
-const FindButton = styled.button`
-  width: 100%;
-  height: 52px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.color.primary};
-  color: ${({ theme }) => theme.color.onPrimary};
-  font: inherit;
-  font-size: ${({ theme }) => theme.type.body};
-  font-weight: 700;
-  cursor: pointer;
-  transition: transform 0.12s ease;
-
-  &:active {
-    transform: scale(0.98);
-  }
-  &:focus-visible {
-    outline: 3px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
 type Entry =
   | { kind: "town"; town: Town }
   | { kind: "route"; from: string; to: string; blurb: string };
@@ -484,12 +265,9 @@ export function PlaceModal({
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const [recent, setRecent] = useState<string[]>([]);
-  const [mounted, setMounted] = useState(false);
   const [keyboarding, setKeyboarding] = useState(false);
-  const phone = useMedia("(max-width: 860px)");
   const listId = "place-options";
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (field) {
@@ -500,20 +278,7 @@ export function PlaceModal({
     }
   }, [field]);
 
-  useScrollLock(field !== null);
 
-  useEffect(() => {
-    if (!phone || field === null) return;
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-
-    inputRef.current?.focus();
-
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [phone, field, onClose]);
 
   const results = useMemo(() => searchTowns(query, 8), [query]);
   const near = useMemo(
@@ -574,6 +339,11 @@ export function PlaceModal({
   }, [query, results, near, recent]);
 
   const flat = useMemo(() => groups.flatMap((g) => g.entries), [groups]);
+  const places = usePlaces(
+    field === null
+      ? []
+      : flat.slice(0, 14).flatMap((e) => (e.kind === "town" ? [e.town.name] : [])),
+  );
 
   function choose(entry: Entry) {
     if (!field) return;
@@ -679,9 +449,7 @@ export function PlaceModal({
             onMouseMove={() => setActive(i)}
             onClick={() => choose(entry)}
           >
-            <span className="glyph">
-              <MapPin size={17} />
-            </span>
+            <TownThumb town={entry.town.name} places={places} />
             <span className="text">
               <b aria-hidden="true">{entry.town.name}</b>
               <small aria-hidden="true">{entry.town.county}</small>
@@ -691,103 +459,6 @@ export function PlaceModal({
       })}
     </Group>
   ));
-
-  if (mounted && phone && field !== null) {
-    return createPortal(
-      <Screen role="dialog" aria-modal="true" aria-label={HOME_COPY.planTitle}>
-        <ScreenHead>
-          <Back type="button" onClick={onClose} aria-label="Back">
-            <ArrowLeft size={22} />
-          </Back>
-          <h2>{HOME_COPY.planTitle}</h2>
-        </ScreenHead>
-
-        <FieldBox>
-          <FieldRow $active={isFrom}>
-            <span className="glyph">
-              <Circle size={10} weight="fill" />
-            </span>
-            {isFrom ? (
-              <>
-                <input
-                  {...comboProps}
-                  placeholder={from || HOME_COPY.placeInputFrom}
-                  aria-label={HOME_COPY.placeTitleFrom}
-                />
-                {query && (
-                  <Clear
-                    type="button"
-                    onClick={clearQuery}
-                    aria-label="Clear search"
-                  >
-                    <X size={15} />
-                  </Clear>
-                )}
-              </>
-            ) : (
-              <button
-                type="button"
-                className="ghost"
-                data-empty={from ? "false" : "true"}
-                onClick={() => onFieldChange("from")}
-              >
-                {from || HOME_COPY.fromIdle}
-              </button>
-            )}
-          </FieldRow>
-
-          <FieldRow $active={!isFrom}>
-            <span className="glyph">
-              <Square size={10} weight="fill" />
-            </span>
-            {!isFrom ? (
-              <>
-                <input
-                  {...comboProps}
-                  placeholder={to || HOME_COPY.placeInputTo}
-                  aria-label={HOME_COPY.placeTitleTo}
-                />
-                {query && (
-                  <Clear
-                    type="button"
-                    onClick={clearQuery}
-                    aria-label="Clear search"
-                  >
-                    <X size={15} />
-                  </Clear>
-                )}
-              </>
-            ) : (
-              <button
-                type="button"
-                className="ghost"
-                data-empty={to ? "false" : "true"}
-                onClick={() => onFieldChange("to")}
-              >
-                {to || HOME_COPY.toPlaceholder}
-              </button>
-            )}
-          </FieldRow>
-        </FieldBox>
-
-        <ScreenList
-          id={listId}
-          role="listbox"
-          aria-label={HOME_COPY.sectionResults}
-        >
-          {groups.length === 0 && <Empty>{HOME_COPY.noMatch(query)}</Empty>}
-          {rows}
-        </ScreenList>
-
-        <ScreenFooter>
-          <FindButton type="button" onClick={onSearch}>
-            {searchLabel}
-          </FindButton>
-        </ScreenFooter>
-      </Screen>,
-      document.body,
-    );
-  }
 
   return (
     <Drawer

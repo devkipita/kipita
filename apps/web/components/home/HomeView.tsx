@@ -16,7 +16,7 @@ import { HOME_COPY } from "@/lib/home/copy";
 import { detectOrigin, type Coords } from "@/lib/home/geo";
 import type { HomeItem } from "@/lib/home/search";
 import { SlidersHorizontal } from "@/components/icons";
-import { dayLabel } from "@/lib/trips/format";
+import { dayLabel, nairobiToday } from "@/lib/trips/format";
 import { DateStrip } from "./DateStrip";
 import { LocalWeather } from "./LocalWeather";
 import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";

@@ -221,6 +221,12 @@ const Trigger = styled.button`
   }
 
   @media (max-width: 599px) {
+    gap: 0;
+    padding: 0;
+    border-radius: 50%;
+    border-width: 2px;
+    line-height: 0;
+
     .who,
     svg:last-child {
       display: none;
@@ -355,7 +361,7 @@ export function AppTopBar({
                 <Avatar
                   name={profile.full_name}
                   src={profile.avatar_url}
-                  size={30}
+                  size={40}
                 />
                 <span className="who">
                   {(profile.full_name || "Account").split(/\s+/)[0]}
