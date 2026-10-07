@@ -1,30 +1,17 @@
-import { Nunito } from "next/font/google";
 import localFont from "next/font/local";
 
-// `--font-outfit` is the heading variable and `--font-inter` the body one; names kept so CSS modules need no changes.
 const heading = localFont({
-  src: [
-    {
-      path: "../../public/assets/barlow-condensed-500.ttf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../../public/assets/barlow-condensed-600.ttf",
-      weight: "600",
-      style: "normal",
-    },
-  ],
+  src: "../../public/assets/manrope-latin.woff2",
+  weight: "200 800",
   display: "swap",
-  variable: "--font-outfit",
+  variable: "--font-manrope",
 });
 
-const body = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const body = localFont({
+  src: "../../public/assets/dmsans-latin.woff2",
+  weight: "100 1000",
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-dm",
 });
 
-/** Class string that exposes the font CSS variables to the landing subtree. */
 export const landingFonts = `${heading.variable} ${body.variable}`;

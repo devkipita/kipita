@@ -64,7 +64,11 @@ export function TrickleHeading({
             <span
               key={ci}
               className="tk-char"
-              style={{ display: "inline-block", willChange: "transform,opacity,filter" }}
+              style={{
+                display: "inline-block",
+                whiteSpace: "pre",
+                willChange: "transform,opacity,filter",
+              }}
             >
               {ch}
             </span>

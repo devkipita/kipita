@@ -58,7 +58,7 @@ const DockShell = styled.div<{ $open: boolean; $expanded: boolean }>`
     width: ${({ $open, $expanded }) =>
       $open ? "calc(100vw - 24px)" : $expanded ? PILL_W : CIRCLE};
     right: 12px;
-    bottom: 12px;
+    bottom: calc(85px + env(safe-area-inset-bottom));
   }
 
   @media (prefers-reduced-motion: reduce) {

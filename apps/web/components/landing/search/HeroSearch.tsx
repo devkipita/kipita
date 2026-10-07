@@ -7,132 +7,116 @@ import {
   CaretDown,
   CaretLeft,
   CaretRight,
+  MagnifyingGlass,
   MapPin,
   Minus,
   NavigationArrow as Navigation,
   Plus,
+  ShieldCheck,
   Users,
   X,
 } from "@/components/icons";
-import { themes } from "@/lib/theme";
+import { nocturne } from "../nocturne";
 import { scrollToFind, useSharedRideSearch } from "./RideSearchContext";
-
-/** The landing is always dark, so it reads the dark theme's M3 roles. */
-const c = themes.dark.color;
-
-/** Roles under the short names this file's styles already use. */
-const nocturne = {
-  sage: c.primary,
-  lime: c.primary,
-  cream: c.onSurface,
-  muted2: c.onSurfaceVariant,
-  muted3: c.outline,
-  greenDeep: c.onPrimary,
-} as const;
 
 const MAX_SEATS = 8;
 
 const Wrap = styled.div`
   width: 100%;
-  max-width: 1120px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
 `;
 
-const Dock = styled.div`
+const Card = styled.div`
   position: relative;
   z-index: 5;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
-  grid-template-areas: "from to dates seats actions";
-  align-items: center;
-  gap: 6px;
-  padding: 8px;
-  border-radius: 999px;
-  background: ${c.surfaceContainerLow}e6;
-  border: 1px solid ${c.outlineVariant};
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.4);
+  padding: 15px 16px 12px;
+  border-radius: 24px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  box-shadow: ${nocturne.panelShadow};
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
 
-  @media (max-width: 1000px) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-      "from to"
-      "dates seats"
-      "actions actions";
-    border-radius: 28px;
-    padding: 10px;
-  }
-  @media (max-width: 560px) {
-    grid-template-areas:
-      "from from"
-      "to to"
-      "dates seats"
-      "actions actions";
+  @media (max-width: 640px) {
+    padding: 13px;
+    border-radius: 20px;
   }
 `;
 
-const Slot = styled.div<{ $area: string }>`
-  grid-area: ${({ $area }) => $area};
+const Eyebrow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px 11px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: ${nocturne.accent};
+
+  &::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: ${nocturne.ctaBg};
+  }
+`;
+
+const Grid = styled.div`
+  display: grid;
+  grid-template-columns: 1.15fr 1.15fr 0.9fr 0.9fr auto;
+  gap: 7px;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr 1fr;
+  }
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+`;
+
+const Slot = styled.div`
   position: relative;
   min-width: 0;
+`;
 
-  @media (min-width: 1001px) {
-    &[data-slot="to"]::before {
-      content: "";
-      position: absolute;
-      left: -4px;
-      top: 22%;
-      bottom: 22%;
-      width: 1px;
-      background: ${c.outlineVariant};
-    }
-  }
-  @media (max-width: 560px) {
-    &[data-slot="to"]::before {
-      content: "";
-      position: absolute;
-      top: -3px;
-      left: 14px;
-      right: 14px;
-      height: 1px;
-      background: ${c.outlineVariant};
-    }
-  }
+const fieldBox = `
+  min-height: 68px;
+  background: ${nocturne.bg};
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 10px 13px;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
 `;
 
 const Field = styled.label`
+  ${fieldBox}
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 11px;
   min-width: 0;
-  padding: 9px 18px;
-  border-radius: 999px;
   cursor: text;
-  transition:
-    background 0.18s ease,
-    box-shadow 0.18s ease;
 
   svg {
     flex: none;
-    color: ${nocturne.sage};
-    transition: color 0.18s ease;
+    color: ${nocturne.accent};
+  }
+  &[data-tone="origin"] svg {
+    color: ${nocturne.ctaBg};
   }
   &:hover {
-    background: rgba(255, 255, 255, 0.07);
+    border-color: ${nocturne.line};
+    background: ${nocturne.surface};
   }
   &:focus-within {
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow:
-      inset 0 0 0 2px ${nocturne.sage},
-      0 0 0 4px ${c.primary}29;
-  }
-  &:focus-within svg,
-  &:focus-within small {
-    color: ${nocturne.lime};
+    border-color: ${nocturne.accent};
+    background: ${nocturne.surface};
   }
   .body {
     flex: 1;
@@ -140,16 +124,17 @@ const Field = styled.label`
   }
   small {
     display: block;
-    font-size: 11px;
+    margin-bottom: 3px;
+    font-size: 10px;
     font-weight: 700;
-    line-height: 1.3;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
     color: ${nocturne.muted2};
   }
   input {
     display: block;
     width: 100%;
+    min-width: 0;
     height: auto;
     min-height: 0;
     padding: 0;
@@ -162,14 +147,12 @@ const Field = styled.label`
     -webkit-appearance: none;
     color: ${nocturne.cream};
     font: inherit;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 700;
     line-height: 1.4;
     text-overflow: ellipsis;
-    caret-color: ${nocturne.lime};
-    color-scheme: dark;
+    caret-color: ${nocturne.accent};
   }
-  /* The field itself shows focus; a second box around the text is noise. */
   input:focus,
   input:focus-visible {
     outline: none;
@@ -178,23 +161,14 @@ const Field = styled.label`
   input::placeholder {
     color: ${nocturne.muted3};
     font-weight: 500;
-    transition: color 0.18s ease;
   }
-  input:focus::placeholder {
-    color: ${nocturne.muted2};
-  }
-  input::selection {
-    background: ${nocturne.lime};
-    color: ${nocturne.greenDeep};
-  }
-  /* Browser autofill paints a pale box; keep it on theme. */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
     -webkit-text-fill-color: ${nocturne.cream};
-    caret-color: ${nocturne.lime};
+    caret-color: ${nocturne.accent};
     transition: background-color 9999s ease-out;
-    box-shadow: 0 0 0 1000px ${c.surfaceContainerLow} inset;
+    box-shadow: 0 0 0 1000px ${nocturne.bg} inset;
   }
   input:disabled {
     opacity: 0.5;
@@ -213,10 +187,10 @@ const Suggestions = styled.ul`
   margin: 0;
   padding: 6px;
   list-style: none;
-  border-radius: 20px;
-  background: ${c.surfaceContainerHigh};
-  border: 1px solid ${c.outlineVariant};
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  border-radius: 18px;
+  background: ${nocturne.surface};
+  border: 1px solid ${nocturne.line};
+  box-shadow: ${nocturne.panelShadow};
 
   button {
     display: flex;
@@ -225,7 +199,7 @@ const Suggestions = styled.ul`
     width: 100%;
     padding: 10px 12px;
     border: none;
-    border-radius: 14px;
+    border-radius: 12px;
     background: transparent;
     color: ${nocturne.cream};
     font: inherit;
@@ -237,27 +211,24 @@ const Suggestions = styled.ul`
   }
   button:hover,
   button[data-active="true"] {
-    background: rgba(255, 255, 255, 0.1);
+    background: ${nocturne.bg};
   }
   button:focus-visible {
-    background: rgba(255, 255, 255, 0.1);
-    outline: 2px solid ${nocturne.lime};
+    background: ${nocturne.bg};
+    outline: 2px solid ${nocturne.accent};
     outline-offset: -2px;
   }
   button[data-selected="true"] {
-    color: ${nocturne.lime};
+    color: ${nocturne.accent};
   }
   button[data-selected="true"]::after {
     content: "✓";
     margin-left: auto;
     font-weight: 700;
   }
-  button:active {
-    background: rgba(255, 255, 255, 0.16);
-  }
   svg {
     flex: none;
-    color: ${nocturne.sage};
+    color: ${nocturne.accent};
   }
   small {
     display: block;
@@ -267,33 +238,27 @@ const Suggestions = styled.ul`
   }
 `;
 
-const Panel = styled.button`
+const Cell = styled.div`
+  position: relative;
+  min-width: 0;
+`;
+
+const PickerButton = styled.button`
+  ${fieldBox}
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   width: 100%;
   min-width: 0;
-  height: 54px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 999px;
-  background: ${c.surfaceContainerHighest};
   color: ${nocturne.cream};
   font: inherit;
   text-align: left;
-  white-space: nowrap;
   cursor: pointer;
-  transition:
-    background 0.18s ease,
-    box-shadow 0.18s ease,
-    transform 0.12s ease;
 
   svg {
     flex: none;
-    color: ${nocturne.sage};
-    transition:
-      color 0.18s ease,
-      transform 0.2s ease;
+    color: ${nocturne.accent};
+    transition: transform 0.2s ease;
   }
   .text {
     flex: 1;
@@ -301,53 +266,89 @@ const Panel = styled.button`
   }
   small {
     display: block;
-    font-size: 12px;
-    font-weight: 500;
+    margin-bottom: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     color: ${nocturne.muted2};
   }
   b {
     display: block;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
   }
-
   &:hover {
-    background: rgba(255, 255, 255, 0.12);
-  }
-  &:active {
-    transform: scale(0.985);
+    border-color: ${nocturne.line};
+    background: ${nocturne.surface};
   }
   &[aria-expanded="true"] {
-    background: rgba(255, 255, 255, 0.12);
-    box-shadow: inset 0 0 0 2px ${nocturne.sage};
+    border-color: ${nocturne.accent};
+    background: ${nocturne.surface};
   }
   &[aria-expanded="true"] svg:last-child {
     transform: rotate(180deg);
   }
   &:focus-visible {
     outline: none;
-    box-shadow:
-      inset 0 0 0 2px ${nocturne.sage},
-      0 0 0 4px rgba(158, 197, 162, 0.16);
+    border-color: ${nocturne.accent};
+    background: ${nocturne.surface};
   }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
     svg {
       transition: none;
     }
   }
 `;
 
-const Cell = styled.div<{ $area: string }>`
-  grid-area: ${({ $area }) => $area};
-  position: relative;
+const SeatsField = styled.div`
+  ${fieldBox}
+  display: flex;
+  align-items: center;
+  gap: 11px;
   min-width: 0;
 
-  @media (min-width: 1001px) {
-    min-width: 190px;
+  > svg {
+    flex: none;
+    color: ${nocturne.accent};
   }
+  .text {
+    flex: 1;
+    min-width: 0;
+  }
+  small {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: ${nocturne.muted2};
+  }
+  b {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  &:hover {
+    border-color: ${nocturne.line};
+    background: ${nocturne.surface};
+  }
+  &:focus-within {
+    border-color: ${nocturne.accent};
+    background: ${nocturne.surface};
+  }
+`;
+
+const Stepper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
 `;
 
 const Cal = styled.div`
@@ -359,11 +360,16 @@ const Cal = styled.div`
   max-height: 70vh;
   overflow-y: auto;
   padding: 14px;
-  border-radius: 24px;
-  background: ${c.surfaceContainerHigh};
-  border: 1px solid ${c.outlineVariant};
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  border-radius: 20px;
+  background: ${nocturne.surface};
+  border: 1px solid ${nocturne.line};
+  box-shadow: ${nocturne.panelShadow};
   color: ${nocturne.cream};
+
+  @media (max-width: 640px) {
+    left: auto;
+    right: 0;
+  }
 
   .head {
     display: flex;
@@ -408,21 +414,21 @@ const Cal = styled.div`
       transform 0.12s ease;
   }
   .day:hover:not(:disabled) {
-    background: rgba(255, 255, 255, 0.12);
+    background: ${nocturne.bg};
   }
   .day:active:not(:disabled) {
     transform: scale(0.92);
   }
   .day:focus-visible {
-    outline: 2px solid ${nocturne.lime};
+    outline: 2px solid ${nocturne.accent};
     outline-offset: 1px;
   }
   .day[data-today="true"] {
-    box-shadow: inset 0 0 0 1.5px ${nocturne.sage};
+    box-shadow: inset 0 0 0 1.5px ${nocturne.accent};
   }
   .day[data-selected="true"] {
-    background: ${nocturne.lime};
-    color: ${nocturne.greenDeep};
+    background: ${nocturne.ctaBg};
+    color: ${nocturne.ctaFg};
     font-weight: 700;
   }
   .day:disabled {
@@ -436,8 +442,8 @@ const Cal = styled.div`
     height: 40px;
     border: none;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.08);
-    color: ${nocturne.sage};
+    background: ${nocturne.bg};
+    color: ${nocturne.accent};
     font: inherit;
     font-size: 14px;
     font-weight: 700;
@@ -445,50 +451,11 @@ const Cal = styled.div`
     transition: background 0.16s ease;
   }
   .now:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: ${nocturne.line2};
   }
   .now:focus-visible {
-    outline: 2px solid ${nocturne.lime};
+    outline: 2px solid ${nocturne.accent};
     outline-offset: 2px;
-  }
-`;
-
-const Menu = styled.div`
-  position: absolute;
-  bottom: calc(100% + 10px);
-  right: 0;
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-width: 260px;
-  padding: 14px 16px;
-  border-radius: 20px;
-  background: ${c.surfaceContainerHigh};
-  border: 1px solid ${c.outlineVariant};
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
-  color: ${nocturne.cream};
-
-  .label b {
-    display: block;
-    font-size: 16px;
-    font-weight: 700;
-  }
-  .label small {
-    font-size: 13px;
-    color: ${nocturne.muted2};
-  }
-  .stepper {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  output {
-    min-width: 22px;
-    text-align: center;
-    font-weight: 700;
-    font-size: 16px;
   }
 `;
 
@@ -496,12 +463,12 @@ const Round = styled.button`
   display: inline-grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 27px;
+  height: 27px;
   padding: 0;
-  border: none;
+  border: 1px solid ${nocturne.line};
   border-radius: 999px;
-  background: ${c.surfaceContainerHighest};
+  background: ${nocturne.surface};
   color: ${nocturne.cream};
   cursor: pointer;
   transition:
@@ -509,7 +476,7 @@ const Round = styled.button`
     transform 0.12s ease;
 
   &:hover:not(:disabled) {
-    background: ${c.outlineVariant};
+    background: ${nocturne.line2};
   }
   &:active:not(:disabled) {
     transform: scale(0.92);
@@ -519,55 +486,111 @@ const Round = styled.button`
     cursor: default;
   }
   &:focus-visible {
-    outline: 2px solid ${nocturne.lime};
+    outline: 2px solid ${nocturne.accent};
     outline-offset: 2px;
   }
 `;
 
 const Actions = styled.div`
-  grid-area: actions;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
 
-  @media (max-width: 1000px) {
-    button:last-child {
-      flex: 1;
-    }
+  @media (max-width: 960px) {
+    grid-column: 1 / -1;
+  }
+`;
+
+const ClearBtn = styled.button`
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  border: 1px solid ${nocturne.line};
+  border-radius: 15px;
+  background: transparent;
+  color: ${nocturne.muted2};
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+
+  &:hover {
+    background: ${nocturne.bg};
+    color: ${nocturne.cream};
+  }
+  &:focus-visible {
+    outline: 2px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 `;
 
 const SearchBtn = styled.button`
-  flex: none;
-  height: 54px;
-  padding: 0 34px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 68px;
+  padding: 0 27px;
   border: none;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
+  border-radius: 15px;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
   font: inherit;
   font-size: 16px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
   transition:
-    background 0.2s ease,
+    filter 0.2s ease,
     transform 0.15s ease;
 
   &:hover {
-    background: ${c.primaryFixed};
+    filter: brightness(0.94);
+    transform: translateY(-2px);
   }
   &:active {
-    transform: scale(0.97);
+    transform: translateY(0);
   }
   &:disabled {
-    background: ${c.primaryFixedDim};
     cursor: progress;
-    opacity: 0.8;
+    opacity: 0.7;
     transform: none;
   }
   &:focus-visible {
-    outline: 3px solid ${nocturne.cream};
+    outline: 3px solid ${nocturne.accent};
     outline-offset: 3px;
+  }
+  @media (max-width: 960px) {
+    min-height: 62px;
+  }
+  @media (max-width: 640px) {
+    min-height: 53px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
+const Hint = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 8px 0;
+  font-size: 11px;
+  color: ${nocturne.muted2};
+
+  svg {
+    flex: none;
+  }
+  @media (max-width: 640px) {
+    overflow: hidden;
+    font-size: 9px;
+    white-space: nowrap;
   }
 `;
 
@@ -582,7 +605,7 @@ function whenLabel(when: { mode: "now" } | { mode: "schedule"; date: string }) {
 }
 
 function seatsLabel(seats: number) {
-  return `${seats} ${seats === 1 ? "passenger" : "passengers"}`;
+  return `${seats} ${seats === 1 ? "seat" : "seats"}`;
 }
 
 const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -609,10 +632,8 @@ export function HeroSearch() {
   const rootRef = useRef<HTMLDivElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
   const datesRef = useRef<HTMLDivElement>(null);
-  const seatsRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState<"from" | "to" | null>(null);
   const [hi, setHi] = useState(-1);
-  const [seatsOpen, setSeatsOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [today, setToday] = useState("");
   const [view, setView] = useState({ y: 0, m: 0 });
@@ -707,7 +728,6 @@ export function HeroSearch() {
 
   function toggleCalendar() {
     setActive(null);
-    setSeatsOpen(false);
     if (!calOpen && when.mode === "schedule") {
       const [y, m] = when.date.split("-").map(Number);
       if (y && m) setView({ y, m: m - 1 });
@@ -720,28 +740,11 @@ export function HeroSearch() {
     setCalOpen(false);
   }
 
-  useEffect(() => {
-    if (!seatsOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (!seatsRef.current?.contains(e.target as Node)) setSeatsOpen(false);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSeatsOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [seatsOpen]);
-
   function submit() {
     if (!to.trim()) {
       toRef.current?.focus();
       return;
     }
-    setSeatsOpen(false);
     setCalOpen(false);
     setActive(null);
     void search.run();
@@ -752,7 +755,6 @@ export function HeroSearch() {
     search.reset();
     search.setFrom("");
     search.setTo("");
-    setSeatsOpen(false);
     setCalOpen(false);
   }
 
@@ -775,273 +777,259 @@ export function HeroSearch() {
 
   return (
     <Wrap ref={rootRef}>
-      <Dock role="search" aria-label="Find a ride">
-        <Slot $area="from" data-slot="from">
-          <Field>
-            <Navigation size={18} />
-            <span className="body">
-              <small>From</small>
-              <input
-                value={from}
-                placeholder={detecting ? "Detecting your town…" : "Where from?"}
-                onChange={(e) => {
-                  search.setFrom(e.target.value);
-                  setHi(-1);
-                }}
-                onFocus={() => {
-                  search.expand();
-                  setSeatsOpen(false);
-                  setCalOpen(false);
-                  setHi(-1);
-                  setActive("from");
-                }}
-                onKeyDown={(e) => onFieldKey("from", e)}
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={active === "from" && matches.length > 0}
-                aria-autocomplete="list"
-                aria-label="Origin town"
-              />
-            </span>
-          </Field>
-          {active === "from" && matches.length > 0 && (
-            <Suggestions role="listbox">
-              {matches.map((t, i) => (
-                <li
-                  key={`${t.name}-${t.county ?? ""}`}
-                  role="option"
-                  aria-selected={i === hi}
-                >
-                  <button
-                    type="button"
-                    data-active={i === hi}
-                    data-selected={
-                      t.name.toLowerCase() === from.trim().toLowerCase()
-                    }
-                    onMouseEnter={() => setHi(i)}
-                    onClick={() => pick("from", t.name)}
+      <Card role="search" aria-label="Find a ride">
+        <Eyebrow>Plan your next trip</Eyebrow>
+
+        <Grid>
+          <Slot>
+            <Field data-tone="origin">
+              <Navigation size={20} />
+              <span className="body">
+                <small>Leaving from</small>
+                <input
+                  value={from}
+                  placeholder={detecting ? "Detecting your town…" : "Where from?"}
+                  onChange={(e) => {
+                    search.setFrom(e.target.value);
+                    setHi(-1);
+                  }}
+                  onFocus={() => {
+                    search.expand();
+                    setCalOpen(false);
+                    setHi(-1);
+                    setActive("from");
+                  }}
+                  onKeyDown={(e) => onFieldKey("from", e)}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={active === "from" && matches.length > 0}
+                  aria-autocomplete="list"
+                  aria-label="Origin town"
+                />
+              </span>
+            </Field>
+            {active === "from" && matches.length > 0 && (
+              <Suggestions role="listbox">
+                {matches.map((t, i) => (
+                  <li
+                    key={`${t.name}-${t.county ?? ""}`}
+                    role="option"
+                    aria-selected={i === hi}
                   >
-                    <MapPin size={16} />
-                    <span>
-                      {t.name}
-                      {t.county &&
-                      t.county.toLowerCase() !== t.name.toLowerCase() ? (
-                        <small>{t.county}</small>
-                      ) : null}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </Suggestions>
-          )}
-        </Slot>
-
-        <Slot $area="to" data-slot="to">
-          <Field>
-            <MapPin size={18} />
-            <span className="body">
-              <small>Where to</small>
-              <input
-                ref={toRef}
-                value={to}
-                placeholder="Where are you going?"
-                onChange={(e) => {
-                  search.setTo(e.target.value);
-                  setHi(-1);
-                }}
-                onFocus={() => {
-                  search.expand();
-                  setSeatsOpen(false);
-                  setCalOpen(false);
-                  setHi(-1);
-                  setActive("to");
-                }}
-                onKeyDown={(e) => onFieldKey("to", e)}
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={active === "to" && matches.length > 0}
-                aria-autocomplete="list"
-                aria-label="Destination town"
-              />
-            </span>
-          </Field>
-          {active === "to" && matches.length > 0 && (
-            <Suggestions role="listbox">
-              {matches.map((t, i) => (
-                <li
-                  key={`${t.name}-${t.county ?? ""}`}
-                  role="option"
-                  aria-selected={i === hi}
-                >
-                  <button
-                    type="button"
-                    data-active={i === hi}
-                    data-selected={
-                      t.name.toLowerCase() === to.trim().toLowerCase()
-                    }
-                    onMouseEnter={() => setHi(i)}
-                    onClick={() => pick("to", t.name)}
-                  >
-                    <MapPin size={16} />
-                    <span>
-                      {t.name}
-                      {t.county &&
-                      t.county.toLowerCase() !== t.name.toLowerCase() ? (
-                        <small>{t.county}</small>
-                      ) : null}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </Suggestions>
-          )}
-        </Slot>
-
-        <Cell $area="dates" ref={datesRef}>
-          <Panel
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={calOpen}
-            onClick={toggleCalendar}
-          >
-            <Calendar size={20} />
-            <span className="text">
-              <small>Select dates</small>
-              <b>{whenLabel(when)}</b>
-            </span>
-            <CaretDown size={16} />
-          </Panel>
-
-          {calOpen && (
-            <Cal role="dialog" aria-label="Choose travel date">
-              <div className="head">
-                <Round
-                  type="button"
-                  aria-label="Previous month"
-                  disabled={atCurrentMonth}
-                  onClick={() => shiftMonth(-1)}
-                >
-                  <CaretLeft size={16} />
-                </Round>
-                <b>{monthTitle}</b>
-                <Round
-                  type="button"
-                  aria-label="Next month"
-                  onClick={() => shiftMonth(1)}
-                >
-                  <CaretRight size={16} />
-                </Round>
-              </div>
-
-              <div className="week" aria-hidden="true">
-                {WEEKDAYS.map((d) => (
-                  <span key={d}>{d}</span>
-                ))}
-              </div>
-              <div className="grid">
-                {monthCells(view.y, view.m).map((day, i) => {
-                  if (day === null) return <span key={`pad-${i}`} />;
-                  const value = iso(view.y, view.m, day);
-                  return (
                     <button
-                      key={value}
                       type="button"
-                      className="day"
-                      disabled={Boolean(today) && value < today}
-                      data-today={value === today}
+                      data-active={i === hi}
                       data-selected={
-                        when.mode === "schedule" && when.date === value
+                        t.name.toLowerCase() === from.trim().toLowerCase()
                       }
-                      aria-label={new Date(
-                        view.y,
-                        view.m,
-                        day,
-                      ).toLocaleDateString("en-KE", {
-                        weekday: "long",
-                        day: "numeric",
-                        month: "long",
-                      })}
-                      onClick={() => chooseDay(day)}
+                      onMouseEnter={() => setHi(i)}
+                      onClick={() => pick("from", t.name)}
                     >
-                      {day}
+                      <MapPin size={16} />
+                      <span>
+                        {t.name}
+                        {t.county &&
+                        t.county.toLowerCase() !== t.name.toLowerCase() ? (
+                          <small>{t.county}</small>
+                        ) : null}
+                      </span>
                     </button>
-                  );
-                })}
-              </div>
+                  </li>
+                ))}
+              </Suggestions>
+            )}
+          </Slot>
 
-              <button
-                type="button"
-                className="now"
-                onClick={() => {
-                  search.setWhen({ mode: "now" });
-                  setCalOpen(false);
-                }}
-              >
-                Leave today
-              </button>
-            </Cal>
-          )}
-        </Cell>
+          <Slot>
+            <Field>
+              <MapPin size={20} />
+              <span className="body">
+                <small>Going to</small>
+                <input
+                  ref={toRef}
+                  value={to}
+                  placeholder="Where are you going?"
+                  onChange={(e) => {
+                    search.setTo(e.target.value);
+                    setHi(-1);
+                  }}
+                  onFocus={() => {
+                    search.expand();
+                    setCalOpen(false);
+                    setHi(-1);
+                    setActive("to");
+                  }}
+                  onKeyDown={(e) => onFieldKey("to", e)}
+                  autoComplete="off"
+                  role="combobox"
+                  aria-expanded={active === "to" && matches.length > 0}
+                  aria-autocomplete="list"
+                  aria-label="Destination town"
+                />
+              </span>
+            </Field>
+            {active === "to" && matches.length > 0 && (
+              <Suggestions role="listbox">
+                {matches.map((t, i) => (
+                  <li
+                    key={`${t.name}-${t.county ?? ""}`}
+                    role="option"
+                    aria-selected={i === hi}
+                  >
+                    <button
+                      type="button"
+                      data-active={i === hi}
+                      data-selected={
+                        t.name.toLowerCase() === to.trim().toLowerCase()
+                      }
+                      onMouseEnter={() => setHi(i)}
+                      onClick={() => pick("to", t.name)}
+                    >
+                      <MapPin size={16} />
+                      <span>
+                        {t.name}
+                        {t.county &&
+                        t.county.toLowerCase() !== t.name.toLowerCase() ? (
+                          <small>{t.county}</small>
+                        ) : null}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </Suggestions>
+            )}
+          </Slot>
 
-        <Cell $area="seats" ref={seatsRef}>
-          <Panel
-            type="button"
-            aria-haspopup="dialog"
-            aria-expanded={seatsOpen}
-            onClick={() => {
-              setActive(null);
-              setCalOpen(false);
-              setSeatsOpen((v) => !v);
-            }}
-          >
+          <Cell ref={datesRef}>
+            <PickerButton
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={calOpen}
+              onClick={toggleCalendar}
+            >
+              <Calendar size={20} />
+              <span className="text">
+                <small>When</small>
+                <b>{whenLabel(when)}</b>
+              </span>
+              <CaretDown size={16} />
+            </PickerButton>
+
+            {calOpen && (
+              <Cal role="dialog" aria-label="Choose travel date">
+                <div className="head">
+                  <Round
+                    type="button"
+                    aria-label="Previous month"
+                    disabled={atCurrentMonth}
+                    onClick={() => shiftMonth(-1)}
+                  >
+                    <CaretLeft size={14} />
+                  </Round>
+                  <b>{monthTitle}</b>
+                  <Round
+                    type="button"
+                    aria-label="Next month"
+                    onClick={() => shiftMonth(1)}
+                  >
+                    <CaretRight size={14} />
+                  </Round>
+                </div>
+
+                <div className="week" aria-hidden="true">
+                  {WEEKDAYS.map((d) => (
+                    <span key={d}>{d}</span>
+                  ))}
+                </div>
+                <div className="grid">
+                  {monthCells(view.y, view.m).map((day, i) => {
+                    if (day === null) return <span key={`pad-${i}`} />;
+                    const value = iso(view.y, view.m, day);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        className="day"
+                        disabled={Boolean(today) && value < today}
+                        data-today={value === today}
+                        data-selected={
+                          when.mode === "schedule" && when.date === value
+                        }
+                        aria-label={new Date(
+                          view.y,
+                          view.m,
+                          day,
+                        ).toLocaleDateString("en-KE", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                        })}
+                        onClick={() => chooseDay(day)}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  className="now"
+                  onClick={() => {
+                    search.setWhen({ mode: "now" });
+                    setCalOpen(false);
+                  }}
+                >
+                  Leave today
+                </button>
+              </Cal>
+            )}
+          </Cell>
+
+          <SeatsField>
             <Users size={20} />
             <span className="text">
               <small>Passengers</small>
-              <b>{seatsLabel(seats)}</b>
+              <b aria-live="polite">{seatsLabel(seats)}</b>
             </span>
-            <CaretDown size={16} />
-          </Panel>
+            <Stepper>
+              <Round
+                type="button"
+                aria-label="Fewer passengers"
+                disabled={seats <= 1}
+                onClick={() => search.setSeats(seats - 1)}
+              >
+                <Minus size={14} />
+              </Round>
+              <Round
+                type="button"
+                aria-label="More passengers"
+                disabled={seats >= MAX_SEATS}
+                onClick={() => search.setSeats(seats + 1)}
+              >
+                <Plus size={14} />
+              </Round>
+            </Stepper>
+          </SeatsField>
 
-          {seatsOpen && (
-            <Menu role="dialog" aria-label="Passengers">
-              <span className="label">
-                <b>Passengers</b>
-                <small>Seats you need</small>
-              </span>
-              <span className="stepper">
-                <Round
-                  type="button"
-                  aria-label="Fewer passengers"
-                  disabled={seats <= 1}
-                  onClick={() => search.setSeats(seats - 1)}
-                >
-                  <Minus size={16} />
-                </Round>
-                <output aria-live="polite">{seats}</output>
-                <Round
-                  type="button"
-                  aria-label="More passengers"
-                  disabled={seats >= MAX_SEATS}
-                  onClick={() => search.setSeats(seats + 1)}
-                >
-                  <Plus size={16} />
-                </Round>
-              </span>
-            </Menu>
-          )}
-        </Cell>
+          <Actions>
+            {showClear && (
+              <ClearBtn type="button" onClick={clear} aria-label="Clear search">
+                <X size={18} />
+              </ClearBtn>
+            )}
+            <SearchBtn type="button" onClick={submit} disabled={searching}>
+              <MagnifyingGlass size={20} />
+              {searching ? "Searching…" : "Search"}
+            </SearchBtn>
+          </Actions>
+        </Grid>
 
-        <Actions>
-          {showClear && (
-            <Round type="button" onClick={clear} aria-label="Clear search">
-              <X size={18} />
-            </Round>
-          )}
-          <SearchBtn type="button" onClick={submit} disabled={searching}>
-            {searching ? "Searching…" : "Search"}
-          </SearchBtn>
-        </Actions>
-      </Dock>
+        <Hint>
+          <ShieldCheck size={16} />
+          Verified drivers · Secure M-Pesa payments · Free cancellation
+        </Hint>
+      </Card>
     </Wrap>
   );
 }

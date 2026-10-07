@@ -43,7 +43,7 @@ const NavLogo = styled.div`
   a {
     display: flex;
     align-items: center;
-    color: ${nocturne.cream};
+    color: ${nocturne.onGreen};
   }
 
   img {
@@ -99,12 +99,12 @@ const NavLink = styled.a`
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
-  color: ${nocturne.cream};
+  color: ${nocturne.onGreen};
   letter-spacing: 0.01em;
   transition: color 0.2s ease;
 
   &:hover {
-    color: ${nocturne.sage};
+    color: ${nocturne.lime};
   }
 
   @media (max-width: 640px) {
@@ -153,7 +153,7 @@ const NavProfile = styled.a`
   box-shadow: 0 14px 32px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  color: ${nocturne.cream};
+  color: ${nocturne.onGreen};
   font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
@@ -183,9 +183,6 @@ const NavProfile = styled.a`
 `;
 
 export function LandingNav({ profile }: { profile: Profile | null }) {
-  // "Sign in" is folded into a single "Get started" entry point. Once signed
-  // in, that CTA becomes a profile chip (photo + first name) that drops the
-  // visitor into the app at /home rather than the settings page.
   const name =
     profile?.full_name?.trim() || profile?.email?.split("@")[0] || "Account";
   const firstName = name.split(/\s+/)[0];
@@ -196,8 +193,9 @@ export function LandingNav({ profile }: { profile: Profile | null }) {
         <Brand href="#top" light priority />
       </NavLogo>
       <NavRight>
-        <NavLink href="#find">Find a ride</NavLink>
-        <NavLink href="#alerts">Alerts</NavLink>
+        <NavLink href="#top">Find a ride</NavLink>
+        <NavLink href="#routes">Routes</NavLink>
+        <NavLink href="#drive">Publish a ride</NavLink>
         {profile ? (
           <NavProfile href="/home" aria-label="Go to your Kipita home">
             <Avatar name={name} src={profile.avatar_url} size={32} />

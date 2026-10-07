@@ -1,23 +1,48 @@
-﻿import styled from "styled-components";
-import { nocturne, pulse } from "./nocturne";
+﻿import styled, { css } from "styled-components";
+import { nocturne, nocturneDark, nocturneLight, pulse } from "./nocturne";
 
 /**
  * Styled primitives shared across the landing sections. Keeping them in one
  * place lets each section file stay focused on its own markup + local styles.
  */
 
-/** Landing root â€” sets the nocturne dark theme for the whole subtree. */
+const vars = (set: Record<string, string>) =>
+  css`
+    ${Object.entries(set)
+      .map(([k, v]) => `${k}: ${v};`)
+      .join("\n")}
+  `;
+
 export const Root = styled.div`
+  ${vars(nocturneLight)}
+  --n-selection-fg: #ffffff;
+
+  html[data-theme="dark"] & {
+    ${vars(nocturneDark)}
+    --n-selection-fg: ${nocturneDark["--n-cream"]};
+  }
+
   position: relative;
   min-height: 100dvh;
   background: ${nocturne.bg};
   color: ${nocturne.cream};
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-dm), system-ui, sans-serif;
   overflow-x: hidden;
+
+  @media (max-width: 640px) {
+    padding-bottom: calc(73px + env(safe-area-inset-bottom));
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-manrope), var(--font-dm), system-ui, sans-serif;
+  }
 
   ::selection {
     background: ${nocturne.green};
-    color: ${nocturne.cream};
+    color: var(--n-selection-fg);
   }
 
   :focus-visible {

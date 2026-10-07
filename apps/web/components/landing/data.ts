@@ -4,6 +4,65 @@
  * The interactive ride search reads live data from Supabase — see lib/rides.ts.
  */
 
+export type TrustStat = {
+  value: number;
+  dec: number;
+  suffix: string;
+  label: string;
+};
+
+export const TRUST_STATS: TrustStat[] = [
+  { value: 40, dec: 0, suffix: "%", label: "Save on average" },
+  { value: 47, dec: 0, suffix: "", label: "Counties connected" },
+  { value: 4.9, dec: 1, suffix: "/5", label: "Community rating" },
+];
+
+export type RideStep = {
+  number: string;
+  icon: "pin" | "car" | "check";
+  title: string;
+  body: string;
+};
+
+export const RIDE_STEPS: RideStep[] = [
+  {
+    number: "01",
+    icon: "pin",
+    title: "Tell us where",
+    body: "Choose your route, date, and how many seats you need.",
+  },
+  {
+    number: "02",
+    icon: "car",
+    title: "Pick your ride",
+    body: "Compare verified drivers, times, ratings, and prices.",
+  },
+  {
+    number: "03",
+    icon: "check",
+    title: "Book & go",
+    body: "Pay securely with M-Pesa. We'll handle the rest.",
+  },
+];
+
+export type PopularRoute = {
+  from: string;
+  to: string;
+  price: string;
+  duration: string;
+};
+
+export const POPULAR_ROUTES: PopularRoute[] = [
+  { from: "Nairobi", to: "Nakuru", price: "From KSh 650", duration: "2h 45m" },
+  {
+    from: "Nairobi",
+    to: "Mombasa",
+    price: "From KSh 1,600",
+    duration: "8h 10m",
+  },
+  { from: "Nairobi", to: "Kisumu", price: "From KSh 1,200", duration: "6h 20m" },
+];
+
 export type RideCardData = {
   card: string;
   av: string;

@@ -142,8 +142,10 @@ type TripRow = {
 };
 
 function todayISO(): string {
-  // Local YYYY-MM-DD without pulling in a date lib.
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
 }
 
 /** Search live trips for a route + time. See {@link SearchOutcome}. */

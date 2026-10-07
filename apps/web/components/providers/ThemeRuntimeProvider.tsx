@@ -29,9 +29,8 @@ export function useThemeMode(): ThemeModeCtx {
  * OS scheme, and lets any component flip it via {@link useThemeMode}.
  */
 export function ThemeRuntimeProvider({ children }: { children: React.ReactNode }) {
-  // Kipita defaults to dark; a stored choice (or the toggle) overrides it.
-  const [pref, setPrefState] = useState<Pref>("dark");
-  const [systemDark, setSystemDark] = useState(true);
+  const [pref, setPrefState] = useState<Pref>("light");
+  const [systemDark, setSystemDark] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY) as Pref | null;
@@ -52,6 +51,7 @@ export function ThemeRuntimeProvider({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     document.documentElement.style.colorScheme = mode;
+    document.documentElement.dataset.theme = mode;
   }, [mode]);
 
   const setPref = (p: Pref) => {

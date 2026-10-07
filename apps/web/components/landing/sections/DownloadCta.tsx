@@ -75,12 +75,12 @@ const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
     $variant === "light"
       ? `
         background: ${nocturne.cream};
-        color: ${nocturne.greenDeep};
-        &:hover { background: ${nocturne.sage}; }
+        color: ${nocturne.bg};
+        &:hover { background: ${nocturne.sage}; color: ${nocturne.greenDeep}; }
       `
       : `
         background: transparent;
-        border: 1px solid #3a3a3a;
+        border: 1px solid ${nocturne.line};
         color: ${nocturne.cream};
         &:hover { border-color: ${nocturne.sage}; color: ${nocturne.sage}; }
       `}
