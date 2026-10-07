@@ -10,7 +10,7 @@ const Outer = styled.section`
   padding: 0 max(34px, calc((100% - 1212px) / 2)) 115px;
 
   @media (max-width: 640px) {
-    padding: 0 18px 75px;
+    padding: 0 0 56px;
   }
 `;
 
@@ -26,7 +26,7 @@ const Panel = styled(Reveal)`
     grid-template-columns: 1fr;
   }
   @media (max-width: 640px) {
-    border-radius: 24px;
+    border-radius: 0;
   }
 `;
 
@@ -81,7 +81,7 @@ const Copy = styled.div`
   padding: 64px 70px;
 
   @media (max-width: 640px) {
-    padding: 38px 25px;
+    padding: 36px 24px 44px;
   }
 `;
 
