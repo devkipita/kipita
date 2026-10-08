@@ -238,27 +238,25 @@ const FieldGroup = styled.div`
   flex-direction: column;
   gap: 10px;
 
-  > * {
+  && > * {
     position: relative;
-    border: none;
+    border: 2px solid transparent;
     border-radius: 16px;
     background: ${nocturne.surface};
-    box-shadow: inset 0 -2px 0 ${nocturne.line};
+    box-shadow: none;
     transition:
-      box-shadow 0.16s ease,
+      border-color 0.16s ease,
       background 0.16s ease;
   }
 
-  > *:hover {
-    background: ${nocturne.surface3};
+  && > *:hover {
+    border-color: ${nocturne.line};
   }
 
-  > *:focus-within,
-  > *:focus-visible {
-    background: ${nocturne.surface};
-    box-shadow:
-      inset 0 -2px 0 ${nocturne.accent},
-      0 0 0 4px ${nocturne.ring};
+  && > *:focus-within,
+  && > *:focus-visible {
+    border-color: ${nocturne.accent};
+    outline: none;
   }
 `;
 
@@ -282,8 +280,8 @@ const QuickRoute = styled.button`
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 13px 14px;
-  border: 1px solid ${nocturne.line};
+  padding: 14px;
+  border: 2px solid transparent;
   border-radius: 16px;
   background: ${nocturne.surface};
   color: ${nocturne.cream};
@@ -315,13 +313,11 @@ const QuickRoute = styled.button`
   }
 
   &:hover {
-    background: ${nocturne.surface3};
-    border-color: ${nocturne.accent};
+    border-color: ${nocturne.line};
   }
   &:focus-visible {
     outline: none;
     border-color: ${nocturne.accent};
-    box-shadow: 0 0 0 4px ${nocturne.ring};
   }
 `;
 
@@ -784,12 +780,6 @@ const ClearBtn = styled.button`
     background 0.18s ease,
     color 0.18s ease,
     border-color 0.18s ease;
-
-  .word {
-    @media (max-width: 400px) {
-      display: none;
-    }
-  }
 
   &:hover {
     border-color: ${nocturne.accent};
