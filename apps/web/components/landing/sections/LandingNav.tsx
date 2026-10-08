@@ -97,6 +97,10 @@ const NavRight = styled.div`
 `;
 
 const NavLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   font-size: 15px;
   font-weight: 500;
   white-space: nowrap;

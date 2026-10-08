@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Circle,
   MapPin,
-  NavigationArrow as Navigation,
 } from "@/components/icons";
 import {
   KENYAN_TOWNS,
@@ -206,10 +205,6 @@ const Row = styled.button<{ $active?: boolean }>`
 `;
 
 const RouteRow = styled(Row)`
-  .glyph {
-    background: ${({ theme }) => theme.tone.mint.bg};
-    color: ${({ theme }) => theme.tone.mint.on};
-  }
   .pair {
     display: flex;
     align-items: center;
@@ -422,9 +417,6 @@ export function PlaceModal({
               onMouseMove={() => setActive(i)}
               onClick={() => choose(entry)}
             >
-              <span className="glyph">
-                <Navigation size={17} />
-              </span>
               <span className="text">
                 <span className="pair" aria-hidden="true">
                   {entry.from}
@@ -452,7 +444,11 @@ export function PlaceModal({
             <TownThumb town={entry.town.name} places={places} />
             <span className="text">
               <b aria-hidden="true">{entry.town.name}</b>
-              <small aria-hidden="true">{entry.town.county}</small>
+              {entry.town.county &&
+              entry.town.county.trim().toLowerCase() !==
+                entry.town.name.trim().toLowerCase() ? (
+                <small aria-hidden="true">{entry.town.county}</small>
+              ) : null}
             </span>
           </Row>
         );

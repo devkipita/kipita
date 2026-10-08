@@ -18,6 +18,7 @@ import { nocturne } from "@/lib/nocturne";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl } from "@/components/ui/primitives";
 import { dayLabel, nairobiToday } from "@/lib/trips/format";
+import { POPULAR_ROUTES } from "@/components/landing/data";
 import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
 
 const MAX_SEATS = 8;
@@ -96,25 +97,67 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
 
   > svg {
     flex: none;
-    color: ${nocturne.ctaBg};
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 10px;
+    border-radius: 999px;
+    background: ${nocturne.surface2};
+    color: ${nocturne.accent};
   }
   .text {
     flex: 1;
     min-width: 0;
   }
+  .kicker {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: ${nocturne.muted2};
+  }
   b {
     display: block;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
+    letter-spacing: -0.01em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
   small {
     display: block;
-    margin-top: 2px;
+    margin-top: 3px;
     font-size: 14px;
-    color: ${nocturne.muted2};
+    color: ${nocturne.muted};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .go {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: ${nocturne.ctaBg};
+    color: ${nocturne.ctaFg};
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 400px) {
+    gap: 10px;
+    padding: 10px 12px;
+    > svg {
+      padding: 8px;
+    }
+    .go {
+      padding: 9px 14px;
+      font-size: 14px;
+    }
   }
   &:focus-visible {
     outline: none;
@@ -190,6 +233,98 @@ const SheetBody = styled.div`
   padding: 16px;
 `;
 
+const FieldGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  > * {
+    position: relative;
+    border: none;
+    border-radius: 16px;
+    background: ${nocturne.surface};
+    box-shadow: inset 0 -2px 0 ${nocturne.line};
+    transition:
+      box-shadow 0.16s ease,
+      background 0.16s ease;
+  }
+
+  > *:hover {
+    background: ${nocturne.surface3};
+  }
+
+  > *:focus-within,
+  > *:focus-visible {
+    background: ${nocturne.surface};
+    box-shadow:
+      inset 0 -2px 0 ${nocturne.accent},
+      0 0 0 4px ${nocturne.ring};
+  }
+`;
+
+const QuickTitle = styled.p`
+  margin: 22px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: ${nocturne.muted2};
+`;
+
+const QuickList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const QuickRoute = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid ${nocturne.line};
+  border-radius: 16px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+
+  .pair {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .sep {
+    margin: 0 7px;
+    color: ${nocturne.muted2};
+    font-weight: 500;
+  }
+
+  .price {
+    flex: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${nocturne.muted};
+  }
+
+  &:hover {
+    background: ${nocturne.surface3};
+    border-color: ${nocturne.accent};
+  }
+  &:focus-visible {
+    outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 4px ${nocturne.ring};
+  }
+`;
+
 const SheetFoot = styled.div`
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
   border-top: 1px solid ${nocturne.line};
@@ -212,6 +347,12 @@ const SeatsRow = styled.div`
 
   > svg {
     flex: none;
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 9px;
+    border-radius: 12px;
+    background: ${nocturne.surface2};
     color: ${nocturne.accent};
   }
   .text {
@@ -284,10 +425,13 @@ const Field = styled.label`
 
   > svg {
     flex: none;
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 9px;
+    border-radius: 12px;
+    background: ${nocturne.surface2};
     color: ${nocturne.accent};
-  }
-  &[data-tone="origin"] > svg {
-    color: ${nocturne.ctaBg};
   }
   &:hover {
     border-color: ${nocturne.line};
@@ -355,6 +499,12 @@ const DateField = styled.button`
 
   > svg {
     flex: none;
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 9px;
+    border-radius: 12px;
+    background: ${nocturne.surface2};
     color: ${nocturne.accent};
   }
   .text {
@@ -478,6 +628,12 @@ const Trigger = styled.button`
 
   > svg {
     flex: none;
+    box-sizing: content-box;
+    width: 22px;
+    height: 22px;
+    padding: 9px;
+    border-radius: 12px;
+    background: ${nocturne.surface2};
     color: ${nocturne.accent};
   }
   .text {
@@ -750,7 +906,7 @@ export function FindRideSearchBar({
   const collapsedSummary = [
     form.from.trim() ? `From ${form.from.trim()}` : "Anywhere",
     dateLabel(form.date),
-    seatsLabel(form.seats),
+    `${form.seats} ${form.seats === 1 ? "seat" : "seats"}`,
   ].join(" · ");
 
   // The sheet is a page, not a dialog-in-a-page: lock the body behind it.
@@ -794,6 +950,9 @@ export function FindRideSearchBar({
         <span className="text">
           <b>{form.to.trim() || placeholder}</b>
           <small>{collapsedSummary}</small>
+        </span>
+        <span className="go" aria-hidden>
+          Search
         </span>
       </Collapsed>
 
@@ -944,6 +1103,7 @@ export function FindRideSearchBar({
           </SheetTop>
 
           <SheetBody>
+            <FieldGroup>
             <Field data-tone="origin">
               <NavigationArrow size={20} aria-hidden />
               <span className="body">
@@ -965,7 +1125,6 @@ export function FindRideSearchBar({
                 <input
                   value={form.to}
                   readOnly
-                  autoFocus
                   onClick={() => setPlaceField("to")}
                   placeholder="Where are you going?"
                   aria-label="Going to"
@@ -1017,6 +1176,7 @@ export function FindRideSearchBar({
                 </Round>
               </span>
             </SeatsRow>
+            </FieldGroup>
 
             {dirty && (
               <ClearBtn
@@ -1031,6 +1191,24 @@ export function FindRideSearchBar({
                 <span className="word">Clear</span>
               </ClearBtn>
             )}
+
+            <QuickTitle>Popular routes</QuickTitle>
+            <QuickList>
+              {POPULAR_ROUTES.map((r) => (
+                <QuickRoute
+                  key={`${r.from}-${r.to}`}
+                  type="button"
+                  onClick={() => patch({ from: r.from, to: r.to })}
+                >
+                  <span className="pair">
+                    {r.from}
+                    <span className="sep">→</span>
+                    {r.to}
+                  </span>
+                  <span className="price">{r.price}</span>
+                </QuickRoute>
+              ))}
+            </QuickList>
           </SheetBody>
 
           <SheetFoot>

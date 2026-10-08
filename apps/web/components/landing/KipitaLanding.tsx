@@ -17,15 +17,17 @@ export function KipitaLanding({ profile }: { profile: Profile | null }) {
   return (
     <Root className={landingFonts}>
       <LandingNav profile={profile} />
-      <RideSearchProvider>
-        <Hero />
-        <TrustStrip />
-      </RideSearchProvider>
-      <RideSteps />
-      <PopularRoutes />
-      <DriverCta />
-      <DownloadCta />
-      <SupportContact />
+      <main id="main">
+        <RideSearchProvider>
+          <Hero />
+          <TrustStrip />
+        </RideSearchProvider>
+        <RideSteps />
+        <PopularRoutes />
+        <DriverCta />
+        <DownloadCta />
+        <SupportContact />
+      </main>
       <LandingFooter />
       <AppBottomNav />
     </Root>

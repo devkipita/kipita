@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
+import { nocturne } from "@/lib/nocturne";
 import {
   FindRideSearchBar,
   type SearchBarValue,
@@ -28,6 +29,19 @@ const Holder = styled.div`
   }
 `;
 
+const SearchLabel = styled.h2`
+  display: none;
+
+  @media (max-width: 760px) {
+    display: block;
+    margin: 0 0 12px 2px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: #ffffff;
+  }
+`;
+
 export function HeroSearchBar() {
   const router = useRouter();
   const [value, setValue] = useState<SearchBarValue>(EMPTY);
@@ -45,8 +59,9 @@ export function HeroSearchBar() {
 
   return (
     <Holder>
+      <SearchLabel>Find a ride</SearchLabel>
       <FindRideSearchBar
-        placeholder="Where are you going?"
+        placeholder="Where to?"
         value={value}
         onSubmit={go}
         onClear={() => setValue(EMPTY)}

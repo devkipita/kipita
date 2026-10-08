@@ -17,7 +17,7 @@ const HeroShell = styled.section`
     min-height: 810px;
   }
   @media (max-width: 640px) {
-    min-height: 75dvh;
+    min-height: 100dvh;
   }
 `;
 
@@ -55,9 +55,11 @@ const Scrim = styled.div`
   @media (max-width: 640px) {
     background: linear-gradient(
       180deg,
-      rgba(8, 41, 31, 0.72),
-      rgba(8, 42, 31, 0.84) 54%,
-      rgba(8, 42, 31, 0.98)
+      rgba(8, 41, 31, 0.9) 0%,
+      rgba(8, 42, 31, 0.74) 34%,
+      rgba(8, 42, 31, 0.6) 56%,
+      rgba(6, 36, 27, 0.93) 88%,
+      rgba(6, 34, 26, 0.97) 100%
     );
   }
 `;
@@ -78,8 +80,9 @@ const Content = styled.div`
     padding: 145px 24px 45px;
   }
   @media (max-width: 640px) {
-    justify-content: flex-start;
-    padding: 112px 18px calc(84px + env(safe-area-inset-bottom));
+    justify-content: space-between;
+    min-height: 100dvh;
+    padding: 104px 18px calc(116px + env(safe-area-inset-bottom));
   }
 `;
 

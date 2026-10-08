@@ -25,11 +25,18 @@ const popIn = keyframes`
 const PILL_W = "184px";
 const CIRCLE = "58px";
 
-const DockShell = styled.div<{ $open: boolean; $expanded: boolean }>`
+const DockShell = styled.div<{
+  $open: boolean;
+  $expanded: boolean;
+  $visible: boolean;
+}>`
   position: fixed;
   right: clamp(16px, 2vw, 28px);
   bottom: clamp(16px, 2vw, 28px);
   z-index: 96;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  visibility: ${({ $visible }) => ($visible ? "visible" : "hidden")};
+  pointer-events: ${({ $visible }) => ($visible ? "auto" : "none")};
   width: ${({ $open, $expanded }) =>
     $open ? "min(360px, calc(100vw - 32px))" : $expanded ? PILL_W : CIRCLE};
   height: ${({ $open }) => ($open ? "min(540px, calc(100dvh - 32px))" : CIRCLE)};
@@ -37,21 +44,23 @@ const DockShell = styled.div<{ $open: boolean; $expanded: boolean }>`
   border-radius: ${({ $open }) => ($open ? "30px" : "999px")};
   background: ${({ $open }) => ($open ? nocturne.surface : nocturne.lime)};
   border: 1px solid
-    ${({ $open }) => ($open ? "#2a2a2a" : "rgba(159, 232, 112, 0.22)")};
+    ${({ $open }) => ($open ? nocturne.line : "rgba(159, 232, 112, 0.22)")};
   overflow: hidden;
   transform-origin: bottom right;
   animation: ${popIn} 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
   box-shadow: ${({ $open }) =>
     $open
-      ? "0 34px 88px rgba(0, 0, 0, 0.72)"
-      : "0 16px 40px rgba(0, 0, 0, 0.55)"};
+      ? "0 24px 60px rgba(8, 34, 25, 0.26)"
+      : "0 10px 26px rgba(8, 34, 25, 0.22)"};
   transition:
     width 420ms cubic-bezier(0.22, 1, 0.36, 1),
     height 420ms cubic-bezier(0.22, 1, 0.36, 1),
     border-radius 420ms cubic-bezier(0.22, 1, 0.36, 1),
     background 260ms ease,
     border-color 260ms ease,
-    box-shadow 260ms ease;
+    box-shadow 260ms ease,
+    opacity 220ms ease,
+    visibility 0s linear ${({ $visible }) => ($visible ? "0s" : "220ms")};
   will-change: width, height, border-radius, background;
 
   @media (max-width: 640px) {
@@ -93,13 +102,9 @@ const DockLauncher = styled.button<{ $open: boolean; $expanded: boolean }>`
 `;
 
 const LauncherIcon = styled.span`
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: rgba(20, 57, 42, 0.12);
 `;
 
 const DockPanel = styled.div<{ $open: boolean }>`
@@ -153,18 +158,19 @@ const ChatTitle = styled.div`
   b {
     font-family: var(--font-dm), system-ui, sans-serif;
     font-size: 16px;
-    font-weight: 600;
-    color: ${nocturne.cream};
+    font-weight: 700;
+    color: ${nocturne.onGreen};
   }
   span {
-    font-size: 12px;
-    color: #cfe3d1;
+    font-size: 13px;
+    color: ${nocturne.onGreenMuted};
   }
 `;
 
 const ChatClose = styled.button`
-  width: 30px;
-  height: 30px;
+  flex: none;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: ${nocturne.greenDeep};
@@ -348,9 +354,22 @@ export function SupportDock({
   const [sending, setSending] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
 
+  const [pastHero, setPastHero] = useState(false);
+
   useEffect(() => {
     const t = setTimeout(() => setIntro(false), 2600);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const read = () => setPastHero(window.scrollY > window.innerHeight * 0.75);
+    read();
+    window.addEventListener("scroll", read, { passive: true });
+    window.addEventListener("resize", read);
+    return () => {
+      window.removeEventListener("scroll", read);
+      window.removeEventListener("resize", read);
+    };
   }, []);
 
   useEffect(() => {
@@ -441,6 +460,7 @@ export function SupportDock({
     <DockShell
       $open={open}
       $expanded={expanded}
+      $visible={pastHero || open}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
