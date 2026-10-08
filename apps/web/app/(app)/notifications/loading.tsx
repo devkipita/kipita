@@ -1,5 +1,10 @@
-import { PageSkeleton } from "@/components/ui/PageSkeleton";
+import { RouteSkeleton } from "@/components/ui/RouteSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton cards={5} />;
+  return (
+    <RouteSkeleton
+      title="Notifications"
+      sections={[{ cards: 5, cardHeight: "80px" }]}
+    />
+  );
 }

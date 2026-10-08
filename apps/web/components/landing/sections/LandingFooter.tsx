@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import Link from "next/link";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
 import { SITE, LEGAL_LINKS } from "@/lib/site";
@@ -117,10 +118,10 @@ export function LandingFooter() {
           Making travel across Kenya more affordable, social, and sustainable.
         </Tagline>
         <Links aria-label="Footer navigation">
-          <a href="/home">Find a ride</a>
-          <a href="/publish">Publish a ride</a>
-          <a href="/alerts">Road alerts</a>
-          <a href="/#routes">Popular routes</a>
+          <Link href="/home">Find a ride</Link>
+          <Link href="/publish">Publish a ride</Link>
+          <Link href="/alerts">Road alerts</Link>
+          <Link href="/#routes">Popular routes</Link>
         </Links>
       </Top>
 
@@ -129,7 +130,7 @@ export function LandingFooter() {
         <LegalRow>
           {LEGAL_LINKS.map((link, i) => (
             <span key={link.href}>
-              <a href={link.href}>{link.label}</a>
+              <Link href={link.href}>{link.label}</Link>
               {i < LEGAL_LINKS.length - 1 ? " ·" : null}
             </span>
           ))}

@@ -11,7 +11,6 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export const metadata: Metadata = {
   title: "Road alert",
-  robots: { index: false, follow: false },
 };
 
 export default async function AlertPage({ params }: PageProps) {

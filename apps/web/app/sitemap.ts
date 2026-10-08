@@ -10,7 +10,7 @@ type Entry = {
 const ROUTES: Entry[] = [
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/home", changeFrequency: "hourly", priority: 0.9 },
-  { path: "/alerts", changeFrequency: "hourly", priority: 0.8 },
+  { path: "/alerts", changeFrequency: "hourly", priority: 0.85 },
   { path: "/publish", changeFrequency: "weekly", priority: 0.7 },
   { path: "/help", changeFrequency: "weekly", priority: 0.5 },
   { path: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },

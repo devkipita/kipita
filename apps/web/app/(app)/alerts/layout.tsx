@@ -1,16 +1,17 @@
-import type { ReactNode } from "react";
-import { AlertsAside } from "@/components/alerts/AlertsAside";
+import { Suspense, type ReactNode } from "react";
+import { AlertsAsideData } from "@/components/alerts/AlertsAsideData";
+import { AlertsAsideSkeleton } from "@/components/alerts/AlertsAsideSkeleton";
 import { AlertsColumns } from "@/components/alerts/AlertsColumns";
-import { fetchAlertFaqs, fetchTrendingRoads } from "@/lib/alerts/server";
 
-export default async function AlertsLayout({ children }: { children: ReactNode }) {
-  const [trending, faqs] = await Promise.all([
-    fetchTrendingRoads(),
-    fetchAlertFaqs(),
-  ]);
-
+export default function AlertsLayout({ children }: { children: ReactNode }) {
   return (
-    <AlertsColumns aside={<AlertsAside trending={trending} faqs={faqs} />}>
+    <AlertsColumns
+      aside={
+        <Suspense fallback={<AlertsAsideSkeleton />}>
+          <AlertsAsideData />
+        </Suspense>
+      }
+    >
       {children}
     </AlertsColumns>
   );

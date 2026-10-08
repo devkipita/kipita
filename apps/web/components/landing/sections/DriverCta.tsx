@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import Image from "next/image";
+import Link from "next/link";
 import DRIVER from "../../../public/landing/driver.jpg";
 import { ArrowRight, ShieldCheck, Wallet } from "@/components/icons";
 import { nocturne } from "../nocturne";
@@ -133,7 +134,7 @@ const Benefits = styled.div`
   }
 `;
 
-const Publish = styled.a`
+const Publish = styled(Link)`
   display: inline-flex;
   align-items: center;
   justify-content: center;

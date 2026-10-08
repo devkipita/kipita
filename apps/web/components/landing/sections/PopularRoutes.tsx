@@ -1,5 +1,6 @@
 import styled from "styled-components";
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight, Clock } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
@@ -49,7 +50,7 @@ const Title = styled.h2`
   }
 `;
 
-const SeeAll = styled.a`
+const SeeAll = styled(Link)`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -79,7 +80,7 @@ const Grid = styled(Reveal)`
   }
 `;
 
-const Card = styled.a`
+const Card = styled(Link)`
   display: block;
   overflow: hidden;
   border-radius: 24px;

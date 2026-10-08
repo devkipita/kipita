@@ -1,5 +1,10 @@
-import { PageSkeleton } from "@/components/ui/PageSkeleton";
+import { RouteSkeleton } from "@/components/ui/RouteSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton cards={3} />;
+  return (
+    <RouteSkeleton
+      title="Wallet"
+      sections={[{ heading: "Activity", cards: 4, cardHeight: "72px" }]}
+    />
+  );
 }

@@ -4,6 +4,9 @@ const nextConfig = {
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Compile the shared workspace package (ships raw TS, no build step).
   transpilePackages: ["@kipita/shared"],
+  experimental: {
+    staleTimes: { dynamic: 30, static: 180 },
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     remotePatterns: [

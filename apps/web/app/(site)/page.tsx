@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { KipitaLanding } from "@/components/landing/KipitaLanding";
+import { getProfile } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -7,6 +8,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  return <KipitaLanding />;
+export default async function HomePage() {
+  const profile = await getProfile();
+  return <KipitaLanding profile={profile} />;
 }

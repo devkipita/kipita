@@ -9,7 +9,9 @@ import {
 
 export const metadata: Metadata = {
   title: "Road alerts",
-  robots: { index: false, follow: false },
+  description:
+    "Live road conditions across Kenya — traffic, accidents, closures, police checks and weather, reported by drivers on the route.",
+  alternates: { canonical: "/alerts" },
 };
 
 export default async function AlertsPage() {

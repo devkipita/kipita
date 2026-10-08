@@ -1,5 +1,10 @@
-import { PageSkeleton } from "@/components/ui/PageSkeleton";
+import { RouteSkeleton } from "@/components/ui/RouteSkeleton";
 
 export default function Loading() {
-  return <PageSkeleton cards={3} />;
+  return (
+    <RouteSkeleton
+      title="Profile"
+      sections={[{ cards: 3, cardHeight: "104px" }]}
+    />
+  );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   ArrowDown,
@@ -22,7 +22,6 @@ import { Container } from "@/components/ui/primitives";
 import { Reveal } from "@/components/anim/Reveal";
 import { ChatSupport } from "@/components/help/ChatSupport";
 import { SITE } from "@/lib/site";
-import { fetchPublishedFaqs } from "@/lib/faqs";
 import type { ToneName } from "@/lib/theme";
 
 /* ── Hero ─────────────────────────────────────────────────────────────── */
@@ -561,28 +560,10 @@ const DEFAULT_FAQS: FaqItem[] = [
   },
 ];
 
-export function HelpContent() {
+export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
   const [open, setOpen] = useState<number | null>(0);
   const [query, setQuery] = useState("");
-  const [faqs, setFaqs] = useState<FaqItem[]>(DEFAULT_FAQS);
-
-  // Pull the live, admin-managed FAQs; keep the defaults if the table is empty
-  // or unreachable so the section always renders something.
-  useEffect(() => {
-    let alive = true;
-    fetchPublishedFaqs()
-      .then((rows) => {
-        if (alive && rows.length) {
-          setFaqs(
-            rows.map((r) => ({ question: r.question, answer: r.answer })),
-          );
-        }
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
+  const faqs = initialFaqs?.length ? initialFaqs : DEFAULT_FAQS;
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
