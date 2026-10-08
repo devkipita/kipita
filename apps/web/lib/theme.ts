@@ -90,7 +90,7 @@ const STACK =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"'; 
 
 /** Body copy, form fields, labels — everything that is read rather than scanned. */
-const font = `var(--font-dm), var(--font-dm-sans), "DM Sans", "Nunito", ${STACK}`;
+const font = `var(--font-dm), "DM Sans", ${STACK}`;
 
 /**
  * Headings and titles. A second, more geometric face so a heading is a
@@ -98,7 +98,7 @@ const font = `var(--font-dm), var(--font-dm-sans), "DM Sans", "Nunito", ${STACK}
  * site uses (Google Sans over Roboto).
  */
 
-const fontHeading = `var(--font-manrope), "Manrope", var(--font-heading), ${STACK}`;
+const fontHeading = `var(--font-manrope), "Manrope", ${STACK}`;
 
 /**
  * The type scale. Seven steps, and nothing between them.

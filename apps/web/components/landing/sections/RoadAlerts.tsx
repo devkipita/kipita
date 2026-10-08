@@ -103,7 +103,7 @@ const AlertAvatar = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-dm), system-ui, sans-serif;
   font-size: 15px;
   font-weight: 700;
 `;
@@ -124,7 +124,7 @@ const AlertRow = styled.div`
 `;
 
 const AlertName = styled.span`
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-dm), system-ui, sans-serif;
   font-size: 16px;
   font-weight: 700;
   color: ${nocturne.cream};

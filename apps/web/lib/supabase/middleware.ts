@@ -9,24 +9,21 @@ type SupabaseCookie = {
 };
 
 /**
- * Routes that stream (they have a `loading.tsx`) and therefore cannot redirect
- * with an HTTP status from the page itself — once the shell is flushed, a
- * `redirect()` in the server component can only be delivered inside the stream,
- * so a signed-out visitor sees a skeleton flash and pays for the page's queries
- * before bouncing. Gating those here keeps the redirect a real 307.
- *
- * Every other route still gates itself with `requireProfile` / `requireAdmin`;
- * this list is a performance and polish measure, not the security boundary.
- */
-const STREAMING_AUTHED_ROUTES: string[] = [];
-
-/**
  * Refresh the Supabase auth session cookie on every matched request.
  *
  * `extraRequestHeaders` are merged onto the *request* so server components can
  * read them (the CSP nonce arrives this way) — they have to be applied every
  * time the response is rebuilt below, or a cookie refresh would drop them.
  */
+const STREAMING_AUTHED_ROUTES = [
+  "/trips",
+  "/wallet",
+  "/referrals",
+  "/profile",
+  "/notifications",
+  "/publish",
+];
+
 export async function updateSession(
   request: NextRequest,
   extraRequestHeaders: Record<string, string> = {},
@@ -40,6 +37,23 @@ export async function updateSession(
   };
 
   let response = withHeaders();
+
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some(({ name }) => name.startsWith("sb-") && name.includes("auth-token"));
+
+  if (!hasSessionCookie) {
+    const { pathname, search } = request.nextUrl;
+    const needsAuth = STREAMING_AUTHED_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(`${route}/`),
+    );
+    if (needsAuth) {
+      const signIn = new URL("/auth/sign-in", request.url);
+      signIn.searchParams.set("next", `${pathname}${search}`);
+      return NextResponse.redirect(signIn);
+    }
+    return response;
+  }
 
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
@@ -59,20 +73,7 @@ export async function updateSession(
   });
 
   // Touch the session so an expiring token is refreshed into the response.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { pathname, search } = request.nextUrl;
-  const needsAuth = STREAMING_AUTHED_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
-
-  if (needsAuth && !user) {
-    const signIn = new URL("/auth/sign-in", request.url);
-    signIn.searchParams.set("next", `${pathname}${search}`);
-    return NextResponse.redirect(signIn);
-  }
+  await supabase.auth.getUser();
 
   return response;
 }

@@ -1,5 +1,7 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { supabasePublic } from "@/lib/supabase/public";
 import { POPULAR_ROUTES } from "@/components/landing/data";
 import type { Ride } from "@/lib/rides";
 
@@ -44,29 +46,32 @@ const STATIC_ROUTES: RouteCard[] = POPULAR_ROUTES.map((r) => ({
   live: false,
 }));
 
-export async function fetchPopularRoutes(limit = 3): Promise<RouteCard[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("popular_routes")
-      .select("from_location,to_location,trips_count,min_price,image_url")
-      .order("trips_count", { ascending: false })
-      .limit(limit);
+export const fetchPopularRoutes = unstable_cache(
+  async function fetchPopularRoutes(limit = 3): Promise<RouteCard[]> {
+    try {
+      const { data, error } = await supabasePublic
+        .from("popular_routes")
+        .select("from_location,to_location,trips_count,min_price,image_url")
+        .order("trips_count", { ascending: false })
+        .limit(limit);
 
-    if (error || !data?.length) return STATIC_ROUTES.slice(0, limit);
+      if (error || !data?.length) return STATIC_ROUTES.slice(0, limit);
 
-    return (data as RouteRow[]).map((r) => ({
-      from: r.from_location,
-      to: r.to_location,
-      price: kes(Number(r.min_price)),
-      duration: seatsLabel(r.trips_count),
-      image: r.image_url || townImage(r.to_location),
-      live: true,
-    }));
-  } catch {
-    return STATIC_ROUTES.slice(0, limit);
-  }
-}
+      return (data as RouteRow[]).map((r) => ({
+        from: r.from_location,
+        to: r.to_location,
+        price: kes(Number(r.min_price)),
+        duration: seatsLabel(r.trips_count),
+        image: r.image_url || townImage(r.to_location),
+        live: true,
+      }));
+    } catch {
+      return STATIC_ROUTES.slice(0, limit);
+    }
+  },
+  ["popular-routes"],
+  { revalidate: 3600, tags: ["popular-routes"] },
+);
 
 export { FALLBACK_IMAGE };
 

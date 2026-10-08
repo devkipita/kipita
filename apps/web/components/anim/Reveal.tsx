@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useIsoLayoutEffect } from "./useIsoLayoutEffect";
-
-if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
 /**
  * Reveals its direct children on scroll — a soft rise + fade with stagger.
@@ -34,23 +30,65 @@ export function Reveal({
     const el = ref.current;
     if (!el) return;
 
-    // Respect reduced-motion.
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const targets = el.children.length ? Array.from(el.children) : [el];
-    const ctx = gsap.context(() => {
-      gsap.from(targets, {
-        opacity: 0,
-        y,
-        duration: 0.8,
-        ease: "power3.out",
-        stagger,
-        delay,
-        scrollTrigger: { trigger: el, start, once: true },
-      });
-    }, el);
+    const targets = (
+      el.children.length ? Array.from(el.children) : [el]
+    ) as HTMLElement[];
 
-    return () => ctx.revert();
+    const show = () => {
+      for (const t of targets) {
+        t.style.opacity = "";
+        t.style.transform = "";
+      }
+    };
+
+    for (const t of targets) {
+      t.style.opacity = "0";
+      t.style.transform = `translateY(${y}px)`;
+    }
+
+    let cancelled = false;
+    let revert: (() => void) | null = null;
+
+    const run = async () => {
+      try {
+        const { gsap } = await import("gsap");
+        if (cancelled) return;
+        const ctx = gsap.context(() => {
+          gsap.to(targets, {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: "power3.out",
+            stagger,
+            delay,
+            clearProps: "opacity,transform",
+          });
+        }, el);
+        revert = () => ctx.revert();
+      } catch {
+        show();
+      }
+    };
+
+    const threshold = thresholdFromStart(start);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        observer.disconnect();
+        void run();
+      },
+      { rootMargin: `0px 0px -${threshold}% 0px` },
+    );
+    observer.observe(el);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      if (revert) revert();
+      else show();
+    };
   }, [y, stagger, delay, start]);
 
   return (
@@ -58,4 +96,10 @@ export function Reveal({
       {children}
     </div>
   );
+}
+
+function thresholdFromStart(start: string): number {
+  const match = /(\d+(?:\.\d+)?)%/.exec(start);
+  const pct = match ? Number(match[1]) : 84;
+  return Math.max(0, Math.min(90, 100 - pct));
 }

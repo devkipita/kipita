@@ -1,4 +1,3 @@
-import type { Profile } from "@/lib/auth/types";
 import { landingFonts } from "./fonts";
 import { Root } from "./primitives";
 import { RideSearchProvider } from "./search/RideSearchContext";
@@ -13,10 +12,10 @@ import { SupportContact } from "./sections/SupportContact";
 import { LandingFooter } from "./sections/LandingFooter";
 import { AppBottomNav } from "@/components/nav/AppBottomNav";
 
-export function KipitaLanding({ profile }: { profile: Profile | null }) {
+export function KipitaLanding() {
   return (
     <Root className={landingFonts}>
-      <LandingNav profile={profile} />
+      <LandingNav />
       <RideSearchProvider>
         <Hero />
         <TrustStrip />

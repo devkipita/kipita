@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -8,14 +9,13 @@ import { PROFILE_COLUMNS, type Profile } from "./types";
  * pages render already knowing who the user is — no client-side auth flicker.
  */
 
-/** The authenticated Supabase user, or null. */
-export async function getAuthUser() {
+export const getAuthUser = cache(async function getAuthUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
+});
 
 function authAvatarUrl(user: User): string | null {
   return typeof user.user_metadata?.avatar_url === "string"
@@ -87,11 +87,9 @@ function synthesize(user: User): Profile {
  * but the `users` row doesn't exist yet, we create it (best effort) and fall
  * back to a synthesized profile so an authed user is never treated as absent.
  */
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUser();
   if (!user) return null;
 
   const merge = (row: Profile): Profile => ({
@@ -137,7 +135,7 @@ export async function getProfile(): Promise<Profile | null> {
 
   // Insert blocked (RLS) — render from the auth record so we don't loop.
   return synthesize(user);
-}
+});
 
 /** Gate a page on auth. Redirects to sign-in only when truly signed out. */
 export async function requireProfile(returnTo = "/profile"): Promise<Profile> {

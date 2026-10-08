@@ -5,7 +5,9 @@ export const SITE = {
   description:
     "Kipita connects drivers with empty seats to passengers heading the same way — safer, cheaper journeys across Kenya, paid securely with M-Pesa.",
   supportEmail: "support@kipita.app",
-  websiteUrl: "https://kipita.app",
+  websiteUrl:
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+    "https://www.kipita.co.ke",
   brand: {
     green: "#2F6C4F",
     greenDark: "#1E6B4A",

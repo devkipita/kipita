@@ -51,6 +51,7 @@ async function lookup(title: string): Promise<string | null> {
   const response = await fetch(`${ENDPOINT}?${params.toString()}`, {
     headers: { accept: "application/json" },
     next: { revalidate: DAY * 30 },
+    signal: AbortSignal.timeout(2500),
   });
   if (!response.ok) return null;
 

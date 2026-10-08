@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import Image from "next/image";
 import { ArrowRight, Clock } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
@@ -100,12 +101,16 @@ const Card = styled.a`
   }
 `;
 
-const Art = styled.span<{ $src: string }>`
+const Art = styled.span`
   position: relative;
   display: block;
   height: 180px;
-  background: url("${({ $src }) => $src}") center / cover no-repeat,
-    ${nocturne.surface2};
+  overflow: hidden;
+  background: ${nocturne.surface2};
+
+  img {
+    object-fit: cover;
+  }
 
   &::after {
     content: "";
@@ -188,7 +193,15 @@ export async function PopularRoutes() {
               key={`${r.from}-${r.to}`}
               href={`/home?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`}
             >
-              <Art $src={r.image} aria-hidden />
+              <Art aria-hidden>
+                <Image
+                  src={r.image}
+                  alt=""
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw"
+                  quality={70}
+                />
+              </Art>
               <Body>
                 <Places>
                   <b>{r.from}</b>

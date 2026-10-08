@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { after } from "next/server";
 import { AppShell } from "@/components/nav/AppShell";
 import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
@@ -10,16 +11,18 @@ import { fetchOpenSupportCases } from "@/lib/support/server";
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const [profile, mode] = await Promise.all([getProfile(), readMode()]);
 
-  let driverHasApplied = false;
-  if (profile) {
-    const supabase = await createClient();
-    const kyc = await fetchDriverKyc(supabase, profile.id).catch(() => null);
-    driverHasApplied = kyc?.hasApplied ?? false;
-  }
+  if (profile) after(claimReferralFromCookie);
 
-  if (profile) await claimReferralFromCookie();
+  const [kyc, supportCases] = profile
+    ? await Promise.all([
+        createClient()
+          .then((supabase) => fetchDriverKyc(supabase, profile.id))
+          .catch(() => null),
+        fetchOpenSupportCases(),
+      ])
+    : [null, []];
 
-  const supportCases = profile ? await fetchOpenSupportCases() : [];
+  const driverHasApplied = kyc?.hasApplied ?? false;
 
   return (
     <AppShell

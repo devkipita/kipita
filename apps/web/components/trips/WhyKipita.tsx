@@ -1,8 +1,6 @@
 "use client";
 
 import { useRef } from "react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import styled from "styled-components";
 import { useIsoLayoutEffect } from "@/components/anim/useIsoLayoutEffect";
 import { palette } from "@/lib/theme";
@@ -13,8 +11,6 @@ import {
   VerifiedArt,
   Wireframe,
 } from "./WhyArt";
-
-if (typeof window !== "undefined") gsap.registerPlugin(ScrollTrigger);
 
 /**
  * The one place this page spends its boldness.
@@ -198,24 +194,57 @@ export function WhyKipita() {
     if (!el) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const ctx = gsap.context(() => {
-      const hero = el.querySelector("[data-why='hero']");
-      const sides = gsap.utils.toArray<HTMLElement>("[data-why='side']");
-      if (!hero) return;
+    const heading = el.querySelector<HTMLElement>("h2");
+    const hero = el.querySelector<HTMLElement>("[data-why='hero']");
+    const sides = Array.from(
+      el.querySelectorAll<HTMLElement>("[data-why='side']"),
+    );
+    if (!hero) return;
 
-      // One settled entrance per card: lift and fade, no 3D swing and no
-      // scrub — tying a rotation to scroll position made the band lurch.
-      const tl = gsap.timeline({
-        scrollTrigger: { trigger: el, start: "top 82%", once: true },
-        defaults: { ease: "expo.out", duration: 0.9 },
-      });
+    const staged = [heading, hero, ...sides].filter(Boolean) as HTMLElement[];
+    const show = () => staged.forEach((n) => (n.style.opacity = ""));
+    staged.forEach((n) => (n.style.opacity = "0"));
 
-      tl.from(el.querySelector("h2"), { y: 28, opacity: 0 }, 0)
-        .from(hero, { y: 34, opacity: 0, scale: 0.98 }, 0.1)
-        .from(sides, { y: 26, opacity: 0, stagger: 0.09 }, 0.2);
-    }, el);
+    let cancelled = false;
+    let revert: (() => void) | null = null;
 
-    return () => ctx.revert();
+    const run = async () => {
+      try {
+        const { gsap } = await import("gsap");
+        if (cancelled) return;
+        show();
+
+        const ctx = gsap.context(() => {
+          const tl = gsap.timeline({
+            defaults: { ease: "expo.out", duration: 0.9 },
+          });
+
+          tl.from(heading, { y: 28, opacity: 0 }, 0)
+            .from(hero, { y: 34, opacity: 0, scale: 0.98 }, 0.1)
+            .from(sides, { y: 26, opacity: 0, stagger: 0.09 }, 0.2);
+        }, el);
+        revert = () => ctx.revert();
+      } catch {
+        show();
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        observer.disconnect();
+        void run();
+      },
+      { rootMargin: "0px 0px -18% 0px" },
+    );
+    observer.observe(el);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      if (revert) revert();
+      else show();
+    };
   }, []);
 
   return (

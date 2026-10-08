@@ -1,44 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito, Space_Grotesk } from "next/font/google";
-import localFont from "next/font/local";
 import { SITE } from "@/lib/site";
 import { landingFonts } from "@/components/landing/fonts";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
-
-const dmSans = Nunito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-  variable: "--font-dm-sans",
-});
-
-// Tall, condensed titles. The CSS variable keeps its old name so no call sites change.
-const outfit = localFont({
-  src: [
-    {
-      path: "../public/assets/barlow-condensed-500.ttf",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "../public/assets/barlow-condensed-600.ttf",
-      weight: "600",
-      style: "normal",
-    },
-  ],
-  display: "swap",
-  variable: "--font-heading",
-});
-
-// Used only on the StepFlow cards on the landing.
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-  variable: "--font-space-grotesk",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.websiteUrl),
@@ -115,7 +80,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${landingFonts} ${dmSans.variable} ${outfit.variable} ${spaceGrotesk.variable}`}
+      className={landingFonts}
       suppressHydrationWarning
     >
       <body>

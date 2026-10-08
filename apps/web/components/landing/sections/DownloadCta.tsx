@@ -1,4 +1,8 @@
 import styled from "styled-components";
+import Image from "next/image";
+import appSearch from "../../../public/landing/app-search.png";
+import appHome from "../../../public/landing/app-home.png";
+import appRides from "../../../public/landing/app-rides.png";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
 import { Eyebrow, H2 } from "../primitives";
@@ -113,8 +117,9 @@ const Phones = styled.div`
   min-height: clamp(340px, 56vw, 520px);
 `;
 
-const Phone = styled.img<{ $pos: "left" | "right" | "center" }>`
+const Phone = styled(Image)<{ $pos: "left" | "right" | "center" }>`
   flex: none;
+  height: auto;
   border-radius: 26px;
   border: 1px solid #2a2a2a;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
@@ -177,18 +182,21 @@ export function DownloadCta() {
         <Reveal delay={0.1}>
           <Phones>
             <Phone
-              src="/landing/app-search.png"
+              src={appSearch}
               alt="Kipita search screen"
+              sizes="(max-width: 640px) 27vw, 210px"
               $pos="left"
             />
             <Phone
-              src="/landing/app-home.png"
+              src={appHome}
               alt="Kipita home screen"
+              sizes="(max-width: 640px) 34vw, 250px"
               $pos="center"
             />
             <Phone
-              src="/landing/app-rides.png"
+              src={appRides}
               alt="Kipita rides screen"
+              sizes="(max-width: 640px) 27vw, 210px"
               $pos="right"
             />
           </Phones>

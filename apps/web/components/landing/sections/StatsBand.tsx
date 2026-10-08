@@ -1,4 +1,6 @@
 import styled from "styled-components";
+import Image from "next/image";
+import people from "../../../public/landing/people-right.png";
 import { nocturne } from "../nocturne";
 import { Parallax } from "../../anim/Parallax";
 import { Reveal } from "../../anim/Reveal";
@@ -64,7 +66,7 @@ const StatNum = styled.div`
   flex-wrap: nowrap;
   gap: 0.02em;
   width: 100%;
-  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-family: var(--font-dm), system-ui, sans-serif;
   font-size: clamp(30px, 3.8vw, 64px);
   font-weight: 700;
   line-height: 1;
@@ -98,10 +100,11 @@ export function StatsBand() {
   return (
     <Stats>
       <StatsPeople amount={40}>
-        <img
-          src="/landing/people-right.png"
+        <Image
+          src={people}
           alt=""
-          style={{ width: "100%", display: "block" }}
+          sizes="(max-width: 960px) 100vw, 40vw"
+          style={{ width: "100%", height: "auto", display: "block" }}
         />
       </StatsPeople>
       <StatsWrap>

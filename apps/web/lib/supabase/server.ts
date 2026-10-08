@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from "./env";
@@ -8,8 +9,7 @@ type SupabaseCookie = {
   options?: CookieOptions;
 };
 
-/** Server-side Supabase client (server components, route handlers). */
-export async function createClient() {
+export const createClient = cache(async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -29,4 +29,4 @@ export async function createClient() {
       },
     },
   });
-}
+});

@@ -60,29 +60,32 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
   try {
     const supabase = await createClient();
 
-    // Widen the window rather than show nothing. A quiet night should still
-    // name the roads worth knowing about; recency decay below keeps an older
-    // report from outranking a fresh one once traffic returns.
     const WINDOWS_H = [24, 72, 24 * 14];
-    let data: Record<string, unknown>[] | null = null;
+    const widest = WINDOWS_H[WINDOWS_H.length - 1]!;
+    const since = new Date(Date.now() - widest * 3_600_000).toISOString();
 
+    const result = await supabase
+      .from("announcements")
+      .select("id, location, category, created_at, confirms_count, cleared_count")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (result.error) return [];
+    const all = (result.data ?? []) as Record<string, unknown>[];
+    if (all.length === 0) return [];
+
+    let data = all;
     for (const hours of WINDOWS_H) {
-      const since = new Date(Date.now() - hours * 3_600_000).toISOString();
-      const result = await supabase
-        .from("announcements")
-        .select("id, location, category, created_at, confirms_count, cleared_count")
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (result.error) return [];
-      if (result.data && result.data.length > 0) {
-        data = result.data as Record<string, unknown>[];
+      const cutoff = Date.now() - hours * 3_600_000;
+      const within = all.filter(
+        (row) => new Date(row.created_at as string).getTime() >= cutoff,
+      );
+      if (within.length > 0) {
+        data = within;
         break;
       }
     }
-
-    if (!data) return [];
 
     // Severity, recency and corroboration all make a road more worth knowing
     // about. A raw count alone ranks a quiet road with three stale notes above

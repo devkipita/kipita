@@ -33,6 +33,12 @@ next-env.d.ts
 coverage/
 *.tsbuildinfo
 
+# ── Agent skills / tooling (installed locally, not part of the app) ──
+.agents/
+.claude/
+.impeccable/
+skills-lock.json
+
 # ── Logs ──
 *.log
 npm-debug.log*

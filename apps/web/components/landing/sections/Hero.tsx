@@ -1,11 +1,10 @@
 ﻿import styled from "styled-components";
-import { preload } from "react-dom";
+import Image from "next/image";
+import poster from "../../../public/home/nairobi-hero.jpg";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
 import { TrickleHeading } from "../TrickleHeading";
 import { HeroSearchBar } from "../search/HeroSearchBar";
-
-const POSTER = "/home/nairobi-hero.jpg";
 
 const HeroShell = styled.section`
   position: relative;
@@ -26,10 +25,16 @@ const Photo = styled.div`
   position: absolute;
   inset: 0;
   z-index: 0;
-  background: url("${POSTER}") center 48% / cover no-repeat;
+
+  img {
+    object-fit: cover;
+    object-position: center 48%;
+  }
 
   @media (max-width: 640px) {
-    background-position: 61% center;
+    img {
+      object-position: 61% center;
+    }
   }
 `;
 
@@ -137,11 +142,19 @@ const Lead = styled.p`
 `;
 
 export function Hero() {
-  preload(POSTER, { as: "image", fetchPriority: "high" });
-
   return (
     <HeroShell id="top">
-      <Photo aria-hidden />
+      <Photo aria-hidden>
+        <Image
+          src={poster}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          quality={70}
+          placeholder="blur"
+        />
+      </Photo>
       <Scrim aria-hidden />
       <Content>
         <Copy>
