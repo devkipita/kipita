@@ -1,4 +1,4 @@
-import styled from "styled-components";
+﻿import styled from "styled-components";
 import { preload } from "react-dom";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
@@ -18,7 +18,7 @@ const HeroShell = styled.section`
     min-height: 810px;
   }
   @media (max-width: 640px) {
-    min-height: 795px;
+    min-height: 75dvh;
   }
 `;
 
@@ -73,8 +73,8 @@ const Content = styled.div`
     padding: 145px 24px 45px;
   }
   @media (max-width: 640px) {
-    min-height: 795px;
-    padding: 118px 18px calc(104px + env(safe-area-inset-bottom));
+    justify-content: space-around;
+    padding: 112px 18px calc(84px + env(safe-area-inset-bottom));
   }
 `;
 

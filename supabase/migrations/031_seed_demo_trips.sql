@@ -19,8 +19,9 @@ BEGIN;
 -- ── 1. Pull stale posted trips into a rolling two-week window ────
 -- Keeps the pre-existing seed usable instead of leaving dead rows behind.
 WITH stale AS (
+  -- row_number() is bigint, and there is no date + bigint operator.
   SELECT id,
-         (row_number() OVER (ORDER BY departure_time, id)) - 1 AS n
+         ((row_number() OVER (ORDER BY departure_time, id)) - 1)::int AS n
   FROM public.trips
   WHERE status = 'posted'
     AND departure_date < CURRENT_DATE
@@ -33,13 +34,21 @@ WHERE t.id = stale.id;
 
 -- ── 2. Replace any previous run of this seed ─────────────────────
 -- Only untouched rows are removed; anything a passenger has booked stays.
+-- Migration 003 renamed bookings.ride_id to trip_id along with the table.
 DELETE FROM public.trips t
 WHERE t.description = 'seed:landing-demo'
   AND NOT EXISTS (
-    SELECT 1 FROM public.bookings b WHERE b.ride_id = t.id
+    SELECT 1 FROM public.bookings b WHERE b.trip_id = t.id
   );
 
 -- ── 3. Seed the headline routes across the next 14 days ──────────
+-- The throttle from 020 allows five posts per hour per driver, and the
+-- broadcast fires per row. Both are right for a human posting a ride and
+-- wrong for a bulk seed, so they are suspended for this statement only.
+-- Inside the transaction: a failure restores them with the rollback.
+ALTER TABLE public.trips DISABLE TRIGGER trg_throttle_new_trip;
+ALTER TABLE public.trips DISABLE TRIGGER trg_broadcast_new_trip;
+
 WITH drivers AS (
   SELECT u.id AS driver_id,
          v.id AS vehicle_id,
@@ -94,5 +103,8 @@ CROSS JOIN driver_count dc
 JOIN slots   s ON s.idx = ((r.idx + g.day) % 4)
 JOIN drivers d ON d.rn  = ((r.idx * 3 + g.day) % dc.n)
 WHERE EXISTS (SELECT 1 FROM drivers);
+
+ALTER TABLE public.trips ENABLE TRIGGER trg_throttle_new_trip;
+ALTER TABLE public.trips ENABLE TRIGGER trg_broadcast_new_trip;
 
 COMMIT;

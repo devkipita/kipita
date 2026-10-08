@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
 
-const DIGIT_HEIGHT = "1em";
+/* Taller than the glyph box on purpose: at exactly 1em the figure cap sits
+   within a pixel of the viewport edge, so the mask shaved the top off every
+   rolled digit while the static characters beside it stayed whole. */
+const DIGIT_HEIGHT = "1.3em";
 const DIGIT_WIDTH = "1ch";
 const DIGIT_REPEAT = 20;
 const DIGIT_TRIM = "0.045ch";
@@ -16,7 +19,7 @@ const CounterRoot = styled.span`
   gap: 0;
   min-width: 0;
   max-width: 100%;
-  min-height: 1em;
+  min-height: ${DIGIT_HEIGHT};
   padding-inline: ${DIGIT_TRIM};
   white-space: nowrap;
   font-variant-numeric: tabular-nums lining-nums;
