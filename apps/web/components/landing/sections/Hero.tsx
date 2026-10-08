@@ -73,7 +73,7 @@ const Content = styled.div`
     padding: 145px 24px 45px;
   }
   @media (max-width: 640px) {
-    justify-content: space-around;
+    justify-content: flex-start;
     padding: 112px 18px calc(84px + env(safe-area-inset-bottom));
   }
 `;
