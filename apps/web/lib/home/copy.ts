@@ -20,7 +20,7 @@ export const HOME_COPY = {
   fromDetecting: "Locating you…",
   fromIdle: "Set your pickup",
   fromHint: "Guessed from your connection",
-  toLabel: "Where to",
+  toLabel: "Going to",
   toPlaceholder: "Anywhere in Kenya",
   searchPlaceholder: {
     passenger: "Find a ride",

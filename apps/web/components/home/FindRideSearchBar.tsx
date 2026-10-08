@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import {
   Calendar,
-  CaretDown,
   MagnifyingGlass,
   MapPin,
   Minus,
@@ -1019,7 +1018,6 @@ export function FindRideSearchBar({
               <span className="lbl">Passengers</span>
               <b>{seatsLabel(form.seats)}</b>
             </span>
-            <CaretDown size={16} aria-hidden />
           </Trigger>
 
           {seatsOpen && (

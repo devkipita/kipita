@@ -3,11 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import styled from "styled-components";
-import {
-  ArrowRight,
-  Circle,
-  MapPin,
-} from "@/components/icons";
+import { ArrowRight } from "@/components/icons";
+import { nocturne } from "@/lib/nocturne";
 import {
   KENYAN_TOWNS,
   POPULAR_ROUTES,
@@ -56,22 +53,68 @@ export function pushRecent(name: string): void {
 const Sticky = styled.div`
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 3;
   display: grid;
   gap: 12px;
+  padding-top: 4px;
   padding-bottom: 14px;
   background: ${({ theme }) => theme.color.surface};
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: -24px;
+    right: -24px;
+    bottom: 100%;
+    height: 56px;
+    background: ${({ theme }) => theme.color.surface};
+  }
 `;
 
 const Tabs = styled.div`
   display: flex;
-  gap: 22px;
+  align-items: center;
+  gap: 14px;
+
+  @media (min-width: 760px) {
+    gap: 18px;
+  }
+`;
+
+const Dot = styled.span<{ $tone: "origin" | "dest" }>`
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2.5px solid
+    ${({ $tone }) => ($tone === "origin" ? nocturne.ctaBg : nocturne.accent)};
+  background: transparent;
+
+  @media (min-width: 760px) {
+    width: 15px;
+    height: 15px;
+  }
+`;
+
+const Connector = styled.span`
+  flex: 0 0 auto;
+  width: 26px;
+  height: 0;
+  margin-bottom: 10px;
+  border-top: 2px dotted ${({ theme }) => theme.color.outline};
+
+  @media (min-width: 760px) {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 40px;
+  }
 `;
 
 const Tab = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 0;
   min-width: 0;
   padding: 0 0 10px;
   border: none;
@@ -87,6 +130,9 @@ const Tab = styled.button<{ $active: boolean }>`
 
   svg {
     flex: none;
+  }
+  > span {
+    min-width: 0;
   }
   small {
     display: block;
@@ -107,6 +153,18 @@ const Tab = styled.button<{ $active: boolean }>`
   &:focus-visible {
     outline: 3px solid ${({ theme }) => theme.color.primary};
     outline-offset: 2px;
+  }
+
+  @media (min-width: 760px) {
+    gap: 11px;
+    small {
+      font-size: 13px;
+      letter-spacing: 0.06em;
+    }
+    b {
+      font-size: 22px;
+      letter-spacing: -0.015em;
+    }
   }
 `;
 
@@ -473,18 +531,21 @@ export function PlaceModal({
               $active={field === "from"}
               onClick={() => onFieldChange("from")}
             >
-              <Circle size={13} />
+              <Dot $tone="origin" aria-hidden />
               <span>
                 <small>{HOME_COPY.fromLabel}</small>
                 <b>{from || HOME_COPY.fromIdle}</b>
               </span>
             </Tab>
+
+            <Connector aria-hidden />
+
             <Tab
               type="button"
               $active={field === "to"}
               onClick={() => onFieldChange("to")}
             >
-              <MapPin size={13} />
+              <Dot $tone="dest" aria-hidden />
               <span>
                 <small>{HOME_COPY.toLabel}</small>
                 <b>{to || HOME_COPY.toPlaceholder}</b>
