@@ -117,9 +117,10 @@ export function LandingFooter() {
           Making travel across Kenya more affordable, social, and sustainable.
         </Tagline>
         <Links aria-label="Footer navigation">
-          <a href="#top">Find a ride</a>
-          <a href="#drive">Publish a ride</a>
-          <a href="#routes">Popular routes</a>
+          <a href="/home">Find a ride</a>
+          <a href="/publish">Publish a ride</a>
+          <a href="/alerts">Road alerts</a>
+          <a href="/#routes">Popular routes</a>
         </Links>
       </Top>
 

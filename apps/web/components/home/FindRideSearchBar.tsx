@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styled, { keyframes } from "styled-components";
 import {
   Calendar,
@@ -55,17 +56,196 @@ const Card = styled.form`
   }
 `;
 
-const Grid = styled.div`
-  display: grid;
+const Grid = styled.div<{ $compact?: boolean }>`
+  display: ${({ $compact }) => ($compact ? "none" : "grid")};
   grid-template-columns: 1.15fr 1.15fr 0.95fr 0.95fr auto;
   gap: 7px;
 
   @media (max-width: 1100px) {
     grid-template-columns: 1fr 1fr;
   }
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-    gap: 6px;
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
+/* ── Mobile: one tap target that opens a full-screen search ── */
+
+const collapsedBox = `
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 16px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: ${nocturne.bg};
+  color: ${nocturne.cream};
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+`;
+
+const Collapsed = styled.button<{ $compact?: boolean }>`
+  ${({ $compact }) => ($compact ? collapsedBox : "display: none;")}
+
+  @media (max-width: 760px) {
+    ${collapsedBox}
+  }
+
+  > svg {
+    flex: none;
+    color: ${nocturne.ctaBg};
+  }
+  .text {
+    flex: 1;
+    min-width: 0;
+  }
+  b {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  small {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    color: ${nocturne.muted2};
+  }
+  &:focus-visible {
+    outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 4px ${nocturne.ring};
+  }
+`;
+
+const sheetIn = keyframes`
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+`;
+
+/* Portalled to <body>: the search form is its own stacking context, so a
+   fixed child could never rise above the top bar from inside it. Sits under
+   Z.drawerOverlay so PlaceModal still opens on top. */
+const Sheet = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  background: ${nocturne.bg};
+  animation: ${sheetIn} 0.24s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const SheetTop = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid ${nocturne.line};
+
+  h2 {
+    margin: 0;
+    font-size: 19px;
+    font-weight: 700;
+    color: ${nocturne.cream};
+  }
+`;
+
+const SheetClose = styled.button`
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: -8px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: ${nocturne.cream};
+  cursor: pointer;
+
+  &:hover {
+    background: ${nocturne.surface2};
+  }
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px ${nocturne.ring};
+  }
+`;
+
+const SheetBody = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+`;
+
+const SheetFoot = styled.div`
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid ${nocturne.line};
+  background: ${nocturne.surface};
+
+  button {
+    width: 100%;
+  }
+`;
+
+const SeatsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 68px;
+  padding: 9px 14px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: ${nocturne.bg};
+
+  > svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+  .text {
+    flex: 1;
+    min-width: 0;
+  }
+  .lbl {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: ${nocturne.muted2};
+  }
+  b {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: ${nocturne.cream};
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: none;
+  }
+  output {
+    min-width: 22px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 700;
+    color: ${nocturne.cream};
+    font-variant-numeric: tabular-nums;
   }
 `;
 
@@ -515,12 +695,18 @@ export function FindRideSearchBar({
   busy,
   onSubmit,
   onClear,
+  /** "compact" keeps the single-input form at every width (landing hero). */
+  variant = "full",
+  placeholder = "Where are you going?",
 }: {
   value: SearchBarValue;
   busy?: boolean;
   onSubmit: (next: SearchBarValue) => void;
   onClear: () => void;
+  variant?: "full" | "compact";
+  placeholder?: string;
 }) {
+  const compact = variant === "compact";
   const [form, setForm] = useState<SearchBarValue>(value);
   const [seatsOpen, setSeatsOpen] = useState(false);
   const [placeField, setPlaceField] = useState<PlaceField | null>(null);
@@ -557,6 +743,37 @@ export function FindRideSearchBar({
     setForm((prev) => ({ ...prev, ...next }));
   }
 
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const collapsedSummary = [
+    form.from.trim() ? `From ${form.from.trim()}` : "Anywhere",
+    dateLabel(form.date),
+    seatsLabel(form.seats),
+  ].join(" · ");
+
+  // The sheet is a page, not a dialog-in-a-page: lock the body behind it.
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSheetOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sheetOpen]);
+
+  function runSearch() {
+    setSeatsOpen(false);
+    setSheetOpen(false);
+    onSubmit(form);
+  }
+
   return (
     <Card
       onSubmit={(e) => {
@@ -567,7 +784,20 @@ export function FindRideSearchBar({
       role="search"
       aria-label="Find a ride"
     >
-      <Grid>
+      <Collapsed
+        type="button"
+        $compact={compact}
+        onClick={() => setSheetOpen(true)}
+        aria-haspopup="dialog"
+      >
+        <MagnifyingGlass size={22} aria-hidden />
+        <span className="text">
+          <b>{form.to.trim() || placeholder}</b>
+          <small>{collapsedSummary}</small>
+        </span>
+      </Collapsed>
+
+      <Grid $compact={compact}>
         <Field data-tone="origin">
           <NavigationArrow size={20} aria-hidden />
           <span className="body">
@@ -697,6 +927,122 @@ export function FindRideSearchBar({
           </Submit>
         </Actions>
       </Grid>
+
+      {sheetOpen &&
+        mounted &&
+        createPortal(
+        <Sheet role="dialog" aria-modal="true" aria-label="Search for a ride">
+          <SheetTop>
+            <SheetClose
+              type="button"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Close search"
+            >
+              <X size={22} aria-hidden />
+            </SheetClose>
+            <h2>Find a ride</h2>
+          </SheetTop>
+
+          <SheetBody>
+            <Field data-tone="origin">
+              <NavigationArrow size={20} aria-hidden />
+              <span className="body">
+                <span className="lbl">Leaving from</span>
+                <input
+                  value={form.from}
+                  readOnly
+                  onClick={() => setPlaceField("from")}
+                  placeholder="Where from?"
+                  aria-label="Leaving from"
+                />
+              </span>
+            </Field>
+
+            <Field>
+              <MapPin size={20} aria-hidden />
+              <span className="body">
+                <span className="lbl">Going to</span>
+                <input
+                  value={form.to}
+                  readOnly
+                  autoFocus
+                  onClick={() => setPlaceField("to")}
+                  placeholder="Where are you going?"
+                  aria-label="Going to"
+                />
+              </span>
+            </Field>
+
+            <DateField
+              type="button"
+              onClick={() => {
+                setDraftDate(form.date);
+                setDateOpen(true);
+              }}
+              aria-haspopup="dialog"
+              aria-label="Choose travel date"
+            >
+              <Calendar size={20} aria-hidden />
+              <span className="text">
+                <span className="lbl">When</span>
+                <b>{dateLabel(form.date)}</b>
+              </span>
+            </DateField>
+
+            <SeatsRow>
+              <Users size={20} aria-hidden />
+              <span className="text">
+                <span className="lbl">Passengers</span>
+                <b>{seatsLabel(form.seats)}</b>
+              </span>
+              <span className="stepper">
+                <Round
+                  type="button"
+                  aria-label="One fewer passenger"
+                  disabled={form.seats <= 1}
+                  onClick={() => patch({ seats: Math.max(1, form.seats - 1) })}
+                >
+                  <Minus size={16} aria-hidden />
+                </Round>
+                <output aria-live="polite">{form.seats}</output>
+                <Round
+                  type="button"
+                  aria-label="One more passenger"
+                  disabled={form.seats >= MAX_SEATS}
+                  onClick={() =>
+                    patch({ seats: Math.min(MAX_SEATS, form.seats + 1) })
+                  }
+                >
+                  <Plus size={16} aria-hidden />
+                </Round>
+              </span>
+            </SeatsRow>
+
+            {dirty && (
+              <ClearBtn
+                type="button"
+                style={{ alignSelf: "flex-start" }}
+                onClick={() => {
+                  setForm({ from: "", to: "", date: "", seats: 1 });
+                  onClear();
+                }}
+              >
+                <X size={18} aria-hidden />
+                <span className="word">Clear</span>
+              </ClearBtn>
+            )}
+          </SheetBody>
+
+          <SheetFoot>
+            <Submit type="button" disabled={busy} onClick={runSearch}>
+              <MagnifyingGlass size={20} aria-hidden />
+              {busy ? "Searching…" : "Search rides"}
+            </Submit>
+          </SheetFoot>
+        </Sheet>,
+        document.body,
+      )}
+
       <PlaceModal
         field={placeField}
         from={form.from}

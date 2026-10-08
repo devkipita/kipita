@@ -29,18 +29,20 @@ const DigitViewport = styled.span`
   overflow: hidden;
   flex: 0 0 ${DIGIT_WIDTH};
   margin-inline: calc(${DIGIT_TRIM} * -1);
+  /* A gentle fade only. At 20% the band ate the top and bottom of the glyph,
+     so a rolled digit read a size smaller than the static text beside it. */
   mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    black 20%,
-    black 80%,
+    black 6%,
+    black 94%,
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0%,
-    black 20%,
-    black 80%,
+    black 6%,
+    black 94%,
     transparent 100%
   );
 `;

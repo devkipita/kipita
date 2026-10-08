@@ -1,4 +1,4 @@
-import { Bell, CardStack, Gift, Grid, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Scroll as ScrollText, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { Bell, CardStack, Gift, Grid, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Scroll as ScrollText, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -249,25 +249,30 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
  * The mobile bottom bar. Profile is the last slot in both states — it is the
  * way into everything the bar has no room for (wallet, referrals, help, legal).
  */
-export function bottomNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
-  const profileItem: NavItem = {
-    key: "profile",
-    href: "/profile",
-    label: "Profile",
-    shortLabel: "You",
-    icon: UserRound,
-    owns: ["/profile"],
-  };
-
-  if (!signedIn) {
-    return [
-      ...SIGNED_OUT_NAV.filter((i) => i.key !== "help"),
-      profileItem,
-    ];
-  }
-
-  const primary = PRIMARY_NAV[mode];
-  const keep = ["home", "trips", "alerts", "notifications"];
-  return [...primary.filter((i) => keep.includes(i.key)), profileItem];
+/**
+ * The one bottom bar, identical on every page and in both auth states.
+ * Profile is deliberately absent — it lives in the top bar's avatar menu.
+ */
+export function bottomNavFor(): NavItem[] {
+  return [
+    { key: "landing", href: "/", label: "Home", shortLabel: "Home", icon: House },
+    {
+      key: "home",
+      href: "/home",
+      label: "Find a ride",
+      shortLabel: "Find",
+      icon: MagnifyingGlass,
+    },
+    { ...PUBLISH_ITEM, shortLabel: "Post" },
+    {
+      key: "alerts",
+      href: "/alerts",
+      label: "Road alerts",
+      shortLabel: "Alerts",
+      icon: Grid,
+      badge: "alerts",
+      owns: ["/alerts"],
+    },
+  ];
 }
 

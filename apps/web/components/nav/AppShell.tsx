@@ -19,11 +19,11 @@ import type { Profile } from "@/lib/auth/types";
 import type { SupportCase } from "@/lib/support/types";
 import type { AppMode } from "@/lib/home/mode";
 import { setModeAction } from "@/lib/home/mode-actions";
-import { BOTTOM_BAR_SPACE, TOPBAR_H } from "@/lib/nav/rail";
+import { BOTTOM_BAR_SPACE, TOPBAR_H, TOPBAR_H_SM } from "@/lib/nav/rail";
 import { nocturne } from "@/lib/nocturne";
-import { barNavFor, bottomNavFor, primaryNavFor } from "./nav-items";
+import { barNavFor, primaryNavFor } from "./nav-items";
 import { AppTopBar } from "./AppTopBar";
-import { BottomTabBar } from "./BottomTabBar";
+import { AppBottomNav } from "./AppBottomNav";
 import { useNavCounts } from "./useNavCounts";
 import { RailModeSwitch } from "./RailModeSwitch";
 import { SkipToContent } from "./SkipToContent";
@@ -58,6 +58,9 @@ const Shell = styled.div`
   background: ${nocturne.bg};
   color: ${nocturne.cream};
 
+  @media (max-width: 960px) {
+    --topbar-h: ${TOPBAR_H_SM}px;
+  }
   @media (max-width: 899px) {
     --bottom-bar-space: ${BOTTOM_BAR_SPACE}px;
   }
@@ -109,11 +112,6 @@ export function AppShell({
     [mode, profile],
   );
 
-  const bottomItems = useMemo(
-    () => bottomNavFor(mode, Boolean(profile)),
-    [mode, profile],
-  );
-
   const setMode = useCallback((next: AppMode) => {
     setModeState(next);
     startTransition(() => {
@@ -162,7 +160,7 @@ export function AppShell({
         <Main id="main" tabIndex={-1}>
           {children}
         </Main>
-        <BottomTabBar items={bottomItems} counts={counts} />
+        <AppBottomNav counts={counts} />
 
         <VisuallyHidden role="status" aria-live="polite">
           {pathname}

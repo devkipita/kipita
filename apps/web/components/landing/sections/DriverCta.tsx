@@ -182,7 +182,7 @@ export function DriverCta() {
               You choose your passengers
             </span>
           </Benefits>
-          <Publish href="#download">
+          <Publish href="/publish">
             Publish a ride <ArrowRight size={18} />
           </Publish>
         </Copy>

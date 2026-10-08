@@ -35,13 +35,17 @@ const Item = styled.div`
     display: inline-flex;
     align-items: center;
     font-family: var(--font-manrope), var(--font-dm), system-ui, sans-serif;
-    font-size: 20px;
+    font-size: 30px;
     font-weight: 800;
     line-height: 1;
+    letter-spacing: -0.02em;
     color: ${nocturne.cream};
   }
-  span {
-    font-size: 12px;
+  /* Direct child only — a bare \`span\` also matched the rolling counter's
+     internal spans and halved the digits to 15px. */
+  > span {
+    font-size: 15px;
+    line-height: 1.35;
     color: ${nocturne.muted};
   }
 
@@ -49,10 +53,10 @@ const Item = styled.div`
     width: 46%;
 
     strong {
-      font-size: 16px;
+      font-size: 24px;
     }
-    span {
-      font-size: 12px;
+    > span {
+      font-size: 14px;
     }
   }
 `;
@@ -68,22 +72,22 @@ const Divider = styled.i`
 `;
 
 const Mpesa = styled(Item)`
-  b {
-    display: grid;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    border-radius: 9px;
-    background: #44a848;
-    color: #ffffff;
-    font-weight: 800;
+  img {
+    display: block;
+    width: auto;
+    height: 34px;
+    flex: none;
   }
   .label {
     display: flex;
     flex-direction: column;
+    gap: 2px;
   }
-  .label strong {
-    font-size: 15px;
+
+  @media (max-width: 640px) {
+    img {
+      height: 28px;
+    }
   }
 `;
 
@@ -109,10 +113,10 @@ export function TrustStrip() {
         ))}
         <Divider />
         <Mpesa as="div">
-          <b aria-hidden>M</b>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/landing/mpesa.png" alt="M-PESA" />
           <span className="label">
-            <strong>M-PESA</strong>
-            Protected payments
+            <span>Protected payments</span>
           </span>
         </Mpesa>
       </Inner>

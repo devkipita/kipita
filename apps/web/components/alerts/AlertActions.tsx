@@ -21,20 +21,76 @@ import type { Alert, ConfirmKind } from "@/lib/alerts/types";
 
 const Bar = styled.div<{ $onMedia: boolean }>`
   display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-  margin-left: -8px;
+  flex-direction: column;
+  gap: 8px;
 
   --ink: ${({ theme, $onMedia }) =>
     $onMedia ? "#ffffff" : theme.color.onSurfaceVariant};
+`;
+
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+
+  .group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+`;
+
+const Confirms = styled.div`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+`;
+
+/* Text actions: no outline at rest, a pill on hover, colour change when set. */
+const Pill = styled.button<{ $active?: boolean; $accent: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: ${({ $active }) => ($active ? 700 : 500)};
+  color: ${({ $active, $accent }) => ($active ? $accent : "var(--ink)")};
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+
+  svg {
+    flex: none;
+  }
+  &:hover,
+  &:focus-visible {
+    color: ${({ $accent }) => $accent};
+    background: color-mix(in srgb, ${({ $accent }) => $accent} 14%, transparent);
+  }
+  &:focus-visible {
+    outline: 2px solid ${({ $accent }) => $accent};
+    outline-offset: 1px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 const Action = styled.button<{ $active?: boolean; $accent?: string }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 40px;
+  min-width: 40px;
+  justify-content: center;
   padding: 0 10px;
   border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
@@ -69,7 +125,7 @@ const Stat = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 10px;
   font-size: 0.83rem;
   font-weight: 500;
@@ -189,101 +245,108 @@ export function AlertActions({
 
   return (
     <Bar $onMedia={onMedia}>
-      <Action
-        type="button"
-        $active={liked}
-        $accent={LIKE}
-        aria-pressed={liked}
-        aria-label={`Like. ${alert.reactions_count} likes.`}
-        onClick={(e) => {
-          stop(e);
-          void toggleLike();
-        }}
-      >
-        <Heart size={18} weight={liked ? "fill" : "regular"} />
-        {alert.reactions_count > 0 &&
-          formatCompactNumber(alert.reactions_count)}
-      </Action>
+      <Confirms>
+        <Pill
+          type="button"
+          $active={still}
+          $accent={onMedia ? "#ffffff" : theme.color.success}
+          aria-pressed={still}
+          aria-label={`Still here. ${alert.confirms_count} confirmed.`}
+          onClick={(e) => {
+            stop(e);
+            void vote("still_there");
+          }}
+        >
+          <Check size={18} />
+          Still here
+          {alert.confirms_count > 0 &&
+            ` ${formatCompactNumber(alert.confirms_count)}`}
+        </Pill>
+        <Pill
+          type="button"
+          $active={clear}
+          $accent={onMedia ? "#ffffff" : theme.color.info}
+          aria-pressed={clear}
+          aria-label={`Cleared. ${alert.cleared_count} reported clear.`}
+          onClick={(e) => {
+            stop(e);
+            void vote("cleared");
+          }}
+        >
+          <CircleSlash size={18} />
+          Cleared
+          {alert.cleared_count > 0 &&
+            ` ${formatCompactNumber(alert.cleared_count)}`}
+        </Pill>
+      </Confirms>
 
-      <Action
-        type="button"
-        aria-label={`Reply. ${alert.comments_count} replies.`}
-        onClick={(e) => {
-          stop(e);
-          if (onComment) onComment();
-          else router.push(`/alerts/${alert.id}`);
-        }}
-      >
-        <MessageCircle size={18} />
-        {alert.comments_count > 0 && formatCompactNumber(alert.comments_count)}
-      </Action>
-
-      <Action
-        type="button"
-        $active={still}
-        $accent={theme.color.success}
-        aria-pressed={still}
-        aria-label={`Still here. ${alert.confirms_count} confirmed.`}
-        onClick={(e) => {
-          stop(e);
-          void vote("still_there");
-        }}
-      >
-        <Check size={18} />
-        Still here
-        {alert.confirms_count > 0 &&
-          ` ${formatCompactNumber(alert.confirms_count)}`}
-      </Action>
-
-      <Action
-        type="button"
-        $active={clear}
-        $accent={theme.color.info}
-        aria-pressed={clear}
-        aria-label={`Cleared. ${alert.cleared_count} reported clear.`}
-        onClick={(e) => {
-          stop(e);
-          void vote("cleared");
-        }}
-      >
-        <CircleSlash size={18} />
-        Cleared
-        {alert.cleared_count > 0 &&
-          ` ${formatCompactNumber(alert.cleared_count)}`}
-      </Action>
-
-      <Action
-        type="button"
-        $active={alert.saved_by_me}
-        $accent={theme.color.tertiary}
-        aria-pressed={alert.saved_by_me}
-        aria-label={alert.saved_by_me ? "Saved" : "Save this alert"}
-        onClick={(e) => {
-          stop(e);
-          void toggleSave();
-        }}
-      >
-        <Bookmark size={18} weight={alert.saved_by_me ? "fill" : "regular"} />
-      </Action>
-
-      <Action
-        as="a"
-        href={whatsappHref(alert)}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Share on WhatsApp"
-        onClick={(e: React.MouseEvent) => e.stopPropagation()}
-      >
-        <Share2 size={18} />
-      </Action>
-
-      <Stat
-        title={`${alert.views_count} ${alert.views_count === 1 ? "view" : "views"}`}
-      >
-        <BarChart size={18} aria-hidden="true" />
-        <VisuallyHidden>Views: </VisuallyHidden>
-        {formatCompactNumber(alert.views_count)}
-      </Stat>
+      <Row>
+        <div className="group">
+          <Action
+            type="button"
+            $active={liked}
+            $accent={LIKE}
+            aria-pressed={liked}
+            aria-label={`Like. ${alert.reactions_count} likes.`}
+            onClick={(e) => {
+              stop(e);
+              void toggleLike();
+            }}
+          >
+            <Heart size={20} weight={liked ? "fill" : "regular"} />
+            {alert.reactions_count > 0 &&
+              formatCompactNumber(alert.reactions_count)}
+          </Action>
+          <Action
+            type="button"
+            aria-label={`Reply. ${alert.comments_count} replies.`}
+            onClick={(e) => {
+              stop(e);
+              if (onComment) onComment();
+              else router.push(`/alerts/${alert.id}`);
+            }}
+          >
+            <MessageCircle size={20} />
+            {alert.comments_count > 0 &&
+              formatCompactNumber(alert.comments_count)}
+          </Action>
+          <Stat
+            title={`${alert.views_count} ${alert.views_count === 1 ? "view" : "views"}`}
+          >
+            <BarChart size={20} aria-hidden="true" />
+            <VisuallyHidden>Views: </VisuallyHidden>
+            {formatCompactNumber(alert.views_count)}
+          </Stat>
+        </div>
+        <div className="group">
+          <Action
+            type="button"
+            $active={alert.saved_by_me}
+            $accent={theme.color.tertiary}
+            aria-pressed={alert.saved_by_me}
+            aria-label={alert.saved_by_me ? "Saved" : "Save this alert"}
+            onClick={(e) => {
+              stop(e);
+              void toggleSave();
+            }}
+          >
+            <Bookmark
+              size={20}
+              weight={alert.saved_by_me ? "fill" : "regular"}
+            />
+          </Action>
+          <Action
+            as="a"
+            href={whatsappHref(alert)}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Share on WhatsApp"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <Share2 size={20} />
+          </Action>
+        </div>
+      </Row>
     </Bar>
   );
 }

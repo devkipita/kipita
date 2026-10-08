@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { MapPin } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { shortRelativeTime } from "@/lib/notifications/meta";
@@ -27,21 +27,66 @@ import { AlertOwnerMenu } from "./AlertOwnerMenu";
  * AlertCard calls out the same constraint.
  */
 
-const Shell = styled.article`
+/* Animates the two custom properties below, so the flash follows the theme
+   instead of resolving to a hardcoded white at the end of the run. */
+const unreadFlash = keyframes`
+  0%, 55% { background-color: var(--card-flash); }
+  100% { background-color: var(--card-bg); }
+`;
+
+const Shell = styled.article<{ $fresh?: boolean }>`
+  --card-bg: ${({ theme }) => theme.color.surface};
+  --card-flash: ${({ theme }) => theme.color.warningContainer};
+
   position: relative;
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  border-radius: 16px;
+  background-color: var(--card-bg);
+  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  box-shadow: ${({ theme }) =>
+    theme.mode === "dark" ? "none" : "0 1px 2px rgba(18,48,31,0.08), 0 6px 16px rgba(18,48,31,0.08)"};
   overflow: hidden;
-  transition: background 0.15s ease;
+  transition:
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+  animation: ${({ $fresh }) => ($fresh ? unreadFlash : "none")} 2.2s ease-out
+    forwards;
 
   &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainer};
+    border-color: ${({ theme }) => theme.color.outline};
+    box-shadow: ${({ theme }) =>
+      theme.mode === "dark"
+        ? "none"
+        : "0 2px 4px rgba(18,48,31,0.1), 0 12px 28px rgba(18,48,31,0.14)"};
+    transform: translateY(-1px);
   }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    animation: none;
+    &:hover {
+      transform: none;
+    }
   }
 `;
+
+const SEEN_KEY = "kipita:seen-alerts";
+
+/** Unread = not yet rendered on this device; marked seen on first display. */
+function useFresh(id: string): boolean {
+  const [fresh, setFresh] = useState(false);
+  useEffect(() => {
+    try {
+      const seen: string[] = JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]");
+      if (seen.includes(id)) return;
+      setFresh(true);
+      localStorage.setItem(SEEN_KEY, JSON.stringify([...seen, id].slice(-500)));
+    } catch {
+      /* storage unavailable: treat as read */
+    }
+  }, [id]);
+  return fresh;
+}
 
 const Body = styled(Link)<{ $owned?: boolean }>`
   display: block;
@@ -102,7 +147,7 @@ const Foot = styled.div`
 const Media = styled(Link)`
   position: relative;
   display: block;
-  height: 220px;
+  height: 290px;
   text-decoration: none;
 
   img {
@@ -133,7 +178,7 @@ const Media = styled(Link)`
     position: absolute;
     left: 14px;
     right: 14px;
-    bottom: 58px;
+    bottom: 116px;
     color: #fff;
   }
   .bottom .where {

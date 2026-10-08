@@ -68,6 +68,7 @@ async function resolveVehicle(
     make: trip.vehicle_make?.trim() || null,
     model: trip.vehicle_model?.trim() || null,
     color: trip.vehicle_color?.trim() || null,
+    plate_number: trip.vehicle_plate?.trim().toUpperCase() || null,
     image_url: trip.vehicle_photo_url || null,
   };
 
@@ -91,7 +92,9 @@ async function resolveVehicle(
       return existing.id as string;
     }
 
-    if (!details.make || !details.model) return null;
+    // A plate is how the passenger identifies the car, so a new vehicle needs
+    // a real one rather than the placeholder this used to invent.
+    if (!details.make || !details.model || !details.plate_number) return null;
 
     const { data } = await supabase
       .from("vehicles")
@@ -101,7 +104,7 @@ async function resolveVehicle(
         model: details.model,
         color: details.color ?? "Unspecified",
         year: new Date().getFullYear(),
-        plate_number: `PENDING-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
+        plate_number: details.plate_number,
         seats_available: trip.seats_total,
         image_url: details.image_url,
       })

@@ -3,7 +3,7 @@ import { preload } from "react-dom";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
 import { TrickleHeading } from "../TrickleHeading";
-import { HeroSearch } from "../search/HeroSearch";
+import { HeroSearchBar } from "../search/HeroSearchBar";
 
 const POSTER = "/home/nairobi-hero.jpg";
 
@@ -162,7 +162,7 @@ export function Hero() {
           </Reveal>
         </Copy>
 
-        <HeroSearch />
+        <HeroSearchBar />
       </Content>
     </HeroShell>
   );

@@ -53,6 +53,14 @@ export const postTripSchema = z.object({
   vehicle_make: z.string().trim().max(40).optional(),
   vehicle_model: z.string().trim().max(40).optional(),
   vehicle_color: z.string().trim().max(30).optional(),
+  // How a passenger actually finds the car at the pickup point.
+  vehicle_plate: z
+    .string()
+    .trim()
+    .min(4, "That number plate looks too short")
+    .max(12, "That number plate looks too long")
+    .regex(/^[A-Za-z0-9][A-Za-z0-9 -]*$/, "Use letters, numbers and spaces only")
+    .optional(),
   vehicle_photo_url: z.string().url().max(500).optional(),
 });
 

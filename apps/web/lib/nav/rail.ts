@@ -9,7 +9,7 @@ export const RAIL_W_COLLAPSED = 80;
 export const ASIDE_W = 300;
 /** Figma's header band: 92px, dropping to 78px under 960px. */
 export const TOPBAR_H = 92;
-export const TOPBAR_H_SM = 78;
+export const TOPBAR_H_SM = 56;
 export const BOTTOM_BAR_SPACE = 96;
 
 export function parseRail(value: string | undefined | null): boolean {

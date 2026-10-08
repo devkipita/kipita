@@ -11,7 +11,7 @@ import { DriverCta } from "./sections/DriverCta";
 import { DownloadCta } from "./sections/DownloadCta";
 import { SupportContact } from "./sections/SupportContact";
 import { LandingFooter } from "./sections/LandingFooter";
-import { MobileNav } from "./sections/MobileNav";
+import { AppBottomNav } from "@/components/nav/AppBottomNav";
 
 export function KipitaLanding({ profile }: { profile: Profile | null }) {
   return (
@@ -27,7 +27,7 @@ export function KipitaLanding({ profile }: { profile: Profile | null }) {
       <DownloadCta />
       <SupportContact />
       <LandingFooter />
-      <MobileNav />
+      <AppBottomNav />
     </Root>
   );
 }

@@ -13,6 +13,7 @@ import type { HomeTrip } from "@/lib/home/search";
 import type { Profile } from "@/lib/auth/types";
 import { useHomeSearch } from "./useHomeSearch";
 import { FindRideSearchBar, type SearchBarValue } from "./FindRideSearchBar";
+import { RequestRideDrawer } from "./RequestRideDrawer";
 import {
   EMPTY_FILTERS,
   RideFilters,
@@ -638,6 +639,10 @@ export function FindRideView({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
+  const [requestOpen, setRequestOpen] = useState(false);
+
+  // A request needs a destination to be worth posting.
+  const canRequest = form.to.trim().length >= 2;
 
   const trips = useMemo(
     () => search.items.filter((i): i is HomeTrip => i.kind === "trip"),
@@ -859,7 +864,9 @@ export function FindRideView({
               <p>
                 {trips.length
                   ? "Try clearing a filter or widening your departure window."
-                  : "Nobody has posted this trip for your dates. Try a nearby day, or publish the ride yourself and let passengers come to you."}
+                  : canRequest
+                    ? "Nobody is driving this route yet. Put in a request and drivers heading that way will see it."
+                    : "Nobody has posted this trip yet. Tell us where you are going and we will ask drivers for you."}
               </p>
               {trips.length ? (
                 <CtaButton
@@ -868,15 +875,26 @@ export function FindRideView({
                 >
                   Clear filters
                 </CtaButton>
-              ) : (
-                <Cta
-                  href={
-                    profile
-                      ? "/publish"
-                      : "/auth/sign-in?next=%2Fpublish"
-                  }
+              ) : canRequest ? (
+                <CtaButton
+                  type="button"
+                  onClick={() => {
+                    if (!profile) {
+                      router.push(
+                        `/auth/sign-in?next=${encodeURIComponent(
+                          `/home?from=${form.from}&to=${form.to}`,
+                        )}`,
+                      );
+                      return;
+                    }
+                    setRequestOpen(true);
+                  }}
                 >
-                  Publish a ride <ArrowRight size={18} aria-hidden />
+                  Request this ride <ArrowRight size={18} aria-hidden />
+                </CtaButton>
+              ) : (
+                <Cta href="/home">
+                  Search a route <ArrowRight size={18} aria-hidden />
                 </Cta>
               )}
             </Empty>
@@ -942,6 +960,15 @@ export function FindRideView({
           </SortOption>
         ))}
       </Drawer>
+
+      <RequestRideDrawer
+        open={requestOpen}
+        from={form.from}
+        to={form.to}
+        date={form.date}
+        seats={form.seats}
+        onClose={() => setRequestOpen(false)}
+      />
     </Page>
   );
 }
