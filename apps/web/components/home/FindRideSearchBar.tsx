@@ -19,6 +19,8 @@ import { ButtonEl } from "@/components/ui/primitives";
 import { dayLabel, nairobiToday } from "@/lib/trips/format";
 import { POPULAR_ROUTES } from "@/components/landing/data";
 import { PlaceModal, pushRecent, type PlaceField } from "./PlaceModal";
+import { RouteLine } from "./RouteLine";
+import { MonthCalendar } from "./MonthCalendar";
 
 const MAX_SEATS = 8;
 
@@ -232,6 +234,18 @@ const SheetBody = styled.div`
   padding: 16px;
 `;
 
+const NativeDate = styled.div`
+  @media (min-width: 761px) {
+    display: none;
+  }
+`;
+
+const StyledDate = styled.div`
+  @media (max-width: 760px) {
+    display: none;
+  }
+`;
+
 const FieldGroup = styled.div`
   display: flex;
   flex-direction: column;
@@ -292,16 +306,13 @@ const QuickRoute = styled.button`
     border-color 0.16s ease;
 
   .pair {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     flex: 1;
     min-width: 0;
     font-size: 16px;
     font-weight: 700;
-  }
-
-  .sep {
-    margin: 0 7px;
-    color: ${nocturne.muted2};
-    font-weight: 500;
   }
 
   .price {
@@ -1190,7 +1201,7 @@ export function FindRideSearchBar({
                 >
                   <span className="pair">
                     {r.from}
-                    <span className="sep">→</span>
+                    <RouteLine />
                     {r.to}
                   </span>
                   <span className="price">{r.price}</span>
@@ -1269,17 +1280,27 @@ export function FindRideSearchBar({
               </button>
             ))}
           </DayChips>
-          <PickRow>
-            <Calendar size={18} aria-hidden />
-            <label htmlFor="find-ride-date">Or choose another date</label>
-            <input
-              id="find-ride-date"
-              type="date"
+          <NativeDate>
+            <PickRow>
+              <Calendar size={18} aria-hidden />
+              <label htmlFor="find-ride-date">Or choose another date</label>
+              <input
+                id="find-ride-date"
+                type="date"
+                min={nairobiToday()}
+                value={draftDate}
+                onChange={(e) => setDraftDate(e.target.value)}
+              />
+            </PickRow>
+          </NativeDate>
+
+          <StyledDate>
+            <MonthCalendar
+              value={draftDate || nairobiToday()}
               min={nairobiToday()}
-              value={draftDate}
-              onChange={(e) => setDraftDate(e.target.value)}
+              onChange={setDraftDate}
             />
-          </PickRow>
+          </StyledDate>
         </DrawerBody>
       </Drawer>
     </Card>

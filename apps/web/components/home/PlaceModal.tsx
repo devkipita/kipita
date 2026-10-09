@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import styled from "styled-components";
-import { ArrowRight } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
+import { RouteLine } from "./RouteLine";
 import {
   KENYAN_TOWNS,
   POPULAR_ROUTES,
@@ -478,7 +478,7 @@ export function PlaceModal({
               <span className="text">
                 <span className="pair" aria-hidden="true">
                   {entry.from}
-                  <ArrowRight size={13} />
+                  <RouteLine />
                   {entry.to}
                 </span>
                 <small aria-hidden="true">{entry.blurb}</small>
