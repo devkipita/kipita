@@ -16,6 +16,8 @@ import { PaymentDrawer } from "./PaymentDrawer";
 import { formatRideDate, formatRideTime, ratingLabel, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
+import { nocturne } from "@/lib/nocturne";
+import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
 
 const Wrap = styled(ContentWidth)`
@@ -52,6 +54,31 @@ const Card = styled.section`
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.color.line};
   padding: 20px;
+`;
+
+const PageHead = styled.header`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 6px;
+
+  h1 {
+    margin: 0;
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: clamp(30px, 4.4vw, 44px);
+    font-weight: 700;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    color: ${({ theme }) => theme.color.text};
+  }
+  p {
+    margin: 0;
+    max-width: 58ch;
+    font-size: 1.02rem;
+    line-height: 1.55;
+    color: ${({ theme }) => theme.color.muted};
+  }
 `;
 
 const Layout = styled.div`
@@ -137,21 +164,6 @@ const Reassure = styled.p`
   color: ${({ theme }) => theme.color.muted};
 `;
 
-const Kind = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  margin-bottom: 16px;
-  border-radius: 999px;
-  font-size: 0.74rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background: ${({ theme }) => theme.color.primaryContainer};
-  color: ${({ theme }) => theme.color.onPrimaryContainer};
-`;
-
 /* Route timeline — a dot, a rail and a pin, mirroring the mobile ride screen. */
 const Route = styled.div`
   display: grid;
@@ -230,15 +242,21 @@ const Chips = styled.div`
 const Chip = styled.span<{ $accent?: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  gap: 9px;
+  padding: 10px 16px;
   border-radius: 999px;
-  font-size: 0.85rem;
+  font-size: 0.94rem;
   font-weight: 700;
   background: ${({ theme, $accent }) =>
     $accent ? theme.color.primaryContainer : theme.color.surface2};
   color: ${({ theme, $accent }) =>
-    $accent ? theme.color.onPrimaryContainer : theme.color.textSoft};
+    $accent ? theme.color.onPrimaryContainer : theme.color.text};
+
+  svg {
+    flex: none;
+    color: ${({ theme, $accent }) =>
+      $accent ? theme.color.onPrimaryContainer : theme.color.primary};
+  }
 `;
 
 const Person = styled.div`
@@ -265,6 +283,74 @@ const Person = styled.div`
   @media (max-width: 560px) {
     gap: ${({ theme }) => theme.space.lg};
   }
+`;
+
+const Creds = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+`;
+
+const Verified = styled.span<{ $on: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px 7px 11px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  background: ${({ theme, $on }) =>
+    $on ? theme.color.primary : theme.color.surface2};
+  color: ${({ theme, $on }) =>
+    $on ? theme.color.onPrimary : theme.color.muted};
+  border: 1px solid
+    ${({ theme, $on }) => ($on ? "transparent" : theme.color.line)};
+
+  svg {
+    flex: none;
+  }
+`;
+
+const Rating = styled.span`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 0.9rem;
+  color: ${({ theme }) => theme.color.muted};
+
+  b {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 1.02rem;
+    font-weight: 800;
+    color: ${({ theme }) => theme.color.text};
+  }
+  svg {
+    color: #e0a32e;
+  }
+`;
+
+const Plate = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 7px;
+  border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
+  background: ${({ theme }) => theme.color.surface};
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: ${({ theme }) => theme.color.text};
+`;
+
+const VehicleMeta = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
 `;
 
 const Note = styled.p`
@@ -381,16 +467,16 @@ const primaryCta = css`
   padding: 0 22px;
   border: none;
   border-radius: 999px;
-  background: ${({ theme }) => theme.color.primary};
-  color: ${({ theme }) => theme.color.onPrimary};
-  font-size: 0.98rem;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-size: 1.02rem;
   font-weight: 800;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: filter 0.2s ease, transform 0.15s ease;
 
   &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.color.primaryDark};
+    filter: brightness(0.95);
     transform: translateY(-1px);
   }
   &:disabled {
@@ -500,6 +586,13 @@ export function RideDetailView({
   const note = rawNote && !/^seed:/i.test(rawNote) ? rawNote : null;
   const rawPlate = isTrip ? ride.vehicle?.plate_number?.trim() : null;
   const plate = rawPlate && !/^PENDING-/i.test(rawPlate) ? rawPlate : null;
+
+  const when = [date ? date.toLowerCase() : null, time ? `at ${time}` : null]
+    .filter(Boolean)
+    .join(" ");
+  const lead = isTrip
+    ? `Leaving ${ride.from_location}${when ? ` ${when}` : ""}. Check the driver and the car, then reserve your seat. You only pay once you're happy.`
+    : `Heading from ${ride.from_location}. If you're driving this route, you can offer them a seat.`;
   const isOwn = !!profile && !!person && profile.id === person.id;
   const soldOut = isTrip && ride.seats_available < 1;
   const closed = isTrip
@@ -531,10 +624,18 @@ export function RideDetailView({
           <ArrowLeft size={17} /> Notifications
         </Back>
 
+        <PageHead>
+          <h1>
+            {isTrip
+              ? `Get your ride to ${ride.to_location}`
+              : `Offer a ride to ${ride.to_location}`}
+          </h1>
+          <p>{lead}</p>
+        </PageHead>
+
         <Layout>
         <MainCol>
         <Card>
-          <Kind>{isTrip ? "Ride available" : "Ride request"}</Kind>
           <Route>
             <Rail>
               <span className="node">
@@ -564,12 +665,12 @@ export function RideDetailView({
           <Chips>
             {date && (
               <Chip>
-                <CalendarDays size={15} /> {date}
+                <CalendarDays size={18} /> {date}
               </Chip>
             )}
             {time && (
               <Chip>
-                <Clock size={15} /> {time}
+                <Clock size={18} /> {time}
               </Chip>
             )}
             {isTrip ? (
@@ -579,20 +680,20 @@ export function RideDetailView({
                 <>
                   <Chip $accent>{formatKes(ride.price_per_seat)} / seat</Chip>
                   <Chip>
-                    <Users size={15} />
+                    <Users size={18} />
                     {ride.seats_available} of {ride.seats_total} left
                   </Chip>
                 </>
               )
             ) : (
               <Chip $accent>
-                <Users size={15} />
+                <Users size={18} />
                 {ride.seats_needed} seat{ride.seats_needed === 1 ? "" : "s"} needed
               </Chip>
             )}
             {prefs.map(({ icon: Icon, label }) => (
               <Chip key={label}>
-                <Icon size={15} /> {label}
+                <Icon size={18} /> {label}
               </Chip>
             ))}
           </Chips>
@@ -611,16 +712,23 @@ export function RideDetailView({
               />
               <div className="who">
                 <h2>{person.full_name?.trim() || (isTrip ? "Kipita driver" : "Kipita passenger")}</h2>
-                <Chips style={{ marginTop: 0 }}>
-                  <Chip $accent={!!person.is_verified}>
-                    <BadgeCheck size={15} />
-                    {person.is_verified ? "Verified" : "Unverified"}
-                  </Chip>
-                  <Chip>
-                    <Star size={15} />
-                    {ratingLabel(person.rating, person.total_trips)}
-                  </Chip>
-                </Chips>
+                <Creds>
+                  <Verified $on={!!person.is_verified}>
+                    <BadgeCheck size={18} weight={person.is_verified ? "fill" : "regular"} />
+                    {person.is_verified ? "Verified driver" : "Not yet verified"}
+                  </Verified>
+                  <Rating>
+                    <b>
+                      <Star size={17} weight="fill" />
+                      {Number(person.rating ?? 0) > 0
+                        ? Number(person.rating).toFixed(1)
+                        : "New"}
+                    </b>
+                    {person.total_trips
+                      ? `${person.total_trips} trip${person.total_trips === 1 ? "" : "s"}`
+                      : "no trips yet"}
+                  </Rating>
+                </Creds>
               </div>
             </Person>
             {safeTelHref(person.phone) && (
@@ -645,9 +753,10 @@ export function RideDetailView({
                     .filter(Boolean)
                     .join(" ")}
                 </b>
-                <span>
-                  {[ride.vehicle.color, plate].filter(Boolean).join(" · ")}
-                </span>
+                <VehicleMeta>
+                  {ride.vehicle.color && <span>{ride.vehicle.color}</span>}
+                  {plate && <Plate>{plate.toUpperCase()}</Plate>}
+                </VehicleMeta>
               </div>
             </Vehicle>
           </Card>
@@ -687,7 +796,7 @@ export function RideDetailView({
                 {result.seats} seat{result.seats === 1 ? "" : "s"} ·{" "}
                 {formatKes(result.total)}.{" "}
                 {paid
-                  ? "Paid — we hold your fare until the trip is done, then release it to your driver."
+                  ? "Paid. We hold your fare until the trip is done, then release it to your driver."
                   : "Pay with M-Pesa to confirm; the seat is held until you do."}
               </p>
             </div>
@@ -837,7 +946,14 @@ export function RideDetailView({
           ) : soldOut ? (
             "Fully booked"
           ) : (
-            `Reserve · ${formatKes(ride.price_per_seat * seats)}`
+            <>
+              <span>Reserve · KES</span>
+              <RollingNumber
+                value={ride.price_per_seat * seats}
+                duration={520}
+                ariaLabel={formatKes(ride.price_per_seat * seats)}
+              />
+            </>
           )}
         </Primary>
       </Bar>

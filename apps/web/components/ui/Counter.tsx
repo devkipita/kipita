@@ -187,7 +187,7 @@ export function RollingNumber({
       {Array.from(formattedValue).map((char, index) => {
         if (!/\d/.test(char)) {
           return (
-            <StaticChar key={`${char}-${index}`} aria-hidden="true">
+            <StaticChar key={index} aria-hidden="true">
               {char}
             </StaticChar>
           );
@@ -198,7 +198,7 @@ export function RollingNumber({
 
         return (
           <DigitWheel
-            key={`${char}-${index}`}
+            key={index}
             position={hasStarted ? position : 0}
             duration={hasStarted ? duration : 0}
             targetOffset={hasStarted ? targetOffset : "0px"}

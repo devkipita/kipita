@@ -311,6 +311,7 @@ export interface AppColors {
   surfaceContainerHigh: string;
   surfaceContainerHighest: string;
   outline: string;
+  mutedText: string;
   outlineVariant: string;
   inverseSurface: string;
   inverseOnSurface: string;
@@ -415,7 +416,9 @@ function withAliases(
     surface2: r.surfaceContainerLow,
     text: r.onSurface,
     textSoft: r.onSurfaceVariant,
-    muted: r.outline,
+    // `outline` is a border role and fails WCAG AA as body text (4.1:1 on
+    // white). Muted text gets its own compliant tone.
+    muted: r.mutedText,
     line: r.outlineVariant,
     green700: primaryDark,
     tan: tanAccent,
@@ -475,6 +478,7 @@ const lightRoles: Roles = {
   surfaceContainerHigh: "#F5F3EB",
   surfaceContainerHighest: "#EDEBE3",
   outline: "#718078",
+  mutedText: "#5F6E66",
   outlineVariant: "#DCE4DC",
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",
@@ -544,6 +548,7 @@ const darkRoles: Roles = {
   surfaceContainerHigh: "#272B28",
   surfaceContainerHighest: "#323633",
   outline: "#878D88",
+  mutedText: "#9AA39D",
   outlineVariant: "#404943",
   inverseSurface: "#E1E3DF",
   inverseOnSurface: "#2E312E",
