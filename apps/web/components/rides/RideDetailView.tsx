@@ -23,6 +23,10 @@ const Wrap = styled(ContentWidth)`
   display: flex;
   flex-direction: column;
   gap: 14px;
+
+  @media (max-width: 960px) {
+    padding-bottom: calc(40px + var(--bottom-bar-space, 0px));
+  }
 `;
 
 const Back = styled(Link)`
@@ -48,6 +52,89 @@ const Card = styled.section`
   border-radius: ${({ theme }) => theme.radius.md};
   border: 1px solid ${({ theme }) => theme.color.line};
   padding: 20px;
+`;
+
+const Layout = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+  gap: 20px;
+
+  @media (max-width: 960px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+const MainCol = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+`;
+
+const SideCol = styled.div`
+  position: sticky;
+  top: calc(var(--sticky-top, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  /* Price and the action are what the visitor came to decide on, so on a
+     phone they lead instead of trailing three cards and the bottom nav. */
+  @media (max-width: 960px) {
+    position: static;
+    order: -1;
+  }
+`;
+
+const BookPanel = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border-radius: ${({ theme }) => theme.radius.md};
+  border: 1px solid ${({ theme }) => theme.color.line};
+  background: ${({ theme }) => theme.color.surface};
+`;
+
+const PriceHead = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+
+  b {
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: ${({ theme }) => theme.color.text};
+  }
+  small {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: ${({ theme }) => theme.color.muted};
+  }
+`;
+
+const SeatRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  > span {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: ${({ theme }) => theme.color.text};
+  }
+`;
+
+const Reassure = styled.p`
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.color.muted};
 `;
 
 const Kind = styled.span`
@@ -220,8 +307,8 @@ const Vehicle = styled.div`
     height: 46px;
     flex: none;
     border-radius: 14px;
-    background: ${({ theme }) => theme.tone.blue.bg};
-    color: ${({ theme }) => theme.tone.blue.on};
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${({ theme }) => theme.color.primary};
   }
   small {
     display: block;
@@ -242,7 +329,7 @@ const Vehicle = styled.div`
   }
 `;
 
-const Bar = styled(Card)`
+const Bar = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -405,6 +492,14 @@ export function RideDetailView({
   const date = formatRideDate(isTrip ? ride.departure_date : ride.preferred_date);
   const time = formatRideTime(isTrip ? ride.departure_time : ride.preferred_time);
   const prefs = preferenceChips(ride.preferences);
+
+  // Seeded rows tag themselves in `description`, and vehicles created before
+  // the plate field existed carry a PENDING- placeholder. Neither is for
+  // a passenger to read.
+  const rawNote = isTrip ? ride.description?.trim() : null;
+  const note = rawNote && !/^seed:/i.test(rawNote) ? rawNote : null;
+  const rawPlate = isTrip ? ride.vehicle?.plate_number?.trim() : null;
+  const plate = rawPlate && !/^PENDING-/i.test(rawPlate) ? rawPlate : null;
   const isOwn = !!profile && !!person && profile.id === person.id;
   const soldOut = isTrip && ride.seats_available < 1;
   const closed = isTrip
@@ -431,11 +526,13 @@ export function RideDetailView({
 
   return (
     <>
-      <Wrap $max={860}>
+      <Wrap $max={1120}>
         <Back href="/notifications">
           <ArrowLeft size={17} /> Notifications
         </Back>
 
+        <Layout>
+        <MainCol>
         <Card>
           <Kind>{isTrip ? "Ride available" : "Ride request"}</Kind>
           <Route>
@@ -476,13 +573,17 @@ export function RideDetailView({
               </Chip>
             )}
             {isTrip ? (
-              <>
-                <Chip $accent>{formatKes(ride.price_per_seat)} / seat</Chip>
-                <Chip>
-                  <Users size={15} />
-                  {ride.seats_available} of {ride.seats_total} left
-                </Chip>
-              </>
+              // The booking panel owns price and seats while the ride is open,
+              // so repeating them here is noise.
+              closed && (
+                <>
+                  <Chip $accent>{formatKes(ride.price_per_seat)} / seat</Chip>
+                  <Chip>
+                    <Users size={15} />
+                    {ride.seats_available} of {ride.seats_total} left
+                  </Chip>
+                </>
+              )
             ) : (
               <Chip $accent>
                 <Users size={15} />
@@ -496,7 +597,7 @@ export function RideDetailView({
             ))}
           </Chips>
 
-          {isTrip && ride.description && <Note>{ride.description}</Note>}
+          {isTrip && note && <Note>{note}</Note>}
         </Card>
 
         {person && (
@@ -545,13 +646,33 @@ export function RideDetailView({
                     .join(" ")}
                 </b>
                 <span>
-                  {[ride.vehicle.color, ride.vehicle.plate_number]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {[ride.vehicle.color, plate].filter(Boolean).join(" · ")}
                 </span>
               </div>
             </Vehicle>
           </Card>
+        )}
+
+        </MainCol>
+
+        <SideCol>
+        {isTrip && !closed && (
+          <BookPanel>
+            <PriceHead>
+              <b>{formatKes(ride.price_per_seat)}</b>
+              <small>per seat</small>
+            </PriceHead>
+            <SeatRow>
+              <span>
+                {ride.seats_available} of {ride.seats_total} seats left
+              </span>
+            </SeatRow>
+            {renderAction()}
+            <Reassure>
+              Your fare is held securely and only released to the driver after
+              the trip.
+            </Reassure>
+          </BookPanel>
         )}
 
         {result?.ok && (
@@ -583,7 +704,9 @@ export function RideDetailView({
           </Banner>
         )}
 
-        {renderAction()}
+        {(!isTrip || closed) && renderAction()}
+        </SideCol>
+        </Layout>
       </Wrap>
 
       {payingFor && payerId && (
