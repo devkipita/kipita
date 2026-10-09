@@ -112,7 +112,7 @@ export function LandingFooter() {
     <Footer>
       <Top>
         <BrandSlot>
-          <Brand href="#top" light />
+          <Brand href="/" light />
         </BrandSlot>
         <Tagline>
           Making travel across Kenya more affordable, social, and sustainable.

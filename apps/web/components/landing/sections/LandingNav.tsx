@@ -194,7 +194,7 @@ export function LandingNav({ profile }: { profile: Profile | null }) {
   return (
     <Nav>
       <NavLogo>
-        <Brand href="#top" light priority />
+        <Brand href="/" light priority />
       </NavLogo>
       <NavRight>
         <NavLink href="/home">Find a ride</NavLink>

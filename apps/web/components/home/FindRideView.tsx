@@ -242,7 +242,8 @@ const FilterBtn = styled.button`
 `;
 
 const rise = keyframes`
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(-14px) scale(0.985); }
+  60%  { opacity: 1; }
   to   { opacity: 1; transform: none; }
 `;
 
@@ -257,8 +258,8 @@ const List = styled.ul`
 
 const Card = styled.li<{ $i: number }>`
   position: relative;
-  animation: ${rise} 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: ${({ $i }) => Math.min($i, 5) * 0.05}s;
+  animation: ${rise} 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: ${({ $i }) => Math.min($i, 7) * 0.085}s;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -639,6 +640,7 @@ export function FindRideView({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
+  const [batchStart, setBatchStart] = useState(0);
   const [requestOpen, setRequestOpen] = useState(false);
 
   // A request needs a destination to be worth posting.
@@ -673,6 +675,7 @@ export function FindRideView({
 
   useEffect(() => {
     setShown(PAGE);
+    setBatchStart(0);
   }, [filters, sort, trips]);
 
   function runSearch(next: SearchBarValue) {
@@ -770,7 +773,7 @@ export function FindRideView({
             <>
             <List aria-label="Available rides">
               {page.map((t, i) => (
-                <Card key={t.id} $i={i}>
+                <Card key={t.id} $i={Math.max(0, i - batchStart)}>
                   <CardBody
                     data-ride-card
                     aria-label={`${t.from_location} to ${t.to_location}, ${formatKes(t.price_per_seat)} per passenger`}
@@ -845,7 +848,13 @@ export function FindRideView({
 
             {remaining > 0 && (
               <MoreWrap>
-                <MoreBtn type="button" onClick={() => setShown((n) => n + PAGE)}>
+                <MoreBtn
+                  type="button"
+                  onClick={() => {
+                    setBatchStart(shown);
+                    setShown((n) => n + PAGE);
+                  }}
+                >
                   See more rides
                 </MoreBtn>
                 <MoreNote aria-live="polite">
