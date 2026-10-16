@@ -183,7 +183,7 @@ export function ContactDock() {
           </CardBody>
         </ContactCardButton>
 
-        <ContactCardLink href={`tel:${phone}`} $tone={TONES.call}>
+        <ContactCardLink href={`tel:+254701930385`} $tone={TONES.call}>
           <IconWell $tone={TONES.call}>
             <svg width="28" height="28" viewBox="0 0 256 256" aria-hidden>
               <path d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46Z" />
@@ -192,7 +192,7 @@ export function ContactDock() {
           <CardBody>
             <CardTitle $tone={TONES.call}>Call us</CardTitle>
             <CardText $tone={TONES.call}>
-              +254 700 000 000 · Mon–Sun, 6am to 11pm EAT.
+              +254 701 930385 · Mon–Sun, 6am to 11pm EAT.
             </CardText>
           </CardBody>
         </ContactCardLink>
