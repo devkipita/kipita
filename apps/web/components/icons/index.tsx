@@ -749,6 +749,32 @@ export const Grid = createIcon(
   FLUENT,
 );
 
+const LENS_SQ = "M4 1h6a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+const FRAME_SQ =
+  "M4 1h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+
+export const SearchSquare = createIcon(
+  "SearchSquare",
+  (f) => (
+    <>
+      <path d={LENS_SQ} {...(f ? SOLID : {})} />
+      <path d="m13.7 13.7 4.5 4.5" />
+    </>
+  ),
+  FLUENT,
+);
+
+export const PlusSquare = createIcon(
+  "PlusSquare",
+  (f) => (
+    <>
+      <path d={FRAME_SQ} {...(f ? SOLID : {})} />
+      <path d="M10 6.1v7.8M6.1 10h7.8" />
+    </>
+  ),
+  FLUENT,
+);
+
 const CONE = "M12 3.2a1.4 1.4 0 0 1 1.33.96l4.3 13.04H6.37l4.3-13.04A1.4 1.4 0 0 1 12 3.2Z";
 const CONE_BASE =
   "M4.2 17.2h15.6a1.5 1.5 0 0 1 1.5 1.5v.7a1.5 1.5 0 0 1-1.5 1.5H4.2a1.5 1.5 0 0 1-1.5-1.5v-.7a1.5 1.5 0 0 1 1.5-1.5Z";

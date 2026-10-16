@@ -91,6 +91,7 @@ export type DriverVehicle = {
   make: string | null;
   model: string | null;
   color: string | null;
+  plate_number: string | null;
   image_url: string | null;
 };
 
@@ -100,7 +101,7 @@ export async function fetchMyVehicle(
 ): Promise<DriverVehicle | null> {
   const { data, error } = await supabase
     .from("vehicles")
-    .select("id, make, model, color, image_url")
+    .select("id, make, model, color, plate_number, image_url")
     .eq("driver_id", userId)
     .order("created_at", { ascending: false })
     .limit(1)

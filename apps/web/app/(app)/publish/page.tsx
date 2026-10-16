@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth/session";
-import { PublishWizard } from "@/components/publish/PublishWizard";
+import { createClient } from "@/lib/supabase/server";
+import { fetchMyVehicle } from "@/lib/home/vehicle";
+import { PublishDeclaration } from "@/components/publish/PublishDeclaration";
 
 export const metadata: Metadata = {
   title: "Publish a ride",
@@ -10,6 +12,26 @@ export const metadata: Metadata = {
 };
 
 export default async function PublishPage() {
-  await requireProfile("/publish");
-  return <PublishWizard />;
+  const profile = await requireProfile("/publish");
+  const vehicle = await createClient()
+    .then((supabase) => fetchMyVehicle(supabase, profile.id))
+    .catch(() => null);
+
+  const plate = vehicle?.plate_number?.trim() ?? "";
+  const realPlate =
+    plate.length >= 4 && !/^pending/i.test(plate) ? plate : null;
+
+  return (
+    <PublishDeclaration
+      savedCar={
+        realPlate
+          ? {
+              make: vehicle?.make ?? "",
+              model: vehicle?.model ?? "",
+              plate: realPlate,
+            }
+          : null
+      }
+    />
+  );
 }

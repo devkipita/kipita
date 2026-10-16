@@ -7,8 +7,7 @@ export const RAIL_COMPACT_MAX = 1200;
 export const RAIL_W_EXPANDED = 258;
 export const RAIL_W_COLLAPSED = 80;
 export const ASIDE_W = 300;
-/** Figma's header band: 92px, dropping to 78px under 960px. */
-export const TOPBAR_H = 92;
+export const TOPBAR_H = 68;
 export const TOPBAR_H_SM = 56;
 export const BOTTOM_BAR_SPACE = 96;
 

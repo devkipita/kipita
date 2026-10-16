@@ -1,4 +1,4 @@
-import { Bell, CardStack, Gift, Grid, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Scroll as ScrollText, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { Bell, CardStack, Gift, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Grid, PlusSquare, Scroll as ScrollText, SearchSquare, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -26,7 +26,7 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 
 export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
   passenger: [
-    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: MagnifyingGlass },
+    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
     {
       key: "trips",
       href: "/trips",
@@ -66,7 +66,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
     },
   ],
   driver: [
-    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: MagnifyingGlass },
+    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
     {
       key: "trips",
       href: "/trips",
@@ -108,13 +108,13 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
 };
 
 export const SIGNED_OUT_NAV: NavItem[] = [
-  { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: MagnifyingGlass },
+  { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
   {
     key: "publish",
     href: "/publish",
     label: "Publish a ride",
     shortLabel: "Publish",
-    icon: Plus,
+    icon: PlusSquare,
     owns: ["/publish"],
   },
   {
@@ -133,7 +133,7 @@ const PUBLISH_ITEM: NavItem = {
   href: "/publish",
   label: "Publish a ride",
   shortLabel: "Publish",
-  icon: Plus,
+  icon: PlusSquare,
   owns: ["/publish"],
 };
 
@@ -261,7 +261,7 @@ export function bottomNavFor(): NavItem[] {
       href: "/home",
       label: "Find a ride",
       shortLabel: "Find",
-      icon: MagnifyingGlass,
+      icon: SearchSquare,
     },
     { ...PUBLISH_ITEM, shortLabel: "Post" },
     {
