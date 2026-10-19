@@ -53,19 +53,14 @@ const Head = styled.div<{ $bare?: boolean }>`
   margin-bottom: 14px;
 `;
 
-const StripHead = styled.div<{ $solo: boolean }>`
-  display: grid;
-  grid-template-columns: ${({ $solo }) => ($solo ? "1fr" : "44px 1fr 44px")};
+/** The two nudges are one control, so they sit as a pair, not at opposite
+    ends of the row with the width of the strip between them. */
+const StripHead = styled.div`
+  display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-
-  > *:nth-child(2) {
-    justify-self: ${({ $solo }) => ($solo ? "end" : "center")};
-  }
-  > *:last-child {
-    justify-self: end;
-  }
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
 `;
 
 const Label = styled.span`
@@ -142,6 +137,14 @@ const Strip = styled.div`
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Run the strip to the screen edge so a half tile reads as "there is more",
+     not as a tile sliced by the layout. */
+  @media (max-width: 759px) {
+    margin-inline: calc(-1 * var(--page-pad, 18px));
+    padding-inline: var(--page-pad, 18px);
+    scroll-padding-inline: var(--page-pad, 18px);
   }
 
   /* Wide enough to hold every day: lay them out as a grid that fills the
@@ -482,7 +485,7 @@ export function DatePicker({
       )}
 
       {scrollable && (
-        <StripHead $solo={false}>
+        <StripHead>
           <Nudge
             type="button"
             aria-label="Show earlier days"
@@ -490,7 +493,6 @@ export function DatePicker({
           >
             <CaretLeft size={18} aria-hidden />
           </Nudge>
-          <span />
           <Nudge
             type="button"
             aria-label="Show later days"

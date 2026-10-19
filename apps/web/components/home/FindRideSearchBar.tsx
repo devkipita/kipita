@@ -45,30 +45,96 @@ const Card = styled.form`
   position: relative;
   z-index: 2;
   margin: 35px 0 28px;
-  padding: 9px;
+  padding: 8px;
   border-radius: 24px;
   background: ${nocturne.surface};
-  border: 1px solid ${nocturne.line};
   box-shadow: ${nocturne.cardShadow};
 
   @media (max-width: 640px) {
     margin: 25px 0 20px;
-    padding: 8px;
     border-radius: 20px;
   }
 `;
 
 const Grid = styled.div<{ $compact?: boolean }>`
-  display: ${({ $compact }) => ($compact ? "none" : "grid")};
-  grid-template-columns: 1.15fr 1.15fr 0.95fr 0.95fr auto;
-  gap: 7px;
+  display: ${({ $compact }) => ($compact ? "none" : "flex")};
+  align-items: stretch;
+  gap: 8px;
 
-  @media (max-width: 1100px) {
-    grid-template-columns: 1fr 1fr;
-  }
   @media (max-width: 760px) {
     display: none;
   }
+`;
+
+/**
+ * One layer, not four. The fields are regions of the same panel divided by a
+ * hairline; the rule beside a field retracts when that field wakes up, so the
+ * only thing that ever draws a box is the live one.
+ */
+const Fields = styled.div`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1.15fr 1.15fr 0.95fr 0.95fr;
+
+  > * {
+    position: relative;
+  }
+  > * + *::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 15px;
+    bottom: 15px;
+    width: 1px;
+    background: ${nocturne.line};
+    transition: opacity 0.15s ease;
+  }
+  > *:hover::before,
+  > *:focus-within::before,
+  > *:hover + *::before,
+  > *:focus-within + *::before {
+    opacity: 0;
+  }
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr 1fr;
+
+    > *:nth-child(3)::before {
+      display: none;
+    }
+  }
+`;
+
+const CTRL_H = 68;
+
+/**
+ * Focus draws the only box on the panel: an inset accent ring plus a tone step.
+ * Nothing is outlined at rest, so nothing competes with the field in use.
+ */
+const fieldBox = `
+  min-height: ${CTRL_H}px;
+  background: transparent;
+  border: none;
+  border-radius: 16px;
+  padding: 9px 16px;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+`;
+
+const focusRing = `
+  background: ${nocturne.surface2};
+  box-shadow: inset 0 0 0 2px ${nocturne.accent};
+  outline: none;
+`;
+
+/** The glyph is the label's companion, not a badge in a tinted chip. */
+const fieldGlyph = `
+  flex: none;
+  width: 21px;
+  height: 21px;
+  color: ${nocturne.accent};
 `;
 
 /* ── Mobile: one tap target that opens a full-screen search ── */
@@ -97,14 +163,9 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
   }
 
   > svg {
-    flex: none;
-    box-sizing: content-box;
+    ${fieldGlyph}
     width: 22px;
     height: 22px;
-    padding: 10px;
-    border-radius: 999px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
   }
   .text {
     flex: 1;
@@ -247,29 +308,32 @@ const StyledDate = styled.div`
 `;
 
 const FieldGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  border-radius: 18px;
+  background: ${nocturne.surface};
+  box-shadow: ${nocturne.cardShadow};
 
   && > * {
     position: relative;
-    border: 2px solid transparent;
-    border-radius: 16px;
-    background: ${nocturne.surface};
-    box-shadow: none;
-    transition:
-      border-color 0.16s ease,
-      background 0.16s ease;
+    border: none;
+    border-radius: 18px;
+    background: transparent;
   }
 
-  && > *:hover {
-    border-color: ${nocturne.line};
+  && > * + *::before {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    top: 0;
+    height: 1px;
+    background: ${nocturne.line};
+    transition: opacity 0.15s ease;
   }
-
-  && > *:focus-within,
-  && > *:focus-visible {
-    border-color: ${nocturne.accent};
-    outline: none;
+  && > *:hover::before,
+  && > *:focus-within::before,
+  && > *:hover + *::before,
+  && > *:focus-within + *::before {
+    opacity: 0;
   }
 `;
 
@@ -344,22 +408,13 @@ const SheetFoot = styled.div`
 const SeatsRow = styled.div`
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   min-height: 68px;
-  padding: 9px 14px;
-  border: 2px solid transparent;
-  border-radius: 16px;
-  background: ${nocturne.bg};
+  padding: 9px 16px;
+  background: transparent;
 
   > svg {
-    flex: none;
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 9px;
-    border-radius: 12px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
+    ${fieldGlyph}
   }
   .text {
     flex: 1;
@@ -396,52 +451,19 @@ const SeatsRow = styled.div`
   }
 `;
 
-const CTRL_H = 68;
-
-/**
- * One focus treatment for every control: a 2px accent border plus a soft ring.
- * No `outline` on top of it — two rings read as a bug.
- */
-const fieldBox = `
-  min-height: ${CTRL_H}px;
-  background: ${nocturne.bg};
-  border: 2px solid transparent;
-  border-radius: 16px;
-  padding: 9px 14px;
-  transition:
-    border-color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-`;
-
-const focusRing = `
-  border-color: ${nocturne.accent};
-  background: ${nocturne.surface};
-  box-shadow: 0 0 0 4px ${nocturne.ring};
-  outline: none;
-`;
-
 const Field = styled.label`
   ${fieldBox}
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   min-width: 0;
   cursor: text;
 
   > svg {
-    flex: none;
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 9px;
-    border-radius: 12px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
+    ${fieldGlyph}
   }
   &:hover {
-    border-color: ${nocturne.line};
-    background: ${nocturne.surface};
+    background: ${nocturne.surface2};
   }
   &:focus-within {
     ${focusRing}
@@ -495,7 +517,7 @@ const DateField = styled.button`
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   min-width: 0;
   width: 100%;
   color: inherit;
@@ -504,14 +526,7 @@ const DateField = styled.button`
   cursor: pointer;
 
   > svg {
-    flex: none;
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 9px;
-    border-radius: 12px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
+    ${fieldGlyph}
   }
   .text {
     flex: 1;
@@ -550,8 +565,7 @@ const DateField = styled.button`
     font-size: 16px;
   }
   &:hover {
-    border-color: ${nocturne.line};
-    background: ${nocturne.surface};
+    background: ${nocturne.surface2};
   }
   &:focus-within {
     ${focusRing}
@@ -624,7 +638,7 @@ const Trigger = styled.button`
   ${fieldBox}
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
   width: 100%;
   min-width: 0;
   color: ${nocturne.cream};
@@ -633,14 +647,7 @@ const Trigger = styled.button`
   cursor: pointer;
 
   > svg {
-    flex: none;
-    box-sizing: content-box;
-    width: 22px;
-    height: 22px;
-    padding: 9px;
-    border-radius: 12px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
+    ${fieldGlyph}
   }
   .text {
     flex: 1;
@@ -662,8 +669,7 @@ const Trigger = styled.button`
     white-space: nowrap;
   }
   &:hover {
-    border-color: ${nocturne.line};
-    background: ${nocturne.surface};
+    background: ${nocturne.surface2};
   }
   &[aria-expanded="true"],
   &:focus-visible {
@@ -957,6 +963,7 @@ export function FindRideSearchBar({
       </Collapsed>
 
       <Grid $compact={compact}>
+        <Fields>
         <Field data-tone="origin">
           <NavigationArrow size={20} aria-hidden />
           <span className="body">
@@ -1063,6 +1070,7 @@ export function FindRideSearchBar({
             </Pop>
           )}
         </Cell>
+        </Fields>
 
         <Actions>
           {dirty && (

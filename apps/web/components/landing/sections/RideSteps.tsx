@@ -1,10 +1,8 @@
 import styled from "styled-components";
-import { Car, Check, MapPin } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
-import { RIDE_STEPS, type RideStep } from "../data";
-
-const ICONS = { pin: MapPin, car: Car, check: Check } as const;
+import { StepArt } from "../StepArt";
+import { RIDE_STEPS } from "../data";
 
 const TONES = ["plain", "soft", "solid"] as const;
 
@@ -83,50 +81,46 @@ const TONE_BG: Record<Tone, string> = {
 
 const Step = styled.article<{ $tone: Tone }>`
   position: relative;
-  overflow: hidden;
-  min-height: 270px;
-  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+  min-height: 300px;
+  padding: 30px 32px 32px;
   border-radius: 24px;
   background: ${({ $tone }) => TONE_BG[$tone]};
   color: ${({ $tone }) =>
     $tone === "solid" ? nocturne.onGreen : nocturne.cream};
 
-  @media (max-width: 960px) {
-    min-height: 210px;
-  }
   @media (max-width: 640px) {
-    padding: 25px;
+    gap: 20px;
+    min-height: 0;
+    padding: 24px 25px 26px;
     border-radius: 20px;
   }
 `;
 
-const Number = styled.span<{ $tone: Tone }>`
-  position: absolute;
-  right: 20px;
-  top: 8px;
-  font-size: 72px;
-  font-weight: 800;
-  color: ${({ $tone }) =>
-    $tone === "solid" ? nocturne.onGreen : nocturne.accent};
-  opacity: ${({ $tone }) => ($tone === "solid" ? 0.12 : 0.09)};
+/** The diagram is the card's subject, so it gets the top half, not a corner. */
+const Art = styled.div`
+  svg {
+    display: block;
+    width: 100%;
+    max-width: 230px;
+    height: auto;
+  }
 `;
 
-const IconBox = styled.div<{ $tone: Tone }>`
-  display: grid;
-  place-items: center;
-  width: 54px;
-  height: 54px;
-  margin-bottom: 48px;
-  border-radius: 16px;
-  background: ${({ $tone }) =>
-    $tone === "solid" ? nocturne.lime : nocturne.surface};
-  color: ${({ $tone }) =>
-    $tone === "solid" ? nocturne.greenDeep : nocturne.accent};
-  box-shadow: ${nocturne.cardShadow};
+const Foot = styled.div`
+  margin-top: auto;
+`;
 
-  @media (max-width: 960px) {
-    margin-bottom: 25px;
-  }
+const StepNo = styled.span<{ $tone: Tone }>`
+  display: block;
+  margin-bottom: 9px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  font-variant-numeric: tabular-nums;
+  color: ${({ $tone }) => ($tone === "solid" ? nocturne.lime : nocturne.accent)};
 `;
 
 const StepTitle = styled.h3`
@@ -142,11 +136,6 @@ const StepBody = styled.p<{ $tone: Tone }>`
   color: ${({ $tone }) =>
     $tone === "solid" ? nocturne.onGreenMuted : nocturne.muted};
 `;
-
-function StepIcon({ icon }: { icon: RideStep["icon"] }) {
-  const Glyph = ICONS[icon];
-  return <Glyph size={26} />;
-}
 
 export function RideSteps() {
   return (
@@ -167,14 +156,18 @@ export function RideSteps() {
           const tone = TONES[i] ?? "plain";
           return (
             <Step key={step.number} $tone={tone}>
-              <Number $tone={tone} aria-hidden>
-                {step.number}
-              </Number>
-              <IconBox $tone={tone}>
-                <StepIcon icon={step.icon} />
-              </IconBox>
-              <StepTitle>{step.title}</StepTitle>
-              <StepBody $tone={tone}>{step.body}</StepBody>
+              <Art>
+                <StepArt
+                  icon={step.icon}
+                  ink={tone === "solid" ? nocturne.onGreen : nocturne.cream}
+                  mark={tone === "solid" ? nocturne.lime : nocturne.accent}
+                />
+              </Art>
+              <Foot>
+                <StepNo $tone={tone}>{step.number}</StepNo>
+                <StepTitle>{step.title}</StepTitle>
+                <StepBody $tone={tone}>{step.body}</StepBody>
+              </Foot>
             </Step>
           );
         })}

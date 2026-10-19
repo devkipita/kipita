@@ -31,6 +31,28 @@ export const EditorLabel = styled.div`
     align-items: center;
     gap: 10px;
   }
+
+  /* A tool beside the heading is secondary: it never outweighs the question
+     it sits next to, and it never wraps. */
+  .tools button {
+    font-size: 15px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 560px) {
+    gap: 10px;
+
+    h2 {
+      font-size: 16px;
+      white-space: nowrap;
+    }
+    .tools {
+      gap: 4px;
+    }
+    .tools button {
+      font-size: 14px;
+    }
+  }
 `;
 
 export const Choice = styled.button<{ $on?: boolean }>`

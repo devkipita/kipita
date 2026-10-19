@@ -24,7 +24,6 @@ const Bar = styled.header`
   padding: 0 max(var(--page-pad), env(safe-area-inset-left)) 0
     max(var(--page-pad), env(safe-area-inset-right));
   background: ${nocturne.bg};
-  border-bottom: 1px solid ${nocturne.line2};
   color: ${nocturne.cream};
 
   @media (max-width: 960px) {
@@ -79,6 +78,43 @@ const Cluster = styled.div<{ $bare: boolean }>`
   }
 `;
 
+const Glyph = styled.span<{ $on?: boolean }>`
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  line-height: 0;
+
+  svg {
+    display: block;
+    transition: opacity 0.16s ease;
+  }
+  svg:first-child {
+    opacity: ${({ $on }) => ($on ? 0 : 1)};
+  }
+  svg:last-child {
+    position: absolute;
+    inset: 0;
+    opacity: ${({ $on }) => ($on ? 1 : 0)};
+  }
+`;
+
+function NavGlyph({
+  icon: Icon,
+  size,
+  on,
+}: {
+  icon: NavItem["icon"];
+  size: number;
+  on?: boolean;
+}) {
+  return (
+    <Glyph $on={on} aria-hidden>
+      <Icon size={size} />
+      <Icon size={size} weight="fill" />
+    </Glyph>
+  );
+}
+
 const Links = styled.nav`
   display: flex;
   align-items: center;
@@ -95,7 +131,7 @@ const NavA = styled(Link)<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 9px 15px;
+  padding: 8px 14px;
   border-radius: 100px;
   font-size: 15.5px;
   font-weight: ${({ $active }) => ($active ? 700 : 600)};
@@ -105,7 +141,8 @@ const NavA = styled(Link)<{ $active: boolean }>`
     $active ? "rgba(255,255,255,0.14)" : "transparent"};
   transition:
     background 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    transform 0.12s ease;
 
   svg {
     flex: none;
@@ -124,9 +161,16 @@ const NavA = styled(Link)<{ $active: boolean }>`
       color: ${nocturne.lime};
       transform: translateY(-1px);
     }
+    &:hover ${Glyph} svg:first-child {
+      opacity: 0;
+    }
+    &:hover ${Glyph} svg:last-child {
+      opacity: 1;
+    }
   }
   &:active {
-    background: rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(0.97);
   }
   &:focus-visible {
     background: rgba(255, 255, 255, 0.12);
@@ -134,9 +178,17 @@ const NavA = styled(Link)<{ $active: boolean }>`
     outline: 2px solid ${nocturne.lime};
     outline-offset: 3px;
   }
+  &:focus-visible ${Glyph} svg:first-child {
+    opacity: 0;
+  }
+  &:focus-visible ${Glyph} svg:last-child {
+    opacity: 1;
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    &:hover svg {
+    transition: none;
+    &:hover svg,
+    &:active {
       transform: none;
     }
   }
@@ -145,7 +197,7 @@ const NavA = styled(Link)<{ $active: boolean }>`
 const LogIn = styled(Link)`
   display: inline-flex;
   align-items: center;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 16px;
   border-radius: 100px;
   color: rgba(255, 255, 255, 0.82);
@@ -172,7 +224,7 @@ const SignUp = styled(Link)`
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-height: 42px;
+  min-height: 40px;
   padding: 0 20px;
   border-radius: 100px;
   background: #ffffff;
@@ -182,7 +234,8 @@ const SignUp = styled(Link)`
   white-space: nowrap;
   transition:
     background 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    transform 0.12s ease;
 
   svg {
     color: ${nocturne.green};
@@ -196,9 +249,18 @@ const SignUp = styled(Link)`
       color: ${nocturne.greenDeep};
     }
   }
+  &:active {
+    transform: scale(0.97);
+  }
   &:focus-visible {
     outline: 2px solid ${nocturne.lime};
     outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -221,7 +283,8 @@ const Trigger = styled.button`
   cursor: pointer;
   transition:
     background 0.18s ease,
-    color 0.18s ease;
+    color 0.18s ease,
+    transform 0.12s ease;
 
   .who {
     max-width: 130px;
@@ -252,15 +315,20 @@ const Trigger = styled.button`
     color: ${nocturne.greenDeep};
     transform: rotate(180deg);
   }
+  &:active {
+    transform: scale(0.97);
+  }
   &:focus-visible {
-    outline: 2px solid ${nocturne.accent};
+    outline: 2px solid ${nocturne.lime};
     outline-offset: 3px;
   }
   @media (prefers-reduced-motion: reduce) {
+    transition: none;
     .chev {
       transition: none;
     }
-    &:hover .chev {
+    &:hover .chev,
+    &:active {
       transform: none;
     }
   }
@@ -336,6 +404,14 @@ const MenuA = styled(Link)`
   &:focus-visible svg {
     color: ${nocturne.greenDeep};
   }
+  &:hover ${Glyph} svg:first-child,
+  &:focus-visible ${Glyph} svg:first-child {
+    opacity: 0;
+  }
+  &:hover ${Glyph} svg:last-child,
+  &:focus-visible ${Glyph} svg:last-child {
+    opacity: 1;
+  }
   &:focus-visible {
     outline: 2px solid ${nocturne.accent};
     outline-offset: -2px;
@@ -388,7 +464,7 @@ export function AppTopBar({
               $active={isNavItemActive(item, pathname)}
               aria-current={isNavItemActive(item, pathname) ? "page" : undefined}
             >
-              <item.icon size={19} strokeWidth={1.45} aria-hidden />
+              <NavGlyph icon={item.icon} size={19} on={isNavItemActive(item, pathname)} />
               {item.label}
             </NavA>
           ))}
@@ -406,7 +482,7 @@ export function AppTopBar({
                 <Avatar
                   name={profile.full_name}
                   src={profile.avatar_url}
-                  size={40}
+                  size={36}
                 />
                 <span className="who">
                   {(profile.full_name || "Account").split(/\s+/)[0]}
@@ -418,7 +494,7 @@ export function AppTopBar({
                 <Menu role="menu">
                   {ACCOUNT_NAV.map((item) => (
                     <MenuA key={item.key} href={item.href} role="menuitem">
-                      <item.icon size={21} aria-hidden />
+                      <NavGlyph icon={item.icon} size={21} />
                       {item.label}
                     </MenuA>
                   ))}

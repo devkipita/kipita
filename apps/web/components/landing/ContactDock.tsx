@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
+import { dur, ease } from "@/lib/motion";
 import { Reveal } from "../anim/Reveal";
 import { SupportDock } from "./SupportDock";
 
@@ -55,8 +56,13 @@ const TONES = {
 
 const ContactGrid = styled(Reveal)`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 `;
 
 /* Shared look for the contact cards. Used by both a <button> and an <a>. */
@@ -74,12 +80,27 @@ const cardCss = css<{ $tone: CardTone }>`
   font-family: inherit;
   text-decoration: none;
   transition:
-    transform 0.25s ease,
-    box-shadow 0.25s ease;
+    transform ${dur.medium4}ms ${ease.emphasizedDecelerate},
+    box-shadow ${dur.medium4}ms ${ease.emphasizedDecelerate};
 
   &:hover {
     transform: translateY(-6px);
     box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 720px) {
+    border-radius: 20px;
+    padding: 18px;
+    gap: 14px;
+    min-height: 0;
   }
 `;
 
@@ -100,19 +121,226 @@ const ContactCardLink = styled.a<{ $tone: CardTone }>`
   ${cardCss}
 `;
 
-const IconWell = styled.span<{ $tone: CardTone }>`
-  width: 54px;
-  height: 54px;
-  border-radius: 50%;
-  background: ${({ $tone }) => $tone.circle};
-  display: grid;
-  place-items: center;
-  flex: none;
+/**
+ * Each card draws what it does rather than badging an icon: the diagram is the
+ * card's subject, in the card's own two tones.
+ */
+const typing = keyframes`
+  0%, 60%, 100% { transform: none; }
+  30%           { transform: translateY(-5px); }
+`;
+
+const ping = keyframes`
+  0%   { opacity: 0.12; }
+  40%  { opacity: 1; }
+  100% { opacity: 0.12; }
+`;
+
+const nudgeOut = keyframes`
+  0%, 100% { transform: none; }
+  50%      { transform: translateX(7px); }
+`;
+
+const wave = keyframes`
+  0%, 100% { transform: none; }
+  50%      { transform: skewY(-4deg); }
+`;
+
+/**
+ * The diagram holds still until the card is hovered, then performs the one
+ * thing the card is offering. Durations and curves are Material 3 tokens.
+ */
+const Art = styled.span`
+  display: block;
 
   svg {
-    fill: ${({ $tone }) => $tone.icon};
+    display: block;
+    width: 100%;
+    max-width: 148px;
+    height: auto;
+  }
+
+  [data-live] {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  [data-live="flag"] {
+    transform-origin: left bottom;
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    button:hover &,
+    a:hover & {
+      [data-live="dot"] {
+        animation: ${typing} 900ms ${ease.standard} infinite;
+      }
+      [data-live="dot"]:nth-of-type(2) {
+        animation-delay: 140ms;
+      }
+      [data-live="dot"]:nth-of-type(3) {
+        animation-delay: 280ms;
+      }
+      [data-live="flag"] {
+        animation: ${wave} ${dur.extraLong1}ms ${ease.standard} infinite;
+      }
+      [data-live="arc"] {
+        animation: ${ping} 1400ms ${ease.standardDecelerate} infinite;
+      }
+      [data-live="arc"]:nth-of-type(2) {
+        animation-delay: 180ms;
+      }
+      [data-live="arc"]:nth-of-type(3) {
+        animation-delay: 360ms;
+      }
+      [data-live="send"] {
+        animation: ${nudgeOut} ${dur.long4}ms ${ease.emphasized} infinite;
+      }
+    }
+  }
+
+  @media (max-width: 720px) {
+    svg {
+      max-width: 118px;
+    }
   }
 `;
+
+const ART = { viewBox: "0 0 96 56", fill: "none" } as const;
+
+function ChatArt({ t }: { t: CardTone }) {
+  return (
+    <svg {...ART} aria-hidden>
+      <path
+        d="M16 2h28a12 12 0 0 1 12 12v2a12 12 0 0 1-12 12H18L6 38V14A12 12 0 0 1 16 2Z"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeOpacity="0.45"
+      />
+      <rect x="38" y="24" width="56" height="29" rx="13" fill={t.title} />
+      {[53, 66, 79].map((cx) => (
+        <circle key={cx} data-live="dot" cx={cx} cy="38.5" r="3.6" fill={t.bg} />
+      ))}
+    </svg>
+  );
+}
+
+function ReportArt({ t }: { t: CardTone }) {
+  return (
+    <svg {...ART} aria-hidden>
+      <path
+        d="M2 47h92"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.22"
+      />
+      <path
+        d="M14 47h10M36 47h10M58 47h10M80 47h10"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.22"
+      />
+      <g data-live="flag">
+        <path
+          d="M30 47V7"
+          stroke={t.title}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path d="M32 7h26l-7 9.5 7 9.5H32V7Z" fill={t.title} />
+      </g>
+      <circle cx="30" cy="47" r="6" fill={t.title} />
+    </svg>
+  );
+}
+
+function CallArt({ t }: { t: CardTone }) {
+  return (
+    <svg {...ART} aria-hidden>
+      <g transform="rotate(-26 24 28)">
+        <rect
+          x="13"
+          y="5"
+          width="22"
+          height="46"
+          rx="9"
+          stroke={t.title}
+          strokeWidth="3.5"
+        />
+        <path
+          d="M20 12h8"
+          stroke={t.title}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <path
+          d="M21 44h6"
+          stroke={t.title}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeOpacity="0.4"
+        />
+      </g>
+      <path
+        data-live="arc"
+        d="M57 17.3a14 14 0 0 1 0 21.4"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.8"
+      />
+      <path
+        data-live="arc"
+        d="M62.8 10.4a23 23 0 0 1 0 35.2"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.45"
+      />
+      <path
+        data-live="arc"
+        d="M68.6 3.5a32 32 0 0 1 0 49"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.22"
+      />
+    </svg>
+  );
+}
+
+function MailArt({ t }: { t: CardTone }) {
+  return (
+    <svg {...ART} aria-hidden>
+      <rect
+        x="2"
+        y="8"
+        width="68"
+        height="42"
+        rx="10"
+        stroke={t.title}
+        strokeWidth="3"
+      />
+      <path
+        d="m6 14 28 19a4 4 0 0 0 4 0l28-19"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeOpacity="0.55"
+      />
+      <path
+        data-live="send"
+        d="M78 19h16M78 29h12M78 39h16"
+        stroke={t.title}
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeOpacity="0.3"
+      />
+    </svg>
+  );
+}
 
 const CardTitle = styled.b<{ $tone: CardTone }>`
   font-weight: 800;
@@ -120,6 +348,10 @@ const CardTitle = styled.b<{ $tone: CardTone }>`
   line-height: 1.1;
   color: ${({ $tone }) => $tone.title};
   letter-spacing: -0.02em;
+
+  @media (max-width: 720px) {
+    font-size: 17px;
+  }
 `;
 
 const CardText = styled.small<{ $tone: CardTone }>`
@@ -127,6 +359,11 @@ const CardText = styled.small<{ $tone: CardTone }>`
   font-weight: 500;
   line-height: 1.5;
   color: ${({ $tone }) => $tone.sub};
+
+  @media (max-width: 720px) {
+    font-size: 13px;
+    line-height: 1.45;
+  }
 `;
 
 const phone = "+254700000000";
@@ -152,11 +389,9 @@ export function ContactDock() {
           $tone={TONES.chat}
           onClick={() => open("support")}
         >
-          <IconWell $tone={TONES.chat}>
-            <svg width="28" height="28" viewBox="0 0 256 256" aria-hidden>
-              <path d="M216,48H40A16,16,0,0,0,24,64V224a15.85,15.85,0,0,0,9.24,14.5A16.13,16.13,0,0,0,40,240a15.89,15.89,0,0,0,10.25-3.78l.09-.07L83,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM96,140a12,12,0,1,1,12-12A12,12,0,0,1,96,140Zm32,0a12,12,0,1,1,12-12A12,12,0,0,1,128,140Zm32,0a12,12,0,1,1,12-12A12,12,0,0,1,160,140Z" />
-            </svg>
-          </IconWell>
+          <Art>
+            <ChatArt t={TONES.chat} />
+          </Art>
           <CardBody>
             <CardTitle $tone={TONES.chat}>Live chat</CardTitle>
             <CardText $tone={TONES.chat}>
@@ -170,11 +405,9 @@ export function ContactDock() {
           $tone={TONES.report}
           onClick={() => open("report")}
         >
-          <IconWell $tone={TONES.report}>
-            <svg width="28" height="28" viewBox="0 0 256 256" aria-hidden>
-              <path d="M232,56v90.85c0,9.31-5.15,17.82-13.44,22.21-9.85,5.21-25.32,11-45.6,11-13.09,0-27.96-2.42-44.44-9.19C97.72,158.6,71.66,164,56,169.09V216a8,8,0,0,1-16,0V56a8,8,0,0,1,3.2-6.4C44.36,48.72,71.65,29,111.11,45.19c33,13.55,58.24,7.4,72.42-.1C199.53,36.65,218.24,42.4,232,56Z" />
-            </svg>
-          </IconWell>
+          <Art>
+            <ReportArt t={TONES.report} />
+          </Art>
           <CardBody>
             <CardTitle $tone={TONES.report}>Report an issue</CardTitle>
             <CardText $tone={TONES.report}>
@@ -184,11 +417,9 @@ export function ContactDock() {
         </ContactCardButton>
 
         <ContactCardLink href={`tel:+254701930385`} $tone={TONES.call}>
-          <IconWell $tone={TONES.call}>
-            <svg width="28" height="28" viewBox="0 0 256 256" aria-hidden>
-              <path d="M222.37,158.46l-47.11-21.11-.13-.06a16,16,0,0,0-15.17,1.4,8.12,8.12,0,0,0-.75.56L134.87,160c-15.42-7.49-31.34-23.29-38.83-38.51l20.78-24.71c.2-.25.39-.5.57-.77a16,16,0,0,0,1.32-15.06l0-.12L97.54,33.64a16,16,0,0,0-16.62-9.52A56.26,56.26,0,0,0,32,80c0,79.4,64.6,144,144,144a56.26,56.26,0,0,0,55.88-48.92A16,16,0,0,0,222.37,158.46Z" />
-            </svg>
-          </IconWell>
+          <Art>
+            <CallArt t={TONES.call} />
+          </Art>
           <CardBody>
             <CardTitle $tone={TONES.call}>Call us</CardTitle>
             <CardText $tone={TONES.call}>
@@ -198,11 +429,9 @@ export function ContactDock() {
         </ContactCardLink>
 
         <ContactCardLink href="mailto:hello@kipita.co.ke" $tone={TONES.email}>
-          <IconWell $tone={TONES.email}>
-            <svg width="28" height="28" viewBox="0 0 256 256" aria-hidden>
-              <path d="M224,48H32a8,8,0,0,0-8,8V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A8,8,0,0,0,224,48Zm-96,85.15L52.57,64H203.43ZM98.71,128,40,181.81V74.19Zm11.84,10.85,12,11.05a8,8,0,0,0,10.82,0l12-11.05,58,53.15H52.57ZM157.29,128,216,74.18V181.82Z" />
-            </svg>
-          </IconWell>
+          <Art>
+            <MailArt t={TONES.email} />
+          </Art>
           <CardBody>
             <CardTitle $tone={TONES.email}>Email</CardTitle>
             <CardText $tone={TONES.email}>

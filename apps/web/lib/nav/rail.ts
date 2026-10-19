@@ -7,9 +7,9 @@ export const RAIL_COMPACT_MAX = 1200;
 export const RAIL_W_EXPANDED = 258;
 export const RAIL_W_COLLAPSED = 80;
 export const ASIDE_W = 300;
-export const TOPBAR_H = 68;
-export const TOPBAR_H_SM = 56;
-export const BOTTOM_BAR_SPACE = 96;
+export const TOPBAR_H = 64;
+export const TOPBAR_H_SM = 52;
+export const BOTTOM_BAR_SPACE = 80;
 
 export function parseRail(value: string | undefined | null): boolean {
   return value === "collapsed";

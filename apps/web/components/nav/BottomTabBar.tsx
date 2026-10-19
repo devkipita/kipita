@@ -7,23 +7,28 @@ import { Z } from "@/lib/z";
 import { nocturne } from "@/lib/nocturne";
 import { isNavItemActive, isNavItemCurrent, type NavItem } from "./nav-items";
 
+const EASE = "cubic-bezier(0.2, 0, 0, 1)";
+
 const Bar = styled.nav`
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: max(8px, env(safe-area-inset-bottom));
   z-index: ${Z.bottomTabBar};
-  width: min(380px, calc(100% - 24px));
-  height: 64px;
-  display: flex;
+  width: min(360px, calc(100% - 20px));
+  height: 56px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   align-items: center;
-  justify-content: space-around;
-  padding: 0 6px;
+  padding: 0 4px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  box-shadow: ${nocturne.panelShadow};
-  border: 1px solid ${nocturne.line};
-  background: ${nocturne.surface};
-  backdrop-filter: saturate(1.3) blur(18px);
+  box-shadow:
+    0 1px 2px rgba(8, 28, 20, 0.08),
+    0 8px 24px -8px rgba(8, 28, 20, 0.22);
+  border: 1px solid ${nocturne.line2};
+  background: color-mix(in oklab, ${nocturne.surface} 93%, transparent);
+  backdrop-filter: saturate(1.4) blur(20px);
 
   @supports not (backdrop-filter: blur(1px)) {
     background: ${nocturne.surface};
@@ -43,59 +48,99 @@ const Item = styled(Link)`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 64px;
-  height: 52px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  color: ${nocturne.muted};
+  gap: 1px;
+  height: 48px;
+  border-radius: 16px;
+  color: ${nocturne.muted2};
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
+  transition: color 0.18s ${EASE};
 
   .well {
     display: grid;
     place-items: center;
-    width: 44px;
-    height: 28px;
+    width: 100%;
+    max-width: 50px;
+    height: 26px;
     border-radius: 999px;
-    transition: background 0.18s ease;
+    transition:
+      background 0.22s ${EASE},
+      transform 0.22s ${EASE};
   }
 
   .label {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0;
+    line-height: 1.3;
+    letter-spacing: 0.01em;
+    transition: font-variation-settings 0.18s ${EASE};
   }
 
   &[data-active="true"] {
     color: ${nocturne.accent};
+
     .well {
-      background: ${nocturne.surface2};
+      background: color-mix(in oklab, ${nocturne.accent} 15%, transparent);
     }
     .label {
-      font-weight: 800;
+      font-weight: 700;
     }
   }
 
-  &:active {
-    opacity: 0.7;
+  @media (hover: hover) {
+    &:hover .well {
+      background: color-mix(in oklab, ${nocturne.accent} 9%, transparent);
+    }
+    &[data-active="true"]:hover .well {
+      background: color-mix(in oklab, ${nocturne.accent} 22%, transparent);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${nocturne.accent};
+    outline-offset: 1px;
+  }
+
+  &:active .well {
+    transform: scale(0.9);
+    background: color-mix(in oklab, ${nocturne.accent} 24%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {
+    transition: none;
     .well {
       transition: none;
+    }
+    &:active .well {
+      transform: none;
+    }
+  }
+
+  @media (forced-colors: active) {
+    &[data-active="true"] .well {
+      outline: 1px solid CanvasText;
     }
   }
 `;
 
-const Dot = styled.span`
+const Count = styled.span`
   position: absolute;
-  top: 4px;
-  right: 14px;
-  width: 8px;
-  height: 8px;
+  top: 0;
+  left: calc(50% + 5px);
+  display: grid;
+  place-items: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
   border-radius: 999px;
   background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 0 0 2px ${nocturne.surface};
 `;
 
 export function BottomTabBar({
@@ -112,19 +157,23 @@ export function BottomTabBar({
       {items.slice(0, 5).map((item) => {
         const Icon = item.icon;
         const active = isNavItemActive(item, pathname);
+        const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
         return (
           <Item
             key={item.key}
             href={item.href}
             data-active={active ? "true" : "false"}
             aria-current={isNavItemCurrent(item, pathname) ? "page" : undefined}
+            aria-label={
+              count ? `${item.label}, ${count} new` : item.label
+            }
           >
             <span className="well" aria-hidden="true">
-              <Icon size={24} weight={active ? "fill" : "regular"} />
+              <Icon size={22} weight={active ? "bold" : "regular"} />
             </span>
             <span className="label">{item.shortLabel}</span>
-            {item.badge && counts?.[item.badge] ? (
-              <Dot aria-hidden="true" />
+            {count ? (
+              <Count aria-hidden="true">{count > 9 ? "9+" : count}</Count>
             ) : null}
           </Item>
         );

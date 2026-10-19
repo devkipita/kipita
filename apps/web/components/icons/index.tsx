@@ -2,7 +2,14 @@ import { createIcon, SOLID } from "./createIcon";
 
 export type { IconProps, IconWeight, KipitaIcon } from "./createIcon";
 
-const HOUSE = "M3.4 10.3 12 3.1l8.6 7.2v8.5a1.9 1.9 0 0 1-1.9 1.9H5.3a1.9 1.9 0 0 1-1.9-1.9Z";
+const HOUSE =
+  "M1.2 8.8 8.44 3.37a2.6 2.6 0 0 1 3.12 0L18.8 8.8V16a2 2 0 0 1-2 2H3.2a2 2 0 0 1-2-2V8.8Z";
+const HOUSE_DOOR =
+  "M7.6 18v-4.8a1.4 1.4 0 0 1 1.4-1.4h2a1.4 1.4 0 0 1 1.4 1.4V18";
+
+/** Tail and left wall are one edge, so the bubble points without a spur. */
+const SPEECH =
+  "M6.2 1h7.6a4.6 4.6 0 0 1 4.6 4.6v4.4a4.6 4.6 0 0 1-4.6 4.6H6.6L1.6 18.6V5.6A4.6 4.6 0 0 1 6.2 1Z";
 const BELL_BODY =
   "M18.2 9.4a6.2 6.2 0 0 0-12.4 0c0 4.7-1.6 6.1-2.3 6.7a.85.85 0 0 0 .55 1.5h15.9a.85.85 0 0 0 .55-1.5c-.7-.6-2.3-2-2.3-6.7Z";
 const BELL_CLAPPER = "M14.6 20.3a3 3 0 0 1-5.2 0";
@@ -49,8 +56,24 @@ const dot = (cx: number, cy: number, r = 1.1) => (
   <circle cx={cx} cy={cy} r={r} {...SOLID} />
 );
 
-export const House = createIcon("House", (f) =>
-  f ? <path d={HOUSE} {...SOLID} /> : <path d={HOUSE} />,
+export const House = createIcon(
+  "House",
+  (f) =>
+    f ? (
+      <path d={`${HOUSE}${HOUSE_DOOR}Z`} fillRule="evenodd" {...SOLID} />
+    ) : (
+      <>
+        <path d={HOUSE} />
+        <path d={HOUSE_DOOR} />
+      </>
+    ),
+  { viewBox: "0 0 20 20" },
+);
+
+export const Speech = createIcon(
+  "Speech",
+  (f) => (f ? <path d={SPEECH} {...SOLID} /> : <path d={SPEECH} />),
+  { viewBox: "0 0 20 20" },
 );
 
 export const MagnifyingGlass = createIcon("MagnifyingGlass", () => (
@@ -687,9 +710,9 @@ export const CardStack = createIcon(
       />
     ) : (
       <>
-        <path d={CARD_BODY} />
-        <path d={CARD_MID} />
-        <path d={CARD_TOP} />
+        <path d="M4 7h12a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3Z" />
+        <path d="M3.2 4.6h13.6" />
+        <path d="M5 2.2h10" />
       </>
     ),
   FLUENT,
@@ -715,13 +738,14 @@ export const CompassRose = createIcon(
   FLUENT,
 );
 
-const GRID_TL = "M4 1h2.412a3 3 0 0 1 3 3v2.413a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+const GRID_TL =
+  "M2.9 1h4.4a1.9 1.9 0 0 1 1.9 1.9v4.4a1.9 1.9 0 0 1-1.9 1.9H2.9A1.9 1.9 0 0 1 1 7.3V2.9A1.9 1.9 0 0 1 2.9 1Z";
 const GRID_TR =
-  "M13.589 1H16a3 3 0 0 1 3 3v2.413a3 3 0 0 1-3 3h-2.411a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+  "M12.7 1h4.4A1.9 1.9 0 0 1 19 2.9v4.4a1.9 1.9 0 0 1-1.9 1.9h-4.4a1.9 1.9 0 0 1-1.9-1.9V2.9a1.9 1.9 0 0 1 1.9-1.9Z";
 const GRID_BL =
-  "M4 10.589h2.412a3 3 0 0 1 3 3v2.413a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3v-2.413a3 3 0 0 1 3-3Z";
+  "M2.9 10.8h4.4a1.9 1.9 0 0 1 1.9 1.9v4.4A1.9 1.9 0 0 1 7.3 19H2.9A1.9 1.9 0 0 1 1 17.1v-4.4a1.9 1.9 0 0 1 1.9-1.9Z";
 const GRID_BR =
-  "M13.589 10.589H16a3 3 0 0 1 3 3v2.413a3 3 0 0 1-3 3h-2.411a3 3 0 0 1-3-3v-2.413a3 3 0 0 1 3-3Z";
+  "M12.7 10.8h4.4a1.9 1.9 0 0 1 1.9 1.9v4.4a1.9 1.9 0 0 1-1.9 1.9h-4.4a1.9 1.9 0 0 1-1.9-1.9v-4.4a1.9 1.9 0 0 1 1.9-1.9Z";
 
 export const ArrowOut = createIcon(
   "ArrowOut",
@@ -749,16 +773,25 @@ export const Grid = createIcon(
   FLUENT,
 );
 
-const LENS_SQ = "M4 1h6a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+/** The lens opens at the top right so the spark sits in the gap, not on it. */
+const LENS_ARC = "M13.85 7.84A5.5 5.5 0 1 1 9.82 3.29";
+const LENS_STEM = "m12.29 12.49 5.6 5.6";
+const LENS_SPARK =
+  "M15 1.3q.47 2.13 2.6 2.6-2.13.47-2.6 2.6-.47-2.13-2.6-2.6 2.13-.47 2.6-2.6Z";
+
 const FRAME_SQ =
   "M4 1h12a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H4a3 3 0 0 1-3-3V4a3 3 0 0 1 3-3Z";
+const CROSS = "M10 5.6v8.8M5.6 10h8.8";
+const CROSS_HOLE =
+  "M8.7 6.4a.8.8 0 0 1 .8-.8h1a.8.8 0 0 1 .8.8V8.7h2.3a.8.8 0 0 1 .8.8v1a.8.8 0 0 1-.8.8H11.3v2.3a.8.8 0 0 1-.8.8h-1a.8.8 0 0 1-.8-.8V11.3H6.4a.8.8 0 0 1-.8-.8v-1a.8.8 0 0 1 .8-.8H8.7Z";
 
-export const SearchSquare = createIcon(
-  "SearchSquare",
+export const SearchSpark = createIcon(
+  "SearchSpark",
   (f) => (
     <>
-      <path d={LENS_SQ} {...(f ? SOLID : {})} />
-      <path d="m13.7 13.7 4.5 4.5" />
+      <path d={LENS_ARC} strokeWidth={f ? 2.4 : undefined} />
+      <path d={LENS_STEM} strokeWidth={f ? 2.4 : undefined} />
+      <path d={LENS_SPARK} {...SOLID} />
     </>
   ),
   FLUENT,
@@ -766,12 +799,15 @@ export const SearchSquare = createIcon(
 
 export const PlusSquare = createIcon(
   "PlusSquare",
-  (f) => (
-    <>
-      <path d={FRAME_SQ} {...(f ? SOLID : {})} />
-      <path d="M10 6.1v7.8M6.1 10h7.8" />
-    </>
-  ),
+  (f) =>
+    f ? (
+      <path d={`${FRAME_SQ}${CROSS_HOLE}`} fillRule="evenodd" {...SOLID} />
+    ) : (
+      <>
+        <path d={FRAME_SQ} />
+        <path d={CROSS} />
+      </>
+    ),
   FLUENT,
 );
 
@@ -931,12 +967,21 @@ export const Briefcase = createIcon("Briefcase", () => (
   </>
 ));
 
-export const Wallet = createIcon("Wallet", () => (
-  <>
-    <path d="M3.2 7.4a2 2 0 0 1 2-2h13.6a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5.2a2 2 0 0 1-2-2Z" />
-    <path d="M20.8 10.8h-3.4a2.4 2.4 0 0 0 0 4.8h3.4" />
-  </>
-));
+export const Wallet = createIcon("Wallet", (f) =>
+  f ? (
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M5.2 5.4h13.6a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5.2a2 2 0 0 1-2-2V7.4a2 2 0 0 1 2-2Zm12.2 6.4a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z"
+      {...SOLID}
+    />
+  ) : (
+    <>
+      <path d="M3.2 7.4a2 2 0 0 1 2-2h13.6a2 2 0 0 1 2 2v11.2a2 2 0 0 1-2 2H5.2a2 2 0 0 1-2-2Z" />
+      <path d="M20.8 10.8h-3.4a2.4 2.4 0 0 0 0 4.8h3.4" />
+    </>
+  ),
+);
 
 export const HandCoins = createIcon("HandCoins", () => (
   <>
@@ -947,15 +992,34 @@ export const HandCoins = createIcon("HandCoins", () => (
   </>
 ));
 
-export const Gift = createIcon("Gift", () => (
-  <>
-    <path d="M2.8 7.8h18.4v4H2.8Z" />
-    <path d="M4.6 11.8v7.6a1.8 1.8 0 0 0 1.8 1.8h11.2a1.8 1.8 0 0 0 1.8-1.8v-7.6" />
-    <path d="M12 7.8v13.4" />
-    <path d={GIFT_BOW_L} />
-    <path d={GIFT_BOW_R} />
-  </>
-));
+export const Gift = createIcon("Gift", (f) =>
+  f ? (
+    <>
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M2.8 7.8h18.4v4H2.8V7.8Zm8.3 0h1.8v4h-1.8V7.8Z"
+        {...SOLID}
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M4.6 11.8h14.8v7.6a1.8 1.8 0 0 1-1.8 1.8H6.4a1.8 1.8 0 0 1-1.8-1.8v-7.6Zm6.5 0h1.8v9.4h-1.8v-9.4Z"
+        {...SOLID}
+      />
+      <path d={GIFT_BOW_L} {...SOLID} />
+      <path d={GIFT_BOW_R} {...SOLID} />
+    </>
+  ) : (
+    <>
+      <path d="M2.8 7.8h18.4v4H2.8Z" />
+      <path d="M4.6 11.8v7.6a1.8 1.8 0 0 0 1.8 1.8h11.2a1.8 1.8 0 0 0 1.8-1.8v-7.6" />
+      <path d="M12 7.8v13.4" />
+      <path d={GIFT_BOW_L} />
+      <path d={GIFT_BOW_R} />
+    </>
+  ),
+);
 
 export const Confetti = createIcon("Confetti", () => (
   <>

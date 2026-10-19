@@ -1,4 +1,4 @@
-import { Bell, CardStack, Gift, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Grid, PlusSquare, Scroll as ScrollText, SearchSquare, UserCircle as UserRound, Wallet } from "@/components/icons";
+﻿import { Bell, Gift, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Speech, PlusSquare, Scroll as ScrollText, SearchSpark, Ticket, UserCircle as UserRound, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -26,13 +26,13 @@ export function isNavItemActive(item: NavItem, pathname: string): boolean {
 
 export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
   passenger: [
-    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
+    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSpark },
     {
       key: "trips",
       href: "/trips",
       label: "My trips",
       shortLabel: "Trips",
-      icon: CardStack,
+      icon: Ticket,
       requiresAuth: true,
       badge: "trips",
       owns: ["/trips", "/ride"],
@@ -42,7 +42,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Grid,
+      icon: Speech,
       badge: "alerts",
       owns: ["/alerts"],
     },
@@ -66,13 +66,13 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
     },
   ],
   driver: [
-    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
+    { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSpark },
     {
       key: "trips",
       href: "/trips",
       label: "My rides",
       shortLabel: "Rides",
-      icon: CardStack,
+      icon: Ticket,
       requiresAuth: true,
       badge: "trips",
       owns: ["/trips", "/ride"],
@@ -82,7 +82,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Grid,
+      icon: Speech,
       badge: "alerts",
       owns: ["/alerts"],
     },
@@ -108,7 +108,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
 };
 
 export const SIGNED_OUT_NAV: NavItem[] = [
-  { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSquare },
+  { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: SearchSpark },
   {
     key: "publish",
     href: "/publish",
@@ -122,7 +122,7 @@ export const SIGNED_OUT_NAV: NavItem[] = [
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Grid,
+    icon: Speech,
     owns: ["/alerts"],
   },
   { key: "help", href: "/help", label: "Help", shortLabel: "Help", icon: LifeBuoy },
@@ -138,8 +138,8 @@ const PUBLISH_ITEM: NavItem = {
 };
 
 /**
- * The top bar carries the two things a visitor came to do. Everything else —
- * trips, alerts, notifications, wallet, appearance — lives under the profile.
+ * The top bar carries the two things a visitor came to do. Everything else â€”
+ * trips, alerts, notifications, wallet, appearance â€” lives under the profile.
  */
 export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   const find = signedIn
@@ -150,7 +150,7 @@ export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Grid,
+    icon: Speech,
     owns: ["/alerts"],
   } satisfies NavItem;
   return [find, PUBLISH_ITEM, alerts];
@@ -163,7 +163,7 @@ export const ACCOUNT_NAV: NavItem[] = [
     href: "/trips",
     label: "My trips",
     shortLabel: "Trips",
-    icon: CardStack,
+    icon: Ticket,
     requiresAuth: true,
     badge: "trips",
     owns: ["/trips", "/ride"],
@@ -173,7 +173,7 @@ export const ACCOUNT_NAV: NavItem[] = [
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Grid,
+    icon: Speech,
     badge: "alerts",
     owns: ["/alerts"],
   },
@@ -246,12 +246,12 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
 }
 
 /**
- * The mobile bottom bar. Profile is the last slot in both states — it is the
+ * The mobile bottom bar. Profile is the last slot in both states â€” it is the
  * way into everything the bar has no room for (wallet, referrals, help, legal).
  */
 /**
  * The one bottom bar, identical on every page and in both auth states.
- * Profile is deliberately absent — it lives in the top bar's avatar menu.
+ * Profile is deliberately absent â€” it lives in the top bar's avatar menu.
  */
 export function bottomNavFor(): NavItem[] {
   return [
@@ -261,7 +261,7 @@ export function bottomNavFor(): NavItem[] {
       href: "/home",
       label: "Find a ride",
       shortLabel: "Find",
-      icon: SearchSquare,
+      icon: SearchSpark,
     },
     { ...PUBLISH_ITEM, shortLabel: "Post" },
     {
@@ -269,7 +269,7 @@ export function bottomNavFor(): NavItem[] {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Grid,
+      icon: Speech,
       badge: "alerts",
       owns: ["/alerts"],
     },
