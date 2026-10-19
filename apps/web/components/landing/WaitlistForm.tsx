@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import styled from "styled-components";
+import { dur, ease } from "@/lib/motion";
+import { pressable } from "@/components/ui/interactions";
 import { nocturne } from "./nocturne";
 import { joinWaitlist } from "@/lib/waitlist";
 
@@ -32,9 +34,24 @@ const WaitlistInput = styled.input`
   font-size: 15px;
   font-family: inherit;
 
-  &:focus {
+  transition:
+    border-color ${dur.short4}ms ${ease.standard},
+    box-shadow ${dur.short4}ms ${ease.standard};
+
+  &::placeholder {
+    color: ${nocturne.muted3};
+  }
+  &:hover:not(:disabled) {
+    border-color: ${nocturne.accent};
+  }
+  &:focus-visible {
     outline: none;
-    border-color: ${nocturne.sage};
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 4px ${nocturne.ring};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 
   @media (max-width: 640px) {
@@ -44,7 +61,14 @@ const WaitlistInput = styled.input`
   }
 `;
 
+/**
+ * Hover deepens within the green family. It must never reach for `cream`,
+ * which is the ink token and inverts per theme — that is what previously
+ * painted dark green under dark-green text.
+ */
 const WaitlistBtn = styled.button`
+  position: relative;
+  min-height: 44px;
   padding: 16px 30px;
   border-radius: 999px;
   border: none;
@@ -53,16 +77,25 @@ const WaitlistBtn = styled.button`
   font-size: 15px;
   font-weight: 700;
   font-family: inherit;
-  cursor: pointer;
-  transition: background 0.2s ease;
 
-  &:hover {
-    background: ${nocturne.cream};
+  ${pressable(nocturne.green)}
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${nocturne.green};
+      color: ${nocturne.onGreen};
+      filter: none;
+    }
+  }
+  &:active:not(:disabled) {
+    background: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
   }
 
   &:disabled {
     cursor: default;
     background: ${nocturne.sage};
+    color: ${nocturne.greenDeep};
   }
 
   @media (max-width: 640px) {

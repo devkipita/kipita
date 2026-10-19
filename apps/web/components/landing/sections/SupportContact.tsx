@@ -10,8 +10,7 @@ const Contact = styled.section`
   background: ${nocturne.bg};
 
   @media (max-width: 640px) {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding: 72px 18px;
   }
 `;
 

@@ -4,6 +4,7 @@ import appSearch from "../../../public/landing/app-search.png";
 import appHome from "../../../public/landing/app-home.png";
 import appRides from "../../../public/landing/app-rides.png";
 import { nocturne } from "../nocturne";
+import { dur, ease } from "@/lib/motion";
 import { Reveal } from "../../anim/Reveal";
 import { Eyebrow, H2 } from "../primitives";
 import { WaitlistForm } from "../WaitlistForm";
@@ -14,6 +15,10 @@ const Download = styled.section`
   padding: clamp(90px, 10vw, 150px) clamp(20px, 5vw, 72px);
   background: ${nocturne.surface};
   overflow: hidden;
+
+  @media (max-width: 640px) {
+    padding: 72px 18px;
+  }
 `;
 
 const DownloadGrid = styled.div`
@@ -53,16 +58,43 @@ const StoreRow = styled.div`
   }
 `;
 
-const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
+const StoreBtn = styled.a<{ $variant: "light" | "soft" }>`
   display: inline-flex;
   align-items: center;
   gap: 12px;
+  min-height: 44px;
   padding: 16px 28px;
+  border: 1px solid transparent;
   border-radius: 999px;
   transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease;
+    background ${dur.short4}ms ${ease.standard},
+    border-color ${dur.short4}ms ${ease.standard},
+    color ${dur.short4}ms ${ease.standard},
+    transform ${dur.short3}ms ${ease.emphasized},
+    box-shadow ${dur.medium2}ms ${ease.emphasizedDecelerate};
+
+  svg {
+    flex: none;
+    transition: transform ${dur.medium3}ms ${ease.emphasized};
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px -12px rgba(8, 28, 20, 0.45);
+    }
+    &:hover svg {
+      transform: scale(1.14) rotate(-6deg);
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
 
   @media (max-width: 640px) {
     width: min(100%, 340px);
@@ -75,6 +107,21 @@ const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
     max-width: 100%;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      background ${dur.short4}ms ${ease.standard},
+      color ${dur.short4}ms ${ease.standard};
+
+    svg {
+      transition: none;
+    }
+    &:hover,
+    &:active,
+    &:hover svg {
+      transform: none;
+    }
+  }
+
   ${({ $variant }) =>
     $variant === "light"
       ? `
@@ -83,10 +130,9 @@ const StoreBtn = styled.a<{ $variant: "light" | "outline" }>`
         &:hover { background: ${nocturne.sage}; color: ${nocturne.greenDeep}; }
       `
       : `
-        background: transparent;
-        border: 1px solid ${nocturne.line};
-        color: ${nocturne.cream};
-        &:hover { border-color: ${nocturne.sage}; color: ${nocturne.sage}; }
+        background: ${nocturne.sage};
+        color: ${nocturne.greenDeep};
+        &:hover { background: ${nocturne.green}; color: ${nocturne.onGreen}; }
       `}
 `;
 
@@ -96,10 +142,12 @@ const StoreLabel = styled.span`
   line-height: 1.15;
   text-align: left;
 
+  /* 0.7 blended the caption down to 2.9:1 on both pills. 0.9 is the floor
+     that still clears 4.5:1 on the sage fill. */
   small {
     font-size: 14px;
     font-weight: 500;
-    opacity: 0.7;
+    opacity: 0.9;
   }
   b {
     font-family: var(--font-dm), system-ui, sans-serif;
@@ -168,7 +216,7 @@ export function DownloadCta() {
                 <b>App Store</b>
               </StoreLabel>
             </StoreBtn>
-            <StoreBtn href="#contact" $variant="outline">
+            <StoreBtn href="#contact" $variant="soft">
               <AndroidIcon size={30} />
               <StoreLabel>
                 <small>Coming to</small>

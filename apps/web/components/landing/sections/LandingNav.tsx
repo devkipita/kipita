@@ -1,6 +1,7 @@
 import styled from "styled-components";
 import Link from "next/link";
 import { nocturne } from "../nocturne";
+import { dur, ease } from "@/lib/motion";
 import { Brand } from "../../ui/Brand";
 import { Avatar } from "../../profile/Avatar";
 import type { Profile } from "@/lib/auth/types";
@@ -128,11 +129,53 @@ const NavCta = styled(Link)`
   font-size: 15px;
   font-weight: 700;
   white-space: nowrap;
-  transition: background 0.2s ease;
+  min-height: 44px;
+  transition:
+    background ${dur.short4}ms ${ease.standard},
+    color ${dur.short4}ms ${ease.standard},
+    transform ${dur.short3}ms ${ease.emphasized},
+    box-shadow ${dur.medium2}ms ${ease.emphasizedDecelerate};
 
-  &:hover {
-    background: ${nocturne.cream};
-    color: ${nocturne.greenDeep};
+  svg {
+    flex: none;
+    transition: transform ${dur.medium3}ms ${ease.emphasized};
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.green};
+      color: ${nocturne.onGreen};
+      transform: translateY(-2px);
+      box-shadow: 0 12px 26px -12px rgba(8, 28, 20, 0.55);
+    }
+    &:hover svg {
+      transform: translateX(3px);
+    }
+  }
+  &:active {
+    background: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.lime};
+    outline-offset: 3px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      background ${dur.short4}ms ${ease.standard},
+      color ${dur.short4}ms ${ease.standard};
+
+    svg {
+      transition: none;
+    }
+    &:hover,
+    &:active,
+    &:hover svg {
+      transform: none;
+    }
   }
 
   @media (max-width: 640px) {

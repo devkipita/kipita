@@ -14,6 +14,8 @@ import {
   X,
 } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
+import { dur, ease } from "@/lib/motion";
+import { pressable, scanGlyph } from "@/components/ui/interactions";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl } from "@/components/ui/primitives";
 import { dayLabel, nairobiToday } from "@/lib/trips/format";
@@ -166,6 +168,7 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
     ${fieldGlyph}
     width: 22px;
     height: 22px;
+    transition: transform ${dur.medium3}ms ${ease.emphasized};
   }
   .text {
     flex: 1;
@@ -198,16 +201,51 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* The whole row is the tap target, so the pill reacts to the row's state
+     rather than carrying its own. */
   .go {
     flex: none;
     display: inline-flex;
     align-items: center;
+    min-height: 40px;
     padding: 10px 18px;
     border-radius: 999px;
     background: ${nocturne.ctaBg};
     color: ${nocturne.ctaFg};
     font-size: 15px;
     font-weight: 700;
+    transition:
+      filter ${dur.short4}ms ${ease.standard},
+      transform ${dur.short3}ms ${ease.emphasized},
+      box-shadow ${dur.medium2}ms ${ease.emphasizedDecelerate};
+  }
+
+  @media (hover: hover) {
+    &:hover > svg {
+      transform: scale(1.12) rotate(-10deg);
+    }
+    &:hover .go {
+      filter: brightness(0.96);
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px -10px
+        color-mix(in oklab, ${nocturne.ctaBg} 80%, transparent);
+    }
+  }
+  &:active .go {
+    transform: scale(0.96);
+    box-shadow: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .go,
+    > svg {
+      transition: none;
+    }
+    &:hover > svg,
+    &:hover .go,
+    &:active .go {
+      transform: none;
+    }
   }
 
   @media (max-width: 400px) {
@@ -825,21 +863,13 @@ const Submit = styled.button`
   font-size: 17px;
   font-weight: 700;
   white-space: nowrap;
-  cursor: pointer;
-  transition:
-    filter 0.2s ease,
-    box-shadow 0.18s ease;
 
-  &:hover {
-    filter: brightness(0.94);
-  }
+  ${pressable()}
+  ${scanGlyph}
+
   &:disabled {
     opacity: 0.7;
     cursor: progress;
-  }
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px ${nocturne.ring};
   }
 `;
 

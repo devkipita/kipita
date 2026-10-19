@@ -10,6 +10,7 @@ import {
   MagnifyingGlass as Search,
 } from "@/components/icons";
 import { nocturne } from "../nocturne";
+import { pressable, scanGlyph } from "@/components/ui/interactions";
 import { useSharedRideSearch } from "./RideSearchContext";
 import { RideResults } from "./RideResults";
 
@@ -400,13 +401,25 @@ const SearchBtn = styled.button`
   font-family: inherit;
   font-size: 16px;
   font-weight: 900;
-  cursor: pointer;
-  transition:
-    background 0.2s ease,
-    opacity 0.2s ease;
+  min-height: 44px;
 
-  &:hover {
-    background: ${nocturne.cream};
+  ${pressable(nocturne.green)}
+  ${scanGlyph}
+
+  svg {
+    flex: none;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${nocturne.green};
+      color: ${nocturne.onGreen};
+      filter: none;
+    }
+  }
+  &:active:not(:disabled) {
+    background: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
   }
 
   &:disabled {

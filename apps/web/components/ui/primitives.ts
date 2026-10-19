@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import styled, { css } from "styled-components";
+import { dur, ease } from "@/lib/motion";
 
 /**
  * Shared styled primitives — the reusable vocabulary the rest of the web app
@@ -99,22 +100,43 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
   font-weight: 700;
   font-size: ${({ $compact }) => ($compact ? "1rem" : "1.05rem")};
   padding: ${({ $compact }) => ($compact ? "8px 15px" : "12px 22px")};
+  min-height: 44px;
   border-radius: ${({ theme }) => theme.radius.pill};
   border: 1px solid transparent;
   cursor: pointer;
-  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+  transition:
+    transform ${dur.short3}ms ${ease.emphasized},
+    background ${dur.short4}ms ${ease.standard},
+    border-color ${dur.short4}ms ${ease.standard};
 
-  &:active {
-    transform: translateY(1px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  /* Press reads as the finger arriving, not the button sliding away. */
+  &:active:not(:disabled) {
+    transform: scale(0.97);
   }
 
   svg {
     display: block;
     flex: none;
+    transition: transform ${dur.medium3}ms ${ease.emphasized};
+  }
+
+  /* A trailing glyph leans the way the action goes. */
+  @media (hover: hover) {
+    &:hover:not(:disabled) svg:last-child:not(:first-child) {
+      transform: translateX(3px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+
+    svg {
+      transition: none;
+    }
+    &:active:not(:disabled),
+    &:hover:not(:disabled) svg:last-child:not(:first-child) {
+      transform: none;
+    }
   }
 
   ${({ theme, $variant = "primary" }) => {
