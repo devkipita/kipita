@@ -7,7 +7,6 @@ const HOUSE =
 const HOUSE_DOOR =
   "M7.6 18v-4.8a1.4 1.4 0 0 1 1.4-1.4h2a1.4 1.4 0 0 1 1.4 1.4V18";
 
-/** Tail and left wall are one edge, so the bubble points without a spur. */
 const SPEECH =
   "M6.2 1h7.6a4.6 4.6 0 0 1 4.6 4.6v4.4a4.6 4.6 0 0 1-4.6 4.6H6.6L1.6 18.6V5.6A4.6 4.6 0 0 1 6.2 1Z";
 const BELL_BODY =
@@ -73,6 +72,64 @@ export const House = createIcon(
 export const Speech = createIcon(
   "Speech",
   (f) => (f ? <path d={SPEECH} {...SOLID} /> : <path d={SPEECH} />),
+  { viewBox: "0 0 20 20" },
+);
+
+const PAGE =
+  "M4 1h6.2L17 7.8V17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2Z";
+const PAGE_FOLD = "M10.2 1v4.8a2 2 0 0 0 2 2H17";
+const PAGE_RULE = "M5.6 11.6h7M5.6 14.8h4.6";
+const PAGE_RULE_CUT =
+  "M5.6 10.6h7a1 1 0 0 1 0 2h-7a1 1 0 0 1 0-2ZM5.6 13.8h4.6a1 1 0 0 1 0 2H5.6a1 1 0 0 1 0-2Z";
+
+export const Document = createIcon(
+  "Document",
+  (f) =>
+    f ? (
+      <path d={`${PAGE}${PAGE_RULE_CUT}`} fillRule="evenodd" {...SOLID} />
+    ) : (
+      <>
+        <path d={PAGE} />
+        <path d={PAGE_FOLD} />
+        <path d={PAGE_RULE} />
+      </>
+    ),
+  { viewBox: "0 0 20 20" },
+);
+
+const HEAD = "M10 2.4a3.6 3.6 0 1 1 0 7.2 3.6 3.6 0 0 1 0-7.2Z";
+const SHOULDERS = "M2.8 18.2a7.2 7.2 0 0 1 14.4 0";
+
+export const Person = createIcon(
+  "Person",
+  (f) => (
+    <>
+      <path d={HEAD} {...(f ? SOLID : {})} />
+      <path d={SHOULDERS} {...(f ? SOLID : {})} />
+    </>
+  ),
+  { viewBox: "0 0 20 20" },
+);
+
+const CROWD_HEAD = "M10 3.45a2.45 2.45 0 1 1 0 4.9 2.45 2.45 0 0 1 0-4.9Z";
+const CROWD_SIDE_L = "M4 5.85a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5Z";
+const CROWD_SIDE_R = "M16 5.85a1.75 1.75 0 1 1 0 3.5 1.75 1.75 0 0 1 0-3.5Z";
+const CROWD_BODY = "M5.3 16.9a4.7 4.7 0 0 1 9.4 0";
+const CROWD_WING_L = "M1.2 16.9a3.6 3.6 0 0 1 3.3-3.58";
+const CROWD_WING_R = "M18.8 16.9a3.6 3.6 0 0 0-3.3-3.58";
+
+export const Crowd = createIcon(
+  "Crowd",
+  (f) => (
+    <>
+      <path d={CROWD_WING_L} />
+      <path d={CROWD_WING_R} />
+      <path d={CROWD_SIDE_L} {...(f ? SOLID : {})} />
+      <path d={CROWD_SIDE_R} {...(f ? SOLID : {})} />
+      <path d={CROWD_BODY} {...(f ? SOLID : {})} />
+      <path d={CROWD_HEAD} {...(f ? SOLID : {})} />
+    </>
+  ),
   { viewBox: "0 0 20 20" },
 );
 
@@ -773,7 +830,6 @@ export const Grid = createIcon(
   FLUENT,
 );
 
-/** The lens opens at the top right so the spark sits in the gap, not on it. */
 const LENS_ARC = "M13.85 7.84A5.5 5.5 0 1 1 9.82 3.29";
 const LENS_STEM = "m12.29 12.49 5.6 5.6";
 const LENS_SPARK =

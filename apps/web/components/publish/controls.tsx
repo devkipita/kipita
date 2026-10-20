@@ -32,8 +32,6 @@ export const EditorLabel = styled.div`
     gap: 10px;
   }
 
-  /* A tool beside the heading is secondary: it never outweighs the question
-     it sits next to, and it never wraps. */
   .tools button {
     font-size: 15px;
     white-space: nowrap;

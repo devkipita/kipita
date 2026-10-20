@@ -44,11 +44,6 @@ const draw = keyframes`
   to   { stroke-dashoffset: 0; }
 `;
 
-/**
- * One authored moment per card: the diagram assembles in the order the step
- * actually happens. Durations and curves are the Material 3 motion tokens —
- * incoming parts take emphasized-decelerate, on-screen settles take emphasized.
- */
 const Scene = styled.svg<{ $play: boolean }>`
   display: block;
 

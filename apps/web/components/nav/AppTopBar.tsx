@@ -347,12 +347,16 @@ const Trigger = styled.button`
   }
 `;
 
+const shimmer = keyframes`
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+`;
+
 const menuIn = keyframes`
   from { opacity: 0; transform: translateY(-10px) scale(0.97); }
   to   { opacity: 1; transform: none; }
 `;
 
-/** Sits on the page's card surface, not the navbar's forest. */
 const Menu = styled.div`
   position: absolute;
   top: calc(100% + 10px);
@@ -372,10 +376,6 @@ const Menu = styled.div`
   }
 `;
 
-/**
- * Hover tints the row lime and the icon with the readable accent — lime on a
- * white card is about 1.3:1, so it carries the row, not the glyph.
- */
 const MenuA = styled(Link)`
   display: flex;
   align-items: center;
@@ -418,14 +418,53 @@ const MenuA = styled(Link)`
   }
 `;
 
+const AccountPending = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 14px 3px 3px;
+
+  .disc,
+  .word {
+    background: rgba(255, 255, 255, 0.16);
+    animation: ${shimmer} 1.2s ease-in-out infinite;
+  }
+  .disc {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  .word {
+    width: 74px;
+    height: 13px;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 599px) {
+    padding: 0;
+
+    .word {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .disc,
+    .word {
+      animation: none;
+    }
+  }
+`;
+
 export function AppTopBar({
   items,
   profile,
   signInHref,
+  pending = false,
 }: {
   items: NavItem[];
   profile: Profile | null;
   signInHref: string;
+  pending?: boolean;
 }) {
   const pathname = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
@@ -455,7 +494,7 @@ export function AppTopBar({
         <Brand href="/" light priority />
       </BrandSlot>
 
-      <Cluster $bare={!!profile}>
+      <Cluster $bare={pending || !!profile}>
         <Links aria-label="Main">
           {items.map((item) => (
             <NavA
@@ -470,7 +509,12 @@ export function AppTopBar({
           ))}
         </Links>
 
-        {profile ? (
+        {pending ? (
+          <AccountPending aria-hidden>
+            <span className="disc" />
+            <span className="word" />
+          </AccountPending>
+        ) : profile ? (
           <>
             <MenuWrap ref={wrapRef}>
               <Trigger

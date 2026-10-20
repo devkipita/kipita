@@ -142,8 +142,6 @@ const StoreLabel = styled.span`
   line-height: 1.15;
   text-align: left;
 
-  /* 0.7 blended the caption down to 2.9:1 on both pills. 0.9 is the floor
-     that still clears 4.5:1 on the sage fill. */
   small {
     font-size: 14px;
     font-weight: 500;

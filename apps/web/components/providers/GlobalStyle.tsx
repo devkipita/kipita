@@ -3,12 +3,6 @@
 import { createGlobalStyle } from "styled-components";
 import { nocturneDark, nocturneLight, nocturneVars } from "@/lib/nocturne";
 
-/**
- * Document-level resets and base typography. Theme-driven values come from the
- * active styled-components theme; the `@media (prefers-color-scheme)` block is a
- * flash-guard so the page background is already correct for dark users before
- * the JS theme settles on mount.
- */
 export const GlobalStyle = createGlobalStyle`
   :root {
     ${nocturneVars(nocturneLight)}
@@ -18,10 +12,11 @@ export const GlobalStyle = createGlobalStyle`
   html[data-theme="dark"] {
     ${nocturneVars(nocturneDark)}
     --n-selection-fg: ${nocturneDark["--n-cream"]};
+    color-scheme: dark;
   }
 
   :root {
-    color-scheme: light dark;
+    color-scheme: light;
 
     --r-xxs: 6px;
     --r-xs: 8px;
@@ -104,8 +99,6 @@ export const GlobalStyle = createGlobalStyle`
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Safari zooms the viewport when a focused control is under 16px. Applies on
-     iPad too, so this is not width-scoped. */
   @supports (-webkit-touch-callout: none) {
     input:not([type="checkbox"]):not([type="radio"]),
     select,
@@ -138,20 +131,13 @@ export const GlobalStyle = createGlobalStyle`
     transition: background 0.3s ease, color 0.3s ease;
   }
 
-  /* Flash-guard: correct page chrome for dark users before hydration. */
   @media (prefers-color-scheme: dark) {
-    body {
+    html[data-theme="dark"] body {
       background: #111412;
       color: #e1e3df;
     }
   }
 
-  /*
-   * Headings speak in the display face, body copy in the text face. Set once
-   * here rather than per component, so a heading anywhere in the app is already
-   * right and nothing has to remember. :where() keeps specificity at zero, so
-   * any component can still override it.
-   */
   :where(h1, h2, h3, h4, h5, h6) {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     font-weight: 600;
@@ -183,7 +169,6 @@ export const GlobalStyle = createGlobalStyle`
     }
   }
 
-  /* Structural hooks for the GSAP word-mask heading (AnimatedHeading). */
   .ah-line {
     display: block;
   }

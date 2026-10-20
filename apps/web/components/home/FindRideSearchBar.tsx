@@ -68,11 +68,6 @@ const Grid = styled.div<{ $compact?: boolean }>`
   }
 `;
 
-/**
- * One layer, not four. The fields are regions of the same panel divided by a
- * hairline; the rule beside a field retracts when that field wakes up, so the
- * only thing that ever draws a box is the live one.
- */
 const Fields = styled.div`
   flex: 1;
   min-width: 0;
@@ -110,10 +105,6 @@ const Fields = styled.div`
 
 const CTRL_H = 68;
 
-/**
- * Focus draws the only box on the panel: an inset accent ring plus a tone step.
- * Nothing is outlined at rest, so nothing competes with the field in use.
- */
 const fieldBox = `
   min-height: ${CTRL_H}px;
   background: transparent;
@@ -131,7 +122,6 @@ const focusRing = `
   outline: none;
 `;
 
-/** The glyph is the label's companion, not a badge in a tinted chip. */
 const fieldGlyph = `
   flex: none;
   width: 21px;
@@ -139,7 +129,6 @@ const fieldGlyph = `
   color: ${nocturne.accent};
 `;
 
-/* ── Mobile: one tap target that opens a full-screen search ── */
 
 const collapsedBox = `
   display: flex;
@@ -166,43 +155,23 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
 
   > svg {
     ${fieldGlyph}
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
     transition: transform ${dur.medium3}ms ${ease.emphasized};
   }
   .text {
     flex: 1;
     min-width: 0;
   }
-  .kicker {
-    display: block;
-    margin-bottom: 2px;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: ${nocturne.muted2};
-  }
   b {
     display: block;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  small {
-    display: block;
-    margin-top: 3px;
-    font-size: 14px;
-    color: ${nocturne.muted};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  /* The whole row is the tap target, so the pill reacts to the row's state
-     rather than carrying its own. */
   .go {
     flex: none;
     display: inline-flex;
@@ -251,9 +220,7 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
   @media (max-width: 400px) {
     gap: 10px;
     padding: 10px 12px;
-    > svg {
-      padding: 8px;
-    }
+
     .go {
       padding: 9px 14px;
       font-size: 14px;
@@ -271,9 +238,6 @@ const sheetIn = keyframes`
   to   { opacity: 1; transform: none; }
 `;
 
-/* Portalled to <body>: the search form is its own stacking context, so a
-   fixed child could never rise above the top bar from inside it. Sits under
-   Z.drawerOverlay so PlaceModal still opens on top. */
 const Sheet = styled.div`
   position: fixed;
   inset: 0;
@@ -545,11 +509,6 @@ const Field = styled.label`
   }
 `;
 
-/**
- * A styled trigger over a real `<input type="date">`. The input keeps its own
- * label and keyboard behaviour; it is laid over the trigger at zero opacity so
- * the native picker still opens on click and on the keyboard.
- */
 const DateField = styled.button`
   ${fieldBox}
   position: relative;
@@ -887,7 +846,6 @@ export function FindRideSearchBar({
   busy,
   onSubmit,
   onClear,
-  /** "compact" keeps the single-input form at every width (landing hero). */
   variant = "full",
   placeholder = "Where are you going?",
 }: {
@@ -939,13 +897,7 @@ export function FindRideSearchBar({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const collapsedSummary = [
-    form.from.trim() ? `From ${form.from.trim()}` : "Anywhere",
-    dateLabel(form.date),
-    `${form.seats} ${form.seats === 1 ? "seat" : "seats"}`,
-  ].join(" · ");
 
-  // The sheet is a page, not a dialog-in-a-page: lock the body behind it.
   useEffect(() => {
     if (!sheetOpen) return;
     const prev = document.body.style.overflow;
@@ -982,10 +934,9 @@ export function FindRideSearchBar({
         onClick={() => setSheetOpen(true)}
         aria-haspopup="dialog"
       >
-        <MagnifyingGlass size={22} aria-hidden />
+        <MagnifyingGlass size={28} aria-hidden />
         <span className="text">
           <b>{form.to.trim() || placeholder}</b>
-          <small>{collapsedSummary}</small>
         </span>
         <span className="go" aria-hidden>
           Search

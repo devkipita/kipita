@@ -6,12 +6,6 @@ import { dur, ease } from "@/lib/motion";
 import { Reveal } from "../anim/Reveal";
 import { SupportDock } from "./SupportDock";
 
-/**
- * Each contact card keeps its own colour identity: a DEEP tone of that hue for
- * the card, a LIGHTER shade of the SAME hue for the text, and the icon sitting
- * in a darker circle tinted with the light accent. Consistent, clean, and it
- * lifts on hover like the ride-request cards.
- */
 type CardTone = {
   bg: string; // deep card background
   circle: string; // even darker icon disc
@@ -20,9 +14,6 @@ type CardTone = {
   sub: string; // softer same-hue subtitle
 };
 
-// Mirrors the ride-request cards: vibrant app colour, icon in a dark disc tinted
-// with the card's colour, bold text toned to the card. The deep-green card uses
-// bright lime text (never white) — the same rule wherever a green card appears.
 const TONES = {
   chat: {
     bg: "#14392a",
@@ -65,7 +56,6 @@ const ContactGrid = styled(Reveal)`
   }
 `;
 
-/* Shared look for the contact cards. Used by both a <button> and an <a>. */
 const cardCss = css<{ $tone: CardTone }>`
   background: ${({ $tone }) => $tone.bg};
   border: none;
@@ -104,8 +94,6 @@ const cardCss = css<{ $tone: CardTone }>`
   }
 `;
 
-/* Title + subtitle sit at the bottom, icon at the top — same rhythm as the
-   ride-request cards. */
 const CardBody = styled.span`
   margin-top: auto;
   display: flex;
@@ -121,10 +109,6 @@ const ContactCardLink = styled.a<{ $tone: CardTone }>`
   ${cardCss}
 `;
 
-/**
- * Each card draws what it does rather than badging an icon: the diagram is the
- * card's subject, in the card's own two tones.
- */
 const typing = keyframes`
   0%, 60%, 100% { transform: none; }
   30%           { transform: translateY(-5px); }
@@ -146,10 +130,6 @@ const wave = keyframes`
   50%      { transform: skewY(-4deg); }
 `;
 
-/**
- * The diagram holds still until the card is hovered, then performs the one
- * thing the card is offering. Durations and curves are Material 3 tokens.
- */
 const Art = styled.span`
   display: block;
 
@@ -368,10 +348,6 @@ const CardText = styled.small<{ $tone: CardTone }>`
 
 const phone = "+254700000000";
 
-/**
- * Contact cards + the floating support dock, sharing open state so the
- * "Live chat" and "Report an issue" cards can launch the dock in the right mode.
- */
 export function ContactDock() {
   const [signal, setSignal] = useState<{
     mode: "support" | "report";
@@ -394,7 +370,7 @@ export function ContactDock() {
           </Art>
           <CardBody>
             <CardTitle $tone={TONES.chat}>Live chat</CardTitle>
-            <CardText $tone={TONES.chat}>
+            <CardText $tone={TONES.chat}>w
               Talk to support now. Average reply under two minutes.
             </CardText>
           </CardBody>

@@ -4,15 +4,6 @@ import Link from "next/link";
 import styled, { css } from "styled-components";
 import { dur, ease } from "@/lib/motion";
 
-/**
- * Shared styled primitives — the reusable vocabulary the rest of the web app
- * composes from. Everything here reads from the active theme, so all of it
- * adapts to light/dark automatically. Component-specific styling lives in the
- * component files; only genuinely cross-cutting atoms belong here.
- */
-
-/* ── Layout ───────────────────────────────────────────────────────────── */
-
 export const Container = styled.div`
   width: 100%;
   max-width: 1080px;
@@ -42,8 +33,6 @@ export const Grid = styled.div<{ $cols?: 2 | 3 }>`
     grid-template-columns: 1fr;
   }
 `;
-
-/* ── Type ─────────────────────────────────────────────────────────────── */
 
 export const Display = styled.h1`
   font-size: clamp(3rem, 7.5vw, 5.4rem);
@@ -79,8 +68,6 @@ export const Eyebrow = styled.span`
   border-radius: ${({ theme }) => theme.radius.pill};
 `;
 
-/* ── Cards ────────────────────────────────────────────────────────────── */
-
 export const Card = styled.div`
   background: ${({ theme }) => theme.color.surface};
   border-radius: ${({ theme }) => theme.radius.lg};
@@ -88,9 +75,7 @@ export const Card = styled.div`
   border: 1px solid ${({ theme }) => theme.color.line};
 `;
 
-/* ── Buttons ──────────────────────────────────────────────────────────── */
-
-type ButtonVariant = "primary" | "ghost" | "light";
+type ButtonVariant = "primary" | "ghost" | "light" | "onContainer";
 
 const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
   display: inline-flex;
@@ -109,7 +94,6 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
     background ${dur.short4}ms ${ease.standard},
     border-color ${dur.short4}ms ${ease.standard};
 
-  /* Press reads as the finger arriving, not the button sliding away. */
   &:active:not(:disabled) {
     transform: scale(0.97);
   }
@@ -120,7 +104,6 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
     transition: transform ${dur.medium3}ms ${ease.emphasized};
   }
 
-  /* A trailing glyph leans the way the action goes. */
   @media (hover: hover) {
     &:hover:not(:disabled) svg:last-child:not(:first-child) {
       transform: translateX(3px);
@@ -159,19 +142,50 @@ const buttonBase = css<{ $variant?: ButtonVariant; $compact?: boolean }>`
             background: ${theme.color.surfaceContainerHigh};
           }
         `;
+      case "onContainer":
+        return css`
+          background: ${theme.color.surfaceBright};
+          color: ${theme.color.onPrimaryContainer};
+          border-color: color-mix(
+            in srgb,
+            ${theme.color.onPrimaryContainer} 50%,
+            transparent
+          );
+
+          @media (hover: hover) {
+            &:hover:not(:disabled) {
+              background: ${theme.color.onPrimaryContainer};
+              border-color: ${theme.color.onPrimaryContainer};
+              color: ${theme.color.surfaceBright};
+            }
+          }
+          &:active:not(:disabled) {
+            background: ${theme.color.onPrimaryContainer};
+            color: ${theme.color.surfaceBright};
+          }
+          &:focus-visible {
+            outline: 3px solid ${theme.color.onPrimaryContainer};
+            outline-offset: 3px;
+          }
+        `;
       default:
         return css`
           background: ${theme.color.primary};
           color: ${theme.color.onPrimary};
-          &:hover {
-            background: ${theme.color.primaryDark};
+
+          @media (hover: hover) {
+            &:hover:not(:disabled) {
+              background: ${theme.color.primaryDark};
+            }
+          }
+          &:active:not(:disabled) {
+            background: ${theme.color.onPrimaryContainer};
           }
         `;
     }
   }}
 `;
 
-/** Anchor button — use `as={Link}` for internal routes (forwards href). */
 export const ButtonLink = styled(Link)<{
   $variant?: ButtonVariant;
   $compact?: boolean;
@@ -186,7 +200,6 @@ export const ButtonAnchor = styled.a<{
   ${buttonBase}
 `;
 
-/** Native <button>, for forms/actions. */
 export const ButtonEl = styled.button<{
   $variant?: ButtonVariant;
   $compact?: boolean;
@@ -198,8 +211,6 @@ export const ButtonEl = styled.button<{
     cursor: default;
   }
 `;
-
-/* ── Forms ────────────────────────────────────────────────────────────── */
 
 export const Field = styled.div`
   display: grid;
@@ -256,7 +267,6 @@ export const Empty = styled.p`
   padding: 80px 0;
 `;
 
-/** Compact action button (admin tables). */
 export const SmallButton = styled.button<{ $variant?: "approve" | "reject" }>`
   display: inline-flex;
   align-items: center;

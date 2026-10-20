@@ -34,11 +34,17 @@ const SearchLabel = styled.h2`
 
   @media (max-width: 760px) {
     display: block;
-    margin: 0 0 12px 2px;
-    font-size: 22px;
+    margin: 0 0 14px 2px;
+    font-size: clamp(30px, 8.5vw, 40px);
     font-weight: 700;
-    letter-spacing: -0.01em;
+    line-height: 1.04;
+    letter-spacing: -0.035em;
     color: #ffffff;
+
+    em {
+      font-style: normal;
+      color: ${nocturne.sage};
+    }
   }
 `;
 
@@ -59,7 +65,9 @@ export function HeroSearchBar() {
 
   return (
     <Holder>
-      <SearchLabel>Find a ride</SearchLabel>
+      <SearchLabel>
+        Find <em>a ride</em>
+      </SearchLabel>
       <FindRideSearchBar
         placeholder="Where to?"
         value={value}

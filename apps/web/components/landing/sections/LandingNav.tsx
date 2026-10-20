@@ -7,7 +7,6 @@ import { Avatar } from "../../profile/Avatar";
 import type { Profile } from "@/lib/auth/types";
 
 const Nav = styled.nav`
-  /* Not pinned anywhere — flows at the top and scrolls away with the page. */
   position: absolute;
   top: 0;
   left: 0;
@@ -36,7 +35,6 @@ const Nav = styled.nav`
 const NavLogo = styled.div`
   display: flex;
   align-items: center;
-  /* Footprint that sets the navbar height; the img overflows it (see below). */
   height: 44px;
   flex: 0 1 auto;
   min-width: 0;

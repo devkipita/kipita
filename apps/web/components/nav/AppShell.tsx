@@ -43,7 +43,7 @@ export function useAppMode(): ModeContext {
   return value;
 }
 
-const Shell = styled.div`
+export const Shell = styled.div`
   --rail-w: 0px;
   --aside-w: 0px;
   --topbar-h: ${TOPBAR_H}px;
@@ -66,7 +66,7 @@ const Shell = styled.div`
   }
 `;
 
-const Main = styled.main`
+export const Main = styled.main`
   min-width: 0;
   flex: 1;
   padding-bottom: var(--bottom-bar-space);

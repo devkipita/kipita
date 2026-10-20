@@ -61,11 +61,6 @@ const WaitlistInput = styled.input`
   }
 `;
 
-/**
- * Hover deepens within the green family. It must never reach for `cream`,
- * which is the ink token and inverts per theme — that is what previously
- * painted dark green under dark-green text.
- */
 const WaitlistBtn = styled.button`
   position: relative;
   min-height: 44px;
@@ -112,7 +107,6 @@ const Note = styled.p<{ $tone: "ok" | "err" }>`
   color: ${({ $tone }) => ($tone === "ok" ? nocturne.sage : "#e88b7a")};
 `;
 
-/** Email capture for the app waitlist. Persists to the Supabase `waitlist` table. */
 export function WaitlistForm() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<Status>("idle");

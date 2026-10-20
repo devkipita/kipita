@@ -27,12 +27,7 @@ const Bar = styled.nav`
     0 1px 2px rgba(8, 28, 20, 0.08),
     0 8px 24px -8px rgba(8, 28, 20, 0.22);
   border: 1px solid ${nocturne.line2};
-  background: color-mix(in oklab, ${nocturne.surface} 93%, transparent);
-  backdrop-filter: saturate(1.4) blur(20px);
-
-  @supports not (backdrop-filter: blur(1px)) {
-    background: ${nocturne.surface};
-  }
+  background: ${nocturne.surface};
 
   @media (min-width: 900px) {
     display: none;
@@ -51,7 +46,7 @@ const Item = styled(Link)`
   gap: 1px;
   height: 48px;
   border-radius: 16px;
-  color: ${nocturne.muted2};
+  color: ${nocturne.muted};
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
@@ -70,7 +65,7 @@ const Item = styled(Link)`
   }
 
   .label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.3;
     letter-spacing: 0.01em;
@@ -169,7 +164,11 @@ export function BottomTabBar({
             }
           >
             <span className="well" aria-hidden="true">
-              <Icon size={22} weight={active ? "bold" : "regular"} />
+              <Icon
+                size={23}
+                weight={active ? "bold" : "regular"}
+                {...(active ? {} : { strokeWidth: 1.7 })}
+              />
             </span>
             <span className="label">{item.shortLabel}</span>
             {count ? (

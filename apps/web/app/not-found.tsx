@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StatusPage } from "@/components/ui/StatusPage";
+import { DeadEndArt } from "@/components/ui/StatusArt";
 
 export const metadata: Metadata = {
   title: "Page not found",
@@ -12,6 +13,7 @@ export default function NotFound() {
       code="404"
       title="That road doesn't go anywhere."
       lead="The page you were looking for has moved or never existed. Let's get you back to the rides."
+      art={<DeadEndArt />}
     />
   );
 }

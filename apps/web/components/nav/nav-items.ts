@@ -1,4 +1,4 @@
-﻿import { Bell, Gift, House, MagnifyingGlass, Plus, QuestionCircle as LifeBuoy, Speech, PlusSquare, Scroll as ScrollText, SearchSpark, Ticket, UserCircle as UserRound, Wallet } from "@/components/icons";
+﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, QuestionCircle as LifeBuoy, PlusSquare, SearchSpark, Ticket, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -42,7 +42,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Speech,
+      icon: Crowd,
       badge: "alerts",
       owns: ["/alerts"],
     },
@@ -60,7 +60,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/profile",
       label: "Profile",
       shortLabel: "You",
-      icon: UserRound,
+      icon: Person,
       requiresAuth: true,
       owns: ["/profile"],
     },
@@ -82,7 +82,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Speech,
+      icon: Crowd,
       badge: "alerts",
       owns: ["/alerts"],
     },
@@ -100,7 +100,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       href: "/profile",
       label: "Profile",
       shortLabel: "You",
-      icon: UserRound,
+      icon: Person,
       requiresAuth: true,
       owns: ["/profile"],
     },
@@ -122,7 +122,7 @@ export const SIGNED_OUT_NAV: NavItem[] = [
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Speech,
+    icon: Crowd,
     owns: ["/alerts"],
   },
   { key: "help", href: "/help", label: "Help", shortLabel: "Help", icon: LifeBuoy },
@@ -137,10 +137,6 @@ const PUBLISH_ITEM: NavItem = {
   owns: ["/publish"],
 };
 
-/**
- * The top bar carries the two things a visitor came to do. Everything else â€”
- * trips, alerts, notifications, wallet, appearance â€” lives under the profile.
- */
 export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   const find = signedIn
     ? PRIMARY_NAV[mode][0]
@@ -150,13 +146,12 @@ export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Speech,
+    icon: Crowd,
     owns: ["/alerts"],
   } satisfies NavItem;
   return [find, PUBLISH_ITEM, alerts];
 }
 
-/** Everything that hangs off the avatar dropdown when signed in. */
 export const ACCOUNT_NAV: NavItem[] = [
   {
     key: "trips",
@@ -173,7 +168,7 @@ export const ACCOUNT_NAV: NavItem[] = [
     href: "/alerts",
     label: "Road alerts",
     shortLabel: "Alerts",
-    icon: Speech,
+    icon: Crowd,
     badge: "alerts",
     owns: ["/alerts"],
   },
@@ -209,12 +204,12 @@ export const ACCOUNT_NAV: NavItem[] = [
     href: "/profile",
     label: "Profile",
     shortLabel: "You",
-    icon: UserRound,
+    icon: Person,
     requiresAuth: true,
     owns: ["/profile"],
   },
   { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
-  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: ScrollText },
+  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
@@ -237,7 +232,7 @@ export const SECONDARY_NAV: NavItem[] = [
     owns: ["/referrals"],
   },
   { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
-  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: ScrollText },
+  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 
 export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
@@ -245,14 +240,6 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   return PRIMARY_NAV[mode];
 }
 
-/**
- * The mobile bottom bar. Profile is the last slot in both states â€” it is the
- * way into everything the bar has no room for (wallet, referrals, help, legal).
- */
-/**
- * The one bottom bar, identical on every page and in both auth states.
- * Profile is deliberately absent â€” it lives in the top bar's avatar menu.
- */
 export function bottomNavFor(): NavItem[] {
   return [
     { key: "landing", href: "/", label: "Home", shortLabel: "Home", icon: House },
@@ -269,7 +256,7 @@ export function bottomNavFor(): NavItem[] {
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Speech,
+      icon: Crowd,
       badge: "alerts",
       owns: ["/alerts"],
     },

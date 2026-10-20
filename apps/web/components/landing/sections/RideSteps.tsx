@@ -99,12 +99,10 @@ const Step = styled.article<{ $tone: Tone }>`
   }
 `;
 
-/** The diagram is the card's subject, so it gets the top half, not a corner. */
 const Art = styled.div`
   svg {
     display: block;
     width: 100%;
-    max-width: 230px;
     height: auto;
   }
 `;

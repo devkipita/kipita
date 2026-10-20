@@ -53,8 +53,6 @@ const Head = styled.div<{ $bare?: boolean }>`
   margin-bottom: 14px;
 `;
 
-/** The two nudges are one control, so they sit as a pair, not at opposite
-    ends of the row with the width of the strip between them. */
 const StripHead = styled.div`
   display: flex;
   align-items: center;
@@ -139,16 +137,12 @@ const Strip = styled.div`
     display: none;
   }
 
-  /* Run the strip to the screen edge so a half tile reads as "there is more",
-     not as a tile sliced by the layout. */
   @media (max-width: 759px) {
     margin-inline: calc(-1 * var(--page-pad, 18px));
     padding-inline: var(--page-pad, 18px);
     scroll-padding-inline: var(--page-pad, 18px);
   }
 
-  /* Wide enough to hold every day: lay them out as a grid that fills the
-     column instead of scrolling a row that gets cut mid-tile. */
   @media (min-width: 760px) {
     display: grid;
     grid-template-columns: repeat(7, 1fr);

@@ -14,7 +14,6 @@ import { pressable, scanGlyph } from "@/components/ui/interactions";
 import { useSharedRideSearch } from "./RideSearchContext";
 import { RideResults } from "./RideResults";
 
-/* ══════════════ layout ══════════════ */
 
 const Wrap = styled.div`
   width: 100%;
@@ -24,8 +23,6 @@ const Wrap = styled.div`
   gap: 18px;
 `;
 
-/* Smoothly reveals its content by animating the grid track from 0fr → 1fr —
-   height-agnostic and buttery, no magic max-height numbers. */
 const Reveal = styled.div<{ $open: boolean }>`
   display: grid;
   grid-template-rows: ${({ $open }) => ($open ? "1fr" : "0fr")};
@@ -68,7 +65,6 @@ const Pill = styled.div<{ $expanded: boolean }>`
   }
 `;
 
-/* The always-visible destination row + When control. */
 const MainRow = styled.div`
   display: flex;
   align-items: center;
@@ -138,8 +134,6 @@ const Input = styled.input`
     font-weight: 500;
   }
 
-  /* Double '&' out-specifies the Root :focus-visible outline so the field
-     stays borderless when focused. */
   &&:focus,
   &&:focus-visible {
     outline: none;
@@ -178,7 +172,6 @@ const Spinner = styled.span`
   }
 `;
 
-/* Dotted connector between the from and to rows. */
 const Connector = styled.div`
   height: 1px;
   margin: 2px 10px 2px 24px;
@@ -193,7 +186,6 @@ const Connector = styled.div`
   }
 `;
 
-/* ══════════════ When control ══════════════ */
 
 const WhenBtn = styled.button<{ $active: boolean }>`
   flex: none;
@@ -300,7 +292,6 @@ const DateField = styled.label`
   }
 `;
 
-/* ══════════════ Suggestions ══════════════ */
 
 const Suggestions = styled.ul`
   position: absolute;
@@ -321,7 +312,6 @@ const Suggestions = styled.ul`
   overflow-y: auto;
   overscroll-behavior: contain;
 
-  /* Subtle, themed scrollbar instead of the chunky native one. */
   scrollbar-width: thin;
   scrollbar-color: ${nocturne.green} transparent;
 
@@ -384,7 +374,6 @@ const Suggestion = styled.li`
   }
 `;
 
-/* ══════════════ Search button ══════════════ */
 
 const SearchBtn = styled.button`
   width: 100%;
@@ -432,7 +421,6 @@ const ResultsSpacer = styled.div`
   padding-top: 26px;
 `;
 
-/* ══════════════ component ══════════════ */
 
 function whenLabel(when: { mode: "now" } | { mode: "schedule"; date: string }) {
   if (when.mode === "now") return "Today";
@@ -465,7 +453,6 @@ export function RideSearch() {
     setToday(new Date().toISOString().slice(0, 10));
   }, []);
 
-  // Close popovers on outside click / Escape.
   useEffect(() => {
     function onDown(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) {
@@ -490,7 +477,6 @@ export function RideSearch() {
   const query = activeField === "from" ? from : to;
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    // Don't suggest the town already chosen in the other field.
     const other = (activeField === "from" ? to : from).trim().toLowerCase();
     const list = towns.filter((t) => {
       const name = t.name.toLowerCase();
@@ -505,7 +491,6 @@ export function RideSearch() {
   function openSearch() {
     search.expand();
     setActiveField("to");
-    // Focus the destination input on the next frame (after the reveal starts).
     requestAnimationFrame(() => toInputRef.current?.focus());
   }
 
