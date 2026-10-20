@@ -143,7 +143,7 @@ const EditBtn = styled(Link)`
   }
 `;
 
-/* Deep red field, vivid red ink â€” an unmistakable danger action. */
+/* Deep red field, vivid red ink — an unmistakable danger action. */
 const SignOut = styled.button`
   display: inline-flex;
   align-items: center;

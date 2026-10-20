@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import styled, { keyframes } from "styled-components";
+import { X } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import {
   openSupportCaseAction,
@@ -137,17 +139,21 @@ const ChatTopWho = styled.div`
 `;
 
 const ChatAvatar = styled.div`
+  flex: none;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: ${nocturne.greenDeep};
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-dm), system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: ${nocturne.sage};
+
+  img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
 `;
 
 const ChatTitle = styled.div`
@@ -169,15 +175,30 @@ const ChatTitle = styled.div`
 
 const ChatClose = styled.button`
   flex: none;
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: none;
   background: ${nocturne.greenDeep};
-  color: ${nocturne.sage};
+  color: ${nocturne.onGreen};
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
+  line-height: 0;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.lime};
+      color: ${nocturne.greenDeep};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.lime};
+    outline-offset: 2px;
+  }
 `;
 
 const ChatBody = styled.div`
@@ -308,7 +329,7 @@ const OPENING: Record<Mode, Message> = {
   },
   report: {
     from: "bot",
-    text: "Sorry that happened. Tell us the trip date and what went wrong â€” we'll open a case straight away.",
+    text: "Sorry that happened. Tell us the trip date and what went wrong — we'll open a case straight away.",
   },
 };
 
@@ -323,7 +344,7 @@ const MIN_DETAIL = 10;
 /** A subject short enough to scan in the case list, from the first message. */
 function subjectFrom(text: string, mode: Mode): string {
   const clean = text.replace(/\s+/g, " ").trim();
-  const short = clean.length > 78 ? `${clean.slice(0, 75)}â€¦` : clean;
+  const short = clean.length > 78 ? `${clean.slice(0, 75)}…` : clean;
   return mode === "report" ? `Reported: ${short}`.slice(0, 120) : short;
 }
 
@@ -417,12 +438,12 @@ export function SupportDock({
     setDraft("");
 
     if (authed === false) {
-      say("Sign in and I can open a case for you â€” it keeps your fare held while we look into it.");
+      say("Sign in and I can open a case for you — it keeps your fare held while we look into it.");
       return;
     }
 
     if (!caseId && t.length < MIN_DETAIL) {
-      say("Give me a bit more than that â€” what happened, and when?");
+      say("Give me a bit more than that — what happened, and when?");
       return;
     }
 
@@ -480,14 +501,21 @@ export function SupportDock({
       <DockPanel $open={open} role="dialog" aria-label="Kipita support chat">
         <ChatTop>
           <ChatTopWho>
-            <ChatAvatar>KS</ChatAvatar>
+            <ChatAvatar>
+              <Image
+                src="/favicons/favicon-32x32.png"
+                alt=""
+                width={36}
+                height={36}
+              />
+            </ChatAvatar>
             <ChatTitle>
               <b>{mode === "report" ? "Report an issue" : "Kipita Support"}</b>
               <span>Typically replies in 2 minutes</span>
             </ChatTitle>
           </ChatTopWho>
           <ChatClose aria-label="Close chat" onClick={() => setOpen(false)}>
-            Ã—
+            <X size={20} />
           </ChatClose>
         </ChatTop>
 
@@ -518,7 +546,7 @@ export function SupportDock({
           <ChatInput
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={sending ? "Sendingâ€¦" : "Type a messageâ€¦"}
+            placeholder={sending ? "Sending…" : "Type a message…"}
             aria-label="Message"
             disabled={sending}
           />

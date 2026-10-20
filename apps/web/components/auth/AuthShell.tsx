@@ -8,7 +8,7 @@ import { AnimatedHeading } from "@/components/anim/AnimatedHeading";
 import { Reveal } from "@/components/anim/Reveal";
 import { KenyaFlag } from "./KenyaFlag";
 
-/* Panel palette â€” deep brand green, cream ink, lime pop. Independent of the
+/* Panel palette — deep brand green, cream ink, lime pop. Independent of the
    light/dark app theme so the left rail is always striking. */
 const PANEL = {
   bg: "#0c3b28",
@@ -43,15 +43,22 @@ const Panel = styled.aside`
   }
 `;
 
-/* Repeated Kipita car-icon motif (cream on deep green) â€” texture, not noise. */
+/* Repeated Kipita car-icon motif (cream on deep green) — texture, not noise. */
 const Texture = styled.div`
   position: absolute;
-  inset: 0;
+  inset: -10%;
   background-image: url("/backgrounds/white.svg");
-  background-size: 460px;
+  background-size: 760px;
   background-repeat: repeat;
-  opacity: 0.12;
-  mask-image: linear-gradient(200deg, #000 10%, transparent 85%);
+  background-position: -60px -40px;
+  opacity: 0.07;
+  transform: rotate(-8deg);
+  mask-image: radial-gradient(
+    115% 85% at 18% 12%,
+    #000 0%,
+    rgba(0, 0, 0, 0.45) 42%,
+    transparent 72%
+  );
   pointer-events: none;
 `;
 
@@ -176,7 +183,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <AnimatedHeading as="h2" immediate text={"Ride. Share.\nGet there together."} />
           </PanelHeadWrap>
           <PanelLead>
-            Kipita matches you with people going your way â€” cheaper trips, real
+            Kipita matches you with people going your way — cheaper trips, real
             faces, paid safely with M-Pesa.
           </PanelLead>
           <Reveal delay={0.3} stagger={0.12}>

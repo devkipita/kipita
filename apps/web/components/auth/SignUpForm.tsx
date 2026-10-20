@@ -38,11 +38,15 @@ const Burst = styled.div`
   place-items: center;
   background: ${({ theme }) => theme.color.primaryContainer};
   color: ${({ theme }) => theme.color.onPrimaryContainer};
-  animation: pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  animation: pop 400ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
 
   @keyframes pop {
-    from { transform: scale(0.5); opacity: 0; }
+    from { transform: scale(0.6); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 

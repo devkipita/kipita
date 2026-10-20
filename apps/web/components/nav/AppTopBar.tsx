@@ -23,8 +23,8 @@ const Bar = styled.header`
   gap: 32px;
   padding: 0 max(var(--page-pad), env(safe-area-inset-left)) 0
     max(var(--page-pad), env(safe-area-inset-right));
-  background: ${nocturne.bg};
-  color: ${nocturne.cream};
+  background: ${nocturne.greenDeep};
+  color: ${nocturne.onGreen};
 
   @media (max-width: 960px) {
     height: ${TOPBAR_H_SM}px;
@@ -36,9 +36,6 @@ const BrandSlot = styled.div`
   flex: none;
   display: flex;
   align-items: center;
-  padding: 5px 15px;
-  border-radius: 999px;
-  background: ${nocturne.greenDeep};
 
   a {
     display: flex;
@@ -54,8 +51,6 @@ const BrandSlot = styled.div`
   }
 
   @media (max-width: 960px) {
-    padding: 4px 11px;
-
     img,
     svg {
       height: 28px;
@@ -63,19 +58,11 @@ const BrandSlot = styled.div`
   }
 `;
 
-const Cluster = styled.div<{ $bare: boolean }>`
+const Cluster = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   margin-left: auto;
-  padding: 5px;
-  border-radius: 999px;
-  background: ${nocturne.greenDeep};
-
-  @media (max-width: 960px) {
-    padding: ${({ $bare }) => ($bare ? "0" : "4px")};
-    background: ${({ $bare }) => ($bare ? "transparent" : nocturne.greenDeep)};
-  }
 `;
 
 const Glyph = styled.span<{ $on?: boolean }>`
@@ -494,7 +481,7 @@ export function AppTopBar({
         <Brand href="/" light priority />
       </BrandSlot>
 
-      <Cluster $bare={pending || !!profile}>
+      <Cluster>
         <Links aria-label="Main">
           {items.map((item) => (
             <NavA
