@@ -15,7 +15,6 @@ import {
 } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { dur, ease } from "@/lib/motion";
-import { pressable, scanGlyph } from "@/components/ui/interactions";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl } from "@/components/ui/primitives";
 import { dayLabel, nairobiToday } from "@/lib/trips/format";
@@ -43,6 +42,13 @@ const slotIn = keyframes`
   to   { opacity: 1; transform: none; }
 `;
 
+const hunt = keyframes`
+  0%   { transform: translateX(0) rotate(0deg) scale(1); }
+  28%  { transform: translateX(-3px) rotate(-14deg) scale(1.06); }
+  62%  { transform: translateX(3px) rotate(11deg) scale(1.06); }
+  100% { transform: translateX(0) rotate(0deg) scale(1.12); }
+`;
+
 const Card = styled.form`
   position: relative;
   z-index: 2;
@@ -61,7 +67,14 @@ const Card = styled.form`
 const Grid = styled.div<{ $compact?: boolean }>`
   display: ${({ $compact }) => ($compact ? "none" : "flex")};
   align-items: stretch;
+  flex-wrap: wrap;
   gap: 8px;
+
+  @media (max-width: 1100px) {
+    > * {
+      flex: 1 1 100%;
+    }
+  }
 
   @media (max-width: 760px) {
     display: none;
@@ -129,6 +142,7 @@ const fieldGlyph = `
   color: ${nocturne.accent};
 `;
 
+const CTA_INK = `color-mix(in oklab, ${nocturne.ctaBg} 62%, ${nocturne.cream})`;
 
 const collapsedBox = `
   display: flex;
@@ -178,29 +192,37 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
     align-items: center;
     min-height: 40px;
     padding: 10px 18px;
+    border: 2px solid ${nocturne.ctaBg};
     border-radius: 999px;
     background: ${nocturne.ctaBg};
     color: ${nocturne.ctaFg};
     font-size: 15px;
     font-weight: 700;
     transition:
-      filter ${dur.short4}ms ${ease.standard},
+      background ${dur.short4}ms ${ease.standard},
+      border-color ${dur.short4}ms ${ease.standard},
+      color ${dur.short4}ms ${ease.standard},
       transform ${dur.short3}ms ${ease.emphasized},
       box-shadow ${dur.medium2}ms ${ease.emphasizedDecelerate};
   }
 
   @media (hover: hover) {
     &:hover > svg {
-      transform: scale(1.12) rotate(-10deg);
+      animation: ${hunt} ${dur.long1}ms ${ease.emphasized} both;
     }
     &:hover .go {
-      filter: brightness(0.96);
+      background: ${nocturne.surface};
+      border-color: ${CTA_INK};
+      color: ${CTA_INK};
       transform: translateY(-1px);
       box-shadow: 0 10px 22px -10px
         color-mix(in oklab, ${nocturne.ctaBg} 80%, transparent);
     }
   }
   &:active .go {
+    background: ${nocturne.ctaBg};
+    border-color: ${nocturne.ctaBg};
+    color: ${nocturne.ctaFg};
     transform: scale(0.96);
     box-shadow: none;
   }
@@ -210,7 +232,9 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
     > svg {
       transition: none;
     }
-    &:hover > svg,
+    &:hover > svg {
+      animation: none;
+    }
     &:hover .go,
     &:active .go {
       transform: none;
@@ -766,7 +790,8 @@ const Actions = styled.div`
   gap: 8px;
 
   @media (max-width: 1100px) {
-    grid-column: 1 / -1;
+    justify-content: flex-end;
+    padding: 4px 8px 4px 0;
   }
 `;
 
@@ -804,9 +829,14 @@ const ClearBtn = styled.button`
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
+
+  @media (max-width: 1100px) {
+    min-height: 58px;
+  }
 `;
 
 const Submit = styled.button`
+  position: relative;
   flex: 1;
   display: inline-flex;
   align-items: center;
@@ -814,7 +844,7 @@ const Submit = styled.button`
   gap: 10px;
   min-height: ${CTRL_H}px;
   padding: 0 30px;
-  border: 2px solid transparent;
+  border: 2px solid ${nocturne.ctaBg};
   border-radius: 16px;
   background: ${nocturne.ctaBg};
   color: ${nocturne.ctaFg};
@@ -822,13 +852,137 @@ const Submit = styled.button`
   font-size: 17px;
   font-weight: 700;
   white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color ${dur.medium2}ms ${ease.standard},
+    border-radius ${dur.medium4}ms ${ease.emphasizedDecelerate},
+    color ${dur.medium1}ms ${ease.standard} ${dur.short2}ms,
+    transform ${dur.short3}ms ${ease.emphasized},
+    box-shadow ${dur.medium4}ms ${ease.emphasizedDecelerate};
 
-  ${pressable()}
-  ${scanGlyph}
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: ${nocturne.surface};
+    clip-path: circle(0% at 50% 50%);
+    transition:
+      clip-path ${dur.long2}ms ${ease.standardAccelerate},
+      border-radius ${dur.medium4}ms ${ease.emphasizedDecelerate};
+    pointer-events: none;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border: 2px solid ${CTA_INK};
+    border-radius: 16px;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+    mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
+    -webkit-mask-position: left top, right top;
+    mask-position: left top, right top;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 50% 0%, 50% 0%;
+    mask-size: 50% 0%, 50% 0%;
+    transition:
+      -webkit-mask-size ${dur.long4}ms ${ease.standardAccelerate},
+      mask-size ${dur.long4}ms ${ease.standardAccelerate},
+      border-radius ${dur.medium4}ms ${ease.emphasizedDecelerate};
+  }
+
+  svg,
+  .label {
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: transparent;
+      border-radius: 999px;
+      color: ${CTA_INK};
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px -14px
+        color-mix(in oklab, ${nocturne.ctaBg} 72%, transparent);
+    }
+    &:hover:not(:disabled)::before {
+      clip-path: circle(78% at 50% 50%);
+      border-radius: 999px;
+    }
+    &:hover:not(:disabled)::after {
+      -webkit-mask-size: 50% 100%, 50% 100%;
+      mask-size: 50% 100%, 50% 100%;
+      border-radius: 999px;
+    }
+    &:hover:not(:disabled) svg {
+      animation: ${hunt} ${dur.long1}ms ${ease.emphasized} both;
+    }
+  }
+
+  &:active:not(:disabled) {
+    border-color: ${nocturne.ctaBg};
+    border-radius: 16px;
+    color: ${nocturne.ctaFg};
+    transform: scale(0.97);
+    box-shadow: none;
+  }
+  &:active:not(:disabled)::before {
+    clip-path: circle(0% at 50% 50%);
+    border-radius: 14px;
+    transition:
+      clip-path ${dur.short3}ms ${ease.emphasizedAccelerate},
+      border-radius ${dur.short3}ms ${ease.emphasizedAccelerate};
+  }
+  &:active:not(:disabled)::after {
+    opacity: 0;
+    border-radius: 16px;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
 
   &:disabled {
     opacity: 0.7;
     cursor: progress;
+  }
+
+  @media (max-width: 1100px) {
+    flex: 0 0 auto;
+    min-width: 212px;
+    min-height: 58px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition:
+      border-color ${dur.short4}ms ${ease.standard},
+      color ${dur.short4}ms ${ease.standard};
+
+    &::after {
+      transition: none;
+    }
+    &::before {
+      transition: none;
+    }
+    &:hover:not(:disabled)::before {
+      border-radius: 14px;
+    }
+    &:hover:not(:disabled)::after,
+    &:active:not(:disabled)::after {
+      border-radius: 16px;
+    }
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+      border-radius: 16px;
+    }
+    &:hover:not(:disabled) svg {
+      animation: none;
+    }
   }
 `;
 
@@ -1070,7 +1224,7 @@ export function FindRideSearchBar({
           )}
           <Submit type="submit" disabled={busy}>
             <MagnifyingGlass size={20} aria-hidden />
-            {busy ? "Searching…" : "Search"}
+            <span className="label">{busy ? "Searching…" : "Search"}</span>
           </Submit>
         </Actions>
       </Grid>
@@ -1202,7 +1356,9 @@ export function FindRideSearchBar({
           <SheetFoot>
             <Submit type="button" disabled={busy} onClick={runSearch}>
               <MagnifyingGlass size={20} aria-hidden />
-              {busy ? "Searching…" : "Search rides"}
+              <span className="label">
+                {busy ? "Searching…" : "Search rides"}
+              </span>
             </Submit>
           </SheetFoot>
         </Sheet>,

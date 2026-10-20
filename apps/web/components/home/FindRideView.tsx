@@ -40,27 +40,12 @@ const Page = styled.main`
   }
 `;
 
-const Overline = styled.span`
-  display: inline-block;
-  color: ${nocturne.ctaBg};
-  font-size: 14px;
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-`;
-
 const Title = styled.h1`
-  margin: 10px 0 10px;
-  font-size: clamp(40px, 5vw, 64px);
+  margin: 0;
+  font-size: clamp(32px, 5vw, 64px);
   line-height: 1.05;
   letter-spacing: -0.035em;
   color: ${nocturne.cream};
-`;
-
-const Sub = styled.p`
-  margin: 0;
-  font-size: 18px;
-  color: ${nocturne.muted};
 `;
 
 const Layout = styled.div`
@@ -713,12 +698,7 @@ export function FindRideView({
 
   return (
     <Page>
-      <Overline>Find a ride</Overline>
       <Title>{heading}</Title>
-      <Sub>
-        {form.date ? dayLabel(form.date) : "Any day"} · {form.seats}{" "}
-        {form.seats === 1 ? "passenger" : "passengers"}
-      </Sub>
 
       <FindRideSearchBar
         value={form}
