@@ -81,11 +81,58 @@ const List = styled(Panel)`
   overflow: hidden;
 `;
 
+const SectionBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin-right: 0;
+  }
+`;
+
+const EditLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  color: ${({ theme }) => theme.color.onSurface};
+  font-size: 0.86rem;
+  font-weight: 700;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease;
+
+  svg {
+    flex: none;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.primary};
+      border-color: ${({ theme }) => theme.color.primary};
+      color: ${({ theme }) => theme.color.onPrimary};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+`;
+
 const Row = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 20px;
+  min-height: 60px;
+  padding: 14px 20px;
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
   & + & {
     border-top: none;
   }
@@ -231,7 +278,13 @@ export function ProfileView({ profile }: { profile: Profile }) {
           </Stat>
         </Stats>
 
-        <SectionTitle>Details</SectionTitle>
+        <SectionBar>
+          <SectionTitle>Details</SectionTitle>
+          <EditLink href="/profile/edit">
+            <Pencil size={16} />
+            Edit
+          </EditLink>
+        </SectionBar>
         <List>
           <Row>
             <Mail className="lead" size={20} />

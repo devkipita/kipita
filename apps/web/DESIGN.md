@@ -37,7 +37,10 @@ UI. Headings pick up Manrope globally in `GlobalStyle`.
 - Display on a task surface: `clamp(29px, 5vw, 58px)`, rising to
   `clamp(58px, 4.4vw, 82px)` above 1400px. Tracking `-0.03em`, leading 1.16–1.22.
 - The hierarchy inside a sentence is weight plus colour, never size: connectives
-  at 500 in `muted`, values at 800 in `cream`.
+  at 500 in `muted`, editable values at 800 in `accent`. The hue is what marks a
+  word as tappable, so neutral ink is reserved for text you cannot change.
+  Hover deepens with `color-mix(in oklab, var(--n-accent) 68%, var(--n-cream))`,
+  which darkens in light mode and brightens in dark.
 - Tabular figures wherever numbers change in place.
 
 ## Control vocabulary (`components/publish/controls.tsx`)

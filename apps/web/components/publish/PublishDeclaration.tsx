@@ -203,7 +203,7 @@ const Value = styled.button<{ $live: boolean; $tiny?: boolean }>`
           text-align: center;
         `
       : ""}
-  color: ${nocturne.cream};
+  color: ${nocturne.accent};
   font-weight: 800;
   box-shadow: inset 0 ${({ $live }) => ($live ? "-0.09em" : "-0.045em")} 0
     ${({ $live }) =>
@@ -214,7 +214,7 @@ const Value = styled.button<{ $live: boolean; $tiny?: boolean }>`
   @media (hover: hover) {
     &:hover {
       box-shadow: inset 0 -0.09em 0 ${nocturne.accent};
-      color: ${nocturne.green};
+      color: color-mix(in oklab, var(--n-accent) 68%, var(--n-cream));
     }
   }
 
@@ -228,7 +228,7 @@ const Blank = styled.button<{ $live: boolean }>`
   display: inline-flex;
   align-items: baseline;
   gap: 0.14em;
-  color: ${nocturne.cream};
+  color: ${nocturne.accent};
   font-weight: 800;
 
   .gap {
@@ -248,7 +248,7 @@ const Blank = styled.button<{ $live: boolean }>`
       border-bottom-color: ${nocturne.accent};
     }
     &:hover {
-      color: ${nocturne.green};
+      color: color-mix(in oklab, var(--n-accent) 68%, var(--n-cream));
     }
   }
 `;
