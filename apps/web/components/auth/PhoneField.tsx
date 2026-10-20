@@ -3,8 +3,8 @@
 import { useId, useState } from "react";
 import styled from "styled-components";
 import { ControlShell, FieldError, Label } from "./ui";
-import { KenyaFlag } from "./KenyaFlag";
-import { KE_DIAL_CODE, formatKeLocal, normalizeKeLocal } from "@/lib/auth/phone";
+import { KenyaFlag } from "@/components/ui/KenyaFlag";
+import { KE_DIAL_CODE, formatKeLocal, normalizeKeLocal } from "@/lib/phone";
 
 const Prefix = styled.span`
   display: inline-flex;

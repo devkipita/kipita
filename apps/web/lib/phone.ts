@@ -1,7 +1,7 @@
 /**
- * Kenyan phone helpers. The UI pre-fills the +254 prefix, so the user only
- * types the 9 national digits (7XXXXXXXX or 1XXXXXXXX). We normalise to E.164
- * for Supabase, which is the source of truth.
+ * Kenyan phone helpers. Every phone input in the app pre-fills the +254 prefix,
+ * so the user only types the 9 national digits (7XXXXXXXX or 1XXXXXXXX). Auth
+ * normalises to E.164 for Supabase; M-Pesa normalises to Daraja's 2547XXXXXXXX.
  */
 
 export const KE_DIAL_CODE = "+254";
@@ -22,6 +22,11 @@ export function isValidKeLocal(local: string): boolean {
 /** National digits → +2547XXXXXXXX. Assumes a validated local number. */
 export function toE164(local: string): string {
   return `${KE_DIAL_CODE}${normalizeKeLocal(local)}`;
+}
+
+/** National digits → 2547XXXXXXXX, the form Daraja expects. */
+export function toDaraja(local: string): string {
+  return `254${normalizeKeLocal(local)}`;
 }
 
 /** Pretty grouping for display: 712 345 678. */

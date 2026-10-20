@@ -9,16 +9,21 @@ import {
   MIN_TOPUP,
 } from "@kipita/shared";
 import {
-  CheckCircle as CheckCircle2,
-  Clock,
   CircleNotch as Loader2,
   DeviceMobile as Smartphone,
-  Warning as TriangleAlert,
 } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
-import { FieldBlock, FieldHead, TextInput } from "@/components/home/fields";
-import { isValidKenyanPhone, toDarajaPhone } from "@/lib/payments";
+import { AmountField } from "@/components/ui/AmountField";
+import {
+  PaymentFailedArt,
+  PaymentWaitingArt,
+  PinPromptArt,
+  WalletFilledArt,
+} from "@/components/ui/MoneyArt";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { FieldBlock, FieldError, FieldHead } from "@/components/home/fields";
+import { isValidKeLocal, normalizeKeLocal, toDaraja } from "@/lib/phone";
 import { pollTopupStatus, startTopup } from "@/lib/wallet/api";
 
 type Stage = "form" | "pushing" | "waiting" | "done" | "failed" | "timeout";
@@ -34,39 +39,57 @@ const Spinner = styled(Loader2)`
   }
 `;
 
+const Range = styled.span`
+  font-size: ${({ theme }) => theme.type.micro};
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: ${({ theme }) => theme.color.muted};
+`;
+
 const Presets = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 8px;
 `;
 
 const Preset = styled.button<{ $active: boolean }>`
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 6px;
   border: none;
-  border-radius: 999px;
+  border-radius: ${({ theme }) => theme.radius.pill};
   font: inherit;
-  font-size: 0.9rem;
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
   background: ${({ theme, $active }) =>
     $active ? theme.color.primaryContainer : theme.color.surfaceContainerLow};
   color: ${({ theme, $active }) =>
-    $active ? theme.color.onPrimaryContainer : theme.color.onSurfaceVariant};
+    $active ? theme.color.onPrimaryContainer : theme.color.textSoft};
+  box-shadow: inset 0 0 0 1px
+    ${({ theme, $active }) =>
+      $active ? "transparent" : theme.color.outlineVariant};
 
-  &:hover {
-    background: ${({ theme, $active }) =>
-      $active ? theme.color.primaryContainer : theme.color.surfaceContainer};
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme, $active }) =>
+        $active ? theme.color.primaryContainer : theme.color.surfaceContainer};
+      color: ${({ theme }) => theme.color.onSurface};
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
 `;
 
-const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
+const Status = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 14px;
-  padding: 30px 18px 34px;
+  padding: 26px 24px 36px;
 
   .badge {
     display: grid;
@@ -79,7 +102,7 @@ const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
         ? theme.tone.mint.bg
         : $tone === "bad"
           ? theme.color.dangerBg
-          : theme.color.surface2};
+          : theme.color.surfaceContainerHigh};
     color: ${({ theme, $tone }) =>
       $tone === "ok"
         ? theme.tone.mint.on
@@ -88,14 +111,16 @@ const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
           : theme.color.primary};
   }
   b {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: ${({ theme }) => theme.color.text};
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: ${({ theme }) => theme.type.subhead};
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: ${({ theme }) => theme.color.onSurface};
   }
   p {
     margin: 0;
     max-width: 34ch;
-    font-size: 0.92rem;
+    font-size: ${({ theme }) => theme.type.label};
     line-height: 1.5;
     color: ${({ theme }) => theme.color.muted};
   }
@@ -103,7 +128,7 @@ const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
 
 const Hint = styled.p`
   margin: 0;
-  font-size: 0.85rem;
+  font-size: ${({ theme }) => theme.type.micro};
   line-height: 1.5;
   color: ${({ theme }) => theme.color.muted};
 `;
@@ -120,7 +145,7 @@ export function TopUpDrawer({
   onToppedUp: () => void;
 }) {
   const [amount, setAmount] = useState("500");
-  const [phone, setPhone] = useState(defaultPhone ?? "");
+  const [phone, setPhone] = useState(() => normalizeKeLocal(defaultPhone ?? ""));
   const [stage, setStage] = useState<Stage>("form");
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -133,11 +158,20 @@ export function TopUpDrawer({
     setError("");
   }, [open]);
 
+  useEffect(() => {
+    const digits = normalizeKeLocal(defaultPhone ?? "");
+    if (digits) setPhone((current) => current || digits);
+  }, [defaultPhone]);
+
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const value = Number(amount);
   const busy = stage === "pushing" || stage === "waiting";
-  const valid = isValidTopupAmount(value) && isValidKenyanPhone(phone);
+  const amountOk = isValidTopupAmount(value);
+  const phoneOk = isValidKeLocal(phone);
+  const valid = amountOk && phoneOk;
+  const amountBad = amount.length > 0 && !amountOk;
+  const phoneBad = phone.length > 0 && !phoneOk;
 
   async function submit() {
     if (!valid || busy) return;
@@ -150,7 +184,7 @@ export function TopUpDrawer({
     try {
       const { topup_id } = await startTopup({
         amount: value,
-        phone: toDarajaPhone(phone),
+        phone: toDaraja(phone),
       });
 
       setStage("waiting");
@@ -174,64 +208,64 @@ export function TopUpDrawer({
   function body() {
     if (stage === "done") {
       return (
-        <Stage_ $tone="ok">
-          <span className="badge">
-            <CheckCircle2 size={34} />
-          </span>
+        <Status $tone="ok">
+          <WalletFilledArt />
           <b>{formatKes(value)} added</b>
           <p>
-            Your Kipita wallet balance is up to date. Use it for fares, or
-            withdraw it back to M-Pesa any time.
+            Your wallet balance is up to date. Use it for fares, or withdraw it
+            back to M-Pesa any time.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
     if (stage === "failed") {
       return (
-        <Stage_ $tone="bad">
-          <span className="badge">
-            <TriangleAlert size={32} />
-          </span>
+        <Status $tone="bad">
+          <PaymentFailedArt />
           <b>Top-up didn&apos;t go through</b>
           <p>
             M-Pesa declined or the request was cancelled. Nothing was charged.
-            You can try again.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
     if (stage === "timeout") {
       return (
-        <Stage_ $tone="wait">
-          <span className="badge">
-            <Clock size={32} />
-          </span>
+        <Status $tone="wait">
+          <PaymentWaitingArt />
           <b>Still waiting on M-Pesa</b>
           <p>
             We stopped watching, but the prompt may still be on your phone. If
             you complete it, your balance updates on its own.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
-    if (busy) {
+    if (stage === "pushing") {
       return (
-        <Stage_ $tone="wait">
+        <Status $tone="wait">
           <span className="badge">
             <Spinner size={32} />
           </span>
-          <b>
-            {stage === "pushing" ? "Sending the request…" : "Check your phone"}
-          </b>
+          <b>Sending the request…</b>
+          <p>Asking M-Pesa to prompt +254 {phone}.</p>
+        </Status>
+      );
+    }
+
+    if (stage === "waiting") {
+      return (
+        <Status $tone="wait">
+          <PinPromptArt />
+          <b>Check your phone</b>
           <p>
-            {stage === "pushing"
-              ? "Asking M-Pesa to prompt your number."
-              : `Enter your M-Pesa PIN to add ${formatKes(value)}. Keep this page open.`}
+            Enter your M-Pesa PIN to add {formatKes(value)}. Keep this page
+            open.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
@@ -242,50 +276,68 @@ export function TopUpDrawer({
         <FieldBlock>
           <FieldHead>
             <label htmlFor="topup-amount">Amount</label>
+            <Range>
+              {MIN_TOPUP.toLocaleString("en-KE")} -{" "}
+              {MAX_TOPUP.toLocaleString("en-KE")}
+            </Range>
           </FieldHead>
-          <TextInput
+
+          <AmountField
             id="topup-amount"
             ref={amountRef}
             value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ""))}
-            placeholder="500"
-            inputMode="numeric"
-            aria-label="Top-up amount in KES"
+            onChange={setAmount}
+            invalid={amountBad}
+            label="Top-up amount in KES"
           />
-        </FieldBlock>
 
-        <Presets>
-          {PRESETS.map((preset) => (
-            <Preset
-              key={preset}
-              type="button"
-              $active={value === preset}
-              onClick={() => setAmount(String(preset))}
-            >
-              {formatKes(preset)}
-            </Preset>
-          ))}
-        </Presets>
+          <Presets>
+            {PRESETS.map((preset) => (
+              <Preset
+                key={preset}
+                type="button"
+                $active={value === preset}
+                aria-pressed={value === preset}
+                onClick={() => setAmount(String(preset))}
+              >
+                {preset.toLocaleString("en-KE")}
+              </Preset>
+            ))}
+          </Presets>
+
+          {amountBad && (
+            <FieldError>
+              Enter an amount between {formatKes(MIN_TOPUP)} and{" "}
+              {formatKes(MAX_TOPUP)}.
+            </FieldError>
+          )}
+        </FieldBlock>
 
         <FieldBlock>
           <FieldHead>
             <label htmlFor="topup-phone">M-Pesa number</label>
           </FieldHead>
-          <TextInput
+
+          <PhoneField
             id="topup-phone"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="07XX XXX XXX"
-            inputMode="tel"
-            autoComplete="tel"
-            aria-label="M-Pesa number"
+            onChange={setPhone}
+            invalid={phoneBad}
+            describedBy="topup-phone-hint"
           />
-        </FieldBlock>
 
-        <Hint>
-          Between {formatKes(MIN_TOPUP)} and {formatKes(MAX_TOPUP)}. We&apos;ll
-          send a prompt to this number and your balance updates once you confirm.
-        </Hint>
+          {phoneBad ? (
+            <FieldError>
+              That isn&apos;t a Kenyan mobile number. It should be nine digits
+              starting with 7 or 1.
+            </FieldError>
+          ) : (
+            <Hint id="topup-phone-hint">
+              We&apos;ll send a prompt to this number. Your balance updates the
+              moment you confirm it.
+            </Hint>
+          )}
+        </FieldBlock>
       </DrawerBody>
     );
   }
@@ -325,7 +377,7 @@ export function TopUpDrawer({
             >
               <Smartphone size={18} />
               {stage === "form"
-                ? `Add ${isValidTopupAmount(value) ? formatKes(value) : "money"}`
+                ? `Add ${amountOk ? formatKes(value) : "money"}`
                 : "Try again"}
             </ButtonEl>
           </DrawerFooter>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { Info, ArrowRight, Envelope as Mail, Phone, ArrowClockwise as RotateCw } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
-import { isValidKeLocal, toE164 } from "@/lib/auth/phone";
+import { isValidKeLocal, toE164 } from "@/lib/phone";
 import { signInEmailSchema } from "@/lib/validators/auth";
 import { TextField } from "./TextField";
 import { PasswordField } from "./PasswordField";

@@ -2,17 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
-import { CheckCircle as CheckCircle2, Clock, CircleNotch as Loader2, DeviceMobile as Smartphone, Warning as TriangleAlert } from "@/components/icons";
+import {
+  CircleNotch as Loader2,
+  DeviceMobile as Smartphone,
+} from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
-import { FieldBlock, FieldHead, TextInput } from "@/components/home/fields";
-import { formatKes } from "@/lib/rides";
 import {
-  initiatePayment,
-  isValidKenyanPhone,
-  pollPaymentStatus,
-  toDarajaPhone,
-} from "@/lib/payments";
+  EscrowHeldArt,
+  PaymentFailedArt,
+  PaymentWaitingArt,
+  PinPromptArt,
+} from "@/components/ui/MoneyArt";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { FieldBlock, FieldError, FieldHead } from "@/components/home/fields";
+import { formatKes } from "@/lib/rides";
+import { initiatePayment, pollPaymentStatus } from "@/lib/payments";
+import { isValidKeLocal, normalizeKeLocal, toDaraja } from "@/lib/phone";
 
 type Stage = "form" | "pushing" | "waiting" | "done" | "failed" | "timeout";
 
@@ -45,13 +51,13 @@ const Summary = styled.div`
   }
 `;
 
-const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
+const Status = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 14px;
-  padding: 30px 18px 34px;
+  padding: 26px 24px 36px;
 
   .badge {
     display: grid;
@@ -59,31 +65,30 @@ const Stage_ = styled.div<{ $tone: "wait" | "ok" | "bad" }>`
     width: 72px;
     height: 72px;
     border-radius: 50%;
-    background: ${({ theme, $tone }) =>
-      $tone === "ok"
-        ? theme.tone.mint.bg
-        : $tone === "bad"
-          ? theme.color.dangerBg
-          : theme.color.surface2};
-    color: ${({ theme, $tone }) =>
-      $tone === "ok"
-        ? theme.tone.mint.on
-        : $tone === "bad"
-          ? theme.color.dangerText
-          : theme.color.primary};
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${({ theme }) => theme.color.primary};
   }
   b {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: ${({ theme }) => theme.color.text};
+    font-family: ${({ theme }) => theme.fontHeading};
+    font-size: ${({ theme }) => theme.type.subhead};
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: ${({ theme }) => theme.color.onSurface};
   }
   p {
     margin: 0;
     max-width: 34ch;
-    font-size: 0.92rem;
+    font-size: ${({ theme }) => theme.type.label};
     line-height: 1.5;
     color: ${({ theme }) => theme.color.muted};
   }
+`;
+
+const Hint = styled.p`
+  margin: 0;
+  font-size: ${({ theme }) => theme.type.micro};
+  line-height: 1.5;
+  color: ${({ theme }) => theme.color.muted};
 `;
 
 export function PaymentDrawer({
@@ -103,7 +108,9 @@ export function PaymentDrawer({
   onClose: () => void;
   onPaid: () => void;
 }) {
-  const [phone, setPhone] = useState(defaultPhone ?? "");
+  const [phone, setPhone] = useState(() =>
+    normalizeKeLocal(defaultPhone ?? ""),
+  );
   const [stage, setStage] = useState<Stage>("form");
   const [error, setError] = useState("");
   const abortRef = useRef<AbortController | null>(null);
@@ -116,10 +123,16 @@ export function PaymentDrawer({
     setError("");
   }, [open]);
 
+  useEffect(() => {
+    const digits = normalizeKeLocal(defaultPhone ?? "");
+    if (digits) setPhone((current) => current || digits);
+  }, [defaultPhone]);
+
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const busy = stage === "pushing" || stage === "waiting";
-  const valid = isValidKenyanPhone(phone);
+  const valid = isValidKeLocal(phone);
+  const phoneBad = phone.length > 0 && !valid;
 
   async function pay() {
     if (!valid || busy) return;
@@ -135,7 +148,7 @@ export function PaymentDrawer({
         user_id: userId,
         amount,
         method: "mpesa",
-        phone: toDarajaPhone(phone),
+        phone: toDaraja(phone),
       });
 
       setStage("waiting");
@@ -155,64 +168,65 @@ export function PaymentDrawer({
   function body() {
     if (stage === "done") {
       return (
-        <Stage_ $tone="ok">
-          <span className="badge">
-            <CheckCircle2 size={34} />
-          </span>
+        <Status>
+          <EscrowHeldArt />
           <b>Paid. Your seat is confirmed</b>
           <p>
             We&apos;re holding {formatKes(amount)} until your trip is done, then
             it goes to your driver.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
     if (stage === "failed") {
       return (
-        <Stage_ $tone="bad">
-          <span className="badge">
-            <TriangleAlert size={32} />
-          </span>
+        <Status>
+          <PaymentFailedArt />
           <b>Payment didn&apos;t go through</b>
           <p>
             M-Pesa declined or the request was cancelled. Your seat is still
             held. You can try again.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
     if (stage === "timeout") {
       return (
-        <Stage_ $tone="wait">
-          <span className="badge">
-            <Clock size={32} />
-          </span>
+        <Status>
+          <PaymentWaitingArt />
           <b>Still waiting on M-Pesa</b>
           <p>
             We stopped watching, but the prompt may still be on your phone. If
             you complete it, your booking updates on its own.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
-    if (busy) {
+    if (stage === "pushing") {
       return (
-        <Stage_ $tone="wait">
+        <Status>
           <span className="badge">
             <Spinner size={32} />
           </span>
-          <b>
-            {stage === "pushing" ? "Sending the request…" : "Check your phone"}
-          </b>
+          <b>Sending the request…</b>
+          <p>Asking M-Pesa to prompt +254 {phone}.</p>
+        </Status>
+      );
+    }
+
+    if (stage === "waiting") {
+      return (
+        <Status>
+          <PinPromptArt />
+          <b>Check your phone</b>
           <p>
-            {stage === "pushing"
-              ? "Asking M-Pesa to prompt your number."
-              : `Enter your M-Pesa PIN to pay ${formatKes(amount)}. Keep this page open.`}
+            Enter your M-Pesa PIN to pay {formatKes(amount)}. Keep this page
+            open.
           </p>
-        </Stage_>
+        </Status>
       );
     }
 
@@ -229,22 +243,26 @@ export function PaymentDrawer({
           <FieldHead>
             <label htmlFor="mpesa-phone">M-Pesa number</label>
           </FieldHead>
-          <TextInput
+          <PhoneField
             id="mpesa-phone"
             ref={phoneRef}
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="07XX XXX XXX"
-            inputMode="tel"
-            autoComplete="tel"
-            aria-label="M-Pesa number"
+            onChange={setPhone}
+            invalid={phoneBad}
+            describedBy="mpesa-phone-hint"
           />
+          {phoneBad && (
+            <FieldError>
+              That isn&apos;t a Kenyan mobile number. It should be nine digits
+              starting with 7 or 1.
+            </FieldError>
+          )}
         </FieldBlock>
 
-        <p style={{ margin: 0, fontSize: "0.85rem", lineHeight: 1.5, opacity: 0.7 }}>
+        <Hint id="mpesa-phone-hint">
           We&apos;ll send a prompt to this number. Your fare is held until the
           trip is complete, then released to the driver.
-        </p>
+        </Hint>
       </DrawerBody>
     );
   }

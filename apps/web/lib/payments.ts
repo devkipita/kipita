@@ -78,18 +78,3 @@ export async function pollPaymentStatus(
   return "timeout";
 }
 
-/** 9 national digits, with or without the +254 / 0 prefix. */
-export function isValidKenyanPhone(value: string): boolean {
-  const digits = value.replace(/\D/g, "");
-  if (digits.startsWith("254")) return digits.length === 12;
-  if (digits.startsWith("0")) return digits.length === 10;
-  return digits.length === 9;
-}
-
-/** Normalise to the 2547XXXXXXXX form Daraja expects. */
-export function toDarajaPhone(value: string): string {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("0")) digits = digits.slice(1);
-  if (!digits.startsWith("254")) digits = `254${digits}`;
-  return digits;
-}

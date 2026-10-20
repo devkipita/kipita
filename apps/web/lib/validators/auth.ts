@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { isValidKeLocal } from "@/lib/auth/phone";
+import { isValidKeLocal } from "@/lib/phone";
 
 /**
  * Auth + profile validation. Mirrors the mobile app's rules so both clients

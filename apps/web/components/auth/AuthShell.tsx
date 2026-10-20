@@ -6,7 +6,7 @@ import { ArrowLeft, ShieldCheck, Users, Wallet } from "@/components/icons";
 import { Brand } from "@/components/ui/Brand";
 import { AnimatedHeading } from "@/components/anim/AnimatedHeading";
 import { Reveal } from "@/components/anim/Reveal";
-import { KenyaFlag } from "./KenyaFlag";
+import { KenyaFlag } from "@/components/ui/KenyaFlag";
 
 /* Panel palette — deep brand green, cream ink, lime pop. Independent of the
    light/dark app theme so the left rail is always striking. */
