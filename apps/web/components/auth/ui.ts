@@ -49,6 +49,8 @@ export const ControlShell = styled.div<{ $error?: boolean; $focused?: boolean }>
   height: 56px;
   border-radius: ${({ theme }) => theme.radius.sm};
   background: ${({ theme }) => theme.color.surface2};
+  --autofill-bg: ${({ theme }) => theme.color.surface2};
+  --autofill-fg: ${({ theme }) => theme.color.text};
   border: 1.5px solid transparent;
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   color: ${({ theme }) => theme.color.muted};
@@ -57,6 +59,7 @@ export const ControlShell = styled.div<{ $error?: boolean; $focused?: boolean }>
     $focused &&
     css`
       background: ${theme.color.surface};
+      --autofill-bg: ${theme.color.surface};
       border-color: ${theme.color.primary};
       box-shadow: 0 0 0 4px ${theme.color.primary}22;
       color: ${theme.color.primary};

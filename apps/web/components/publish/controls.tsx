@@ -181,6 +181,7 @@ export const BareInput = styled.input`
   border: none;
   border-bottom: 2px solid ${RULE};
   background: transparent;
+  --autofill-bg: ${nocturne.bg};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 23px;
   font-weight: 700;

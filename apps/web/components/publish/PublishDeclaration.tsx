@@ -672,41 +672,50 @@ const Share = styled.a`
 `;
 
 const Crew = styled.div`
-  width: min(340px, 62%);
-  margin: clamp(30px, 6vh, 60px) 0 0 auto;
+  width: min(300px, 70%);
+  margin: clamp(24px, 4vh, 40px) auto 0;
   pointer-events: none;
 
   @media (min-width: 900px) {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: min(380px, 32%);
+    width: 100%;
     margin: 0;
   }
 `;
 
+const Body = styled.div`
+  min-width: 0;
+`;
+
 const Live = styled.div`
-  position: relative;
-  min-height: 60vh;
+  display: grid;
+  gap: clamp(24px, 4vw, 56px);
+  align-items: center;
+
+  @media (min-width: 900px) {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 360px);
+  }
 
   .tick {
     display: grid;
     place-items: center;
-    width: 54px;
-    height: 54px;
-    margin-bottom: 20px;
+    width: 58px;
+    height: 58px;
+    margin-bottom: 22px;
     border-radius: 999px;
     background: ${nocturne.green};
     color: ${nocturne.onGreen};
   }
   h2 {
-    margin: 0 0 18px;
-    font-size: clamp(24px, 2.8vw, 32px);
+    margin: 0;
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.02;
+    letter-spacing: -0.042em;
     color: ${nocturne.cream};
   }
   p {
-    max-width: 48ch;
-    margin: 22px 0 28px;
+    max-width: 44ch;
+    margin: 20px 0 0;
     font-size: 17px;
     line-height: 1.6;
     color: ${nocturne.muted};
@@ -830,15 +839,17 @@ export function PublishDeclaration({
     editorRef.current?.focus({ preventScroll: true });
   }, [active]);
 
-  const filled = (slot: Slot) => {
-    if (slot === "from") return draft.from !== "";
-    if (slot === "to") return draft.to !== "";
-    if (slot === "date") return draft.date !== "";
-    if (slot === "time") return draft.time !== "";
-    if (slot === "fare") return Number(draft.price) > 0;
-    if (slot === "car") return draft.plate.trim() !== "";
+  const filledIn = (d: Draft, slot: Slot) => {
+    if (slot === "from") return d.from !== "";
+    if (slot === "to") return d.to !== "";
+    if (slot === "date") return d.date !== "";
+    if (slot === "time") return d.time !== "";
+    if (slot === "fare") return Number(d.price) > 0;
+    if (slot === "car") return d.plate.trim() !== "";
     return true;
   };
+
+  const filled = (slot: Slot) => filledIn(draft, slot);
 
   const blanks = ORDER.filter((slot) => !filled(slot));
   const earnings =
@@ -854,11 +865,18 @@ export function PublishDeclaration({
     setTouched(true);
   }
 
-  function advance(from: Slot) {
-    const rest = ORDER.slice(ORDER.indexOf(from) + 1);
-    const next = rest.find((slot) => !filled(slot));
-    if (next) open(next);
-    else setActive(null);
+  function advance(from: Slot, just?: Partial<Draft>) {
+    const after = { ...draft, ...just };
+    const isBlank = (slot: Slot) => !filledIn(after, slot);
+    const index = ORDER.indexOf(from);
+    const next =
+      ORDER.slice(index + 1).find(isBlank) ?? ORDER.find(isBlank) ?? null;
+    if (!next) {
+      setActive(null);
+      return;
+    }
+    if (next === from) return;
+    open(next);
   }
 
   function problem(): string | null {
@@ -931,6 +949,7 @@ export function PublishDeclaration({
     return (
       <Page>
         <Live>
+          <Body>
           <span className="tick" aria-hidden>
             <Check size={26} />
           </span>
@@ -966,12 +985,13 @@ export function PublishDeclaration({
               Send it to a WhatsApp group
             </Share>
           </Actions>
+          </Body>
 
           <Crew aria-hidden>
             <Image
               src={people}
               alt=""
-              sizes="(max-width: 640px) 60vw, 360px"
+              sizes="(max-width: 900px) 300px, 360px"
               style={{ width: "100%", height: "auto", display: "block" }}
             />
           </Crew>
@@ -1125,8 +1145,10 @@ export function PublishDeclaration({
                   other={active === "from" ? draft.to : draft.from}
                   origin={active === "to" ? draft.from : ""}
                   onPick={(name) => {
-                    patch(active === "from" ? { from: name } : { to: name });
-                    advance(active);
+                    const just =
+                      active === "from" ? { from: name } : { to: name };
+                    patch(just);
+                    advance(active, just);
                   }}
                 />
               </>
@@ -1140,7 +1162,7 @@ export function PublishDeclaration({
                 value={draft.date}
                 onChange={(date) => {
                   patch({ date });
-                  advance("date");
+                  advance("date", { date });
                 }}
               />
             )}
@@ -1152,7 +1174,14 @@ export function PublishDeclaration({
                   value={draft.time || "07:00"}
                   onChange={(time) => patch({ time })}
                   action={
-                    <CommitAction type="button" onClick={() => advance("time")}>
+                    <CommitAction
+                      type="button"
+                      onClick={() => {
+                        const time = draft.time || "07:00";
+                        patch({ time });
+                        advance("time", { time });
+                      }}
+                    >
                       Use this time <LongArrow />
                     </CommitAction>
                   }
@@ -1200,8 +1229,9 @@ export function PublishDeclaration({
                       type="button"
                       $on={Number(draft.price) === f}
                       onClick={() => {
-                        patch({ price: String(f) });
-                        advance("fare");
+                        const just = { price: String(f) };
+                        patch(just);
+                        advance("fare", just);
                       }}
                     >
                       {formatKes(f)}

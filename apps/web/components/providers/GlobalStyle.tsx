@@ -18,6 +18,9 @@ export const GlobalStyle = createGlobalStyle`
   :root {
     color-scheme: light;
 
+    --autofill-bg: var(--n-surface);
+    --autofill-fg: var(--n-cream);
+
     --r-xxs: 6px;
     --r-xs: 8px;
     --r-sm: 10px;
@@ -97,6 +100,25 @@ export const GlobalStyle = createGlobalStyle`
     scroll-behavior: smooth;
     scroll-padding-top: var(--sticky-top, 0px);
     -webkit-text-size-adjust: 100%;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--autofill-fg);
+    caret-color: var(--n-accent);
+    box-shadow: 0 0 0 1000px var(--autofill-bg) inset;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    transition: background-color 9999s ease-out 0s;
   }
 
   @supports (-webkit-touch-callout: none) {
