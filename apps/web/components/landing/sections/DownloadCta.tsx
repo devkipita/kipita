@@ -204,7 +204,7 @@ export function DownloadCta() {
           </H2>
           <DownloadLead>
             We&apos;re finishing the app now. Join the waitlist and you&apos;ll
-            get it the day it lands on the store — iOS and Android, same week.
+            get it the day it lands on the store, iOS and Android, same week.
           </DownloadLead>
           <StoreRow>
             <StoreBtn href="#contact" $variant="light">

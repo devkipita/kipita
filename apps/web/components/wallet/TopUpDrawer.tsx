@@ -195,8 +195,8 @@ export function TopUpDrawer({
           </span>
           <b>Top-up didn&apos;t go through</b>
           <p>
-            M-Pesa declined or the request was cancelled. Nothing was charged —
-            you can try again.
+            M-Pesa declined or the request was cancelled. Nothing was charged.
+            You can try again.
           </p>
         </Stage_>
       );

@@ -21,7 +21,7 @@ export function AdminPromotionsView({
           <a href="/home" style={{ fontWeight: 700 }}>
             home page
           </a>
-          . Offers are display-only for now — riders see the code, but nothing
+          . Offers are display-only for now. Riders see the code, but nothing
           applies it at checkout yet.
         </Lead>
         <PromotionsManager />

@@ -8,7 +8,7 @@ export function createPageMetadata(
   description: string,
   path: string,
 ): Metadata {
-  const socialTitle = `${title} — ${SITE.name}`;
+  const socialTitle = `${title} · ${SITE.name}`;
 
   return {
     title,

@@ -151,7 +151,7 @@ export function WaitlistForm() {
 
       {done ? (
         <Note $tone="ok">
-          You&apos;re on the list — we&apos;ll email you the moment Kipita
+          You&apos;re on the list. We&apos;ll email you the moment Kipita
           launches.
         </Note>
       ) : status === "error" ? (

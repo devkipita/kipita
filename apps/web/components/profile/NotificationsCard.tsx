@@ -50,7 +50,7 @@ export function NotificationsCard() {
           push === "unsupported"
             ? "Not supported on this device"
             : push === "granted"
-              ? "On — you'll get ride alerts here"
+              ? "On. You'll get ride alerts here"
               : push === "denied"
                 ? "Blocked in your browser settings"
                 : "Get instant ride alerts"
@@ -74,7 +74,7 @@ export function NotificationsCard() {
         icon={Megaphone}
         tone="tan"
         title="Offers & news"
-        description="Occasional promos — no spam"
+        description="Occasional promos. No spam"
         last
       >
         <Switch checked={prefs.promos} onChange={(v) => save({ ...prefs, promos: v })} label="Offers and news" />

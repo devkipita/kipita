@@ -60,7 +60,7 @@ export async function uploadVehiclePhoto(
 
   const blob = await downscale(file);
   if (blob.size > MAX_BYTES) {
-    return { ok: false, error: "That photo is too large — keep it under 5MB." };
+    return { ok: false, error: "That photo is too large. Keep it under 5MB." };
   }
 
   const ext = blob.type === "image/jpeg" ? "jpg" : blob.type.split("/")[1];

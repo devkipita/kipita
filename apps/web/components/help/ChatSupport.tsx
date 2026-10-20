@@ -35,7 +35,7 @@ const SEED: Convo[] = [
     status: "open",
     updated: "2m",
     messages: [
-      { id: 1, from: "agent", text: "Hi! I'm Wanjiku from payments. I can see your refund for case KP-4821 — let me check its status now.", time: "10:02" },
+      { id: 1, from: "agent", text: "Hi! I'm Wanjiku from payments. I can see your refund for case KP-4821. Let me check its status now.", time: "10:02" },
       { id: 2, from: "me", text: "Thanks. It's been two days since the cancelled trip.", time: "10:03" },
       { id: 3, from: "agent", text: "Understood. Escrow refunds land back on M-Pesa within 72 hours. I'll flag this to speed it up.", time: "10:04" },
     ],
@@ -450,7 +450,7 @@ export function ChatSupport() {
         {
           id: nextMsg.current++,
           from: "agent",
-          text: `Hi, I'm ${agent} from Kipita support. This is case ${id} — how can I help you today?`,
+          text: `Hi, I'm ${agent} from Kipita support. This is case ${id}, how can I help you today?`,
           time: "now",
         },
       ],
@@ -488,7 +488,7 @@ export function ChatSupport() {
                   {
                     id: nextMsg.current++,
                     from: "agent",
-                    text: "Thanks for the details — an agent is reviewing your case and will reply here shortly.",
+                    text: "Thanks for the details. An agent is reviewing your case and will reply here shortly.",
                     time: "now",
                   },
                 ],

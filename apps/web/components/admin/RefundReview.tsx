@@ -119,14 +119,14 @@ export function RefundReview() {
 
       {items.length === 0 && !error ? (
         <Empty>
-          <OkIcon size={22} /> No refunds to review — you&apos;re all caught up.
+          <OkIcon size={22} /> No refunds to review. You&apos;re all caught up.
         </Empty>
       ) : (
         items.map((item) => (
           <Row key={item.id}>
             <div style={{ minWidth: 180 }}>
               <div style={{ fontWeight: 700 }}>
-                {item.passenger?.full_name ?? "—"}
+                {item.passenger?.full_name ?? "–"}
               </div>
               {item.booking?.booking_reference && (
                 <Muted>{item.booking.booking_reference}</Muted>

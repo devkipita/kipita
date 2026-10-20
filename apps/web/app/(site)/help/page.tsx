@@ -1,6 +1,9 @@
 import { HelpContent } from "@/components/help/HelpContent";
+import { PublicShell } from "@/components/nav/PublicShell";
 import { createPageMetadata } from "@/lib/seo";
 import { fetchPublishedFaqsServer } from "@/lib/faqs.server";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = createPageMetadata(
   "Help & FAQ",
@@ -11,8 +14,13 @@ export const metadata = createPageMetadata(
 export default async function HelpPage() {
   const rows = await fetchPublishedFaqsServer();
   return (
-    <HelpContent
-      initialFaqs={rows.map((r) => ({ question: r.question, answer: r.answer }))}
-    />
+    <PublicShell>
+      <HelpContent
+        initialFaqs={rows.map((r) => ({
+          question: r.question,
+          answer: r.answer,
+        }))}
+      />
+    </PublicShell>
   );
 }

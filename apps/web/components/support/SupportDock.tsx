@@ -424,7 +424,7 @@ export function SupportDock() {
         <Launcher
           type="button"
           onClick={() => setOpen(true)}
-          aria-label={`Support — ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}`}
+          aria-label={`Support · ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}`}
         >
           <QuestionCircle size={20} />
           Support

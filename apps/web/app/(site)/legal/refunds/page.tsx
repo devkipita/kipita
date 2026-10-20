@@ -15,7 +15,7 @@ export default function RefundsPage() {
       <p className="updated">Last updated: 1 August 2026</p>
 
       <p>
-        {SITE.name} holds your ride fare in escrow — we keep it safe and only
+        {SITE.name} holds your ride fare in escrow. We keep it safe and only
         pay the driver once your trip is complete. This makes refunds simple and
         fair.
       </p>

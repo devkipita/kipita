@@ -209,7 +209,7 @@ export const ALERTS: AlertData[] = [
     chip: "traffic",
     chipLabel: "Traffic",
     loc: "Uhuru Highway, Nairobi",
-    body: "Heavy traffic from Globe Roundabout to Nyayo Stadium — a stalled matatu is blocking the left lane. Expect 30–45 minutes. Haile Selassie is moving.",
+    body: "Heavy traffic from Globe Roundabout to Nyayo Stadium. A stalled matatu is blocking the left lane. Expect 30–45 minutes. Haile Selassie is moving.",
     comments: 8,
     hearts: 42,
     views: 374,

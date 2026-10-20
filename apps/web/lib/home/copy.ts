@@ -12,7 +12,7 @@ export const HOME_COPY = {
   mapTeaserTitle: "See who is on the road",
   mapTeaserCta: "Show live map",
   mapHide: "Hide map",
-  mapEmpty: "Quiet roads today — these are the routes people travel most.",
+  mapEmpty: "Quiet roads today. These are the routes people travel most.",
   mapUnavailable:
     "The map is unavailable right now. Search and booking still work.",
 
@@ -36,7 +36,7 @@ export const HOME_COPY = {
   planTitle: "Plan your ride",
   placeTitleFrom: "Where are you starting?",
   placeDescFrom:
-    "We guessed from your connection — change it if we got it wrong.",
+    "We guessed from your connection. Change it if we got it wrong.",
   placeTitleTo: "Where are you headed?",
   placeDescTo: "Pick a town, or tap a route to fill both ends at once.",
   placeInputFrom: "Leaving from…",

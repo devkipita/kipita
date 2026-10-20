@@ -290,7 +290,7 @@ export function TripDetail({
               </div>
               <div>
                 <div className="label">Pick-up</div>
-                <div className="place">{origin || "—"}</div>
+                <div className="place">{origin || "–"}</div>
               </div>
             </div>
             <div className="leg">

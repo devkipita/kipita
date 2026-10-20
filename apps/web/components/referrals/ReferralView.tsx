@@ -434,8 +434,8 @@ export function ReferralView({
           <Unavailable role="status">
             <b>Your code isn&apos;t ready yet</b>
             <p>
-              We couldn&apos;t reach the referral service. Refresh in a moment —
-              your code is created automatically the first time this page loads.
+              We couldn&apos;t reach the referral service. Refresh in a moment.
+              Your code is created automatically the first time this page loads.
             </p>
           </Unavailable>
         )}

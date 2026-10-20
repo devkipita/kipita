@@ -211,7 +211,7 @@ export function RequestRideDrawer({
         <Body>
           <Lead>
             No one has posted this route yet. Put in a request and drivers
-            heading that way will see it — you only pay once someone accepts.
+            heading that way will see it. You only pay once someone accepts.
           </Lead>
 
           <Summary>

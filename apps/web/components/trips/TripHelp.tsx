@@ -139,7 +139,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
         <h2>Help with this trip</h2>
         <Done>
           <Check size={18} />
-          {existing.subject} — open with support. The Support button follows you
+          {existing.subject}. Open with support. The Support button follows you
           around the app until it is resolved.
         </Done>
       </Card>

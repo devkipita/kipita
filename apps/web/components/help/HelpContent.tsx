@@ -16,8 +16,8 @@ import {
   UserPlus,
   Wallet,
 } from "@/components/icons";
-import { SiteNav } from "@/components/SiteNav";
-import { SiteFooter } from "@/components/SiteFooter";
+import { LandingFooter } from "@/components/landing/sections/LandingFooter";
+import { HelpArt } from "@/components/help/HelpArt";
 import { Container } from "@/components/ui/primitives";
 import { Reveal } from "@/components/anim/Reveal";
 import { ChatSupport } from "@/components/help/ChatSupport";
@@ -37,6 +37,11 @@ const Hero = styled.section`
   overflow: hidden;
   background: #090b0a;
   color: #f7f8f5;
+
+  @media (max-width: 640px) {
+    margin: 0 0 24px;
+    padding: 34px 18px 30px;
+  }
 `;
 
 const HeroVideo = styled.video`
@@ -259,8 +264,8 @@ const Steps = styled.div`
 const Step = styled.div<{ $tone: ToneName }>`
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 30px 32px 32px;
+  gap: 10px;
+  padding: 26px 28px 28px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme, $tone }) => theme.tone[$tone].bg};
   /* Brighten the on-tone text toward white so it pops on the muted cards. */
@@ -270,47 +275,41 @@ const Step = styled.div<{ $tone: ToneName }>`
     #ffffff
   );
 
-  .top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  .art {
+    margin-bottom: 4px;
+    color: ${({ theme, $tone }) => theme.tone[$tone].on};
   }
-  .num {
-    font-family:
-      var(--font-manrope), var(--font-dm), system-ui, sans-serif;
-    font-size: 3.2rem;
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.04em;
-    opacity: 0.34;
-  }
-  .bubble {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 999px;
-    background: color-mix(
-      in srgb,
-      ${({ theme, $tone }) => theme.tone[$tone].on} 14%,
-      transparent
-    );
+  .no {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    opacity: 0.75;
   }
   h3 {
-    margin: 8px 0 0;
-    font-size: 1.4rem;
-    letter-spacing: -0.01em;
+    margin: 6px 0 0;
+    font-size: clamp(1.25rem, 2.6vw, 1.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.025em;
   }
   p {
     margin: 0;
-    font-size: 1.05rem;
-    line-height: 1.5;
+    max-width: 38ch;
+    font-size: 1rem;
+    line-height: 1.55;
     color: color-mix(
       in srgb,
       ${({ theme, $tone }) => theme.tone[$tone].on} 82%,
       #ffffff
     );
+  }
+
+  @media (max-width: 640px) {
+    padding: 22px 22px 24px;
+
+    .art svg {
+      max-width: 180px;
+    }
   }
 `;
 
@@ -500,7 +499,7 @@ const HOW: { icon: typeof UserPlus; t: string; d: string; tone: ToneName }[] = [
   {
     icon: UserPlus,
     t: "Create your account",
-    d: "Sign up with email or phone in seconds — set a password and add a photo.",
+    d: "Sign up with email or phone in seconds. Set a password and add a photo.",
     tone: "green",
   },
   {
@@ -531,7 +530,7 @@ const DEFAULT_FAQS: FaqItem[] = [
   {
     question: "How does payment work?",
     answer:
-      "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed — so your money is protected.",
+      "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed. So your money is protected.",
   },
   {
     question: "Is my ride safe?",
@@ -551,7 +550,7 @@ const DEFAULT_FAQS: FaqItem[] = [
   {
     question: "What if I need to cancel?",
     answer:
-      "You can cancel from your bookings. Refunds follow our refund policy — escrow-held fares are returned when eligible.",
+      "You can cancel from your bookings. Refunds follow our refund policy. Escrow-held fares are returned when eligible.",
   },
   {
     question: "How do I change my email or phone?",
@@ -577,7 +576,6 @@ export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
 
   return (
     <>
-      <SiteNav />
       <Hero>
         <HeroVideo
           autoPlay
@@ -642,14 +640,12 @@ export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
           </SectionHead>
           <Reveal>
             <Steps>
-              {HOW.map(({ icon: Icon, t, d, tone }, i) => (
+              {HOW.map(({ t, d, tone }, i) => (
                 <Step key={t} $tone={tone}>
-                  <div className="top">
-                    <span className="num">{i + 1}</span>
-                    <span className="bubble">
-                      <Icon size={26} />
-                    </span>
-                  </div>
+                  <span className="art">
+                    <HelpArt step={i} />
+                  </span>
+                  <span className="no">STEP {i + 1}</span>
                   <h3>{t}</h3>
                   <p>{d}</p>
                 </Step>
@@ -743,7 +739,7 @@ export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
           </Reveal>
         </Section>
       </Container>
-      <SiteFooter />
+      <LandingFooter />
     </>
   );
 }

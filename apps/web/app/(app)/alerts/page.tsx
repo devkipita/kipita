@@ -10,7 +10,7 @@ import {
 export const metadata: Metadata = {
   title: "Road alerts",
   description:
-    "Live road conditions across Kenya — traffic, accidents, closures, police checks and weather, reported by drivers on the route.",
+    "Live road conditions across Kenya, traffic, accidents, closures, police checks and weather, reported by drivers on the route.",
   alternates: { canonical: "/alerts" },
 };
 

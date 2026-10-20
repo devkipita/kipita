@@ -159,7 +159,7 @@ export function PaymentDrawer({
           <span className="badge">
             <CheckCircle2 size={34} />
           </span>
-          <b>Paid — your seat is confirmed</b>
+          <b>Paid. Your seat is confirmed</b>
           <p>
             We&apos;re holding {formatKes(amount)} until your trip is done, then
             it goes to your driver.
@@ -177,7 +177,7 @@ export function PaymentDrawer({
           <b>Payment didn&apos;t go through</b>
           <p>
             M-Pesa declined or the request was cancelled. Your seat is still
-            held — you can try again.
+            held. You can try again.
           </p>
         </Stage_>
       );

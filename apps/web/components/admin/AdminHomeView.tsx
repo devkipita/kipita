@@ -30,7 +30,7 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
               </InlineChevron>
             </FeatureTitle>
             <FeatureBody>
-              Review cancellations — refund the passenger or release to the
+              Review cancellations, refund the passenger or release to the
               driver.
             </FeatureBody>
           </FeatureCardLink>

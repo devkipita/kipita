@@ -387,7 +387,7 @@ export function SupportInbox({ cases: initial }: { cases: AdminSupportCase[] }) 
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder={
                   active.status === "resolved"
-                    ? "This case is resolved — replying reopens nothing, it just adds a note."
+                    ? "This case is resolved. Replying reopens nothing, it just adds a note."
                     : "Write a reply…"
                 }
                 onKeyDown={(e) => {

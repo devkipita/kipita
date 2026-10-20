@@ -224,8 +224,8 @@ const Bubble = styled.div<{ $me?: boolean }>`
   border-radius: 18px;
   font-size: 14px;
   line-height: 1.5;
-  background: ${({ $me }) => ($me ? nocturne.green : nocturne.bg)};
-  color: ${({ $me }) => ($me ? nocturne.cream : nocturne.muted)};
+  background: ${({ $me }) => ($me ? nocturne.green : nocturne.surface2)};
+  color: ${({ $me }) => ($me ? nocturne.onGreen : nocturne.cream)};
   ${({ $me }) =>
     $me
       ? "border-bottom-right-radius: 6px;"
@@ -240,21 +240,30 @@ const QuickRow = styled.div`
 `;
 
 const Quick = styled.button`
-  padding: 8px 14px;
+  padding: 9px 15px;
   border-radius: 999px;
-  border: 1px solid ${nocturne.line};
-  background: transparent;
-  color: ${nocturne.sage};
-  font-size: 15px;
+  border: 1.5px solid ${nocturne.line};
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font-size: 14px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
   transition:
     background 0.2s ease,
-    border-color 0.2s ease;
+    border-color 0.2s ease,
+    color 0.2s ease;
 
-  &:hover {
-    border-color: ${nocturne.sage};
-    background: ${nocturne.greenDeep};
+  @media (hover: hover) {
+    &:hover {
+      border-color: ${nocturne.greenDeep};
+      background: ${nocturne.greenDeep};
+      color: ${nocturne.lime};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 `;
 
@@ -263,7 +272,7 @@ const ChatForm = styled.form`
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid ${nocturne.line};
 `;
 
 const ChatInput = styled.input`
@@ -329,7 +338,7 @@ const OPENING: Record<Mode, Message> = {
   },
   report: {
     from: "bot",
-    text: "Sorry that happened. Tell us the trip date and what went wrong — we'll open a case straight away.",
+    text: "Sorry that happened. Tell us the trip date and what went wrong. We'll open a case straight away.",
   },
 };
 
@@ -438,12 +447,12 @@ export function SupportDock({
     setDraft("");
 
     if (authed === false) {
-      say("Sign in and I can open a case for you — it keeps your fare held while we look into it.");
+      say("Sign in and I can open a case for you. It keeps your fare held while we look into it.");
       return;
     }
 
     if (!caseId && t.length < MIN_DETAIL) {
-      say("Give me a bit more than that — what happened, and when?");
+      say("Give me a bit more than that, what happened, and when?");
       return;
     }
 

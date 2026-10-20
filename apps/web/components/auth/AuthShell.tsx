@@ -183,7 +183,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
             <AnimatedHeading as="h2" immediate text={"Ride. Share.\nGet there together."} />
           </PanelHeadWrap>
           <PanelLead>
-            Kipita matches you with people going your way — cheaper trips, real
+            Kipita matches you with people going your way. Cheaper trips, real
             faces, paid safely with M-Pesa.
           </PanelLead>
           <Reveal delay={0.3} stagger={0.12}>

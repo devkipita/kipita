@@ -221,7 +221,7 @@ export async function PopularRoutes() {
           ))}
         </Grid>
       ) : (
-        <Empty>No rides posted yet — be the first to publish one.</Empty>
+        <Empty>No rides posted yet. Be the first to publish one.</Empty>
       )}
     </Section>
   );

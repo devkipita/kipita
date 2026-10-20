@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           completes.
         </li>
         <li>
-          To keep the community safe — verification, ratings, and fraud
+          To keep the community safe. Verification, ratings, and fraud
           prevention.
         </li>
         <li>To provide support and send you trip and account notifications.</li>

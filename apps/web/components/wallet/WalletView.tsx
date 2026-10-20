@@ -499,7 +499,7 @@ export function WalletView({
             <LedgerArt />
             <b>Nothing here yet</b>
             <p>
-              Top up your wallet or book a ride — holds, refunds and payouts all
+              Top up your wallet or book a ride. Holds, refunds and payouts all
               show up here.
             </p>
           </Empty>
