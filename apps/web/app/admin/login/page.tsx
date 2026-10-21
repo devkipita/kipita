@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, SignIn as LogIn, Envelope as Mail, Lock } from "@/components/icons";
 import styled from "styled-components";
@@ -13,6 +13,8 @@ import {
   Notice,
 } from "@/components/ui/primitives";
 import { createClient } from "@/lib/supabase/client";
+import { signInAsAdminAction } from "@/lib/auth/auth-actions";
+import { authErrorMessage } from "@/lib/auth/errors";
 import GoogleLogo  from "@/public/Google";
 
 const Screen = styled.div`
@@ -67,68 +69,43 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [busy, setBusy] = useState(false);
+  const [busy, startTransition] = useTransition();
   const [error, setError] = useState(() => {
     if (denied) return "This account isn't an admin.";
-    if (authError === "oauth_exchange_failed")
-      return "Google sign in failed. Try again.";
-    if (authError === "oauth_missing_code")
-      return "Google sign in was interrupted. Try again.";
-    if (authError === "oauth_user_missing")
-      return "Signed in, but no user session was found.";
-    return "";
+    return authErrorMessage(authError);
   });
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true);
     setError("");
 
-    const supabase = createClient();
-    const { data, error: signInErr } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
+    startTransition(async () => {
+      const result = await signInAsAdminAction(email, password);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.replace("/admin");
+      router.refresh();
     });
-
-    if (signInErr || !data.user) {
-      setError(signInErr?.message ?? "Sign in failed.");
-      setBusy(false);
-      return;
-    }
-
-    // Verify admin before letting them in.
-    const { data: profile } = await supabase
-      .from("users")
-      .select("is_admin")
-      .eq("auth_id", data.user.id)
-      .single();
-
-    if (!profile?.is_admin) {
-      setError("This account isn't an admin.");
-      await supabase.auth.signOut();
-      setBusy(false);
-      return;
-    }
-
-    router.push("/admin");
-    router.refresh();
   }
 
-  async function signInWithGoogle() {
-    setBusy(true);
+  function signInWithGoogle() {
     setError("");
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
+    startTransition(async () => {
+      const supabase = createClient();
+      const redirectTo = `${window.location.origin}/auth/callback?next=/admin`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          queryParams: { prompt: "select_account" },
+        },
+      });
 
-    if (oauthError) {
-      setError(oauthError.message);
-      setBusy(false);
-    }
+      if (oauthError) setError("Google sign-in couldn't start. Try again.");
+    });
   }
 
   return (

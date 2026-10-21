@@ -12,6 +12,7 @@ import type { Profile } from "@/lib/auth/types";
 import { AvatarUploader } from "./AvatarUploader";
 import { NotificationsCard } from "./NotificationsCard";
 import { ControlRow, LinkRow, Panel, SectionTitle } from "./SettingsUI";
+import { ChangePasswordCard } from "./ChangePasswordCard";
 
 const Wrap = styled(ContentWidth)`
   padding-block: 24px 40px;
@@ -324,6 +325,11 @@ export function ProfileView({ profile }: { profile: Profile }) {
             </div>
           </Row>
         </List>
+
+        <SectionTitle>Security</SectionTitle>
+        <Panel>
+          <ChangePasswordCard email={profile.email} />
+        </Panel>
 
         <SectionTitle>Money</SectionTitle>
         <Panel>

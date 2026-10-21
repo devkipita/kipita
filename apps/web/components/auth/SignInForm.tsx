@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { Info, ArrowRight, Envelope as Mail, Phone, ArrowClockwise as RotateCw } from "@/components/icons";
-import { createClient } from "@/lib/supabase/client";
-import { isValidKeLocal, toE164 } from "@/lib/phone";
+import {
+  sendPhoneOtpAction,
+  signInWithPasswordAction,
+  verifyPhoneOtpAction,
+} from "@/lib/auth/auth-actions";
+import { isValidKeLocal } from "@/lib/phone";
 import { signInEmailSchema } from "@/lib/validators/auth";
 import { TextField } from "./TextField";
 import { PasswordField } from "./PasswordField";
@@ -57,22 +61,20 @@ const RowBetween = styled.div`
   margin-top: -6px;
 `;
 
-import {
-  attemptCooldownMs,
-  clearAttempts,
-  cooldownMessage,
-  recordFailedAttempt,
-} from "@/lib/security/attempt-throttle";
-
 type Mode = "email" | "phone";
 
-export function SignInForm({ next = "/home" }: { next?: string }) {
+export function SignInForm({
+  next = "/home",
+  notice = "",
+}: {
+  next?: string;
+  notice?: string;
+}) {
   const router = useRouter();
-  const supabase = createClient();
 
   const [mode, setMode] = useState<Mode>("email");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [busy, startTransition] = useTransition();
+  const [error, setError] = useState(notice);
 
   // email
   const [email, setEmail] = useState("");
@@ -84,12 +86,12 @@ export function SignInForm({ next = "/home" }: { next?: string }) {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
 
-  function done() {
-    router.push(next);
+  function done(target: string) {
+    router.replace(target);
     router.refresh();
   }
 
-  async function submitEmail(e: React.FormEvent) {
+  function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = signInEmailSchema.safeParse({ email, password });
@@ -101,58 +103,43 @@ export function SignInForm({ next = "/home" }: { next?: string }) {
     }
     setErrs({});
 
-    const throttleKey = `signin:${email.trim().toLowerCase()}`;
-    const wait = attemptCooldownMs(throttleKey);
-    if (wait > 0) {
-      setError(cooldownMessage(wait));
-      return;
-    }
-
-    setBusy(true);
-    const { data, error: err } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
+    startTransition(async () => {
+      const result = await signInWithPasswordAction(email, password, next);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      done(result.next ?? next);
     });
-    if (err || !data.session) {
-      recordFailedAttempt(throttleKey);
-      setError(err?.message ?? "Couldn't sign you in.");
-      setBusy(false);
-      return;
-    }
-    clearAttempts(throttleKey);
-    done();
   }
 
-  async function sendOtp(e: React.FormEvent) {
+  function sendOtp(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!isValidKeLocal(phone)) {
       setError("Enter a valid Kenyan number.");
       return;
     }
-    setBusy(true);
-    const { error: err } = await supabase.auth.signInWithOtp({
-      phone: toE164(phone),
+    startTransition(async () => {
+      const result = await sendPhoneOtpAction(phone);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setOtpSent(true);
     });
-    setBusy(false);
-    if (err) return setError(err.message);
-    setOtpSent(true);
   }
 
-  async function verifyOtp(code: string) {
+  function verifyOtp(code: string) {
     setError("");
-    setBusy(true);
-    const { data, error: err } = await supabase.auth.verifyOtp({
-      phone: toE164(phone),
-      token: code,
-      type: "sms",
+    startTransition(async () => {
+      const result = await verifyPhoneOtpAction(phone, code, next);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      done(result.next ?? next);
     });
-    if (err || !data.session) {
-      setError(err?.message ?? "That code didn't work.");
-      setBusy(false);
-      return;
-    }
-    done();
   }
 
   return (

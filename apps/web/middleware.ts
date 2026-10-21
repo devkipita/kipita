@@ -14,7 +14,29 @@ function makeNonce(): string {
   return btoa(String.fromCharCode(...bytes));
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+function isCrossSiteWrite(request: NextRequest): boolean {
+  if (SAFE_METHODS.has(request.method)) return false;
+
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (!host) return true;
+
+  try {
+    return new URL(origin).host !== host;
+  } catch {
+    return true;
+  }
+}
+
 export async function middleware(request: NextRequest) {
+  if (isCrossSiteWrite(request)) {
+    return new NextResponse("Cross-site request blocked", { status: 403 });
+  }
+
   const nonce = makeNonce();
   const isDev = process.env.NODE_ENV !== "production";
   const csp = contentSecurityPolicy(nonce, isDev);
@@ -32,6 +54,8 @@ export async function middleware(request: NextRequest) {
       maxAge: REF_MAX_AGE,
       sameSite: "lax",
       path: "/",
+      httpOnly: true,
+      secure: !isDev,
     });
   }
 

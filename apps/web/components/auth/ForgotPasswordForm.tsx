@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import styled from "styled-components";
 import { ArrowRight, Info, Envelope as Mail, EnvelopeSimple as MailCheck } from "@/components/icons";
-import { createClient } from "@/lib/supabase/client";
+import { sendPasswordResetAction } from "@/lib/auth/auth-actions";
 import { emailSchema } from "@/lib/validators/auth";
 import { TextField } from "./TextField";
 import {
@@ -27,26 +27,28 @@ const Burst = styled.div`
   color: ${({ theme }) => theme.color.onPrimaryContainer};
 `;
 
-export function ForgotPasswordForm() {
-  const supabase = createClient();
+export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
   const [email, setEmail] = useState("");
   const [err, setErr] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(notice);
+  const [busy, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = emailSchema.safeParse(email);
     if (!parsed.success) return setErr(parsed.error.issues[0].message);
     setErr("");
-    setBusy(true);
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/reset-password")}`;
-    const { error: e2 } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
-    setBusy(false);
-    if (e2) return setError(e2.message);
-    setSent(true);
+
+    startTransition(async () => {
+      const result = await sendPasswordResetAction(email);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSent(true);
+    });
   }
 
   if (sent) {

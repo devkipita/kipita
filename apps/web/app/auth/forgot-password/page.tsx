@@ -1,9 +1,11 @@
-import { redirect } from "next/navigation";
-import { getAuthUser } from "@/lib/auth/session";
+import { authErrorMessage } from "@/lib/auth/errors";
 import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
-export default async function ForgotPasswordPage() {
-  const user = await getAuthUser();
-  if (user) redirect("/home");
-  return <ForgotPasswordForm />;
+export default async function ForgotPasswordPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+  return <ForgotPasswordForm notice={authErrorMessage(error)} />;
 }

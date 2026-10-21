@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { Info } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/security/redirect";
 import { AlertBox, GhostButton, Spinner } from "./ui";
 import GoogleLogo from "@/public/Google";
 
-/** Google sign-in. Redirects through /auth/callback with the given next. */
 export function OAuthButtons({ next = "/home" }: { next?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -15,21 +15,23 @@ export function OAuthButtons({ next = "/home" }: { next?: string }) {
     setBusy(true);
     setError("");
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+    const target = safeNextPath(next);
+    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}`;
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        queryParams: { access_type: "offline", prompt: "select_account" },
+      },
     });
     if (err) {
-      // Provider not enabled in Supabase, etc. — don't fail silently.
       setError(
-        /not enabled|unsupported/i.test(err.message)
+        /not enabled|unsupported|provider/i.test(err.message)
           ? "Google sign-in isn't switched on yet. Use email or phone for now."
-          : err.message,
+          : "Google sign-in couldn't start. Try again.",
       );
       setBusy(false);
     }
-    // On success the browser navigates away.
   }
 
   return (

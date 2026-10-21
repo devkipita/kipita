@@ -1,15 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import styled from "styled-components";
 import { ArrowRight, Info, Envelope as Mail, EnvelopeSimple as MailCheck, User } from "@/components/icons";
-import { createClient } from "@/lib/supabase/client";
+import { sendSignUpLinkAction } from "@/lib/auth/auth-actions";
 import { signUpEmailSchema } from "@/lib/validators/auth";
-import {
-  attemptCooldownMs,
-  cooldownMessage,
-  recordFailedAttempt,
-} from "@/lib/security/attempt-throttle";
 import { TextField } from "./TextField";
 import { OAuthButtons } from "./OAuthButtons";
 import { StepDots } from "./StepDots";
@@ -55,11 +50,10 @@ const Strong = styled.strong`
 `;
 
 export function SignUpForm() {
-  const supabase = createClient();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [errs, setErrs] = useState<{ fullName?: string; email?: string }>({});
-  const [busy, setBusy] = useState(false);
+  const [busy, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -70,20 +64,7 @@ export function SignUpForm() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  async function send() {
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent("/auth/set-password")}`;
-    const { error: err } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: redirectTo,
-        data: { full_name: fullName.trim() },
-      },
-    });
-    return err;
-  }
-
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = signUpEmailSchema.safeParse({ fullName, email });
@@ -95,32 +76,27 @@ export function SignUpForm() {
     }
     setErrs({});
 
-    // Signup hits Supabase directly, so this is only a courtesy throttle —
-    // see the note in lib/security/attempt-throttle.ts. Enable CAPTCHA and the
-    // Supabase auth rate limits for the real protection.
-    const throttleKey = `signup:${email.trim().toLowerCase()}`;
-    const wait = attemptCooldownMs(throttleKey);
-    if (wait > 0) return setError(cooldownMessage(wait));
-
-    setBusy(true);
-    const err = await send();
-    setBusy(false);
-    if (err) {
-      recordFailedAttempt(throttleKey);
-      return setError(err.message);
-    }
-    recordFailedAttempt(throttleKey);
-    setSent(true);
-    setCooldown(30);
+    startTransition(async () => {
+      const result = await sendSignUpLinkAction(fullName, email);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setSent(true);
+      setCooldown(30);
+    });
   }
 
-  async function resend() {
+  function resend() {
     if (cooldown > 0) return;
-    setBusy(true);
-    const err = await send();
-    setBusy(false);
-    if (err) return setError(err.message);
-    setCooldown(30);
+    startTransition(async () => {
+      const result = await sendSignUpLinkAction(fullName, email);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setCooldown(30);
+    });
   }
 
   if (sent) {

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolvePlaces } from "@/lib/places";
+import { ipFromHeaders } from "@/lib/security/request";
+import { enforce, LIMITS } from "@/lib/security/rate-limit";
 
 /**
  * Destination photo + current weather for a list of towns.
@@ -13,6 +15,11 @@ import { resolvePlaces } from "@/lib/places";
 const MAX_TOWNS = 12;
 
 export async function GET(request: Request) {
+  const ip = ipFromHeaders(request.headers);
+  if (!enforce(`places:${ip}`, LIMITS.proxyIp).ok) {
+    return NextResponse.json({ places: {} }, { status: 429 });
+  }
+
   const { searchParams } = new URL(request.url);
   const raw = searchParams.get("towns") ?? "";
 
@@ -20,7 +27,8 @@ export async function GET(request: Request) {
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean)
-    .slice(0, MAX_TOWNS);
+    .slice(0, MAX_TOWNS)
+    .map((t) => t.slice(0, 64));
 
   if (towns.length === 0) return NextResponse.json({ places: {} });
 

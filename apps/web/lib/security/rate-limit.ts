@@ -1,20 +1,15 @@
 import "server-only";
 
 /**
- * A sliding-window limiter for server actions.
+ * A sliding-window limiter for server actions and route handlers.
  *
- * **What this does and does not cover.** It protects the things that run on our
- * server — posting alerts, comments, reservations, KYC. It cannot protect
- * sign-in or sign-up, because those go straight from the browser to Supabase's
- * GoTrue and never touch this process. The controls for auth abuse are
- * Supabase's own rate limits and a CAPTCHA provider, both configured in the
- * Supabase dashboard; the client-side throttle in the auth forms is a courtesy
- * to honest users, not a defence.
+ * Auth is covered too: sign-in, sign-up, password reset and OTP all run through
+ * server actions in lib/auth/auth-actions.ts rather than calling GoTrue from the
+ * browser, so every attempt passes through here before it reaches Supabase.
  *
  * State is in-memory, so each serverless instance counts separately and the
- * effective limit is (limit x instances). That is fine for the abuse this
- * guards against — a single client hammering an endpoint — but it is not a
- * quota. Swap the map for Redis or a Postgres table if that ever matters.
+ * effective limit is (limit x instances). Swap the map for Redis if that ever
+ * needs to be a real quota.
  */
 
 type Bucket = { hits: number[] };
@@ -76,4 +71,23 @@ export const LIMITS = {
   reserveSeat: { limit: 10, windowMs: 10 * 60 * 1000 },
   submitKyc: { limit: 5, windowMs: 60 * 60 * 1000 },
   postTrip: { limit: 5, windowMs: 60 * 60 * 1000 },
+
+  signInIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
+  signInIp: { limit: 30, windowMs: 15 * 60 * 1000 },
+  signUpIdentity: { limit: 4, windowMs: 60 * 60 * 1000 },
+  signUpIp: { limit: 12, windowMs: 60 * 60 * 1000 },
+  passwordResetIdentity: { limit: 3, windowMs: 60 * 60 * 1000 },
+  passwordResetIp: { limit: 10, windowMs: 60 * 60 * 1000 },
+  passwordUpdate: { limit: 6, windowMs: 60 * 60 * 1000 },
+  otpSendIdentity: { limit: 4, windowMs: 30 * 60 * 1000 },
+  otpSendIp: { limit: 12, windowMs: 30 * 60 * 1000 },
+  otpVerifyIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
+  proxyIp: { limit: 60, windowMs: 60 * 1000 },
 } as const;
+
+export function enforce(
+  key: string,
+  { limit, windowMs }: { limit: number; windowMs: number },
+): RateLimitResult {
+  return rateLimit(key, limit, windowMs);
+}

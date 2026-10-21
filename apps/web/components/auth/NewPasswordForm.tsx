@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Info } from "@/components/icons";
-import { createClient } from "@/lib/supabase/client";
+import { updatePasswordAction } from "@/lib/auth/auth-actions";
 import { setPasswordSchema } from "@/lib/validators/auth";
 import { PasswordField } from "./PasswordField";
 import { StepDots } from "./StepDots";
@@ -17,25 +17,30 @@ import {
 } from "./ui";
 
 type Props = {
+  intent: "recovery" | "signup";
   heading: string;
   sub: string;
   cta: string;
   redirectTo: string;
-  /** Show the signup progress rail (step index) when part of onboarding. */
   step?: number;
 };
 
-/** Sets a new password on the current (verified / recovery) session. */
-export function NewPasswordForm({ heading, sub, cta, redirectTo, step }: Props) {
+export function NewPasswordForm({
+  intent,
+  heading,
+  sub,
+  cta,
+  redirectTo,
+  step,
+}: Props) {
   const router = useRouter();
-  const supabase = createClient();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [errs, setErrs] = useState<{ password?: string; confirm?: string }>({});
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, startTransition] = useTransition();
 
-  async function submit(e: React.FormEvent) {
+  function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = setPasswordSchema.safeParse({ password, confirm });
@@ -46,15 +51,16 @@ export function NewPasswordForm({ heading, sub, cta, redirectTo, step }: Props) 
       return;
     }
     setErrs({});
-    setBusy(true);
-    const { error: err } = await supabase.auth.updateUser({ password });
-    if (err) {
-      setError(err.message);
-      setBusy(false);
-      return;
-    }
-    router.push(redirectTo);
-    router.refresh();
+
+    startTransition(async () => {
+      const result = await updatePasswordAction(intent, password, confirm);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      router.replace(redirectTo);
+      router.refresh();
+    });
   }
 
   return (
