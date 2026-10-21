@@ -140,7 +140,7 @@ const Kicker = styled.h1`
   font-size: 15px;
   font-weight: 700;
   letter-spacing: 0;
-  color: ${nocturne.muted};
+  color: ${nocturne.inkSoft};
 `;
 
 const Sentence = styled.p`
@@ -150,7 +150,7 @@ const Sentence = styled.p`
   font-weight: 500;
   line-height: 1.22;
   letter-spacing: -0.03em;
-  color: ${nocturne.muted};
+  color: ${nocturne.inkSoft};
   text-wrap: pretty;
 
   @media (min-width: 1400px) {
@@ -166,7 +166,7 @@ const CarLine = styled.p`
   font-weight: 500;
   line-height: 1.35;
   letter-spacing: -0.02em;
-  color: ${nocturne.muted};
+  color: ${nocturne.inkSoft};
 `;
 
 const tokenBase = css`
@@ -189,7 +189,7 @@ const tokenBase = css`
     outline-offset: 3px;
   }
   &:active {
-    color: ${nocturne.green};
+    color: ${nocturne.inkHover};
   }
 `;
 
@@ -203,18 +203,18 @@ const Value = styled.button<{ $live: boolean; $tiny?: boolean }>`
           text-align: center;
         `
       : ""}
-  color: ${nocturne.accent};
+  color: ${nocturne.ink};
   font-weight: 800;
   box-shadow: inset 0 ${({ $live }) => ($live ? "-0.09em" : "-0.045em")} 0
     ${({ $live }) =>
       $live
-        ? nocturne.accent
-        : "color-mix(in oklab, var(--n-accent) 62%, transparent)"};
+        ? nocturne.ink
+        : "color-mix(in oklab, var(--n-ink) 62%, transparent)"};
 
   @media (hover: hover) {
     &:hover {
-      box-shadow: inset 0 -0.09em 0 ${nocturne.accent};
-      color: color-mix(in oklab, var(--n-accent) 68%, var(--n-cream));
+      box-shadow: inset 0 -0.09em 0 ${nocturne.ink};
+      color: ${nocturne.inkHover};
     }
   }
 
@@ -228,7 +228,7 @@ const Blank = styled.button<{ $live: boolean }>`
   display: inline-flex;
   align-items: baseline;
   gap: 0.14em;
-  color: ${nocturne.accent};
+  color: ${nocturne.ink};
   font-weight: 800;
 
   .gap {
@@ -238,17 +238,17 @@ const Blank = styled.button<{ $live: boolean }>`
     border-bottom: 0.075em solid
       ${({ $live }) =>
         $live
-          ? nocturne.accent
-          : "color-mix(in oklab, var(--n-accent) 62%, transparent)"};
+          ? nocturne.ink
+          : "color-mix(in oklab, var(--n-ink) 62%, transparent)"};
     transition: border-color 0.16s ease;
   }
 
   @media (hover: hover) {
     &:hover .gap {
-      border-bottom-color: ${nocturne.accent};
+      border-bottom-color: ${nocturne.ink};
     }
     &:hover {
-      color: color-mix(in oklab, var(--n-accent) 68%, var(--n-cream));
+      color: ${nocturne.inkHover};
     }
   }
 `;
