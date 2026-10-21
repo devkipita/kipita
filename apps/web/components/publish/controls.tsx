@@ -56,21 +56,31 @@ export const EditorLabel = styled.div`
 export const Choice = styled.button<{ $on?: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 5px 12px;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 14px;
   line-height: 1.1;
-  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : RULE)};
-  border-radius: 8px;
+  border: 1.5px solid
+    ${({ $on }) => ($on ? nocturne.accent : nocturne.line)};
+  border-radius: 10px;
   background: ${({ $on }) => ($on ? nocturne.accent : nocturne.surface)};
   color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 19px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
-  text-align: left;
+  text-align: center;
+  white-space: nowrap;
   cursor: pointer;
+
+  @media (max-width: 520px) {
+    width: 100%;
+    min-height: 42px;
+    padding: 4px 8px;
+    font-size: 15px;
+  }
   transition:
     background-color 0.16s ease,
     border-color 0.16s ease,
@@ -91,12 +101,12 @@ export const Choice = styled.button<{ $on?: boolean }>`
   @media (hover: hover) {
     &:hover {
       border-color: ${nocturne.accent};
-      background: ${({ $on }) => ($on ? nocturne.green : nocturne.sage)};
-      color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.greenDeep)};
+      background: ${({ $on }) => ($on ? nocturne.greenDeep : nocturne.surface2)};
+      color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.accent)};
       box-shadow: none;
     }
     &:hover small {
-      color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.greenDeep)};
+      color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.accent)};
     }
   }
 
@@ -122,6 +132,12 @@ export const Choices = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+
+  @media (max-width: 520px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+    gap: 8px;
+  }
 `;
 
 export const Row = styled.div`
@@ -134,6 +150,16 @@ export const Row = styled.div`
   > *:first-child {
     flex: 0 1 var(--row-field, 220px);
     min-width: 0;
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-top: 22px;
+
+    > *:first-child {
+      flex: 1 1 auto;
+    }
   }
 `;
 

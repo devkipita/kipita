@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useEffect,
   useMemo,
   useRef,
@@ -112,6 +113,7 @@ const MAJOR = [
   "Nyeri",
   "Thika",
   "Naivasha",
+  "Nanyuki",
 ];
 
 const TITLES: Record<Slot, string> = {
@@ -223,7 +225,8 @@ const tokenBase = css`
   border-radius: 0;
   transition:
     color 0.16s ease,
-    box-shadow 0.16s ease;
+    text-decoration-color 0.16s ease,
+    text-decoration-thickness 0.16s ease;
 
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -234,27 +237,21 @@ const tokenBase = css`
   }
 `;
 
-const Value = styled.button<{ $live: boolean; $tiny?: boolean }>`
+const Value = styled.button<{ $live: boolean }>`
   ${tokenBase}
-  ${({ $tiny }) =>
-    $tiny
-      ? css`
-          display: inline-block;
-          min-width: 28px;
-          text-align: center;
-        `
-      : ""}
   color: ${nocturne.ink};
   font-weight: 800;
-  box-shadow: inset 0 ${({ $live }) => ($live ? "-0.09em" : "-0.045em")} 0
-    ${({ $live }) =>
-      $live
-        ? nocturne.ink
-        : "color-mix(in oklab, var(--n-ink) 62%, transparent)"};
+  text-decoration-line: underline;
+  text-decoration-thickness: ${({ $live }) => ($live ? "0.07em" : "0.05em")};
+  text-underline-offset: 0.16em;
+  text-decoration-skip-ink: none;
+  text-decoration-color: ${({ $live }) =>
+    $live ? nocturne.ink : "color-mix(in oklab, var(--n-ink) 55%, transparent)"};
 
   @media (hover: hover) {
     &:hover {
-      box-shadow: inset 0 -0.09em 0 ${nocturne.ink};
+      text-decoration-thickness: 0.07em;
+      text-decoration-color: ${nocturne.ink};
       color: ${nocturne.inkHover};
     }
   }
@@ -308,14 +305,18 @@ const Pref = styled.button<{ $on: boolean }>`
   ${tokenBase}
   color: ${nocturne.ink};
   font-weight: 800;
-  opacity: ${({ $on }) => ($on ? 1 : 0.72)};
-  box-shadow: inset 0 -0.055em 0
-    color-mix(in oklab, var(--n-ink) 48%, transparent);
+  opacity: ${({ $on }) => ($on ? 1 : 0.68)};
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.05em;
+  text-underline-offset: 0.16em;
+  text-decoration-skip-ink: none;
+  text-decoration-color: color-mix(in oklab, var(--n-ink) 45%, transparent);
 
   @media (hover: hover) {
     &:hover {
       opacity: 1;
-      box-shadow: inset 0 -0.09em 0 ${nocturne.ink};
+      text-decoration-thickness: 0.07em;
+      text-decoration-color: ${nocturne.ink};
     }
   }
 `;
@@ -1103,7 +1104,6 @@ export function PublishDeclaration({
         key={`${slot}-v`}
         type="button"
         $live={active === slot}
-        $tiny={label.length <= 2}
         aria-label={`${TITLES[slot]} Currently ${label}. Change it.`}
         onClick={() => open(slot)}
       >
@@ -1209,12 +1209,12 @@ export function PublishDeclaration({
 
           <PrefLine>
             {PREF_ORDER.map((key, i) => (
-              <span key={key}>
+              <Fragment key={key}>
                 {i > 0 && ", "}
                 <Pref
                   type="button"
-                  $on={!!draft.prefs[key]}
-                  aria-pressed={!!draft.prefs[key]}
+                  $on={draft.prefs[key]}
+                  aria-pressed={draft.prefs[key]}
                   onClick={() =>
                     patch({
                       prefs: { ...draft.prefs, [key]: !draft.prefs[key] },
@@ -1223,7 +1223,7 @@ export function PublishDeclaration({
                 >
                   {draft.prefs[key] ? PREF_WORDS[key].on : PREF_WORDS[key].off}
                 </Pref>
-              </span>
+              </Fragment>
             ))}
             .
           </PrefLine>
@@ -1295,6 +1295,10 @@ export function PublishDeclaration({
                   hideLabel
                   value={draft.time || "07:00"}
                   onChange={(time) => patch({ time })}
+                  onPick={(time) => {
+                    patch({ time });
+                    advance("time", { time });
+                  }}
                   action={
                     <CommitAction
                       type="button"

@@ -56,9 +56,17 @@ const Head = styled.div<{ $bare?: boolean }>`
 const StripHead = styled.div`
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+
+  .span {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.muted2};
+  }
 `;
 
 const Label = styled.span`
@@ -83,10 +91,10 @@ const Tools = styled.div`
 const Nudge = styled.button`
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 1.5px solid ${RULE};
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid ${nocturne.line};
+  border-radius: 10px;
   background: ${nocturne.surface};
   color: ${nocturne.cream};
   cursor: pointer;
@@ -157,14 +165,14 @@ const Day = styled.button<{ $on: boolean }>`
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  width: 78px;
-  padding: 8px 0 9px;
+  width: 72px;
+  padding: 6px 0 7px;
 
   @media (min-width: 760px) {
     width: auto;
   }
-  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : RULE)};
-  border-radius: 8px;
+  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : nocturne.line)};
+  border-radius: 10px;
   background: ${({ $on }) => ($on ? nocturne.accent : nocturne.surface)};
   color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};
   font: inherit;
@@ -377,6 +385,19 @@ const PresetRow = styled.div`
   gap: 18px 28px;
   flex-wrap: wrap;
   margin-top: 18px;
+
+  > ${Choices} {
+    flex: 1 1 320px;
+  }
+
+  @media (max-width: 520px) {
+    display: grid;
+    gap: 16px;
+
+    > ${Choices} {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
 `;
 
 const Readback = styled.p`
@@ -485,14 +506,18 @@ export function DatePicker({
             aria-label="Show earlier days"
             onClick={() => nudge(-252)}
           >
-            <CaretLeft size={18} aria-hidden />
+            <CaretLeft size={17} aria-hidden />
           </Nudge>
+          <span className="span">
+            {days[0]?.num} {days[0]?.mon} &ndash; {days[days.length - 1]?.num}{" "}
+            {days[days.length - 1]?.mon}
+          </span>
           <Nudge
             type="button"
             aria-label="Show later days"
             onClick={() => nudge(252)}
           >
-            <CaretRight size={18} aria-hidden />
+            <CaretRight size={17} aria-hidden />
           </Nudge>
         </StripHead>
       )}
@@ -503,24 +528,24 @@ export function DatePicker({
         aria-label={hideLabel ? "Which day do you leave?" : undefined}
         aria-labelledby={hideLabel ? undefined : "pick-day"}
       >
-        {days.map((d, i) => (
-          <Day
-            key={d.iso}
-            data-iso={d.iso}
-            type="button"
-            role="radio"
-            aria-checked={value === d.iso}
-            aria-label={d.full}
-            tabIndex={i === current ? 0 : -1}
-            $on={value === d.iso}
-            onKeyDown={(e) => roving(e, i)}
-            onClick={() => onChange(d.iso)}
-          >
-            <span className="dow">{d.dow}</span>
-            <span className="num">{d.num}</span>
-            <span className="mon">{d.mon}</span>
-          </Day>
-        ))}
+          {days.map((d, i) => (
+            <Day
+              key={d.iso}
+              data-iso={d.iso}
+              type="button"
+              role="radio"
+              aria-checked={value === d.iso}
+              aria-label={d.full}
+              tabIndex={i === current ? 0 : -1}
+              $on={value === d.iso}
+              onKeyDown={(e) => roving(e, i)}
+              onClick={() => onChange(d.iso)}
+            >
+              <span className="dow">{d.dow}</span>
+              <span className="num">{d.num}</span>
+              <span className="mon">{d.mon}</span>
+            </Day>
+          ))}
       </Strip>
 
       {calendar && (
@@ -620,11 +645,13 @@ function Part({
 export function TimePicker({
   value,
   onChange,
+  onPick,
   hideLabel = false,
   action,
 }: {
   value: string;
   onChange: (hhmm: string) => void;
+  onPick?: (hhmm: string) => void;
   hideLabel?: boolean;
   action?: ReactNode;
 }) {
@@ -727,7 +754,7 @@ export function TimePicker({
               type="button"
               $on={value === t}
               aria-pressed={value === t}
-              onClick={() => onChange(t)}
+              onClick={() => (onPick ? onPick(t) : onChange(t))}
             >
               {prettyTime(t)}
             </Choice>
