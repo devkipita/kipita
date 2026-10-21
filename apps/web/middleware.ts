@@ -32,10 +32,47 @@ function isCrossSiteWrite(request: NextRequest): boolean {
   }
 }
 
+const CALLBACK_PATH = "/auth/callback";
+
+const NEXT_FOR_TYPE: Record<string, string> = {
+  recovery: "/auth/reset-password",
+  signup: "/auth/set-password",
+  invite: "/auth/set-password",
+  magiclink: "/auth/set-password",
+};
+
+function strayAuthCode(request: NextRequest): NextResponse | null {
+  if (request.method !== "GET") return null;
+  if (request.nextUrl.pathname.startsWith(CALLBACK_PATH)) return null;
+
+  const params = request.nextUrl.searchParams;
+  const code = params.get("code");
+  const tokenHash = params.get("token_hash");
+  if (!code && !tokenHash) return null;
+
+  const callback = new URL(CALLBACK_PATH, request.url);
+  if (code) callback.searchParams.set("code", code);
+  if (tokenHash) callback.searchParams.set("token_hash", tokenHash);
+
+  const type = params.get("type");
+  if (type) callback.searchParams.set("type", type);
+
+  const landed = request.nextUrl.pathname;
+  callback.searchParams.set(
+    "next",
+    (type && NEXT_FOR_TYPE[type]) ?? (landed === "/" ? "/home" : landed),
+  );
+
+  return NextResponse.redirect(callback);
+}
+
 export async function middleware(request: NextRequest) {
   if (isCrossSiteWrite(request)) {
     return new NextResponse("Cross-site request blocked", { status: 403 });
   }
+
+  const rescued = strayAuthCode(request);
+  if (rescued) return rescued;
 
   const nonce = makeNonce();
   const isDev = process.env.NODE_ENV !== "production";
