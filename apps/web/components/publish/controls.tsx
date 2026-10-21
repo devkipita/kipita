@@ -61,8 +61,7 @@ export const Choice = styled.button<{ $on?: boolean }>`
   min-height: 40px;
   padding: 4px 14px;
   line-height: 1.1;
-  border: 1.5px solid
-    ${({ $on }) => ($on ? nocturne.accent : nocturne.line)};
+  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : RULE)};
   border-radius: 10px;
   background: ${({ $on }) => ($on ? nocturne.accent : nocturne.surface)};
   color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};

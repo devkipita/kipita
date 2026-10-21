@@ -105,15 +105,15 @@ type Draft = {
 const FARES = [500, 800, 1200, 1600, 2000];
 const ORDER: Slot[] = ["to", "from", "date", "time", "fare"];
 const MAJOR = [
+  "Nanyuki",
   "Nairobi",
-  "Mombasa",
-  "Nakuru",
-  "Kisumu",
-  "Eldoret",
   "Nyeri",
+  "Nakuru",
+  "Mombasa",
+  "Eldoret",
   "Thika",
   "Naivasha",
-  "Nanyuki",
+  "Kisumu",
 ];
 
 const TITLES: Record<Slot, string> = {

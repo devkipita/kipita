@@ -93,7 +93,7 @@ const Nudge = styled.button`
   place-items: center;
   width: 36px;
   height: 36px;
-  border: 1.5px solid ${nocturne.line};
+  border: 1.5px solid ${RULE};
   border-radius: 10px;
   background: ${nocturne.surface};
   color: ${nocturne.cream};
@@ -171,7 +171,7 @@ const Day = styled.button<{ $on: boolean }>`
   @media (min-width: 760px) {
     width: auto;
   }
-  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : nocturne.line)};
+  border: 1.5px solid ${({ $on }) => ($on ? nocturne.accent : RULE)};
   border-radius: 10px;
   background: ${({ $on }) => ($on ? nocturne.accent : nocturne.surface)};
   color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};

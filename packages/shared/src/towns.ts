@@ -273,12 +273,14 @@ export interface PopularRoute {
 }
 
 export const POPULAR_ROUTES: readonly PopularRoute[] = [
-  { from: "Nairobi", to: "Mombasa", blurb: "The coast run" },
-  { from: "Nairobi", to: "Nakuru", blurb: "Up the escarpment" },
-  { from: "Nairobi", to: "Kisumu", blurb: "Straight to the lake" },
-  { from: "Nairobi", to: "Eldoret", blurb: "Rift Valley express" },
+  { from: "Nairobi", to: "Nanyuki", blurb: "The equator run" },
+  { from: "Nanyuki", to: "Nairobi", blurb: "Down to the city" },
   { from: "Nairobi", to: "Nyeri", blurb: "Mount Kenya way" },
+  { from: "Nairobi", to: "Nakuru", blurb: "Up the escarpment" },
+  { from: "Nairobi", to: "Mombasa", blurb: "The coast run" },
+  { from: "Nairobi", to: "Eldoret", blurb: "Rift Valley express" },
   { from: "Nairobi", to: "Thika", blurb: "The quick one" },
+  { from: "Nairobi", to: "Kisumu", blurb: "Straight to the lake" },
   { from: "Mombasa", to: "Malindi", blurb: "Along the shore" },
   { from: "Nakuru", to: "Naivasha", blurb: "Lake to lake" },
 ];
