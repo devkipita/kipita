@@ -2201,7 +2201,6 @@ __metadata:
   resolution: "@kipita/web@workspace:apps/web"
   dependencies:
     "@kipita/shared": "npm:1.0.0"
-    "@phosphor-icons/react": "npm:^2.1.10"
     "@supabase/ssr": "npm:^0.5.2"
     "@supabase/supabase-js": "npm:^2.103.2"
     "@types/google.maps": "npm:^3.58.1"
@@ -2209,11 +2208,11 @@ __metadata:
     "@types/react": "npm:~19.2.14"
     "@types/react-dom": "npm:~19.2.0"
     gsap: "npm:^3.13.0"
-    lucide-react: "npm:^0.469.0"
     next: "npm:^15.1.6"
     react: "npm:19.2.0"
     react-dom: "npm:19.2.0"
     styled-components: "npm:^6.1.19"
+    thinking-orbs: "npm:^0.3.2"
     typescript: "npm:~5.9.2"
     zod: "npm:^4.4.3"
   languageName: unknown
@@ -2286,16 +2285,6 @@ __metadata:
   version: 15.5.22
   resolution: "@next/swc-win32-x64-msvc@npm:15.5.22"
   conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@phosphor-icons/react@npm:^2.1.10":
-  version: 2.1.10
-  resolution: "@phosphor-icons/react@npm:2.1.10"
-  peerDependencies:
-    react: ">= 16.8"
-    react-dom: ">= 16.8"
-  checksum: 10c0/9a469e1bdcabcd3db02eda13142d57be250847ebbeb82b33c8900580a6a23ed4f411dbb9b9deacef726ff3fa8ffc960c8868b518e448bd2cee654cedf3fa4bda
   languageName: node
   linkType: hard
 
@@ -5616,15 +5605,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lucide-react@npm:^0.469.0":
-  version: 0.469.0
-  resolution: "lucide-react@npm:0.469.0"
-  peerDependencies:
-    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/0ee78d110550579b848a01446a440f733fd17e1bf1850aa01551b61f415e03e5f5ab7f26b56f1c648edc93856177f5476ff9f8f6f5d80e8fe45913d208f49961
-  languageName: node
-  linkType: hard
-
 "makeerror@npm:1.0.12":
   version: 1.0.12
   resolution: "makeerror@npm:1.0.12"
@@ -7805,6 +7785,15 @@ __metadata:
   bin:
     terser: bin/terser
   checksum: 10c0/45ba6566af976c518ff4e140250348d606761af822e23ea28d95b30fcf60fb69d3fabd93c6fafa4085d9fe31b67207e58b8480a64370b6cca07066c434101602
+  languageName: node
+  linkType: hard
+
+"thinking-orbs@npm:^0.3.2":
+  version: 0.3.2
+  resolution: "thinking-orbs@npm:0.3.2"
+  peerDependencies:
+    react: ">=18.0.0"
+  checksum: 10c0/9cd35f72948696b725b1ee3927628ffa022b2152b5bf85fd8313d7bed9ec376b30fadf7f43ecbef8f963e69b7e2b7b3abca3e9b6570c0ad834da24b971eb5aa1
   languageName: node
   linkType: hard
 

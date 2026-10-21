@@ -12,9 +12,9 @@ import {
   Form,
   Heading,
   PrimaryButton,
-  Spinner,
   Sub,
 } from "./ui";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Burst = styled.div`
   width: 84px;
@@ -93,7 +93,7 @@ export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
           error={err}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>Send reset link <ArrowRight size={19} /></>}
+          {busy ? <>Sending <ButtonOrb state="working" /></> : <>Send reset link <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

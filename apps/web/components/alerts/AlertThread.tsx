@@ -24,6 +24,7 @@ import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
 import { CommentRow } from "./CommentRow";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Wrap = styled.div`
   padding-block: 18px 40px;
@@ -386,7 +387,7 @@ export function AlertThread({
                 >
                   {pending ? (
                     <>
-                      <Loader2 size={16} /> Posting…
+                      <ButtonOrb state="working" /> Posting…
                     </>
                   ) : (
                     <>

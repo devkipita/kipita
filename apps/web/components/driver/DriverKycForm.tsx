@@ -7,6 +7,7 @@ import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { submitDriverKycAction } from "@/lib/driver/actions";
 import { FieldBlock, FieldHead, TextInput } from "@/components/home/fields";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Intro = styled.div`
   display: flex;
@@ -109,7 +110,7 @@ export function DriverKycForm({
           >
             {pending ? (
               <>
-                <Loader2 size={18} /> Submitting…
+                <ButtonOrb state="working" /> Submitting…
               </>
             ) : (
               <>

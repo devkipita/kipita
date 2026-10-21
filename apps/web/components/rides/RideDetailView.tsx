@@ -19,6 +19,7 @@ import { formatKes } from "@/lib/rides";
 import { nocturne } from "@/lib/nocturne";
 import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Wrap = styled(ContentWidth)`
   padding-block: 20px 40px;
@@ -941,7 +942,7 @@ export function RideDetailView({
         <Primary type="button" onClick={reserve} disabled={pending || soldOut}>
           {pending ? (
             <>
-              <Loader2 className="spin" size={18} /> Holding…
+              <ButtonOrb state="working" /> Holding…
             </>
           ) : soldOut ? (
             "Fully booked"

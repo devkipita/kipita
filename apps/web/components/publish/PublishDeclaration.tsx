@@ -31,6 +31,7 @@ import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
 import { detectOrigin } from "@/lib/home/geo";
 import type { RidePreferences } from "@/lib/ride-detail";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { DatePicker, TimePicker, prettyTime, todayISO } from "./WhenPicker";
 import {
   BareField,
@@ -1486,7 +1487,7 @@ export function PublishDeclaration({
             <>
               <Primary type="button" onClick={publish} disabled={pending}>
                 {pending ? (
-                  "Publishing…"
+                  <><ButtonOrb state="working" /> Publishing…</>
                 ) : (
                   <>
                     Publish this ride <LongArrow size={30} />

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import styled from "styled-components";
 import { MapPin } from "@/components/icons";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { DrawnCheck } from "@/components/ui/DrawnCheck";
 import { updateAlertAction } from "@/lib/alerts/actions";
 import { ALERT_CATEGORIES, ALERT_META } from "@/lib/alerts/meta";
 import type { Alert, AlertCategory } from "@/lib/alerts/types";
@@ -224,7 +226,7 @@ export function AlertEditor({
           onClick={save}
           disabled={!valid || !dirty || pending}
         >
-          {pending ? "Saving…" : "Save changes"}
+          {pending ? <><ButtonOrb state="working" /> Saving…</> : <>Save changes <DrawnCheck size={18} /></>}
         </ButtonEl>
       </Foot>
     </Shell>

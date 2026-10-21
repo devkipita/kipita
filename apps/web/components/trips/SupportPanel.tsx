@@ -8,6 +8,7 @@ import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
 import { openSupportCaseAction } from "@/lib/support/actions";
 import type { Booking } from "@/lib/trips/types";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Panel = styled.div`
   border-radius: ${({ theme }) => theme.radius.md};
@@ -230,7 +231,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                     onClick={() => submit(t.subject, t.category)}
                     disabled={pending || detail.trim().length < 10}
                   >
-                    {pending ? "Opening…" : "Open case"}
+                    {pending ? <><ButtonOrb state="working" /> Opening…</> : "Open case"}
                   </ButtonEl>
                 </div>
               </Form>

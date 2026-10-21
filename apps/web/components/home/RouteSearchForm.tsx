@@ -27,6 +27,7 @@ import {
   TextInput,
 } from "./fields";
 import { ComfortToggles } from "./ComfortToggles";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 export type SearchForm = {
   from: string;
@@ -378,7 +379,7 @@ export function RouteSearchForm({
           <Submit type="submit" disabled={!canSearch || busy}>
             {busy ? (
               <>
-                <Loader2 size={19} /> Searching…
+                <ButtonOrb state="searching" /> Searching…
               </>
             ) : (
               <>

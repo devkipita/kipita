@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import styled from "styled-components";
 import { Check, Info, Lock } from "@/components/icons";
 import { requestPasswordChangeAction } from "@/lib/auth/auth-actions";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Card = styled.div`
   display: flex;
@@ -46,6 +47,9 @@ const Body = styled.span`
 `;
 
 const Action = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   flex: none;
   height: 40px;
   padding: 0 ${({ theme }) => theme.space.lg};
@@ -98,7 +102,7 @@ export function ChangePasswordCard({ email }: { email: string | null }) {
       </Body>
       {!sent && (
         <Action type="button" onClick={request} disabled={busy}>
-          {busy ? "Sending" : "Send link"}
+          {busy ? <><ButtonOrb state="working" on="auto" /> Sending</> : "Send link"}
         </Action>
       )}
       {error && <Info size={18} />}

@@ -15,10 +15,10 @@ import {
   Form,
   Heading,
   PrimaryButton,
-  Spinner,
   Sub,
   TextLink,
 } from "./ui";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Sent = styled.div`
   text-align: center;
@@ -118,7 +118,7 @@ export function SignUpForm() {
           </AlertBox>
         )}
         <PrimaryButton type="button" onClick={resend} disabled={busy || cooldown > 0}>
-          {busy ? <Spinner /> : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
+          {busy ? <>Sending <ButtonOrb state="working" /></> : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
         </PrimaryButton>
         <FootNote>
           Wrong email?{" "}
@@ -164,7 +164,7 @@ export function SignUpForm() {
           error={errs.email}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>Continue <ArrowRight size={19} /></>}
+          {busy ? <>Sending <ButtonOrb state="working" /></> : <>Continue <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

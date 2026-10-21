@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Info } from "@/components/icons";
 import { createClient } from "@/lib/supabase/client";
 import { safeNextPath } from "@/lib/security/redirect";
-import { AlertBox, GhostButton, Spinner } from "./ui";
+import { AlertBox, GhostButton } from "./ui";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import GoogleLogo from "@/public/Google";
 
 export function OAuthButtons({ next = "/home" }: { next?: string }) {
@@ -37,8 +38,8 @@ export function OAuthButtons({ next = "/home" }: { next?: string }) {
   return (
     <>
       <GhostButton type="button" onClick={go} disabled={busy}>
-        {busy ? <Spinner /> : <GoogleLogo size={20} />}
-        Continue with Google
+        {busy ? <ButtonOrb state="connecting" on="auto" /> : <GoogleLogo size={20} />}
+        {busy ? "Connecting to Google" : "Continue with Google"}
       </GhostButton>
       {error && (
         <AlertBox style={{ marginTop: 12 }}>

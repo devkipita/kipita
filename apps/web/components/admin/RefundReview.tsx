@@ -6,6 +6,7 @@ import styled, { keyframes } from "styled-components";
 import { formatKes, type PendingRefund, type RefundDecision } from "@kipita/shared";
 import { fetchPendingRefunds, resolveRefund } from "@/lib/refunds";
 import { Empty, Notice, SmallButton } from "@/components/ui/primitives";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const spin = keyframes`
   to { transform: rotate(360deg); }
@@ -162,7 +163,7 @@ export function RefundReview() {
                 onClick={() => act(item, "approve")}
               >
                 {busy === item.id ? (
-                  <Spinner size={16} />
+                  <ButtonOrb state="working" on="auto" />
                 ) : (
                   <Check size={16} />
                 )}

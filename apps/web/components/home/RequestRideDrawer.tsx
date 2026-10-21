@@ -6,6 +6,7 @@ import { ArrowRight, Check, MapPin, NavigationArrow, Users, Warning } from "@/co
 import { Drawer } from "@/components/ui/Drawer";
 import { nocturne } from "@/lib/nocturne";
 import { createRideRequestAction } from "@/lib/home/posts";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Body = styled.div`
   display: flex;
@@ -190,7 +191,7 @@ export function RequestRideDrawer({
       footer={
         done ? undefined : (
           <Primary type="button" onClick={submit} disabled={pending}>
-            {pending ? "Posting…" : "Post my request"}
+            {pending ? <><ButtonOrb state="working" /> Posting…</> : "Post my request"}
             {!pending && <ArrowRight size={18} aria-hidden />}
           </Primary>
         )

@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { DotsThree, Pencil, Trash } from "@/components/icons";
 import { deleteAlertAction } from "@/lib/alerts/actions";
 import { canEditAlert, editWindowRemaining } from "@/lib/alerts/meta";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Wrap = styled.div`
   position: relative;
@@ -180,7 +181,7 @@ export function AlertOwnerMenu({
             }}
           >
             <Trash size={17} />
-            {pending ? "Deleting…" : "Delete alert"}
+            {pending ? <><ButtonOrb state="working" /> Deleting…</> : "Delete alert"}
           </Item>
           <Note>
             {editable

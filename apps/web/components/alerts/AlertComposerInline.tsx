@@ -20,6 +20,7 @@ import { removeAlertImage, uploadAlertImage } from "@/lib/alerts/upload";
 import { requestPreciseLocation } from "@/lib/alerts/location";
 import type { AlertCategory } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const MAX = 1000;
 
@@ -815,7 +816,7 @@ export function AlertComposerInline({
           )}
 
           <ComposerButton type="button" onClick={submit} disabled={!canPost || pending}>
-            {pending ? "Posting..." : "Post"}
+            {pending ? <><ButtonOrb state="working" /> Posting</> : "Post"}
           </ComposerButton>
           </ActionGroup>
         </Foot>

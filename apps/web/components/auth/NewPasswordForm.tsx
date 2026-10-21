@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Info } from "@/components/icons";
+import { Info } from "@/components/icons";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { DrawnCheck } from "@/components/ui/DrawnCheck";
 import { updatePasswordAction } from "@/lib/auth/auth-actions";
 import { setPasswordSchema } from "@/lib/validators/auth";
 import { PasswordField } from "./PasswordField";
@@ -12,7 +14,6 @@ import {
   Form,
   Heading,
   PrimaryButton,
-  Spinner,
   Sub,
 } from "./ui";
 
@@ -93,7 +94,7 @@ export function NewPasswordForm({
           autoComplete="new-password"
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <Spinner /> : <>{cta} <Check size={19} /></>}
+          {busy ? <>Saving <ButtonOrb state="working" /></> : <>{cta} <DrawnCheck size={20} /></>}
         </PrimaryButton>
       </Form>
     </>
