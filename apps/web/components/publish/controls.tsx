@@ -204,6 +204,7 @@ export const BareInput = styled.input`
   width: 100%;
   padding: 8px 0;
   border: none;
+  border-radius: 0;
   border-bottom: 2px solid ${RULE};
   background: transparent;
   --autofill-bg: ${nocturne.bg};
@@ -213,6 +214,17 @@ export const BareInput = styled.input`
   letter-spacing: -0.02em;
   color: ${nocturne.cream};
   caret-color: ${nocturne.accent};
+
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus,
+  &:-webkit-autofill:active {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 23px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    border-radius: 0;
+  }
 
   transition:
     border-color 0.16s ease,
