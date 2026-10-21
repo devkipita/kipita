@@ -38,35 +38,6 @@ async function limited(
   return null;
 }
 
-export async function signInWithPasswordAction(
-  email: string,
-  password: string,
-  next?: string,
-): Promise<AuthResult> {
-  const parsed = signInEmailSchema.safeParse({ email, password });
-  if (!parsed.success) {
-    return fail(parsed.error.issues[0]?.message ?? GENERIC_SIGN_IN_ERROR);
-  }
-
-  const ip = await clientIp();
-  const identity = identityKey(parsed.data.email);
-  const blocked = await limited([
-    [`signin:ip:${ip}`, LIMITS.signInIp],
-    [`signin:id:${identity}`, LIMITS.signInIdentity],
-  ]);
-  if (blocked) return fail(blocked);
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-
-  if (error || !data.session) return fail(GENERIC_SIGN_IN_ERROR);
-
-  return { ok: true, next: safeNextPath(next) };
-}
-
 export async function signInAsAdminAction(
   email: string,
   password: string,

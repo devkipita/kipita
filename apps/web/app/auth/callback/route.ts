@@ -68,6 +68,12 @@ export async function GET(request: Request) {
       });
 
   if (exchangeError) {
+    console.error("[auth/callback] exchange failed", {
+      mode: code ? "pkce" : "token_hash",
+      type: otpType,
+      message: exchangeError.message,
+      status: exchangeError.status,
+    });
     failUrl.searchParams.set("error", "link_expired");
     return NextResponse.redirect(failUrl);
   }

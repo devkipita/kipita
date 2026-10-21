@@ -6,7 +6,6 @@ import styled from "styled-components";
 import { Info, ArrowRight, Envelope as Mail, Phone, ArrowClockwise as RotateCw } from "@/components/icons";
 import {
   sendPhoneOtpAction,
-  signInWithPasswordAction,
   verifyPhoneOtpAction,
 } from "@/lib/auth/auth-actions";
 import { isValidKeLocal } from "@/lib/phone";
@@ -23,10 +22,10 @@ import {
   Form,
   Heading,
   PrimaryButton,
-  Spinner,
   Sub,
   TextLink,
 } from "./ui";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Tabs = styled.div`
   display: grid;
@@ -73,8 +72,10 @@ export function SignInForm({
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>("email");
-  const [busy, startTransition] = useTransition();
+  const [pending, startTransition] = useTransition();
+  const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState(notice);
+  const busy = pending || signingIn;
 
   // email
   const [email, setEmail] = useState("");
@@ -91,7 +92,7 @@ export function SignInForm({
     router.refresh();
   }
 
-  function submitEmail(e: React.FormEvent) {
+  async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     const parsed = signInEmailSchema.safeParse({ email, password });
@@ -102,15 +103,30 @@ export function SignInForm({
       return;
     }
     setErrs({});
+    setSigningIn(true);
 
-    startTransition(async () => {
-      const result = await signInWithPasswordAction(email, password, next);
+    try {
+      const response = await fetch("/api/auth/sign-in", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, next }),
+      });
+      const result = (await response.json()) as {
+        ok: boolean;
+        error?: string;
+        next?: string;
+      };
+
       if (!result.ok) {
-        setError(result.error);
+        setError(result.error ?? "Couldn't sign you in.");
+        setSigningIn(false);
         return;
       }
       done(result.next ?? next);
-    });
+    } catch {
+      setError("Couldn't reach Kipita. Check your connection and try again.");
+      setSigningIn(false);
+    }
   }
 
   function sendOtp(e: React.FormEvent) {
@@ -185,14 +201,14 @@ export function SignInForm({
             <TextLink href="/auth/forgot-password">Forgot password?</TextLink>
           </RowBetween>
           <PrimaryButton type="submit" disabled={busy}>
-            {busy ? <Spinner /> : <>Sign in <ArrowRight size={19} /></>}
+            {busy ? <>Signing in <ButtonOrb state="connecting" /></> : <>Sign in <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : !otpSent ? (
         <Form onSubmit={sendOtp}>
           <PhoneField value={phone} onChange={setPhone} />
           <PrimaryButton type="submit" disabled={busy || !isValidKeLocal(phone)}>
-            {busy ? <Spinner /> : <>Send code <ArrowRight size={19} /></>}
+            {busy ? <>Sending <ButtonOrb state="working" /></> : <>Send code <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : (
@@ -202,7 +218,7 @@ export function SignInForm({
           </Sub>
           <OtpInput value={otp} onChange={setOtp} onComplete={verifyOtp} />
           <PrimaryButton type="submit" disabled={busy || otp.length !== 6}>
-            {busy ? <Spinner /> : "Verify & continue"}
+            {busy ? <>Verifying <ButtonOrb state="solving" /></> : "Verify & continue"}
           </PrimaryButton>
           <RowBetween style={{ justifyContent: "center" }}>
             <TextLink href="#" onClick={(e) => { e.preventDefault(); setOtpSent(false); setOtp(""); }}>
