@@ -2,7 +2,8 @@ import styled from "styled-components";
 import Link from "next/link";
 import { nocturne } from "../nocturne";
 import { Brand } from "../../ui/Brand";
-import { SITE, LEGAL_LINKS } from "@/lib/site";
+import { SITE } from "@/lib/site";
+import { LEGAL_TABS } from "@/lib/legal";
 
 const Footer = styled.footer`
   padding: 58px max(34px, calc((100% - 1212px) / 2)) 100px;
@@ -128,10 +129,12 @@ export function LandingFooter() {
       <Bottom>
         <span>© 2026 Kipita. Made for Kenya.</span>
         <LegalRow>
-          {LEGAL_LINKS.map((link, i) => (
+          {LEGAL_TABS.map((link, i) => (
             <span key={link.href}>
-              <Link href={link.href}>{link.label}</Link>
-              {i < LEGAL_LINKS.length - 1 ? " ·" : null}
+              <Link href={link.href}>
+                {"footerLabel" in link ? link.footerLabel : link.label}
+              </Link>
+              {i < LEGAL_TABS.length - 1 ? " ·" : null}
             </span>
           ))}
           <span>

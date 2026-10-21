@@ -209,7 +209,7 @@ export const ACCOUNT_NAV: NavItem[] = [
     owns: ["/profile"],
   },
   { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
-  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: Document },
+  { key: "legal", href: "/legal", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 
 export const SECONDARY_NAV: NavItem[] = [
@@ -232,7 +232,7 @@ export const SECONDARY_NAV: NavItem[] = [
     owns: ["/referrals"],
   },
   { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
-  { key: "legal", href: "/legal/privacy", label: "Legal", shortLabel: "Legal", icon: Document },
+  { key: "legal", href: "/legal", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 
 export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {

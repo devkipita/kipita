@@ -15,11 +15,3 @@ export const SITE = {
     sage: "#E6EFE3",
   },
 } as const;
-
-/** Footer / nav legal links. */
-export const LEGAL_LINKS = [
-  { href: "/legal/privacy", label: "Privacy Policy" },
-  { href: "/legal/terms", label: "Terms of Service" },
-  { href: "/legal/cookies", label: "Cookie Policy" },
-  { href: "/legal/refunds", label: "Refund Policy" },
-] as const;

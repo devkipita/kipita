@@ -84,6 +84,8 @@ export const ContentWidth = styled.div<{ $max?: number }>`
   padding-right: max(var(--page-pad), env(safe-area-inset-right));
 `;
 
+const CHROMELESS_ROUTES = ["/profile/edit"];
+
 export function AppShell({
   profile,
   mode: initialMode,
@@ -136,6 +138,10 @@ export function AppShell({
 
   const signInHref = `/auth/sign-in?next=${encodeURIComponent(pathname)}`;
 
+  const chromeless = CHROMELESS_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+
   const modeSwitch = profile ? (
     <RailModeSwitch
       mode={mode}
@@ -152,11 +158,13 @@ export function AppShell({
       <Shell>
         <SkipToContent />
 
-        <AppTopBar
-          items={barItems}
-          profile={profile}
-          signInHref={signInHref}
-        />
+        {!chromeless && (
+          <AppTopBar
+            items={barItems}
+            profile={profile}
+            signInHref={signInHref}
+          />
+        )}
         <Main id="main" tabIndex={-1}>
           {children}
         </Main>

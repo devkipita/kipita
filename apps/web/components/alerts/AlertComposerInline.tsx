@@ -45,15 +45,18 @@ const Input = styled.textarea`
   border: none;
   background: transparent;
   resize: none;
-  padding: 6px 0 0;
+  padding: 8px 0 0;
   font: inherit;
-  font-size: 1.05rem;
-  line-height: 1.4;
+  font-size: 1.15rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
   color: ${({ theme }) => theme.color.onSurface};
+  caret-color: ${({ theme }) => theme.color.primary};
   overflow: hidden;
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    color: ${({ theme }) => theme.color.muted};
+    font-weight: 400;
   }
   &:focus {
     outline: none;
@@ -186,28 +189,29 @@ const Foot = styled.div`
 const Tool = styled.button<{ $on?: boolean }>`
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 1px solid transparent;
+  width: 42px;
+  height: 42px;
+  border: none;
   border-radius: 999px;
-  background: ${({ theme, $on }) =>
-    $on ? theme.color.secondaryContainer : "transparent"};
-  color: ${({ theme, $on }) =>
-    $on ? theme.color.onSecondaryContainer : theme.color.primary};
+  background: transparent;
+  color: ${({ theme }) => theme.color.primary};
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+
+  svg {
+    filter: ${({ $on }) =>
+      $on ? "drop-shadow(0 1px 4px rgba(47, 108, 79, 0.45))" : "none"};
+  }
 
   &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.color.secondaryContainer};
-    border-color: ${({ theme }) => theme.color.outlineVariant};
-    color: ${({ theme }) => theme.color.onSecondaryContainer};
+    background: ${({ theme }) => theme.color.primaryContainer};
   }
   &:focus-visible {
     outline: 2px solid ${({ theme }) => theme.color.primary};
     outline-offset: 2px;
   }
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: scale(0.94);
   }
   &:disabled {
     color: ${({ theme }) => theme.color.outline};
@@ -281,7 +285,7 @@ const ComposerButton = styled.button<{ $variant?: "primary" | "ghost" }>`
 const ToolCluster = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 10px;
 
   @media (max-width: 420px) {
     flex: 1 1 auto;
@@ -583,6 +587,7 @@ export function AlertComposerInline({
   }
 
   const canPost = content.trim().length >= 3 && location.trim().length >= 2;
+  const dirty = Boolean(content.trim() || location.trim() || file);
   const remaining = MAX - content.length;
   const meta = ALERT_META[category];
   const ChosenIcon = meta.icon;
@@ -687,7 +692,7 @@ export function AlertComposerInline({
                   if (next) setTimeout(() => whereRef.current?.focus(), 0);
                 }}
               >
-                <MapPin size={20} weight="fill" aria-hidden />
+                <MapPin size={20} aria-hidden />
                 <span className="label">
                   {location.trim() || "Add location"}
                 </span>
@@ -696,7 +701,7 @@ export function AlertComposerInline({
               {menu === "where" && (
                 <WherePanel role="dialog" aria-label="Where is this?">
                   <Where>
-                    <MapPin size={20} weight="fill" aria-hidden />
+                    <MapPin size={20} aria-hidden />
                     <input
                       ref={whereRef}
                       value={location}
@@ -778,7 +783,7 @@ export function AlertComposerInline({
             aria-label="Add a photo"
             title="Add a photo"
           >
-            <ImageSquare size={20} />
+            <ImageSquare size={24} weight={file ? "fill" : "bold"} />
           </Tool>
           <Tool
             type="button"
@@ -791,7 +796,10 @@ export function AlertComposerInline({
             aria-label="Add location"
             title="Add location"
           >
-            <MapPin size={20} weight="fill" />
+            <MapPin
+              size={24}
+              weight={location.trim() || coords ? "fill" : "bold"}
+            />
           </Tool>
         </ToolCluster>
           <input
@@ -809,9 +817,9 @@ export function AlertComposerInline({
           )}
 
           <ActionGroup>
-          {open && (
+          {dirty && (
             <ComposerButton type="button" $variant="ghost" onClick={reset}>
-              Cancel
+              Clear
             </ComposerButton>
           )}
 

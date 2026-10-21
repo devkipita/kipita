@@ -410,6 +410,7 @@ export function ProfileView({ profile }: { profile: Profile }) {
 
         <SectionTitle>Legal</SectionTitle>
         <Panel>
+          <LinkRow icon={Info} title="Privacy & Terms" description="Everything in one place" href="/legal" tone="mint" />
           <LinkRow icon={Shield} title="Privacy Policy" href="/legal/privacy" tone="blue" />
           <LinkRow icon={FileText} title="Terms of Service" href="/legal/terms" tone="green" />
           <LinkRow icon={Cookie} title="Cookie Policy" href="/legal/cookies" tone="tan" />

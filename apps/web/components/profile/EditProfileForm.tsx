@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import styled, { keyframes } from "styled-components";
+import people from "../../public/landing/people-left.png";
 import { ContentWidth } from "@/components/nav/AppShell";
 import {
   Calendar,
@@ -45,10 +47,25 @@ const Split = styled.div`
 
 const Intro = styled.div`
   position: sticky;
-  top: 96px;
+  top: 48px;
 
   @media (max-width: 960px) {
     position: static;
+  }
+`;
+
+const Art = styled.div`
+  margin-top: 40px;
+  max-width: 300px;
+
+  img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  @media (max-width: 960px) {
+    display: none;
   }
 `;
 
@@ -270,6 +287,10 @@ export function EditProfileForm({
               </span>
             </Welcome>
           )}
+
+          <Art>
+            <Image src={people} alt="" sizes="300px" placeholder="blur" />
+          </Art>
         </Intro>
 
         <div>
@@ -345,7 +366,9 @@ export function EditProfileForm({
               {pending ? "Saving" : "Save changes"}
               {pending ? <ButtonOrb job="committing" /> : <DrawnCheck size={21} />}
             </CommitAction>
-            {welcome && <Skip href="/home">Skip for now</Skip>}
+            <Skip href={welcome ? "/home" : "/profile"}>
+              {welcome ? "Skip for now" : "Back to profile"}
+            </Skip>
           </Commit>
         </Fields>
           </form>

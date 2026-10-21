@@ -13,10 +13,12 @@ const ROUTES: Entry[] = [
   { path: "/alerts", changeFrequency: "hourly", priority: 0.85 },
   { path: "/publish", changeFrequency: "weekly", priority: 0.7 },
   { path: "/help", changeFrequency: "weekly", priority: 0.5 },
+  { path: "/legal", changeFrequency: "yearly", priority: 0.4 },
   { path: "/legal/terms", changeFrequency: "yearly", priority: 0.3 },
   { path: "/legal/privacy", changeFrequency: "yearly", priority: 0.3 },
   { path: "/legal/cookies", changeFrequency: "yearly", priority: 0.2 },
   { path: "/legal/refunds", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/legal/faq", changeFrequency: "monthly", priority: 0.3 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
