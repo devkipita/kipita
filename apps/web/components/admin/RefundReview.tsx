@@ -163,7 +163,7 @@ export function RefundReview() {
                 onClick={() => act(item, "approve")}
               >
                 {busy === item.id ? (
-                  <ButtonOrb state="working" on="auto" />
+                  <ButtonOrb job="committing" on="surface" size={20} />
                 ) : (
                   <Check size={16} />
                 )}

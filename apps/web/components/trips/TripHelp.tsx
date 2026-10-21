@@ -199,7 +199,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               disabled={pending || detail.trim().length < 10}
             >
               <QuestionCircle size={16} />
-              {pending ? <><ButtonOrb state="working" /> Opening…</> : "Open case"}
+              {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}
             </ButtonEl>
           </div>
         </Form>

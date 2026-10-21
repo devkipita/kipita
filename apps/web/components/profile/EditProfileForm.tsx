@@ -28,7 +28,28 @@ import { DrawnCheck } from "@/components/ui/DrawnCheck";
 import { DateOfBirthField } from "./DateOfBirthField";
 
 const Wrap = styled(ContentWidth)`
-  padding-block: 28px 64px;
+  padding-block: 28px 56px;
+`;
+
+const Split = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 56px;
+
+  @media (max-width: 960px) {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+`;
+
+const Intro = styled.div`
+  position: sticky;
+  top: 96px;
+
+  @media (max-width: 960px) {
+    position: static;
+  }
 `;
 
 const Display = styled.h1`
@@ -227,37 +248,41 @@ export function EditProfileForm({
   }, [state.ok, welcome, router]);
 
   return (
-    <Wrap $max={640}>
-      <Display>
-        {welcome ? "Complete your profile" : "Edit profile"}
-      </Display>
-      <Lede>
-        This is what other Kipita members see when you book a seat or offer
-        one. You can change it any time.
-      </Lede>
+    <Wrap $max={1120}>
+      <Split>
+        <Intro>
+          <Display>
+            {welcome ? "Complete your profile" : "Edit profile"}
+          </Display>
+          <Lede>
+            This is what other Kipita members see when you book a seat or offer
+            one. You can change it any time.
+          </Lede>
 
-      {welcome && (
-        <Welcome>
-          <span className="burst">
-            <Confetti size={26} />
-          </span>
-          <span>
-            <strong>You&apos;re in.</strong> Add a few details so riders know
-            who they&apos;re travelling with.
-          </span>
-        </Welcome>
-      )}
+          {welcome && (
+            <Welcome>
+              <span className="burst">
+                <Confetti size={26} />
+              </span>
+              <span>
+                <strong>You&apos;re in.</strong> Add a few details so riders
+                know who they&apos;re travelling with.
+              </span>
+            </Welcome>
+          )}
+        </Intro>
 
-      {state.error && (
-        <Note role="alert">
-          <Info size={20} />
-          {state.error}
-        </Note>
-      )}
+        <div>
+          {state.error && (
+            <Note role="alert">
+              <Info size={20} />
+              {state.error}
+            </Note>
+          )}
 
-      <EditorRule />
+          <EditorRule />
 
-      <form action={action}>
+          <form action={action}>
         <Fields>
           <Field>
             <Legend htmlFor="profile-full-name">
@@ -318,12 +343,14 @@ export function EditProfileForm({
           <Commit>
             <CommitAction type="submit" disabled={pending}>
               {pending ? "Saving" : "Save changes"}
-              {pending ? <ButtonOrb state="working" /> : <DrawnCheck size={21} />}
+              {pending ? <ButtonOrb job="committing" /> : <DrawnCheck size={21} />}
             </CommitAction>
             {welcome && <Skip href="/home">Skip for now</Skip>}
           </Commit>
         </Fields>
-      </form>
+          </form>
+        </div>
+      </Split>
     </Wrap>
   );
 }

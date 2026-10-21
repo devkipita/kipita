@@ -93,7 +93,7 @@ export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
           error={err}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <>Sending <ButtonOrb state="working" /></> : <>Send reset link <ArrowRight size={19} /></>}
+          {busy ? <>Sending <ButtonOrb job="committing" /></> : <>Send reset link <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

@@ -38,7 +38,7 @@ export function OAuthButtons({ next = "/home" }: { next?: string }) {
   return (
     <>
       <GhostButton type="button" onClick={go} disabled={busy}>
-        {busy ? <ButtonOrb state="connecting" on="auto" /> : <GoogleLogo size={20} />}
+        {busy ? <ButtonOrb job="fetching" on="surface" size={20} /> : <GoogleLogo size={20} />}
         {busy ? "Connecting to Google" : "Continue with Google"}
       </GhostButton>
       {error && (

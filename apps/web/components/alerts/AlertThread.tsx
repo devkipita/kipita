@@ -387,7 +387,7 @@ export function AlertThread({
                 >
                   {pending ? (
                     <>
-                      <ButtonOrb state="working" /> Posting…
+                      <ButtonOrb job="committing" /> Posting…
                     </>
                   ) : (
                     <>

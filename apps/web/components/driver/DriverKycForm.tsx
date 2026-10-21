@@ -110,7 +110,7 @@ export function DriverKycForm({
           >
             {pending ? (
               <>
-                <ButtonOrb state="working" /> Submitting…
+                <ButtonOrb job="committing" /> Submitting…
               </>
             ) : (
               <>

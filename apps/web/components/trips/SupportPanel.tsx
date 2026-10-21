@@ -231,7 +231,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                     onClick={() => submit(t.subject, t.category)}
                     disabled={pending || detail.trim().length < 10}
                   >
-                    {pending ? <><ButtonOrb state="working" /> Opening…</> : "Open case"}
+                    {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}
                   </ButtonEl>
                 </div>
               </Form>

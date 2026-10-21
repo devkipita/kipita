@@ -1487,7 +1487,7 @@ export function PublishDeclaration({
             <>
               <Primary type="button" onClick={publish} disabled={pending}>
                 {pending ? (
-                  <><ButtonOrb state="working" /> Publishing…</>
+                  <><ButtonOrb job="committing" /> Publishing…</>
                 ) : (
                   <>
                     Publish this ride <LongArrow size={30} />

@@ -379,7 +379,7 @@ export function RouteSearchForm({
           <Submit type="submit" disabled={!canSearch || busy}>
             {busy ? (
               <>
-                <ButtonOrb state="searching" /> Searching…
+                <ButtonOrb job="fetching" /> Searching…
               </>
             ) : (
               <>

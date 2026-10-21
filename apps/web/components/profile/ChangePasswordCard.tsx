@@ -102,7 +102,7 @@ export function ChangePasswordCard({ email }: { email: string | null }) {
       </Body>
       {!sent && (
         <Action type="button" onClick={request} disabled={busy}>
-          {busy ? <><ButtonOrb state="working" on="auto" /> Sending</> : "Send link"}
+          {busy ? <><ButtonOrb job="committing" on="surface" size={20} /> Sending</> : "Send link"}
         </Action>
       )}
       {error && <Info size={18} />}

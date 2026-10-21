@@ -226,7 +226,7 @@ export function AlertEditor({
           onClick={save}
           disabled={!valid || !dirty || pending}
         >
-          {pending ? <><ButtonOrb state="working" /> Saving…</> : <>Save changes <DrawnCheck size={18} /></>}
+          {pending ? <><ButtonOrb job="committing" /> Saving…</> : <>Save changes <DrawnCheck size={18} /></>}
         </ButtonEl>
       </Foot>
     </Shell>

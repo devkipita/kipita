@@ -118,7 +118,7 @@ export function SignUpForm() {
           </AlertBox>
         )}
         <PrimaryButton type="button" onClick={resend} disabled={busy || cooldown > 0}>
-          {busy ? <>Sending <ButtonOrb state="working" /></> : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
+          {busy ? <>Sending <ButtonOrb job="committing" /></> : cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
         </PrimaryButton>
         <FootNote>
           Wrong email?{" "}
@@ -164,7 +164,7 @@ export function SignUpForm() {
           error={errs.email}
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <>Sending <ButtonOrb state="working" /></> : <>Continue <ArrowRight size={19} /></>}
+          {busy ? <>Sending <ButtonOrb job="committing" /></> : <>Continue <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>
 

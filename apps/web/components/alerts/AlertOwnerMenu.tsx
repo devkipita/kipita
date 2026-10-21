@@ -181,7 +181,7 @@ export function AlertOwnerMenu({
             }}
           >
             <Trash size={17} />
-            {pending ? <><ButtonOrb state="working" /> Deleting…</> : "Delete alert"}
+            {pending ? <><ButtonOrb job="committing" /> Deleting…</> : "Delete alert"}
           </Item>
           <Note>
             {editable

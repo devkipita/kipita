@@ -942,7 +942,7 @@ export function RideDetailView({
         <Primary type="button" onClick={reserve} disabled={pending || soldOut}>
           {pending ? (
             <>
-              <ButtonOrb state="working" /> Holding…
+              <ButtonOrb job="committing" /> Holding…
             </>
           ) : soldOut ? (
             "Fully booked"

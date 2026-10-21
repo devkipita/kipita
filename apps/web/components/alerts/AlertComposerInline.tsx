@@ -816,7 +816,7 @@ export function AlertComposerInline({
           )}
 
           <ComposerButton type="button" onClick={submit} disabled={!canPost || pending}>
-            {pending ? <><ButtonOrb state="working" /> Posting</> : "Post"}
+            {pending ? <><ButtonOrb job="committing" /> Posting</> : "Post"}
           </ComposerButton>
           </ActionGroup>
         </Foot>

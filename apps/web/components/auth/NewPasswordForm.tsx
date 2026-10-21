@@ -94,7 +94,7 @@ export function NewPasswordForm({
           autoComplete="new-password"
         />
         <PrimaryButton type="submit" disabled={busy}>
-          {busy ? <>Saving <ButtonOrb state="working" /></> : <>{cta} <DrawnCheck size={20} /></>}
+          {busy ? <>Saving <ButtonOrb job="committing" /></> : <>{cta} <DrawnCheck size={20} /></>}
         </PrimaryButton>
       </Form>
     </>

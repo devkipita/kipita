@@ -201,14 +201,14 @@ export function SignInForm({
             <TextLink href="/auth/forgot-password">Forgot password?</TextLink>
           </RowBetween>
           <PrimaryButton type="submit" disabled={busy}>
-            {busy ? <>Signing in <ButtonOrb state="connecting" /></> : <>Sign in <ArrowRight size={19} /></>}
+            {busy ? <>Signing in <ButtonOrb job="fetching" /></> : <>Sign in <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : !otpSent ? (
         <Form onSubmit={sendOtp}>
           <PhoneField value={phone} onChange={setPhone} />
           <PrimaryButton type="submit" disabled={busy || !isValidKeLocal(phone)}>
-            {busy ? <>Sending <ButtonOrb state="working" /></> : <>Send code <ArrowRight size={19} /></>}
+            {busy ? <>Sending <ButtonOrb job="committing" /></> : <>Send code <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : (
@@ -218,7 +218,7 @@ export function SignInForm({
           </Sub>
           <OtpInput value={otp} onChange={setOtp} onComplete={verifyOtp} />
           <PrimaryButton type="submit" disabled={busy || otp.length !== 6}>
-            {busy ? <>Verifying <ButtonOrb state="solving" /></> : "Verify & continue"}
+            {busy ? <>Verifying <ButtonOrb job="committing" /></> : "Verify & continue"}
           </PrimaryButton>
           <RowBetween style={{ justifyContent: "center" }}>
             <TextLink href="#" onClick={(e) => { e.preventDefault(); setOtpSent(false); setOtp(""); }}>
