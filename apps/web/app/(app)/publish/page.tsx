@@ -29,6 +29,9 @@ export default async function PublishPage() {
               make: vehicle?.make ?? "",
               model: vehicle?.model ?? "",
               plate: realPlate,
+              color: /^unspecified$/i.test(vehicle?.color?.trim() ?? "")
+                ? ""
+                : (vehicle?.color?.trim() ?? ""),
             }
           : null
       }

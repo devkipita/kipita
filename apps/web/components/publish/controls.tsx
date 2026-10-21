@@ -137,22 +137,22 @@ export const Row = styled.div`
   }
 `;
 
-export function LongArrow({ size = 30 }: { size?: number }) {
+export function LongArrow({ size = 26 }: { size?: number }) {
   return (
     <svg
       width={size}
-      height={size * 0.62}
-      viewBox="0 0 29 18"
+      height={size * 0.778}
+      viewBox="0 0 18 14"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.15"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
       focusable="false"
     >
-      <path className="shaft" d="M1.4 9h15" />
-      <path className="head" d="M14.6 1.4 27.2 9l-12.6 7.6" />
+      <path className="shaft" d="M2.4 7h6.4" />
+      <path className="head" d="M9.6 2.2 14.6 7l-5 4.8" />
     </svg>
   );
 }
@@ -270,16 +270,29 @@ export const CommitAction = styled.button`
   padding: 0 22px;
   border: none;
   border-radius: 999px;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
   font: inherit;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
   transition:
-    filter 0.16s ease,
-    transform 0.12s ease,
-    gap 0.16s ease;
+    color 0.26s ease 0.08s,
+    transform 0.16s ease,
+    box-shadow 0.24s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: ${nocturne.ctaBg};
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
   svg {
     color: inherit;
@@ -293,20 +306,30 @@ export const CommitAction = styled.button`
     transition: transform 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @media (hover: hover) {
+    &:hover::before {
+      clip-path: circle(72% at 50% 50%);
+    }
     &:hover {
-      filter: brightness(1.14);
+      color: ${nocturne.ctaFg};
       transform: translateY(-1px);
+      box-shadow: 0 10px 22px -12px
+        color-mix(in oklab, var(--n-cta-bg) 85%, transparent);
     }
     &:hover svg .shaft {
-      transform: scaleX(1.3);
+      transform: scaleX(1.55);
     }
     &:hover svg .head {
-      transform: translateX(4px);
+      transform: translateX(3px);
     }
   }
+  &:active::before {
+    clip-path: circle(72% at 50% 50%);
+    transition: clip-path 0.22s cubic-bezier(0.3, 0, 0.2, 1);
+  }
   &:active {
+    color: ${nocturne.ctaFg};
     transform: translateY(1px);
-    filter: brightness(0.96);
+    box-shadow: none;
   }
   &:active svg .head {
     transform: translateX(8px);
@@ -316,11 +339,18 @@ export const CommitAction = styled.button`
     outline-offset: 3px;
   }
   @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+    &:hover::before {
+      clip-path: circle(100% at 50% 50%);
+    }
     &:hover,
     &:active {
       transform: none;
     }
-    &:hover svg {
+    &:hover svg .shaft,
+    &:hover svg .head {
       transform: none;
     }
   }

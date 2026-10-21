@@ -29,6 +29,7 @@ import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
 import { detectOrigin } from "@/lib/home/geo";
+import type { RidePreferences } from "@/lib/ride-detail";
 import { DatePicker, TimePicker, prettyTime, todayISO } from "./WhenPicker";
 import {
   BareField,
@@ -46,7 +47,45 @@ import {
 
 type Slot = "from" | "to" | "date" | "time" | "seats" | "fare" | "car";
 
-export type SavedCar = { make: string; model: string; plate: string };
+export type SavedCar = {
+  make: string;
+  model: string;
+  plate: string;
+  color?: string;
+};
+
+type PrefKey = keyof RidePreferences;
+
+/** The draft always has an answer for every preference, unlike a stored ride. */
+type Prefs = Record<PrefKey, boolean>;
+
+const PREF_ORDER: PrefKey[] = [
+  "no_smoking",
+  "pets",
+  "luggage",
+  "music",
+  "silent_ride",
+];
+
+/** Each preference reads as a clause either way, so the line is always a sentence. */
+const PREF_WORDS: Record<PrefKey, { on: string; off: string }> = {
+  no_smoking: { on: "No smoking", off: "Smoking is fine" },
+  pets: { on: "pets welcome", off: "no pets" },
+  luggage: { on: "luggage fits", off: "no luggage" },
+  music: { on: "music on", off: "no music" },
+  silent_ride: { on: "a quiet ride", off: "chat welcome" },
+};
+
+const CAR_COLORS = [
+  "White",
+  "Silver",
+  "Black",
+  "Grey",
+  "Blue",
+  "Red",
+  "Green",
+  "Gold",
+];
 
 type Draft = {
   from: string;
@@ -58,6 +97,8 @@ type Draft = {
   make: string;
   model: string;
   plate: string;
+  color: string;
+  prefs: Prefs;
 };
 
 const FARES = [500, 800, 1200, 1600, 2000];
@@ -249,6 +290,32 @@ const Blank = styled.button<{ $live: boolean }>`
     }
     &:hover {
       color: ${nocturne.inkHover};
+    }
+  }
+`;
+
+const PrefLine = styled.p`
+  margin: 10px 0 0;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: clamp(19px, 2.2vw, 27px);
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  color: ${nocturne.inkSoft};
+`;
+
+const Pref = styled.button<{ $on: boolean }>`
+  ${tokenBase}
+  color: ${nocturne.ink};
+  font-weight: 800;
+  opacity: ${({ $on }) => ($on ? 1 : 0.72)};
+  box-shadow: inset 0 -0.055em 0
+    color-mix(in oklab, var(--n-ink) 48%, transparent);
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 1;
+      box-shadow: inset 0 -0.09em 0 ${nocturne.ink};
     }
   }
 `;
@@ -490,17 +557,30 @@ const Primary = styled.button`
   padding: 0 34px;
   border: none;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.01em;
   cursor: pointer;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
   transition:
-    filter 0.2s ease,
+    color 0.28s ease 0.1s,
     transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 0.24s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: ${nocturne.green};
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
   svg {
     overflow: visible;
@@ -514,20 +594,28 @@ const Primary = styled.button`
   }
 
   @media (hover: hover) {
+    &:hover:not(:disabled)::before {
+      clip-path: circle(72% at 50% 50%);
+    }
     &:hover:not(:disabled) {
-      filter: brightness(0.96);
+      color: ${nocturne.onGreen};
       transform: translateY(-2px);
       box-shadow: 0 12px 24px -10px
-        color-mix(in oklab, var(--n-cta-bg) 80%, transparent);
+        color-mix(in oklab, var(--n-green) 80%, transparent);
     }
     &:hover:not(:disabled) svg .shaft {
-      transform: scaleX(1.4);
+      transform: scaleX(1.55);
     }
     &:hover:not(:disabled) svg .head {
       transform: translateX(5px);
     }
   }
+  &:active:not(:disabled)::before {
+    clip-path: circle(72% at 50% 50%);
+    transition: clip-path 0.24s cubic-bezier(0.3, 0, 0.2, 1);
+  }
   &:active:not(:disabled) {
+    color: ${nocturne.onGreen};
     transform: translateY(1px);
     box-shadow: none;
   }
@@ -543,6 +631,12 @@ const Primary = styled.button`
     outline-offset: 3px;
   }
   @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+    &:hover:not(:disabled)::before {
+      clip-path: circle(100% at 50% 50%);
+    }
     &:hover:not(:disabled),
     &:active:not(:disabled) {
       transform: none;
@@ -812,6 +906,14 @@ export function PublishDeclaration({
     make: savedCar?.make ?? "",
     model: savedCar?.model ?? "",
     plate: savedCar?.plate ?? "",
+    color: savedCar?.color ?? "",
+    prefs: {
+      luggage: true,
+      pets: false,
+      silent_ride: false,
+      music: true,
+      no_smoking: true,
+    },
   });
   const [active, setActive] = useState<Slot | null>("to");
   const [touched, setTouched] = useState(false);
@@ -916,16 +1018,11 @@ export function PublishDeclaration({
         departure_time: draft.time,
         seats_total: draft.seats,
         price_per_seat: Number(draft.price),
-        preferences: {
-          luggage: true,
-          pets: false,
-          silent_ride: false,
-          music: true,
-          no_smoking: true,
-        },
+        preferences: draft.prefs,
         vehicle_make: draft.make.trim() || undefined,
         vehicle_model: draft.model.trim() || undefined,
         vehicle_plate: draft.plate.trim() || undefined,
+        vehicle_color: draft.color.trim() || undefined,
       });
       if (!result.ok) {
         setError(result.error);
@@ -975,7 +1072,7 @@ export function PublishDeclaration({
 
           <Actions>
             <Primary type="button" onClick={() => router.push(`/ride/${doneId}`)}>
-              View your ride <LongArrow size={38} />
+              View your ride <LongArrow size={32} />
             </Primary>
             <Share
               href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
@@ -1096,16 +1193,41 @@ export function PublishDeclaration({
       )}
 
       {done && (
-        <CarLine>
-          Look for my{" "}
-          {tok(
-            "car",
-            hasCar
-              ? `${draft.make} ${draft.model}, ${draft.plate}`.replace(/^ +/, "")
-              : "",
-          )}
-          .
-        </CarLine>
+        <>
+          <CarLine>
+            Look for my{" "}
+            {tok(
+              "car",
+              hasCar
+                ? `${draft.color} ${draft.make} ${draft.model}, ${draft.plate}`
+                    .replace(/\s+/g, " ")
+                    .trim()
+                : "",
+            )}
+            .
+          </CarLine>
+
+          <PrefLine>
+            {PREF_ORDER.map((key, i) => (
+              <span key={key}>
+                {i > 0 && ", "}
+                <Pref
+                  type="button"
+                  $on={!!draft.prefs[key]}
+                  aria-pressed={!!draft.prefs[key]}
+                  onClick={() =>
+                    patch({
+                      prefs: { ...draft.prefs, [key]: !draft.prefs[key] },
+                    })
+                  }
+                >
+                  {draft.prefs[key] ? PREF_WORDS[key].on : PREF_WORDS[key].off}
+                </Pref>
+              </span>
+            ))}
+            .
+          </PrefLine>
+        </>
       )}
 
 
@@ -1279,6 +1401,25 @@ export function PublishDeclaration({
                     />
                   </BareField>
                 </Pair>
+                <BareField as="div">
+                  <span>Colour</span>
+                  <Choices>
+                    {CAR_COLORS.map((name) => (
+                      <Choice
+                        key={name}
+                        type="button"
+                        $on={draft.color === name}
+                        aria-pressed={draft.color === name}
+                        onClick={() =>
+                          patch({ color: draft.color === name ? "" : name })
+                        }
+                      >
+                        {name}
+                      </Choice>
+                    ))}
+                  </Choices>
+                </BareField>
+
                 <Row>
                   <BareField>
                     <span>Number plate</span>
@@ -1344,7 +1485,7 @@ export function PublishDeclaration({
                   "Publishing…"
                 ) : (
                   <>
-                    Publish this ride <LongArrow size={34} />
+                    Publish this ride <LongArrow size={30} />
                   </>
                 )}
               </Primary>
