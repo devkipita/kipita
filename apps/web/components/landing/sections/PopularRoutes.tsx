@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ArrowRight, Clock } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
-import { fetchPopularRoutes } from "@/lib/landing.server";
+import { routeCardImage } from "../imageSpecs";
+import type { RouteCard } from "@/lib/landing.server";
 
 const Section = styled.section`
   background: ${nocturne.bg};
@@ -172,9 +173,7 @@ const Empty = styled.p`
   color: ${nocturne.muted};
 `;
 
-export async function PopularRoutes() {
-  const routes = await fetchPopularRoutes(3);
-
+export function PopularRoutes({ routes }: { routes: RouteCard[] }) {
   return (
     <Section id="routes">
       <Head>
@@ -195,13 +194,7 @@ export async function PopularRoutes() {
               href={`/home?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`}
             >
               <Art aria-hidden>
-                <Image
-                  src={r.image}
-                  alt=""
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1100px) 50vw, 33vw"
-                  quality={70}
-                />
+                <Image {...routeCardImage(r.image)} />
               </Art>
               <Body>
                 <Places>

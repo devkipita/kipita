@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import Image from "next/image";
 import Link from "next/link";
-import DRIVER from "../../../public/landing/driver.jpg";
+import { driverImage } from "../imageSpecs";
 import { ArrowRight, ShieldCheck, Wallet } from "@/components/icons";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
@@ -163,13 +163,7 @@ export function DriverCta() {
     <Outer id="drive">
       <Panel>
         <Figure>
-          <Image
-            src={DRIVER}
-            alt="A driver at the wheel, about to set off"
-            fill
-            sizes="(max-width: 960px) 100vw, 50vw"
-            quality={70}
-          />
+          <Image {...driverImage} />
           <Badge>Verified driver</Badge>
         </Figure>
         <Copy>

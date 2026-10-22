@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import styled from "styled-components";
 import Image from "next/image";
-import mpesa from "../../../public/landing/mpesa.png";
+import { mpesaImage } from "../imageSpecs";
 import { nocturne } from "../nocturne";
 import { Reveal } from "../../anim/Reveal";
 import { RollingNumber } from "../../ui/Counter";
@@ -115,7 +115,7 @@ export function TrustStrip() {
         ))}
         <Divider />
         <Mpesa as="div">
-          <Image src={mpesa} alt="M-PESA" sizes="96px" />
+          <Image {...mpesaImage} />
           <span className="label">
             <span>Protected payments</span>
           </span>

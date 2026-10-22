@@ -1,8 +1,6 @@
 import styled from "styled-components";
 import Image from "next/image";
-import appSearch from "../../../public/landing/app-search.png";
-import appHome from "../../../public/landing/app-home.png";
-import appRides from "../../../public/landing/app-rides.png";
+import { phoneImages } from "../imageSpecs";
 import { nocturne } from "../nocturne";
 import { dur, ease } from "@/lib/motion";
 import { Reveal } from "../../anim/Reveal";
@@ -227,24 +225,9 @@ export function DownloadCta() {
 
         <Reveal delay={0.1}>
           <Phones>
-            <Phone
-              src={appSearch}
-              alt="Kipita search screen"
-              sizes="(max-width: 640px) 27vw, 210px"
-              $pos="left"
-            />
-            <Phone
-              src={appHome}
-              alt="Kipita home screen"
-              sizes="(max-width: 640px) 34vw, 250px"
-              $pos="center"
-            />
-            <Phone
-              src={appRides}
-              alt="Kipita rides screen"
-              sizes="(max-width: 640px) 27vw, 210px"
-              $pos="right"
-            />
+            <Phone {...phoneImages.left} $pos="left" />
+            <Phone {...phoneImages.center} $pos="center" />
+            <Phone {...phoneImages.right} $pos="right" />
           </Phones>
         </Reveal>
       </DownloadGrid>

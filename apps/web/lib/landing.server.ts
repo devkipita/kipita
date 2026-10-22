@@ -16,9 +16,28 @@ export type RouteCard = {
 
 const FALLBACK_IMAGE = "/landing/route-art.jpg";
 
+const TOWN_IMAGES = new Set([
+  "eldoret",
+  "garissa",
+  "kericho",
+  "kisumu",
+  "machakos",
+  "malindi",
+  "meru",
+  "mombasa",
+  "nairobi",
+  "naivasha",
+  "nakuru",
+  "nanyuki",
+  "nyeri",
+  "thika",
+]);
+
 function townImage(town: string): string {
   const slug = town.trim().toLowerCase().replace(/\s+/g, "-");
-  return `/landing/towns/${slug}.jpg`;
+  return TOWN_IMAGES.has(slug)
+    ? `/landing/towns/${slug}.jpg`
+    : FALLBACK_IMAGE;
 }
 
 function kes(amount: number): string {
