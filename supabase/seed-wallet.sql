@@ -76,7 +76,7 @@ BEGIN
     )
     VALUES (
       v_booking.id, v_rider, v_booking.total_price, 'KES', 'mpesa',
-      CASE WHEN v_escrow = 'refunded' THEN 'refunded' ELSE 'completed' END,
+      (CASE WHEN v_escrow = 'refunded' THEN 'refunded' ELSE 'completed' END)::public.payment_status,
       'seed-wallet-' || v_booking.id,
       'SEED' || UPPER(SUBSTRING(REPLACE(v_booking.id::TEXT, '-', '') FROM 1 FOR 8)),
       v_escrow::public.escrow_status,
