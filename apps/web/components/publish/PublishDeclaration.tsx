@@ -1485,7 +1485,7 @@ export function PublishDeclaration({
         <Act>
           {done ? (
             <>
-              <Primary type="button" onClick={publish} disabled={pending}>
+              <Primary type="button" onClick={publish} disabled={pending} aria-busy={pending}>
                 {pending ? (
                   <><ButtonOrb job="committing" /> Publishing…</>
                 ) : (

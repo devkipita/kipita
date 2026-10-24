@@ -207,6 +207,12 @@ export const GlobalStyle = createGlobalStyle`
     outline: none;
   }
 
+  button[aria-busy="true"]:disabled,
+  button[aria-busy="true"][disabled] {
+    opacity: 1;
+    cursor: progress;
+  }
+
   @media (forced-colors: active) {
     [data-active="true"] {
       forced-color-adjust: none;

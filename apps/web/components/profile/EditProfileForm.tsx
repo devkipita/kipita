@@ -362,7 +362,7 @@ export function EditProfileForm({
           </Group>
 
           <Commit>
-            <CommitAction type="submit" disabled={pending}>
+            <CommitAction type="submit" disabled={pending} aria-busy={pending}>
               {pending ? "Saving" : "Save changes"}
               {pending ? <ButtonOrb job="committing" /> : <DrawnCheck size={21} />}
             </CommitAction>

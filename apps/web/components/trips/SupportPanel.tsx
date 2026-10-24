@@ -230,6 +230,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                     $compact
                     onClick={() => submit(t.subject, t.category)}
                     disabled={pending || detail.trim().length < 10}
+                    aria-busy={pending}
                   >
                     {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}
                   </ButtonEl>

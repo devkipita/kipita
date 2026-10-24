@@ -92,7 +92,7 @@ export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
           onChange={(e) => setEmail(e.target.value)}
           error={err}
         />
-        <PrimaryButton type="submit" disabled={busy}>
+        <PrimaryButton type="submit" disabled={busy} aria-busy={busy}>
           {busy ? <>Sending <ButtonOrb job="committing" /></> : <>Send reset link <ArrowRight size={19} /></>}
         </PrimaryButton>
       </Form>

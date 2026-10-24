@@ -939,7 +939,7 @@ export function RideDetailView({
             <Plus size={16} />
           </button>
         </Seats>
-        <Primary type="button" onClick={reserve} disabled={pending || soldOut}>
+        <Primary type="button" onClick={reserve} disabled={pending || soldOut} aria-busy={pending}>
           {pending ? (
             <>
               <ButtonOrb job="committing" /> Holding…

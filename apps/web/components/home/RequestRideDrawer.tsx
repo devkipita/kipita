@@ -190,7 +190,7 @@ export function RequestRideDrawer({
       dismissible={!pending}
       footer={
         done ? undefined : (
-          <Primary type="button" onClick={submit} disabled={pending}>
+          <Primary type="button" onClick={submit} disabled={pending} aria-busy={pending}>
             {pending ? <><ButtonOrb job="committing" /> Posting…</> : "Post my request"}
             {!pending && <ArrowRight size={18} aria-hidden />}
           </Primary>

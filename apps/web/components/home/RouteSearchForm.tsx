@@ -376,7 +376,7 @@ export function RouteSearchForm({
             )}
           </div>
 
-          <Submit type="submit" disabled={!canSearch || busy}>
+          <Submit type="submit" disabled={!canSearch || busy} aria-busy={busy}>
             {busy ? (
               <>
                 <ButtonOrb job="fetching" /> Searching…

@@ -200,14 +200,14 @@ export function SignInForm({
           <RowBetween>
             <TextLink href="/auth/forgot-password">Forgot password?</TextLink>
           </RowBetween>
-          <PrimaryButton type="submit" disabled={busy}>
+          <PrimaryButton type="submit" disabled={busy} aria-busy={busy}>
             {busy ? <>Signing in <ButtonOrb job="fetching" /></> : <>Sign in <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
       ) : !otpSent ? (
         <Form onSubmit={sendOtp}>
           <PhoneField value={phone} onChange={setPhone} />
-          <PrimaryButton type="submit" disabled={busy || !isValidKeLocal(phone)}>
+          <PrimaryButton type="submit" disabled={busy || !isValidKeLocal(phone)} aria-busy={busy}>
             {busy ? <>Sending <ButtonOrb job="committing" /></> : <>Send code <ArrowRight size={19} /></>}
           </PrimaryButton>
         </Form>
@@ -217,7 +217,7 @@ export function SignInForm({
             We texted a 6-digit code to +254 {phone}. Enter it below.
           </Sub>
           <OtpInput value={otp} onChange={setOtp} onComplete={verifyOtp} />
-          <PrimaryButton type="submit" disabled={busy || otp.length !== 6}>
+          <PrimaryButton type="submit" disabled={busy || otp.length !== 6} aria-busy={busy}>
             {busy ? <>Verifying <ButtonOrb job="committing" /></> : "Verify & continue"}
           </PrimaryButton>
           <RowBetween style={{ justifyContent: "center" }}>

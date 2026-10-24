@@ -225,6 +225,7 @@ export function AlertEditor({
           $compact
           onClick={save}
           disabled={!valid || !dirty || pending}
+          aria-busy={pending}
         >
           {pending ? <><ButtonOrb job="committing" /> Saving…</> : <>Save changes <DrawnCheck size={18} /></>}
         </ButtonEl>

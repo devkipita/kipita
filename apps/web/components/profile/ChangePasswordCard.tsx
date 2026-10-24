@@ -101,7 +101,7 @@ export function ChangePasswordCard({ email }: { email: string | null }) {
         </span>
       </Body>
       {!sent && (
-        <Action type="button" onClick={request} disabled={busy}>
+        <Action type="button" onClick={request} disabled={busy} aria-busy={busy}>
           {busy ? <><ButtonOrb job="committing" on="surface" size={20} /> Sending</> : "Send link"}
         </Action>
       )}

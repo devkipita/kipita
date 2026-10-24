@@ -823,7 +823,7 @@ export function AlertComposerInline({
             </ComposerButton>
           )}
 
-          <ComposerButton type="button" onClick={submit} disabled={!canPost || pending}>
+          <ComposerButton type="button" onClick={submit} disabled={!canPost || pending} aria-busy={pending}>
             {pending ? <><ButtonOrb job="committing" /> Posting</> : "Post"}
           </ComposerButton>
           </ActionGroup>

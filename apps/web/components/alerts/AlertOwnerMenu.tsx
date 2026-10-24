@@ -175,6 +175,7 @@ export function AlertOwnerMenu({
             role="menuitem"
             $danger
             disabled={pending || !editable}
+            aria-busy={pending}
             onClick={(e) => {
               e.preventDefault();
               remove();

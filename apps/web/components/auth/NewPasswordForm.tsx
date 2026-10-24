@@ -93,7 +93,7 @@ export function NewPasswordForm({
           error={errs.confirm}
           autoComplete="new-password"
         />
-        <PrimaryButton type="submit" disabled={busy}>
+        <PrimaryButton type="submit" disabled={busy} aria-busy={busy}>
           {busy ? <>Saving <ButtonOrb job="committing" /></> : <>{cta} <DrawnCheck size={20} /></>}
         </PrimaryButton>
       </Form>

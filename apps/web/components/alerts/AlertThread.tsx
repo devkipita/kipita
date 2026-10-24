@@ -384,6 +384,7 @@ export function AlertThread({
                   $compact
                   onClick={submit}
                   disabled={!draft.trim() || pending}
+                  aria-busy={pending}
                 >
                   {pending ? (
                     <>

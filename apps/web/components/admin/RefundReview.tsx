@@ -160,6 +160,7 @@ export function RefundReview() {
               <SmallButton
                 $variant="approve"
                 disabled={busy === item.id}
+                aria-busy={busy === item.id}
                 onClick={() => act(item, "approve")}
               >
                 {busy === item.id ? (

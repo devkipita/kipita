@@ -197,6 +197,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               $compact
               onClick={submit}
               disabled={pending || detail.trim().length < 10}
+              aria-busy={pending}
             >
               <QuestionCircle size={16} />
               {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}

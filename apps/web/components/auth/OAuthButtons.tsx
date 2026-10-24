@@ -37,7 +37,7 @@ export function OAuthButtons({ next = "/home" }: { next?: string }) {
 
   return (
     <>
-      <GhostButton type="button" onClick={go} disabled={busy}>
+      <GhostButton type="button" onClick={go} disabled={busy} aria-busy={busy}>
         {busy ? <ButtonOrb job="fetching" on="surface" size={20} /> : <GoogleLogo size={20} />}
         {busy ? "Connecting to Google" : "Continue with Google"}
       </GhostButton>

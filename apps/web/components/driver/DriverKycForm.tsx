@@ -107,6 +107,7 @@ export function DriverKycForm({
             style={{ flex: 1 }}
             onClick={submit}
             disabled={!canSubmit || pending}
+            aria-busy={pending}
           >
             {pending ? (
               <>
