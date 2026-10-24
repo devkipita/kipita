@@ -52,7 +52,8 @@ BEGIN
       INSERT INTO auth.users (
         id, instance_id, aud, role, email, encrypted_password,
         email_confirmed_at, created_at, updated_at,
-        raw_app_meta_data, raw_user_meta_data
+        raw_app_meta_data, raw_user_meta_data,
+        confirmation_token, recovery_token, email_change_token_new, email_change
       )
       VALUES (
         v_auth,
@@ -63,7 +64,8 @@ BEGIN
         NOW() - (v_seed.days_ago || ' days')::INTERVAL,
         NOW(),
         '{"provider":"email","providers":["email"]}'::JSONB,
-        jsonb_build_object('full_name', v_seed.full_name)
+        jsonb_build_object('full_name', v_seed.full_name),
+        '', '', '', ''
       )
       ON CONFLICT (id) DO NOTHING;
 
