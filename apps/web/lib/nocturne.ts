@@ -28,6 +28,7 @@ export const nocturne = {
   cardShadow: "var(--n-card-shadow)",
   cardBorder: "var(--n-card-border)",
   ring: "var(--n-ring)",
+  star: "var(--n-star)",
 } as const;
 
 export const nocturneDark = {
@@ -58,6 +59,7 @@ export const nocturneDark = {
   "--n-card-shadow": "none",
   "--n-card-border": "#404943",
   "--n-ring": "rgba(158, 197, 162, 0.26)",
+  "--n-star": "#e8b951",
 } as const;
 
 export const nocturneLight = {
@@ -88,6 +90,7 @@ export const nocturneLight = {
   "--n-card-shadow": "0 7px 24px rgba(23, 77, 59, 0.1)",
   "--n-card-border": "#dce4dc",
   "--n-ring": "rgba(23, 77, 59, 0.16)",
+  "--n-star": "#9a6b12",
 } as const;
 
 export function nocturneVars(set: Record<string, string>): string {

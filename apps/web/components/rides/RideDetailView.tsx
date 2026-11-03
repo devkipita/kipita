@@ -3,17 +3,18 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { ArrowLeft, SealCheck as BadgeCheck, Briefcase, CalendarBlank as CalendarDays, Car, CheckCircle as CheckCircle2, Clock, CircleNotch as Loader2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
+import { ArrowLeft, SealCheck as BadgeCheck, Briefcase, CarProfile, CheckCircle as CheckCircle2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
+import { EscrowHeldArt } from "@/components/ui/MoneyArt";
 import {
   currentUserIdAction,
   reserveSeatAction,
   type BookingResult,
 } from "@/lib/bookings";
 import { PaymentDrawer } from "./PaymentDrawer";
-import { formatRideDate, formatRideTime, ratingLabel, type RideDetail } from "@/lib/ride-detail";
+import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
 import { nocturne } from "@/lib/nocturne";
@@ -21,268 +22,258 @@ import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
+const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
+
+const rise = keyframes`
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+`;
+
 const Wrap = styled(ContentWidth)`
-  padding-block: 20px 40px;
+  padding-block: 18px 56px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  background: ${nocturne.bg};
+
+  ::selection {
+    background: ${nocturne.sage};
+    color: ${nocturne.greenDeep};
+  }
 
   @media (max-width: 960px) {
-    padding-bottom: calc(40px + var(--bottom-bar-space, 0px));
+    padding-bottom: calc(44px + var(--bottom-bar-space, 0px));
   }
 `;
 
 const Back = styled(Link)`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   align-self: flex-start;
-  padding: 8px 14px 8px 10px;
-  border-radius: 999px;
-  font-size: 0.86rem;
+  min-height: 44px;
+  padding: 8px 2px;
+  font-size: 15px;
   font-weight: 700;
-  color: ${({ theme }) => theme.color.textSoft};
+  color: ${nocturne.muted};
   text-decoration: none;
+  box-shadow: inset 0 -2px 0 transparent;
+  transition:
+    color 0.16s ease,
+    box-shadow 0.16s ease;
 
-  &:hover {
-    background: ${({ theme }) => theme.color.surface2};
-    color: ${({ theme }) => theme.color.text};
+  svg {
+    flex: none;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
-`;
 
-const Card = styled.section`
-  background: ${({ theme }) => theme.color.surface};
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.color.line};
-  padding: 20px;
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+      box-shadow: inset 0 -2px 0 ${RULE};
+    }
+    &:hover svg {
+      transform: translateX(-3px);
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    svg {
+      transition: none;
+    }
+    &:hover svg {
+      transform: none;
+    }
+  }
 `;
 
 const PageHead = styled.header`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: 12px;
+  margin-bottom: clamp(26px, 4vh, 40px);
 
   h1 {
     margin: 0;
-    font-family: ${({ theme }) => theme.fontHeading};
-    font-size: clamp(30px, 4.4vw, 44px);
-    font-weight: 700;
-    line-height: 1.02;
+    max-width: 18ch;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    line-height: 1.04;
     letter-spacing: -0.035em;
-    color: ${({ theme }) => theme.color.text};
+    color: ${nocturne.cream};
+    text-wrap: balance;
   }
   p {
     margin: 0;
-    max-width: 58ch;
-    font-size: 1.02rem;
+    max-width: 48ch;
+    font-size: 17px;
     line-height: 1.55;
-    color: ${({ theme }) => theme.color.muted};
+    color: ${nocturne.muted};
   }
 `;
 
 const Layout = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) 352px;
   align-items: start;
-  gap: 20px;
+  gap: clamp(28px, 4vw, 64px);
 
   @media (max-width: 960px) {
     grid-template-columns: minmax(0, 1fr);
+    gap: 34px;
   }
 `;
 
 const MainCol = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 14px;
   min-width: 0;
 `;
 
 const SideCol = styled.div`
   position: sticky;
-  top: calc(var(--sticky-top, 0px) + 16px);
+  top: calc(var(--sticky-top, 0px) + 20px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
 
-  /* Price and the action are what the visitor came to decide on, so on a
-     phone they lead instead of trailing three cards and the bottom nav. */
   @media (max-width: 960px) {
     position: static;
     order: -1;
   }
 `;
 
-const BookPanel = styled.section`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 20px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  border: 1px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
-`;
-
-const PriceHead = styled.div`
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-
-  b {
-    font-family: ${({ theme }) => theme.fontHeading};
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.text};
-  }
-  small {
-    font-size: 0.86rem;
-    font-weight: 600;
-    color: ${({ theme }) => theme.color.muted};
-  }
-`;
-
-const SeatRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  > span {
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.text};
-  }
-`;
-
-const Reassure = styled.p`
-  margin: 0;
-  font-size: 0.82rem;
-  line-height: 1.5;
-  color: ${({ theme }) => theme.color.muted};
-`;
-
-/* Route timeline — a dot, a rail and a pin, mirroring the mobile ride screen. */
 const Route = styled.div`
   display: grid;
-  grid-template-columns: 20px 1fr;
-  gap: 14px;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 0 18px;
 `;
 
 const Rail = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 6px;
+  padding-top: 0.44em;
 
   .node {
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
+    flex: none;
     border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: ${({ theme }) => theme.tone.mint.bg};
-  }
-  .node i {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${({ theme }) => theme.color.primary};
+    box-shadow: inset 0 0 0 5px ${nocturne.accent};
   }
   .line {
     flex: 1;
-    width: 2px;
-    min-height: 26px;
-    margin: 5px 0;
-    border-radius: 1px;
-    background: ${({ theme }) => theme.color.line};
+    width: 2.5px;
+    min-height: 24px;
+    margin: 8px 0;
+    border-radius: 2px;
+    background: ${nocturne.accent};
+    opacity: 0.4;
   }
   svg {
-    color: ${({ theme }) => theme.color.dangerText};
+    flex: none;
+    color: ${nocturne.accent};
   }
 `;
 
 const Stops = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: clamp(18px, 2.4vh, 26px);
+  min-width: 0;
 
-  small {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: ${({ theme }) => theme.color.muted};
-  }
   b {
     display: block;
-    font-size: 1.12rem;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(25px, 3.1vw, 38px);
     font-weight: 800;
-    letter-spacing: -0.01em;
-    color: ${({ theme }) => theme.color.text};
+    line-height: 1.04;
+    letter-spacing: -0.032em;
+    color: ${nocturne.cream};
   }
   span.point {
     display: block;
-    margin-top: 2px;
-    font-size: 0.83rem;
-    color: ${({ theme }) => theme.color.muted};
+    margin-top: 7px;
+    font-size: 15px;
+    line-height: 1.45;
+    color: ${nocturne.muted};
   }
 `;
 
-const Chips = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
+const When = styled.p`
+  margin: clamp(22px, 3vh, 30px) 0 0;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: clamp(19px, 2.1vw, 25px);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: ${nocturne.cream};
+
+  em {
+    font-style: normal;
+    font-weight: 500;
+    color: ${nocturne.muted};
+  }
 `;
 
-const Chip = styled.span<{ $accent?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 10px 16px;
-  border-radius: 999px;
-  font-size: 0.94rem;
-  font-weight: 700;
-  background: ${({ theme, $accent }) =>
-    $accent ? theme.color.primaryContainer : theme.color.surface2};
-  color: ${({ theme, $accent }) =>
-    $accent ? theme.color.onPrimaryContainer : theme.color.text};
+const Band = styled.div`
+  margin-top: clamp(24px, 3.2vh, 34px);
+  padding-top: clamp(22px, 3vh, 30px);
+  border-top: 1.5px solid ${RULE};
+`;
 
+const Facts = styled.ul`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 30px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${nocturne.cream};
+  }
   svg {
     flex: none;
-    color: ${({ theme, $accent }) =>
-      $accent ? theme.color.onPrimaryContainer : theme.color.primary};
+    color: ${nocturne.accent};
   }
 `;
 
 const Person = styled.div`
   display: flex;
   align-items: center;
-  gap: ${({ theme }) => theme.space.xl};
+  gap: 20px;
 
   > .avatar {
-    box-shadow: 0 0 0 3px ${({ theme }) => theme.color.elevated},
-      0 0 0 5px ${({ theme }) => theme.color.primaryContainer};
+    flex: none;
+    box-shadow: 0 0 0 1.5px ${RULE};
   }
   .who {
     flex: 1;
     min-width: 0;
   }
   h2 {
-    margin: 0 0 10px;
-    font-family: ${({ theme }) => theme.fontHeading};
-    font-size: ${({ theme }) => theme.type.heading};
-    font-weight: 600;
-    letter-spacing: -0.025em;
+    margin: 0 0 9px;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(22px, 2.4vw, 29px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.028em;
+    color: ${nocturne.cream};
   }
 
   @media (max-width: 560px) {
-    gap: ${({ theme }) => theme.space.lg};
+    gap: 16px;
   }
 `;
 
@@ -290,23 +281,17 @@ const Creds = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px 16px;
+  font-size: 15px;
+  color: ${nocturne.muted};
 `;
 
 const Verified = styled.span<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 14px 7px 11px;
-  border-radius: 999px;
-  font-size: 0.9rem;
   font-weight: 700;
-  background: ${({ theme, $on }) =>
-    $on ? theme.color.primary : theme.color.surface2};
-  color: ${({ theme, $on }) =>
-    $on ? theme.color.onPrimary : theme.color.muted};
-  border: 1px solid
-    ${({ theme, $on }) => ($on ? "transparent" : theme.color.line)};
+  color: ${({ $on }) => ($on ? nocturne.accent : nocturne.muted)};
 
   svg {
     flex: none;
@@ -317,179 +302,300 @@ const Rating = styled.span`
   display: inline-flex;
   align-items: baseline;
   gap: 7px;
-  font-size: 0.9rem;
-  color: ${({ theme }) => theme.color.muted};
 
   b {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 1.02rem;
     font-weight: 800;
-    color: ${({ theme }) => theme.color.text};
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
   }
   svg {
-    color: #e0a32e;
+    color: ${nocturne.star};
+  }
+`;
+
+const PhoneRow = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: ${nocturne.cream};
+  text-decoration: none;
+  box-shadow: inset 0 -2px 0 ${RULE};
+  transition:
+    box-shadow 0.16s ease,
+    color 0.16s ease;
+
+  svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.accent};
+      box-shadow: inset 0 -3px 0 ${nocturne.accent};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
+`;
+
+const Vehicle = styled.div`
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+
+  > svg {
+    flex: none;
+    align-self: center;
+    color: ${nocturne.accent};
+  }
+  b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(19px, 2vw, 23px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: ${nocturne.cream};
+  }
+  span.colour {
+    font-size: 16px;
+    color: ${nocturne.muted};
   }
 `;
 
 const Plate = styled.span`
   display: inline-flex;
   align-items: center;
-  padding: 4px 11px;
+  padding: 5px 12px;
   border-radius: 7px;
-  border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
-  background: ${({ theme }) => theme.color.surface};
+  background: ${nocturne.surface2};
   font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-  font-size: 0.88rem;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: ${({ theme }) => theme.color.text};
-`;
-
-const VehicleMeta = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
+  letter-spacing: 0.1em;
+  color: ${nocturne.cream};
 `;
 
 const Note = styled.p`
   margin: 16px 0 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  color: ${({ theme }) => theme.color.textSoft};
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 1.55;
+  color: ${nocturne.muted};
 `;
 
-const PhoneRow = styled.a`
+const BookPanel = styled.section`
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-  padding: 10px 14px;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: ${({ theme }) => theme.color.surface2};
-  color: ${({ theme }) => theme.color.text};
-  font-weight: 700;
-  text-decoration: none;
-
-  &:hover {
-    background: ${({ theme }) => theme.color.line};
-  }
-  svg {
-    color: ${({ theme }) => theme.color.primary};
-  }
+  flex-direction: column;
+  gap: 16px;
+  padding: clamp(22px, 2.6vw, 28px);
+  border-radius: 20px;
+  background: ${nocturne.surface2};
 `;
 
-const Vehicle = styled.div`
+const Fare = styled.p`
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
 
-  .icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 46px;
-    height: 46px;
-    flex: none;
-    border-radius: 14px;
-    background: ${({ theme }) => theme.color.surfaceContainerHigh};
-    color: ${({ theme }) => theme.color.primary};
+  b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(36px, 4vw, 46px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
   }
   small {
-    display: block;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: ${({ theme }) => theme.color.muted};
+    font-size: 15px;
+    font-weight: 600;
+    color: ${nocturne.muted};
+  }
+`;
+
+const Left = styled.p<{ $scarce: boolean }>`
+  margin: -4px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: ${({ $scarce }) => ($scarce ? nocturne.ctaBg : nocturne.muted)};
+
+  b {
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+  }
+`;
+
+const Escrow = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+
+  .art {
+    width: 124px;
+  }
+  p {
+    margin: 0;
+    max-width: 34ch;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    text-wrap: pretty;
+    color: ${nocturne.muted};
   }
   b {
-    display: block;
+    color: ${nocturne.cream};
     font-weight: 700;
-    color: ${({ theme }) => theme.color.text};
-  }
-  span {
-    font-size: 0.85rem;
-    color: ${({ theme }) => theme.color.muted};
   }
 `;
 
 const Bar = styled.div`
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  gap: 12px;
 `;
 
 const Seats = styled.div`
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px;
   border-radius: 999px;
-  background: ${({ theme }) => theme.color.surface2};
+  background: ${nocturne.surface};
 
   button {
-    width: 36px;
-    height: 36px;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: none;
     border: none;
     border-radius: 50%;
     background: transparent;
-    color: ${({ theme }) => theme.color.text};
+    color: ${nocturne.cream};
     cursor: pointer;
-    display: grid;
-    place-items: center;
+    transition:
+      background-color 0.16s ease,
+      transform 0.12s ease;
   }
   button:disabled {
-    opacity: 0.35;
+    color: ${nocturne.muted2};
     cursor: default;
   }
-  button:not(:disabled):hover {
-    background: ${({ theme }) => theme.color.surface};
+  @media (hover: hover) {
+    button:not(:disabled):hover {
+      background: ${nocturne.surface3};
+    }
+  }
+  button:not(:disabled):active {
+    transform: scale(0.92);
+  }
+  button:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -1px;
   }
   b {
-    min-width: 58px;
+    flex: 1;
     text-align: center;
-    font-size: 0.86rem;
+    font-size: 15px;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active {
+      transform: none;
+    }
   }
 `;
 
 const primaryCta = css`
-  flex: 1;
-  min-width: 190px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  height: 52px;
-  padding: 0 22px;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 0 24px;
   border: none;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 1.02rem;
-  font-weight: 800;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   text-decoration: none;
   cursor: pointer;
-  transition: filter 0.2s ease, transform 0.15s ease;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-variant-numeric: tabular-nums;
+  transition:
+    color 0.16s ease 0.34s,
+    transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.24s ease;
 
-  &:hover:not(:disabled) {
-    filter: brightness(0.95);
-    transform: translateY(-1px);
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: ${nocturne.green};
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled)::before {
+      clip-path: circle(72% at 50% 50%);
+    }
+    &:hover:not(:disabled) {
+      color: ${nocturne.onGreen};
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px -10px
+        color-mix(in oklab, var(--n-green) 80%, transparent);
+    }
+  }
+  &:active:not(:disabled)::before {
+    clip-path: circle(72% at 50% 50%);
+    transition: clip-path 0.24s cubic-bezier(0.3, 0, 0.2, 1);
+  }
+  &:active:not(:disabled) {
+    color: ${nocturne.onGreen};
+    transform: translateY(1px);
+    box-shadow: none;
   }
   &:disabled {
-    opacity: 0.6;
+    opacity: 0.72;
     cursor: default;
   }
-  svg.spin {
-    animation: spin 0.9s linear infinite;
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
   }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      transition: none;
+    }
+    &:hover:not(:disabled)::before {
+      clip-path: circle(100% at 50% 50%);
+    }
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
     }
   }
 `;
@@ -506,53 +612,50 @@ const Banner = styled.div<{ $tone: "ok" | "bad" | "info" }>`
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px 18px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme, $tone }) =>
-    $tone === "ok"
-      ? theme.tone.mint.bg
-      : $tone === "bad"
-        ? theme.color.dangerBg
-        : theme.color.surface};
-  color: ${({ theme, $tone }) =>
-    $tone === "ok"
-      ? theme.tone.mint.on
-      : $tone === "bad"
-        ? theme.color.dangerText
-        : theme.color.text};
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: ${({ $tone }) =>
+    $tone === "ok" ? nocturne.green : nocturne.surface2};
+  color: ${({ $tone }) => ($tone === "ok" ? nocturne.onGreen : nocturne.cream)};
+  animation: ${rise} 0.24s ease-out;
 
-  svg {
+  > svg {
     flex: none;
-    margin-top: 1px;
+    margin-top: 2px;
+    color: ${({ $tone }) =>
+      $tone === "ok"
+        ? nocturne.lime
+        : $tone === "bad"
+          ? nocturne.ctaBg
+          : nocturne.accent};
   }
   b {
     display: block;
     font-weight: 800;
+    font-size: 16px;
   }
   p {
-    margin: 4px 0 0;
-    font-size: 0.88rem;
+    margin: 5px 0 0;
+    font-size: 14.5px;
     line-height: 1.5;
-    opacity: 0.85;
+    color: ${({ $tone }) =>
+      $tone === "ok" ? nocturne.onGreenMuted : nocturne.muted};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
-function preferenceChips(prefs: RideDetail["preferences"]) {
+function preferenceFacts(prefs: RideDetail["preferences"]) {
   return [
-    prefs.luggage && { icon: Briefcase, label: "Luggage" },
+    prefs.luggage && { icon: Briefcase, label: "Luggage fits" },
     prefs.pets && { icon: PawPrint, label: "Pets welcome" },
     prefs.silent_ride && { icon: VolumeX, label: "Quiet ride" },
-    prefs.music && { icon: Music, label: "Music" },
+    prefs.music && { icon: Music, label: "Music on" },
   ].filter(Boolean) as { icon: typeof Briefcase; label: string }[];
 }
 
-/**
- * The screen a ride notification opens — a driver's posted trip or a
- * passenger's open request, mirroring `apps/mobile/src/app/ride/[id].tsx`.
- *
- * Signed-out visitors can read everything (both tables are world-readable) and
- * are sent to sign-in only when they act.
- */
 export function RideDetailView({
   ride,
   profile,
@@ -572,33 +675,31 @@ export function RideDetailView({
     bookingId: string;
     total: number;
   } | null>(null);
-  // Kept outside `payingFor` so closing the drawer doesn't lose it.
   const [payerId, setPayerId] = useState<string | null>(null);
   const [paid, setPaid] = useState(false);
 
   const date = formatRideDate(isTrip ? ride.departure_date : ride.preferred_date);
   const time = formatRideTime(isTrip ? ride.departure_time : ride.preferred_time);
-  const prefs = preferenceChips(ride.preferences);
+  const prefs = preferenceFacts(ride.preferences);
 
-  // Seeded rows tag themselves in `description`, and vehicles created before
-  // the plate field existed carry a PENDING- placeholder. Neither is for
-  // a passenger to read.
   const rawNote = isTrip ? ride.description?.trim() : null;
   const note = rawNote && !/^seed:/i.test(rawNote) ? rawNote : null;
   const rawPlate = isTrip ? ride.vehicle?.plate_number?.trim() : null;
   const plate = rawPlate && !/^PENDING-/i.test(rawPlate) ? rawPlate : null;
 
-  const when = [date ? date.toLowerCase() : null, time ? `at ${time}` : null]
-    .filter(Boolean)
-    .join(" ");
   const lead = isTrip
-    ? `Leaving ${ride.from_location}${when ? ` ${when}` : ""}. Check the driver and the car, then reserve your seat. You only pay once you're happy.`
-    : `Heading from ${ride.from_location}. If you're driving this route, you can offer them a seat.`;
+    ? "Check the driver and the car, then reserve your seat. You only pay once you're happy."
+    : "If you're driving this route, you can offer them a seat.";
   const isOwn = !!profile && !!person && profile.id === person.id;
   const soldOut = isTrip && ride.seats_available < 1;
   const closed = isTrip
     ? !["posted", "active"].includes(ride.status)
     : ride.status !== "pending";
+  const scarce = isTrip && ride.seats_available > 0 && ride.seats_available <= 2;
+
+  const back = profile
+    ? { href: "/notifications", label: "Notifications" }
+    : { href: "/home", label: "Find a ride" };
 
   function reserve() {
     if (!isTrip) return;
@@ -607,9 +708,6 @@ export function RideDetailView({
       setResult(booked);
       if (!booked.ok) return;
 
-      // The edge function checks the booking belongs to this users.id, so it
-      // has to come from the server rather than the profile prop (which can be
-      // a synthesized record carrying the auth id).
       const userId = await currentUserIdAction();
       if (userId) {
         setPayerId(userId);
@@ -621,8 +719,8 @@ export function RideDetailView({
   return (
     <>
       <Wrap $max={1120}>
-        <Back href="/notifications">
-          <ArrowLeft size={17} /> Notifications
+        <Back href={back.href}>
+          <ArrowLeft size={17} /> {back.label}
         </Back>
 
         <PageHead>
@@ -635,187 +733,179 @@ export function RideDetailView({
         </PageHead>
 
         <Layout>
-        <MainCol>
-        <Card>
-          <Route>
-            <Rail>
-              <span className="node">
-                <i />
-              </span>
-              <span className="line" />
-              <MapPin size={18} />
-            </Rail>
-            <Stops>
-              <div>
-                <small>From</small>
-                <b>{ride.from_location}</b>
-                {isTrip && ride.pickup_point && (
-                  <span className="point">Pickup: {ride.pickup_point}</span>
+          <MainCol>
+            <Route>
+              <Rail>
+                <span className="node" />
+                <span className="line" />
+                <MapPin size={19} weight="fill" />
+              </Rail>
+              <Stops>
+                <div>
+                  <b>{ride.from_location}</b>
+                  {isTrip && ride.pickup_point && (
+                    <span className="point">Pickup: {ride.pickup_point}</span>
+                  )}
+                </div>
+                <div>
+                  <b>{ride.to_location}</b>
+                  {isTrip && ride.dropoff_point && (
+                    <span className="point">
+                      Drop-off: {ride.dropoff_point}
+                    </span>
+                  )}
+                </div>
+              </Stops>
+            </Route>
+
+            {(date || time) && (
+              <When>
+                {date}
+                {date && time ? <em> at </em> : null}
+                {time}
+              </When>
+            )}
+
+            {(prefs.length > 0 || (!isTrip && ride.seats_needed > 0)) && (
+              <Band>
+                <Facts>
+                  {!isTrip && (
+                    <li>
+                      <Users size={19} />
+                      {ride.seats_needed} seat
+                      {ride.seats_needed === 1 ? "" : "s"} needed
+                    </li>
+                  )}
+                  {prefs.map(({ icon: Icon, label }) => (
+                    <li key={label}>
+                      <Icon size={19} /> {label}
+                    </li>
+                  ))}
+                </Facts>
+              </Band>
+            )}
+
+            {isTrip && note && <Note>{note}</Note>}
+
+            {person && (
+              <Band>
+                <Person>
+                  <Avatar
+                    className="avatar"
+                    name={person.full_name ?? "Kipita user"}
+                    src={person.avatar_url}
+                    size={88}
+                  />
+                  <div className="who">
+                    <h2>
+                      {person.full_name?.trim() ||
+                        (isTrip ? "Kipita driver" : "Kipita passenger")}
+                    </h2>
+                    <Creds>
+                      <Verified $on={!!person.is_verified}>
+                        <BadgeCheck
+                          size={18}
+                          weight={person.is_verified ? "fill" : "regular"}
+                        />
+                        {person.is_verified
+                          ? "Verified driver"
+                          : "Not yet verified"}
+                      </Verified>
+                      <Rating>
+                        <b>
+                          <Star size={16} weight="fill" />
+                          {Number(person.rating ?? 0) > 0
+                            ? Number(person.rating).toFixed(1)
+                            : "New"}
+                        </b>
+                        {person.total_trips
+                          ? `${person.total_trips} trip${person.total_trips === 1 ? "" : "s"}`
+                          : "no trips yet"}
+                      </Rating>
+                    </Creds>
+                  </div>
+                </Person>
+                {safeTelHref(person.phone) && (
+                  <PhoneRow href={safeTelHref(person.phone) as string}>
+                    <Phone size={18} />
+                    {person.phone}
+                  </PhoneRow>
                 )}
-              </div>
-              <div>
-                <small>To</small>
-                <b>{ride.to_location}</b>
-                {isTrip && ride.dropoff_point && (
-                  <span className="point">Drop-off: {ride.dropoff_point}</span>
-                )}
-              </div>
-            </Stops>
-          </Route>
-
-          <Chips>
-            {date && (
-              <Chip>
-                <CalendarDays size={18} /> {date}
-              </Chip>
+              </Band>
             )}
-            {time && (
-              <Chip>
-                <Clock size={18} /> {time}
-              </Chip>
-            )}
-            {isTrip ? (
-              // The booking panel owns price and seats while the ride is open,
-              // so repeating them here is noise.
-              closed && (
-                <>
-                  <Chip $accent>{formatKes(ride.price_per_seat)} / seat</Chip>
-                  <Chip>
-                    <Users size={18} />
-                    {ride.seats_available} of {ride.seats_total} left
-                  </Chip>
-                </>
-              )
-            ) : (
-              <Chip $accent>
-                <Users size={18} />
-                {ride.seats_needed} seat{ride.seats_needed === 1 ? "" : "s"} needed
-              </Chip>
-            )}
-            {prefs.map(({ icon: Icon, label }) => (
-              <Chip key={label}>
-                <Icon size={18} /> {label}
-              </Chip>
-            ))}
-          </Chips>
 
-          {isTrip && note && <Note>{note}</Note>}
-        </Card>
-
-        {person && (
-          <Card>
-            <Person>
-              <Avatar
-                className="avatar"
-                name={person.full_name ?? "Kipita user"}
-                src={person.avatar_url}
-                size={104}
-              />
-              <div className="who">
-                <h2>{person.full_name?.trim() || (isTrip ? "Kipita driver" : "Kipita passenger")}</h2>
-                <Creds>
-                  <Verified $on={!!person.is_verified}>
-                    <BadgeCheck size={18} weight={person.is_verified ? "fill" : "regular"} />
-                    {person.is_verified ? "Verified driver" : "Not yet verified"}
-                  </Verified>
-                  <Rating>
-                    <b>
-                      <Star size={17} weight="fill" />
-                      {Number(person.rating ?? 0) > 0
-                        ? Number(person.rating).toFixed(1)
-                        : "New"}
-                    </b>
-                    {person.total_trips
-                      ? `${person.total_trips} trip${person.total_trips === 1 ? "" : "s"}`
-                      : "no trips yet"}
-                  </Rating>
-                </Creds>
-              </div>
-            </Person>
-            {safeTelHref(person.phone) && (
-              <PhoneRow href={safeTelHref(person.phone) as string}>
-                <Phone size={18} />
-                {person.phone}
-              </PhoneRow>
-            )}
-          </Card>
-        )}
-
-        {isTrip && ride.vehicle && (
-          <Card>
-            <Vehicle>
-              <span className="icon">
-                <Car size={22} />
-              </span>
-              <div>
-                <small>Vehicle</small>
-                <b>
-                  {[ride.vehicle.make, ride.vehicle.model, ride.vehicle.year]
-                    .filter(Boolean)
-                    .join(" ")}
-                </b>
-                <VehicleMeta>
-                  {ride.vehicle.color && <span>{ride.vehicle.color}</span>}
+            {isTrip && ride.vehicle && (
+              <Band>
+                <Vehicle>
+                  <CarProfile size={22} aria-hidden />
+                  <b>
+                    {[ride.vehicle.make, ride.vehicle.model, ride.vehicle.year]
+                      .filter(Boolean)
+                      .join(" ")}
+                  </b>
+                  {ride.vehicle.color && (
+                    <span className="colour">{ride.vehicle.color}</span>
+                  )}
                   {plate && <Plate>{plate.toUpperCase()}</Plate>}
-                </VehicleMeta>
-              </div>
-            </Vehicle>
-          </Card>
-        )}
+                </Vehicle>
+              </Band>
+            )}
+          </MainCol>
 
-        </MainCol>
+          <SideCol>
+            {isTrip && !closed && (
+              <BookPanel>
+                <Fare>
+                  <b>{formatKes(ride.price_per_seat)}</b>
+                  <small>per seat</small>
+                </Fare>
+                <Left $scarce={scarce}>
+                  <b>{ride.seats_available}</b> of {ride.seats_total} seats left
+                </Left>
+                {renderAction()}
+                <Escrow>
+                  <span className="art">
+                    <EscrowHeldArt />
+                  </span>
+                  <p>
+                    <b>Kipita holds your fare.</b> It is only released to the
+                    driver once the trip is done.
+                  </p>
+                </Escrow>
+              </BookPanel>
+            )}
 
-        <SideCol>
-        {isTrip && !closed && (
-          <BookPanel>
-            <PriceHead>
-              <b>{formatKes(ride.price_per_seat)}</b>
-              <small>per seat</small>
-            </PriceHead>
-            <SeatRow>
-              <span>
-                {ride.seats_available} of {ride.seats_total} seats left
-              </span>
-            </SeatRow>
-            {renderAction()}
-            <Reassure>
-              Your fare is held securely and only released to the driver after
-              the trip.
-            </Reassure>
-          </BookPanel>
-        )}
+            {result?.ok && (
+              <Banner $tone="ok">
+                <CheckCircle2 size={20} />
+                <div>
+                  <b>
+                    {paid ? "Seat confirmed" : "Seat held"}
+                    {result.reference ? ` · ${result.reference}` : ""}
+                  </b>
+                  <p>
+                    {result.seats} seat{result.seats === 1 ? "" : "s"} ·{" "}
+                    {formatKes(result.total)}.{" "}
+                    {paid
+                      ? "Paid. We hold your fare until the trip is done, then release it to your driver."
+                      : "Pay with M-Pesa to confirm; the seat is held until you do."}
+                  </p>
+                </div>
+              </Banner>
+            )}
 
-        {result?.ok && (
-          <Banner $tone="ok">
-            <CheckCircle2 size={20} />
-            <div>
-              <b>
-                {paid ? "Seat confirmed" : "Seat held"}
-                {result.reference ? ` · ${result.reference}` : ""}
-              </b>
-              <p>
-                {result.seats} seat{result.seats === 1 ? "" : "s"} ·{" "}
-                {formatKes(result.total)}.{" "}
-                {paid
-                  ? "Paid. We hold your fare until the trip is done, then release it to your driver."
-                  : "Pay with M-Pesa to confirm; the seat is held until you do."}
-              </p>
-            </div>
-          </Banner>
-        )}
+            {result && !result.ok && (
+              <Banner $tone="bad">
+                <Smartphone size={20} />
+                <div>
+                  <b>Couldn&apos;t hold that seat</b>
+                  <p>{result.error}</p>
+                </div>
+              </Banner>
+            )}
 
-        {result && !result.ok && (
-          <Banner $tone="bad">
-            <Smartphone size={20} />
-            <div>
-              <b>Couldn&apos;t hold that seat</b>
-              <p>{result.error}</p>
-            </div>
-          </Banner>
-        )}
-
-        {(!isTrip || closed) && renderAction()}
-        </SideCol>
+            {(!isTrip || closed) && renderAction()}
+          </SideCol>
         </Layout>
       </Wrap>
 
@@ -838,8 +928,6 @@ export function RideDetailView({
     </>
   );
 
-  // Declared after the JSX (hoisted) to keep the page structure readable —
-  // the footer has six mutually exclusive states.
   function renderAction() {
     if (closed) {
       return (
@@ -878,7 +966,6 @@ export function RideDetailView({
       );
     }
 
-    // A driver answering a passenger request needs chat, which is app-only.
     if (!isTrip) {
       return (
         <Banner $tone="info">
@@ -894,7 +981,6 @@ export function RideDetailView({
       );
     }
 
-    // Held but not yet paid — let them reopen M-Pesa without re-reserving.
     if (result?.ok && !paid) {
       return (
         <Bar>
@@ -927,7 +1013,7 @@ export function RideDetailView({
           >
             <Minus size={16} />
           </button>
-          <b>
+          <b aria-live="polite">
             {seats} seat{seats === 1 ? "" : "s"}
           </b>
           <button
