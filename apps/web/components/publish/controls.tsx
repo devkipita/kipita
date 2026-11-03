@@ -317,7 +317,6 @@ export const CommitAction = styled.button`
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
   transition:
-    color 0.26s ease 0.08s,
     transform 0.16s ease,
     box-shadow 0.24s ease;
 
@@ -326,7 +325,7 @@ export const CommitAction = styled.button`
     position: absolute;
     inset: 0;
     z-index: -1;
-    background: ${nocturne.ctaBg};
+    background: ${nocturne.greenDeep};
     clip-path: circle(0% at 50% 50%);
     transition: clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   }
@@ -347,10 +346,9 @@ export const CommitAction = styled.button`
       clip-path: circle(72% at 50% 50%);
     }
     &:hover {
-      color: ${nocturne.ctaFg};
       transform: translateY(-1px);
       box-shadow: 0 10px 22px -12px
-        color-mix(in oklab, var(--n-cta-bg) 85%, transparent);
+        color-mix(in oklab, var(--n-green) 85%, transparent);
     }
     &:hover svg .shaft {
       transform: scaleX(1.55);
@@ -364,7 +362,6 @@ export const CommitAction = styled.button`
     transition: clip-path 0.22s cubic-bezier(0.3, 0, 0.2, 1);
   }
   &:active {
-    color: ${nocturne.ctaFg};
     transform: translateY(1px);
     box-shadow: none;
   }

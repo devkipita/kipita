@@ -142,8 +142,6 @@ const fieldGlyph = `
   color: ${nocturne.accent};
 `;
 
-const CTA_INK = `color-mix(in oklab, ${nocturne.ctaBg} 62%, ${nocturne.cream})`;
-
 const collapsedBox = `
   display: flex;
   align-items: center;
@@ -211,18 +209,18 @@ const Collapsed = styled.button<{ $compact?: boolean }>`
       animation: ${hunt} ${dur.long1}ms ${ease.emphasized} both;
     }
     &:hover .go {
-      background: ${nocturne.surface};
-      border-color: ${CTA_INK};
-      color: ${CTA_INK};
+      background: ${nocturne.green};
+      border-color: ${nocturne.green};
+      color: ${nocturne.onGreen};
       transform: translateY(-1px);
       box-shadow: 0 10px 22px -10px
-        color-mix(in oklab, ${nocturne.ctaBg} 80%, transparent);
+        color-mix(in oklab, ${nocturne.green} 80%, transparent);
     }
   }
   &:active .go {
-    background: ${nocturne.ctaBg};
-    border-color: ${nocturne.ctaBg};
-    color: ${nocturne.ctaFg};
+    background: ${nocturne.greenDeep};
+    border-color: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
     transform: scale(0.96);
     box-shadow: none;
   }
@@ -865,7 +863,7 @@ const Submit = styled.button`
     position: absolute;
     inset: 0;
     border-radius: 14px;
-    background: ${nocturne.surface};
+    background: ${nocturne.green};
     clip-path: circle(0% at 50% 50%);
     transition:
       clip-path ${dur.long2}ms ${ease.standardAccelerate},
@@ -877,7 +875,7 @@ const Submit = styled.button`
     content: "";
     position: absolute;
     inset: -2px;
-    border: 2px solid ${CTA_INK};
+    border: 2px solid ${nocturne.green};
     border-radius: 16px;
     pointer-events: none;
     -webkit-mask-image: linear-gradient(#000, #000), linear-gradient(#000, #000);
@@ -904,10 +902,10 @@ const Submit = styled.button`
     &:hover:not(:disabled) {
       border-color: transparent;
       border-radius: 999px;
-      color: ${CTA_INK};
+      color: ${nocturne.onGreen};
       transform: translateY(-2px);
       box-shadow: 0 14px 30px -14px
-        color-mix(in oklab, ${nocturne.ctaBg} 72%, transparent);
+        color-mix(in oklab, ${nocturne.green} 72%, transparent);
     }
     &:hover:not(:disabled)::before {
       clip-path: circle(78% at 50% 50%);
@@ -924,22 +922,23 @@ const Submit = styled.button`
   }
 
   &:active:not(:disabled) {
-    border-color: ${nocturne.ctaBg};
-    border-radius: 16px;
-    color: ${nocturne.ctaFg};
+    border-color: transparent;
+    border-radius: 999px;
+    color: ${nocturne.onGreen};
     transform: scale(0.97);
     box-shadow: none;
   }
   &:active:not(:disabled)::before {
-    clip-path: circle(0% at 50% 50%);
-    border-radius: 14px;
+    background: ${nocturne.greenDeep};
+    clip-path: circle(78% at 50% 50%);
+    border-radius: 999px;
     transition:
       clip-path ${dur.short3}ms ${ease.emphasizedAccelerate},
       border-radius ${dur.short3}ms ${ease.emphasizedAccelerate};
   }
   &:active:not(:disabled)::after {
     opacity: 0;
-    border-radius: 16px;
+    border-radius: 999px;
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
