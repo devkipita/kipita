@@ -19,7 +19,7 @@ import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 export type PostResult =
   | { ok: true; kind: "trip" | "request"; id: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; fix?: "kyc" };
 
 const PROFILE_NOT_READY =
   "Your profile isn't ready yet. Sign out and back in, then try again.";
@@ -139,7 +139,8 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (!kyc.hasApplied) {
     return {
       ok: false,
-      error: "Finish driver verification before offering a ride.",
+      error: "Kipita needs your licence details before your ride can go live.",
+      fix: "kyc",
     };
   }
 

@@ -13,9 +13,8 @@ export const metadata: Metadata = {
 
 export default async function PublishPage() {
   const profile = await requireProfile("/publish");
-  const vehicle = await createClient()
-    .then((supabase) => fetchMyVehicle(supabase, profile.id))
-    .catch(() => null);
+  const supabase = await createClient();
+  const vehicle = await fetchMyVehicle(supabase, profile.id).catch(() => null);
 
   const plate = vehicle?.plate_number?.trim() ?? "";
   const realPlate =

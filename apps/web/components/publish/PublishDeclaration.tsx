@@ -22,9 +22,11 @@ import {
   MapPin,
   Minus,
   Plus,
+  SealCheck,
   ShieldCheck,
   Warning,
 } from "@/components/icons";
+import { useAppMode } from "@/components/nav/AppShell";
 import { RollingNumber } from "@/components/ui/Counter";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
@@ -179,15 +181,7 @@ const Page = styled.main`
   }
 `;
 
-const Kicker = styled.h1`
-  margin: 0 0 20px;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0;
-  color: ${nocturne.inkSoft};
-`;
-
-const Sentence = styled.p`
+const Sentence = styled.h1`
   margin: 0;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: clamp(29px, 5vw, 58px);
@@ -204,7 +198,7 @@ const Sentence = styled.p`
 `;
 
 const CarLine = styled.p`
-  margin: 20px 0 0;
+  margin: clamp(26px, 3.4vh, 36px) 0 0;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: clamp(19px, 2.2vw, 27px);
   font-weight: 500;
@@ -293,7 +287,7 @@ const Blank = styled.button<{ $live: boolean }>`
 `;
 
 const PrefLine = styled.p`
-  margin: 10px 0 0;
+  margin: 7px 0 0;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: clamp(19px, 2.2vw, 27px);
   font-weight: 500;
@@ -304,19 +298,20 @@ const PrefLine = styled.p`
 
 const Pref = styled.button<{ $on: boolean }>`
   ${tokenBase}
-  color: ${nocturne.ink};
-  font-weight: 800;
-  opacity: ${({ $on }) => ($on ? 1 : 0.68)};
+  color: ${({ $on }) => ($on ? nocturne.ink : nocturne.muted)};
+  font-weight: ${({ $on }) => ($on ? 800 : 600)};
   text-decoration-line: underline;
-  text-decoration-thickness: 0.05em;
+  text-decoration-style: ${({ $on }) => ($on ? "solid" : "dotted")};
+  text-decoration-thickness: ${({ $on }) => ($on ? "0.06em" : "0.05em")};
   text-underline-offset: 0.16em;
   text-decoration-skip-ink: none;
-  text-decoration-color: color-mix(in oklab, var(--n-ink) 45%, transparent);
+  text-decoration-color: ${({ $on }) =>
+    $on ? nocturne.ink : "color-mix(in oklab, var(--n-muted) 70%, transparent)"};
 
   @media (hover: hover) {
     &:hover {
-      opacity: 1;
-      text-decoration-thickness: 0.07em;
+      color: ${nocturne.ink};
+      text-decoration-thickness: 0.08em;
       text-decoration-color: ${nocturne.ink};
     }
   }
@@ -325,18 +320,17 @@ const Pref = styled.button<{ $on: boolean }>`
 const Money = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: 13px;
-  max-width: 62ch;
+  gap: 14px;
+  max-width: 54ch;
   margin: 0;
-  padding: 20px 24px;
-  border-radius: 16px;
-  background: ${nocturne.surface2};
+  padding: 22px 0 0;
+  border-top: 1.5px solid ${RULE};
   list-style: none;
 
   li {
     display: flex;
     align-items: flex-start;
-    gap: 16px;
+    gap: 14px;
     font-size: 16px;
     line-height: 1.55;
     color: ${nocturne.muted};
@@ -344,11 +338,13 @@ const Money = styled.ul`
   svg {
     flex: none;
     margin-top: 2px;
-    color: ${nocturne.green};
+    color: ${nocturne.accent};
   }
   b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     color: ${nocturne.cream};
-    font-weight: 700;
+    font-weight: 800;
+    letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
   }
   b > span {
@@ -525,20 +521,18 @@ const Narrow = styled.div`
 
 const Finish = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 22px 40px;
-  flex-wrap: wrap;
-  margin-top: clamp(30px, 5vh, 52px);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 26px;
+  margin-top: clamp(34px, 6vh, 60px);
 
   > * {
     margin: 0;
   }
 
   @media (max-width: 640px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 26px;
+    align-self: stretch;
+    gap: 24px;
   }
 `;
 
@@ -547,6 +541,33 @@ const Act = styled.div`
 
   @media (max-width: 640px) {
     width: 100%;
+  }
+`;
+
+const Gate = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: 54ch;
+
+  > svg {
+    flex: none;
+    margin-top: 3px;
+    color: ${nocturne.accent};
+  }
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.55;
+    color: ${nocturne.muted};
+  }
+  p b {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 17px;
+    font-weight: 700;
+    color: ${nocturne.cream};
   }
 `;
 
@@ -570,7 +591,7 @@ const Primary = styled.button`
   background: ${nocturne.ctaBg};
   color: ${nocturne.ctaFg};
   transition:
-    color 0.28s ease 0.1s,
+    color 0.16s ease 0.34s,
     transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1),
     box-shadow 0.24s ease;
 
@@ -618,6 +639,7 @@ const Primary = styled.button`
   }
   &:active:not(:disabled) {
     color: ${nocturne.onGreen};
+    transition-delay: 0s;
     transform: translateY(1px);
     box-shadow: none;
   }
@@ -663,18 +685,29 @@ const Note = styled.p`
   color: ${nocturne.muted2};
 `;
 
-const Err = styled.p`
+const Err = styled.div`
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 24px 0 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: ${nocturne.cream};
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 54ch;
 
-  svg {
+  > svg {
     flex: none;
+    margin-top: 2px;
     color: ${nocturne.ctaBg};
+  }
+  > div {
+    min-width: 0;
+  }
+  p {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: ${nocturne.cream};
+  }
+  button {
+    margin-top: 14px;
   }
 `;
 
@@ -898,6 +931,7 @@ export function PublishDeclaration({
   savedCar?: SavedCar | null;
 }) {
   const router = useRouter();
+  const { driverReady, requireKyc } = useAppMode();
   const [draft, setDraft] = useState<Draft>({
     from: "",
     to: "",
@@ -933,7 +967,9 @@ export function PublishDeclaration({
       .catch(() => undefined);
     return () => abort.abort();
   }, []);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; fix?: "kyc" } | null>(
+    null,
+  );
   const [doneId, setDoneId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const editorRef = useRef<HTMLElement>(null);
@@ -1009,7 +1045,11 @@ export function PublishDeclaration({
     }
     const wrong = problem();
     if (wrong) {
-      setError(wrong);
+      setError({ text: wrong });
+      return;
+    }
+    if (!driverReady) {
+      requireKyc();
       return;
     }
     startTransition(async () => {
@@ -1027,7 +1067,7 @@ export function PublishDeclaration({
         vehicle_color: draft.color.trim() || undefined,
       });
       if (!result.ok) {
-        setError(result.error);
+        setError({ text: result.error, fix: result.fix });
         return;
       }
       setDoneId(result.id);
@@ -1145,8 +1185,6 @@ export function PublishDeclaration({
 
   return (
     <Page>
-      <Kicker>Publish a ride</Kicker>
-
       <Sentence>
         I’m driving{" "}
         {shown("from") && <>from {tok("from", draft.from)} </>}
@@ -1453,13 +1491,6 @@ export function PublishDeclaration({
         </>
       )}
 
-      {error && (
-        <Err role="alert">
-          <Warning size={20} aria-hidden />
-          {error}
-        </Err>
-      )}
-
       <Finish>
         {earnings > 0 && (
           <Money>
@@ -1482,15 +1513,44 @@ export function PublishDeclaration({
             </li>
           </Money>
         )}
+        {done && !driverReady && (
+          <Gate>
+            <SealCheck size={26} aria-hidden />
+            <p>
+              <b>Kipita needs your licence first</b>
+              It is a one-time check, and it takes about a minute. Your ride is
+              kept exactly as you wrote it.
+            </p>
+          </Gate>
+        )}
+
+        {error && (
+          <Err role="alert">
+            <Warning size={21} aria-hidden />
+            <div>
+              <p>{error.text}</p>
+              {error.fix === "kyc" && (
+                <CommitAction type="button" onClick={requireKyc}>
+                  Add your licence <LongArrow />
+                </CommitAction>
+              )}
+            </div>
+          </Err>
+        )}
+
         <Act>
           {done ? (
             <>
               <Primary type="button" onClick={publish} disabled={pending} aria-busy={pending}>
                 {pending ? (
                   <><ButtonOrb job="committing" /> Publishing…</>
-                ) : (
+                ) : driverReady ? (
                   <>
                     Publish this ride <LongArrow size={30} />
+                  </>
+                ) : (
+                  <>
+                    Verify, then publish <LongArrow size={30} />
                   </>
                 )}
               </Primary>
