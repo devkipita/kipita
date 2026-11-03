@@ -1,190 +1,264 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import styled from "styled-components";
 import { MagnifyingGlass } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { ButtonLink } from "@/components/ui/primitives";
+import { nocturne } from "@/lib/nocturne";
 import type { Booking } from "@/lib/trips/types";
 import { BookingCard } from "./BookingCard";
 import { SupportPanel } from "./SupportPanel";
 import { TripFaqs } from "./TripFaqs";
-import { WhyKipita } from "./WhyKipita";
 
 type Tab = "current" | "previous";
 
-/*
- * A plain column, not a ContentWidth. Each band opts into the measure it wants,
- * which lets the Why-Kipita section run the full width of the content column
- * the way the rest of the page cannot.
- */
-const Page = styled.div`
-  padding-block: 24px 64px;
-  display: grid;
-  gap: 40px;
+const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
+
+const Page = styled(ContentWidth)`
+  padding-block: clamp(22px, 4vh, 40px) 72px;
+  display: flex;
+  flex-direction: column;
+  background: ${nocturne.bg};
+
+  ::selection {
+    background: ${nocturne.sage};
+    color: ${nocturne.greenDeep};
+  }
+
+  @media (max-width: 960px) {
+    padding-bottom: calc(56px + var(--bottom-bar-space, 0px));
+  }
 `;
 
-const Band = styled(ContentWidth)`
-  display: grid;
-  gap: 14px;
+const Title = styled.h1`
+  margin: 0;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: clamp(34px, 5.4vw, 60px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.038em;
+  color: ${nocturne.cream};
 `;
 
-const Head = styled.header`
-  display: grid;
-  gap: 16px;
+const Controls = styled.div`
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px 40px;
+  margin-top: clamp(22px, 3vh, 32px);
+  border-bottom: 1.5px solid ${RULE};
 
-  /* Size carries the hierarchy, not weight — the display face is legible at
-     500 and a heavy small heading reads as shouting instead of structure. */
-  h1 {
-    margin: 0;
-    font-size: clamp(2.4rem, 5vw, 3.4rem);
-    font-weight: 500;
-    letter-spacing: -0.035em;
-    line-height: 1.04;
-    color: ${({ theme }) => theme.color.onSurface};
+  @media (max-width: 720px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    border-bottom: none;
   }
+`;
 
-  .controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  @media (max-width: 599px) {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 12px;
-
-    .controls {
-      display: contents;
-    }
-    .controls > div:nth-child(2) {
-      grid-column: 1 / -1;
-      grid-row: 2;
-      min-width: 0;
-    }
-  }
+const marker = `
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1.5px;
+  height: 3px;
+  border-radius: 2px;
+  transition: background-color 0.16s ease;
 `;
 
 const Tabs = styled.div`
   display: flex;
-  gap: 6px;
+  align-items: flex-end;
+  gap: 26px;
   flex: none;
+
+  @media (max-width: 720px) {
+    border-bottom: 1.5px solid ${RULE};
+  }
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
-  min-height: 40px;
-  padding: 0 18px;
+  position: relative;
+  min-height: 44px;
+  padding: 4px 0 14px;
   border: none;
-  border-radius: 999px;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
+  background: transparent;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 19px;
+  font-weight: ${({ $active }) => ($active ? 800 : 600)};
+  letter-spacing: -0.02em;
   cursor: pointer;
-  background: ${({ theme, $active }) =>
-    $active ? theme.color.primaryContainer : theme.color.surfaceContainerLow};
-  color: ${({ theme, $active }) =>
-    $active ? theme.color.onPrimaryContainer : theme.color.onSurfaceVariant};
+  color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
+  transition: color 0.16s ease;
 
-  &:hover {
-    background: ${({ theme, $active }) =>
-      $active ? theme.color.primaryContainer : theme.color.surfaceContainer};
+  &::after {
+    ${marker}
+    background: ${({ $active }) => ($active ? nocturne.accent : "transparent")};
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+    }
+    &:hover::after {
+      background: ${({ $active }) => ($active ? nocturne.accent : RULE)};
+    }
   }
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
   }
 `;
 
-const Search = styled.div`
+const Search = styled.label`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
-  min-width: 220px;
-  min-height: 40px;
-  padding: 0 16px;
-  min-height: 48px;
-  border: 1.5px solid ${({ theme }) => theme.color.outline};
-  border-radius: 999px;
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.onSurface};
+  flex: 1 1 260px;
+  max-width: 400px;
+  padding-bottom: 14px;
+  cursor: text;
 
-  &:focus-within {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
+  &::after {
+    ${marker}
+    background: transparent;
   }
 
+  svg {
+    flex: none;
+    color: ${nocturne.muted};
+    transition: color 0.16s ease;
+  }
   input {
-    flex: 1;
+    width: 100%;
     min-width: 0;
+    min-height: 30px;
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.95rem;
-    color: ${({ theme }) => theme.color.onSurface};
+    font-size: 16px;
+    color: ${nocturne.cream};
+    caret-color: ${nocturne.accent};
   }
   input:focus {
     outline: none;
   }
   input::placeholder {
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
-    opacity: 1;
+    color: ${nocturne.muted2};
   }
-  svg {
-    flex: none;
-    color: ${({ theme }) => theme.color.primary};
+  &:hover::after {
+    background: ${RULE};
   }
-`;
+  &:focus-within::after {
+    background: ${nocturne.accent};
+  }
+  &:focus-within svg {
+    color: ${nocturne.accent};
+  }
 
-const Section = styled.section`
-  display: grid;
-  gap: 14px;
-
-  > h2 {
-    margin: 0;
-    font-size: clamp(1.85rem, 3.4vw, 2.5rem);
-    font-weight: 500;
-    letter-spacing: -0.032em;
-    line-height: 1.06;
-    color: ${({ theme }) => theme.color.onSurface};
+  @media (max-width: 720px) {
+    flex: 0 0 auto;
+    max-width: none;
+    padding-top: 14px;
+    border-bottom: 1.5px solid ${RULE};
   }
 `;
 
-const Cards = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
-  gap: ${({ theme }) => theme.space.lg};
+const Rows = styled.div`
+  display: flex;
+  flex-direction: column;
 
-  @media (max-width: 680px) {
-    grid-template-columns: 1fr;
+  > * + *::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 14px;
+    right: 14px;
+    height: 1.5px;
+    background: ${RULE};
   }
 `;
 
 const Empty = styled.div`
-  display: grid;
-  justify-items: start;
-  gap: 8px;
-  padding: 28px 20px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  padding: clamp(40px, 7vh, 72px) 0;
+  max-width: 48ch;
 
   b {
-    font-size: 1.05rem;
+    display: block;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(22px, 2.6vw, 28px);
     font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.onSurface};
+    letter-spacing: -0.03em;
+    color: ${nocturne.cream};
   }
   p {
-    margin: 0;
-    max-width: 48ch;
-    font-size: 0.95rem;
+    margin: 10px 0 0;
+    font-size: 17px;
     line-height: 1.55;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    color: ${nocturne.muted};
   }
-  a {
-    margin-top: 6px;
+`;
+
+const Find = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  min-height: 52px;
+  margin-top: 22px;
+  padding: 0 26px;
+  border-radius: 999px;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.green};
+      color: ${nocturne.onGreen};
+      transform: translateY(-2px);
+    }
+  }
+  &:active {
+    background: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
+    transform: translateY(1px);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover,
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const Section = styled.section`
+  margin-top: clamp(44px, 7vh, 80px);
+  padding-top: clamp(28px, 4vh, 40px);
+  border-top: 1.5px solid ${RULE};
+
+  > h2 {
+    margin: 0 0 18px;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 800;
+    letter-spacing: -0.033em;
+    line-height: 1.08;
+    color: ${nocturne.cream};
   }
 `;
 
@@ -224,53 +298,51 @@ export function TripsView({
   const searchable = current.length + previous.length > 0;
 
   return (
-    <Page>
-      <Band $max={1080}>
-        <Head>
-        <h1>Trips</h1>
-        <div className="controls">
-          <Tabs role="group" aria-label="Which trips">
-            <TabButton
-              type="button"
-              $active={tab === "current"}
-              aria-pressed={tab === "current"}
-              onClick={() => setTab("current")}
-            >
-              Current
-            </TabButton>
-            <TabButton
-              type="button"
-              $active={tab === "previous"}
-              aria-pressed={tab === "previous"}
-              onClick={() => setTab("previous")}
-            >
-              Previous
-            </TabButton>
-          </Tabs>
+    <Page $max={1080}>
+      <Title>Trips</Title>
 
-          {searchable && (
-            <Search>
-              <MagnifyingGlass size={22} weight="bold" aria-hidden />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by town, person or reference"
-                aria-label="Search trips"
-              />
-            </Search>
-          )}
-          </div>
-        </Head>
-      </Band>
+      <Controls>
+        <Tabs role="group" aria-label="Which trips">
+          <TabButton
+            type="button"
+            $active={tab === "current"}
+            aria-pressed={tab === "current"}
+            onClick={() => setTab("current")}
+          >
+            Current
+            {current.length > 0 ? ` (${current.length})` : ""}
+          </TabButton>
+          <TabButton
+            type="button"
+            $active={tab === "previous"}
+            aria-pressed={tab === "previous"}
+            onClick={() => setTab("previous")}
+          >
+            Previous
+            {previous.length > 0 ? ` (${previous.length})` : ""}
+          </TabButton>
+        </Tabs>
 
-      <Band $max={1080}>
+        {searchable && (
+          <Search>
+            <MagnifyingGlass size={20} aria-hidden />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Town, person or reference"
+              aria-label="Search trips"
+            />
+          </Search>
+        )}
+      </Controls>
+
       {shown.length > 0 ? (
-        <Cards>
+        <Rows>
           {shown.map((booking) => (
             <BookingCard key={booking.id} booking={booking} viewerId={viewerId} />
           ))}
-        </Cards>
+        </Rows>
       ) : (
         <Empty>
           {query ? (
@@ -281,36 +353,32 @@ export function TripsView({
           ) : tab === "current" ? (
             <>
               <b>No trips yet</b>
-              <p>Book a seat and it appears here.</p>
-              <ButtonLink href="/home" $compact>
-                Find a ride
-              </ButtonLink>
+              <p>
+                Book a seat and it appears here, with the driver, the car and
+                what you paid.
+              </p>
+              <Find href="/home">Find a ride</Find>
             </>
           ) : (
             <>
               <b>No past trips</b>
-              <p>Completed and cancelled trips move here, with their receipts.</p>
+              <p>
+                Completed and cancelled trips move here, with their receipts.
+              </p>
             </>
           )}
         </Empty>
       )}
-      </Band>
 
-      <WhyKipita />
+      <Section>
+        <h2>Common questions</h2>
+        <TripFaqs />
+      </Section>
 
-      <Band $max={1080}>
-        <Section>
-          <h2>Common questions</h2>
-          <TripFaqs />
-        </Section>
-      </Band>
-
-      <Band $max={1080}>
-        <Section id="help">
-          <h2>Contact support</h2>
-          <SupportPanel trips={[...current, ...previous]} />
-        </Section>
-      </Band>
+      <Section id="help">
+        <h2>Contact support</h2>
+        <SupportPanel trips={[...current, ...previous]} />
+      </Section>
     </Page>
   );
 }
