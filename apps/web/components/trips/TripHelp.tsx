@@ -6,30 +6,29 @@ import { Check, QuestionCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
+import { nocturne } from "@/lib/nocturne";
 import { openSupportCaseAction } from "@/lib/support/actions";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Card = styled.section`
   display: grid;
-  gap: 12px;
-  padding: 16px;
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  gap: 14px;
 
   h2 {
     margin: 0;
-    font-size: 1.05rem;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(21px, 2.2vw, 26px);
     font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.onSurface};
+    letter-spacing: -0.028em;
+    color: ${nocturne.cream};
   }
   > p {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 16px;
     line-height: 1.55;
     max-width: 62ch;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    color: ${nocturne.muted};
   }
 `;
 
@@ -42,22 +41,46 @@ const Chips = styled.div`
 const Chip = styled.button<{ $active: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 36px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 999px;
+  gap: 9px;
+  padding: 5px 10px;
+  border: 1.5px solid
+    ${({ $active }) =>
+      $active
+        ? nocturne.accent
+        : "color-mix(in oklab, var(--n-accent) 58%, transparent)"};
+  border-radius: 8px;
   font: inherit;
-  font-size: 0.86rem;
+  font-size: 15px;
   font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  background: ${({ theme, $active }) =>
-    $active ? theme.color.secondaryContainer : theme.color.surfaceContainerHigh};
-  color: ${({ theme, $active }) =>
-    $active ? theme.color.onSecondaryContainer : theme.color.onSurfaceVariant};
+  background: ${({ $active }) => ($active ? nocturne.accent : "transparent")};
+  color: ${({ $active }) => ($active ? nocturne.onGreen : nocturne.cream)};
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
 
   svg {
     flex: none;
+    color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
+    transition: color 0.16s ease;
+  }
+  @media (hover: hover) {
+    &:hover {
+      border-color: ${nocturne.accent};
+      background: ${({ $active }) =>
+        $active ? nocturne.greenDeep : nocturne.surface2};
+      color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
+    }
+    &:hover svg {
+      color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 `;
 
@@ -67,16 +90,27 @@ const Form = styled.div`
 
   textarea {
     width: 100%;
-    min-height: 96px;
-    border: none;
-    border-radius: ${({ theme }) => theme.radius.xs};
-    padding: 11px 13px;
-    background: ${({ theme }) => theme.color.surfaceContainerLowest};
-    color: ${({ theme }) => theme.color.onSurface};
+    min-height: 104px;
+    border: 1.5px solid
+      color-mix(in oklab, var(--n-accent) 58%, transparent);
+    border-radius: 12px;
+    padding: 13px 15px;
+    background: ${nocturne.surface};
+    color: ${nocturne.cream};
+    caret-color: ${nocturne.accent};
     font: inherit;
-    font-size: 0.93rem;
-    line-height: 1.5;
+    font-size: 16px;
+    line-height: 1.55;
     resize: vertical;
+    transition: border-color 0.16s ease;
+  }
+  textarea::placeholder {
+    color: ${nocturne.muted2};
+  }
+  textarea:focus-visible {
+    outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: inset 0 0 0 1px ${nocturne.accent};
   }
 
   .acts {
@@ -88,17 +122,21 @@ const Form = styled.div`
 
 const Done = styled.div`
   display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 0.9rem;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 62ch;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+  font-size: 15px;
   font-weight: 600;
-  color: ${({ theme }) => theme.color.onSuccessContainer};
-  background: ${({ theme }) => theme.color.successContainer};
-  border-radius: ${({ theme }) => theme.radius.xs};
-  padding: 12px 14px;
+  line-height: 1.5;
 
   svg {
     flex: none;
+    margin-top: 2px;
+    color: ${nocturne.lime};
   }
 `;
 
@@ -139,7 +177,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
       <Card>
         <h2>Help with this trip</h2>
         <Done>
-          <Check size={18} />
+          <Check size={21} />
           {existing.subject}. Open with support. The Support button follows you
           around the app until it is resolved.
         </Done>
@@ -166,7 +204,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               aria-pressed={topic === t.key}
               onClick={() => setTopic(topic === t.key ? null : t.key)}
             >
-              <Icon size={16} />
+              <Icon size={23} />
               {t.subject}
             </Chip>
           );
