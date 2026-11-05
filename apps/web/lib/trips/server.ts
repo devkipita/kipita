@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { cityPhotos } from "@/lib/places/photo";
 import {
   BOOKING_SELECT,
   CURRENT_STATES,
@@ -38,6 +37,7 @@ function toBooking(raw: unknown): Booking {
     status: row.status as Booking["status"],
     booking_reference: (row.booking_reference as string | null) ?? null,
     created_at: row.created_at as string,
+    expires_at: (row.expires_at as string | null) ?? null,
     trip: trip
       ? ({
           id: trip.id as string,
@@ -56,15 +56,6 @@ function toBooking(raw: unknown): Booking {
   };
 }
 
-/** Attach a destination photo to each booking, one lookup per distinct town. */
-async function withPhotos(bookings: Booking[]): Promise<Booking[]> {
-  if (bookings.length === 0) return bookings;
-  const photos = await cityPhotos(bookings.map((b) => b.trip?.to_location));
-  return bookings.map((b) => ({
-    ...b,
-    photo_url: photos.get((b.trip?.to_location ?? "").trim().toLowerCase()) ?? null,
-  }));
-}
 
 async function fetchBookingsIn(
   userId: string,
@@ -82,10 +73,26 @@ async function fetchBookingsIn(
       .limit(limit);
 
     if (error || !data) return [];
-    return await withPhotos(data.map(toBooking));
+    return byDeparture(data.map(toBooking));
   } catch {
     return [];
   }
+}
+
+function departureAt(b: Booking): number {
+  const date = b.trip?.departure_date;
+  if (!date) return Number.MAX_SAFE_INTEGER;
+  const time = b.trip?.departure_time ?? "00:00";
+  const at = new Date(`${date}T${time}`).getTime();
+  return Number.isNaN(at) ? Number.MAX_SAFE_INTEGER : at;
+}
+
+function byDeparture(bookings: Booking[]): Booking[] {
+  return [...bookings].sort((a, b) => {
+    if (a.status === "in_progress" && b.status !== "in_progress") return -1;
+    if (b.status === "in_progress" && a.status !== "in_progress") return 1;
+    return departureAt(a) - departureAt(b);
+  });
 }
 
 export function fetchCurrentBookings(userId: string): Promise<Booking[]> {
@@ -125,8 +132,7 @@ export async function fetchBooking(id: string): Promise<Booking | null> {
       .maybeSingle();
 
     if (error || !data) return null;
-    const [withPhoto] = await withPhotos([toBooking(data)]);
-    return withPhoto ?? null;
+    return toBooking(data);
   } catch {
     return null;
   }

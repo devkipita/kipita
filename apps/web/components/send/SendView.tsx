@@ -32,12 +32,16 @@ const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 type Side = "send" | "offer";
 
 const Page = styled(ContentWidth)`
-  padding-block: clamp(24px, 4vh, 44px) 0;
+  padding-block: clamp(24px, 4vh, 44px) clamp(56px, 9vh, 96px);
   background: ${nocturne.bg};
 
   ::selection {
     background: ${nocturne.sage};
     color: ${nocturne.greenDeep};
+  }
+
+  @media (max-width: 960px) {
+    padding-bottom: calc(clamp(48px, 7vh, 72px) + var(--bottom-bar-space, 0px));
   }
 `;
 
@@ -567,24 +571,35 @@ const Why = styled.section`
 const WhyGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 26px 36px;
+  gap: 30px 40px;
 
-  svg {
+  .plate {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: color-mix(in oklab, var(--n-lime) 22%, transparent);
+    box-shadow: inset 0 0 0 1.5px
+      color-mix(in oklab, var(--n-lime) 34%, transparent);
+  }
+  .plate svg {
     flex: none;
     color: ${nocturne.lime};
   }
   b {
     display: block;
-    margin: 10px 0 5px;
+    margin: 16px 0 6px;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 17px;
+    font-size: 17.5px;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.022em;
   }
   p {
     margin: 0;
-    font-size: 14.5px;
-    line-height: 1.55;
+    max-width: 34ch;
+    font-size: 15px;
+    line-height: 1.6;
     color: ${nocturne.onGreenMuted};
   }
 `;
@@ -868,7 +883,9 @@ export function SendView({
       <Why>
         <WhyGrid>
           <div>
-            <ShieldCheck size={24} aria-hidden />
+            <span className="plate" aria-hidden>
+              <ShieldCheck size={24} />
+            </span>
             <b>Safer by design</b>
             <p>
               Verified drivers, vehicle details, item photos, and secure M-Pesa
@@ -876,7 +893,9 @@ export function SendView({
             </p>
           </div>
           <div>
-            <ChatCircle size={24} aria-hidden />
+            <span className="plate" aria-hidden>
+              <ChatCircle size={24} />
+            </span>
             <b>No more WhatsApp guesswork</b>
             <p>
               Keep route, price, messages, proof of pickup, and delivery in one
@@ -884,7 +903,9 @@ export function SendView({
             </p>
           </div>
           <div>
-            <Path size={24} aria-hidden />
+            <span className="plate" aria-hidden>
+              <Path size={24} />
+            </span>
             <b>Better return journeys</b>
             <p>
               Drivers offset fuel costs while existing road capacity gets used.

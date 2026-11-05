@@ -1,17 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState, useTransition } from "react";
 import styled, { useTheme } from "styled-components";
 import { ArrowRight, CalendarBlank, Clock, Users } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
+import { cancelBookingAction } from "@/lib/trips/booking-actions";
 import type { Booking } from "@/lib/trips/types";
 import { STATUS_ICON, STATUS_LABEL, statusTone } from "./statusTone";
 
 const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
-const Row = styled(Link)`
+function useCountdown(iso: string | null): string | null {
+  const [left, setLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!iso) {
+      setLeft(null);
+      return;
+    }
+    const tick = () => {
+      const ms = new Date(iso).getTime() - Date.now();
+      if (!Number.isFinite(ms) || ms <= 0) {
+        setLeft(null);
+        return;
+      }
+      const mins = Math.floor(ms / 60000);
+      const secs = Math.floor((ms % 60000) / 1000);
+      setLeft(`${mins}:${String(secs).padStart(2, "0")}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [iso]);
+
+  return left;
+}
+
+const Row = styled.div`
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -20,7 +48,6 @@ const Row = styled(Link)`
   padding: clamp(20px, 2.6vh, 28px) 14px;
   margin-inline: -14px;
   border-radius: 14px;
-  text-decoration: none;
   transition: background-color 0.16s ease;
 
   @media (hover: hover) {
@@ -34,10 +61,6 @@ const Row = styled(Link)`
       transform: translateX(4px);
     }
   }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
-  }
 
   @media (max-width: 720px) {
     grid-template-columns: minmax(0, 1fr);
@@ -49,6 +72,76 @@ const Row = styled(Link)`
       transform: none;
     }
   }
+`;
+
+const Open = styled(Link)`
+  text-decoration: none;
+  color: inherit;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+  }
+  &:focus-visible::after {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+`;
+
+const Acts = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+`;
+
+const Act = styled.button<{ $primary?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1.5px solid ${({ $primary }) => ($primary ? "transparent" : RULE)};
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  cursor: pointer;
+  background: ${({ $primary }) => ($primary ? nocturne.ctaBg : "transparent")};
+  color: ${({ $primary }) => ($primary ? nocturne.ctaFg : nocturne.muted)};
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ $primary }) =>
+        $primary ? nocturne.green : nocturne.surface};
+      color: ${({ $primary }) => ($primary ? nocturne.onGreen : nocturne.cream)};
+      border-color: ${({ $primary }) => ($primary ? "transparent" : nocturne.accent)};
+    }
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+`;
+
+const Expiry = styled.span<{ $soon: boolean }>`
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: ${({ $soon }) => ($soon ? nocturne.ctaBg : nocturne.muted)};
 `;
 
 const Main = styled.div`
@@ -173,12 +266,40 @@ export function BookingCard({
   const origin = booking.trip?.from_location ?? "";
   const live = booking.status === "in_progress";
 
+  const [busy, setBusy] = useState(false);
+  const [, startTransition] = useTransition();
+  const left = useCountdown(booking.expires_at);
+  const soon = left !== null && left.startsWith("0:");
+
+  const canPay = !isDriver && booking.status === "pending_payment";
+  const canCancel =
+    !isDriver &&
+    (booking.status === "requested" ||
+      booking.status === "pending_payment" ||
+      booking.status === "confirmed");
+
+  function cancel() {
+    const paid = booking.status === "confirmed";
+    const msg = paid
+      ? `Cancel this trip? ${formatCurrency(booking.total_price)} goes back to your Kipita wallet.`
+      : "Cancel this request? The seat is released straight away.";
+    if (!window.confirm(msg)) return;
+
+    setBusy(true);
+    startTransition(async () => {
+      const result = await cancelBookingAction(booking.id);
+      if (!result.ok) window.alert(result.error);
+      setBusy(false);
+    });
+  }
+
   return (
-    <Row
-      href={`/trips/${booking.id}`}
-      aria-label={`${origin} to ${destination}, ${STATUS_LABEL[booking.status]}, ${formatCurrency(booking.total_price)}`}
-    >
+    <Row>
       <Main>
+        <Open
+          href={`/trips/${booking.id}`}
+          aria-label={`${origin} to ${destination}, ${STATUS_LABEL[booking.status]}, ${formatCurrency(booking.total_price)}`}
+        />
         <Status $on={tone.bg}>
           {live ? <span className="dot" /> : <Icon size={15} weight="fill" />}
           {STATUS_LABEL[booking.status]}
@@ -210,6 +331,28 @@ export function BookingCard({
               {booking.seats_booked === 1 ? "seat" : "seats"}
             </li>
           </Facts>
+        )}
+
+        {(canPay || canCancel) && (
+          <Acts>
+            {canPay && (
+              <>
+                <Act
+                  as={Link}
+                  $primary
+                  href={`/ride/${booking.trip_id}?booking=${booking.id}`}
+                >
+                  Pay {formatCurrency(booking.total_price)}
+                </Act>
+                {left && <Expiry $soon={soon}>Hold ends in {left}</Expiry>}
+              </>
+            )}
+            {canCancel && (
+              <Act type="button" onClick={cancel} disabled={busy}>
+                {busy ? "Cancelling…" : "Cancel"}
+              </Act>
+            )}
+          </Acts>
         )}
       </Main>
 
