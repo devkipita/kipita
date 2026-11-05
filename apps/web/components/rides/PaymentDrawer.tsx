@@ -145,8 +145,6 @@ export function PaymentDrawer({
     try {
       const { payment_id } = await initiatePayment({
         booking_id: bookingId,
-        user_id: userId,
-        amount,
         method: "mpesa",
         phone: toDaraja(phone),
       });

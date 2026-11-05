@@ -47,10 +47,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { booking_id, driver_id } = await req.json();
+    const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    const { data: authData } = await supabase.auth.getUser(jwt);
+    if (!authData?.user) return json({ error: 'Not signed in' }, 401);
+
+    const { data: caller } = await supabase
+      .from('users')
+      .select('id, is_admin')
+      .eq('auth_id', authData.user.id)
+      .maybeSingle();
+
+    if (!caller) return json({ error: 'Profile not found' }, 401);
+
+    const { booking_id } = await req.json();
     if (!booking_id) return json({ error: 'booking_id required' }, 400);
 
-    // Fetch the booking + the held payment for it.
     const { data: booking } = await supabase
       .from('bookings')
       .select('*')
@@ -59,8 +70,7 @@ serve(async (req) => {
 
     if (!booking) return json({ error: 'Booking not found' }, 404);
 
-    // Only the driver on the booking may release the funds.
-    if (driver_id && booking.driver_id !== driver_id) {
+    if (booking.driver_id !== caller.id && !caller.is_admin) {
       return json({ error: 'Not authorized to release this payment' }, 403);
     }
 

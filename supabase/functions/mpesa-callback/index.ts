@@ -26,6 +26,23 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+
+    const expectedSecret = Deno.env.get('MPESA_CALLBACK_SECRET');
+    if (!expectedSecret) {
+      console.error('mpesa-callback: MPESA_CALLBACK_SECRET is not set');
+      return new Response(JSON.stringify({ error: 'Not configured' }), {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (url.searchParams.get('s') !== expectedSecret) {
+      console.error('mpesa-callback: rejected an unsigned callback');
+      return new Response(JSON.stringify({ error: 'Not authorized' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
     const paymentId = url.searchParams.get('payment_id');
     const topupId = url.searchParams.get('topup_id');
     const body = await req.json();

@@ -149,7 +149,9 @@ async function initiateMpesaSTK(params: {
       PartyA: phone,
       PartyB: shortcode,
       PhoneNumber: phone,
-      CallBackURL: `${callbackUrl}?topup_id=${params.topupId}`,
+      CallBackURL: `${callbackUrl}?s=${encodeURIComponent(
+        Deno.env.get('MPESA_CALLBACK_SECRET') ?? '',
+      )}&topup_id=${params.topupId}`,
       AccountReference: `KipitaWallet-${params.topupId.slice(0, 8)}`,
       TransactionDesc: 'Kipita wallet top-up',
     }),

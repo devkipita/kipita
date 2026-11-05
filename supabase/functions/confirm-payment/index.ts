@@ -26,10 +26,17 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const bearer = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+
+    if (bearer !== serviceKey) {
+      return new Response(JSON.stringify({ error: 'Not authorized' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey);
 
     const { payment_id } = await req.json();
 
@@ -57,7 +64,7 @@ serve(async (req) => {
     // Fetch booking
     const { data: booking } = await supabase
       .from('bookings')
-      .select('*, ride:rides(*)')
+      .select('*, trip:trips(*)')
       .eq('id', payment.booking_id)
       .single();
 
@@ -65,23 +72,19 @@ serve(async (req) => {
       throw new Error('Booking not found');
     }
 
-    // Transactional seat deduction
-    const { data: seatResult } = await supabase.rpc('deduct_seats', {
-      p_ride_id: booking.ride_id,
-      p_seats: booking.seats_booked,
-    });
-
-    if (!seatResult) {
-      // Not enough seats — payment fails
+    if (booking.status === 'cancelled') {
       await supabase
         .from('payments')
         .update({ status: 'failed', updated_at: new Date().toISOString() })
         .eq('id', payment_id);
 
-      return new Response(JSON.stringify({ error: 'Not enough seats available' }), {
-        status: 409,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: 'This hold expired before payment completed' }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
     }
 
     // Passenger payment captured to the Kipita paybill. Compute the escrow
@@ -118,6 +121,7 @@ serve(async (req) => {
       .update({
         status: 'confirmed',
         payment_id: payment_id,
+        expires_at: null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', payment.booking_id);

@@ -23,8 +23,6 @@ export type InitiateResult = {
 
 export async function initiatePayment(params: {
   booking_id: string;
-  user_id: string;
-  amount: number;
   method: PaymentMethod;
   phone?: string;
 }): Promise<InitiateResult> {

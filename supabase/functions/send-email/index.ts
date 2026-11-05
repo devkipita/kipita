@@ -15,10 +15,17 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const bearer = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+
+    if (bearer !== serviceKey) {
+      return new Response(JSON.stringify({ error: 'Not authorized' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey);
 
     const { template, to: userId, data } = await req.json();
 
@@ -141,11 +148,11 @@ async function buildEmail(
       const { booking_id } = data;
       const { data: booking } = await supabase
         .from('bookings')
-        .select('*, ride:rides(from_location, to_location, departure_date, departure_time)')
+        .select('*, trip:trips(from_location, to_location, departure_date, departure_time)')
         .eq('id', booking_id)
         .single();
 
-      const ride = booking?.ride;
+      const ride = booking?.trip;
 
       return {
         subject: 'Your trip is confirmed 🎉',

@@ -17,14 +17,35 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    const { booking_id, user_id, amount, method, phone } = await req.json();
+    const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    const { data: authData } = await supabase.auth.getUser(jwt);
+    if (!authData?.user) {
+      return new Response(JSON.stringify({ error: 'Not signed in' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Validate booking exists and belongs to user
+    const { data: caller } = await supabase
+      .from('users')
+      .select('id')
+      .eq('auth_id', authData.user.id)
+      .maybeSingle();
+
+    if (!caller) {
+      return new Response(JSON.stringify({ error: 'Profile not found' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { booking_id, method, phone } = await req.json();
+
     const { data: booking, error: bookingErr } = await supabase
       .from('bookings')
       .select('*')
       .eq('id', booking_id)
-      .eq('passenger_id', user_id)
+      .eq('passenger_id', caller.id)
       .single();
 
     if (bookingErr || !booking) {
@@ -34,7 +55,26 @@ serve(async (req) => {
       });
     }
 
-    // Check idempotency — don't create duplicate payments
+    if (booking.status !== 'pending_payment') {
+      return new Response(
+        JSON.stringify({ error: 'This booking is not awaiting payment' }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    if (booking.expires_at && new Date(booking.expires_at) <= new Date()) {
+      return new Response(JSON.stringify({ error: 'This hold has expired' }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const user_id = caller.id;
+    const amount = Number(booking.total_price);
+
     const idempotencyKey = `${booking_id}-${method}-${amount}`;
     const { data: existingPayment } = await supabase
       .from('payments')
@@ -160,7 +200,9 @@ async function initiateMpesaSTK(params: {
       PartyA: phone,
       PartyB: shortcode,
       PhoneNumber: phone,
-      CallBackURL: `${callbackUrl}?payment_id=${params.paymentId}`,
+      CallBackURL: `${callbackUrl}?s=${encodeURIComponent(
+        Deno.env.get('MPESA_CALLBACK_SECRET') ?? '',
+      )}&payment_id=${params.paymentId}`,
       AccountReference: `Kipita-${params.paymentId.slice(0, 8)}`,
       TransactionDesc: 'Kipita ride payment',
     }),
