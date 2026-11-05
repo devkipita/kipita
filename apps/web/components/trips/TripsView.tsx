@@ -8,6 +8,7 @@ import { ContentWidth } from "@/components/nav/AppShell";
 import { nocturne } from "@/lib/nocturne";
 import type { Booking } from "@/lib/trips/types";
 import { BookingCard } from "./BookingCard";
+import { SeatRequests } from "./SeatRequests";
 import { SupportPanel } from "./SupportPanel";
 import { TripFaqs } from "./TripFaqs";
 
@@ -280,10 +281,12 @@ function matches(booking: Booking, query: string): boolean {
 export function TripsView({
   current,
   previous,
+  requests = [],
   viewerId,
 }: {
   current: Booking[];
   previous: Booking[];
+  requests?: Booking[];
   viewerId: string;
 }) {
   const [tab, setTab] = useState<Tab>("current");
@@ -300,6 +303,8 @@ export function TripsView({
   return (
     <Page $max={1080}>
       <Title>Trips</Title>
+
+      <SeatRequests initial={requests} />
 
       <Controls>
         <Tabs role="group" aria-label="Which trips">

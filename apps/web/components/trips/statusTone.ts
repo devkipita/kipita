@@ -1,6 +1,7 @@
 import {
   CheckCircle,
   Checks,
+  Clock,
   NavigationArrow,
   Wallet,
   XCircle,
@@ -43,7 +44,15 @@ export function statusTone(theme: AppTheme, status: BookingStatus): StatusTone {
         container: c.successContainer,
         onContainer: c.onSuccessContainer,
       };
+    case "requested":
+      return {
+        bg: c.info,
+        on: c.onInfo,
+        container: c.infoContainer,
+        onContainer: c.onInfoContainer,
+      };
     case "cancelled":
+    case "rejected":
       return {
         bg: c.error,
         on: c.onError,
@@ -62,17 +71,21 @@ export function statusTone(theme: AppTheme, status: BookingStatus): StatusTone {
 }
 
 export const STATUS_ICON: Record<BookingStatus, KipitaIcon> = {
+  requested: Clock,
   pending_payment: Wallet,
   confirmed: CheckCircle,
   in_progress: NavigationArrow,
   completed: Checks,
   cancelled: XCircle,
+  rejected: XCircle,
 };
 
 export const STATUS_LABEL: Record<BookingStatus, string> = {
+  requested: "Waiting on the driver",
   pending_payment: "Payment due",
   confirmed: "Confirmed",
   in_progress: "In progress",
   completed: "Completed",
   cancelled: "Cancelled",
+  rejected: "Declined",
 };

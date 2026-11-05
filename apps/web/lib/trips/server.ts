@@ -92,6 +92,24 @@ export function fetchCurrentBookings(userId: string): Promise<Booking[]> {
   return fetchBookingsIn(userId, CURRENT_STATES, 50);
 }
 
+export async function fetchSeatRequests(userId: string): Promise<Booking[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("bookings")
+      .select(BOOKING_SELECT)
+      .eq("driver_id", userId)
+      .eq("status", "requested")
+      .order("created_at", { ascending: true })
+      .limit(50);
+
+    if (error || !data) return [];
+    return data.map(toBooking);
+  } catch {
+    return [];
+  }
+}
+
 export function fetchPreviousBookings(userId: string): Promise<Booking[]> {
   return fetchBookingsIn(userId, PREVIOUS_STATES, 50);
 }

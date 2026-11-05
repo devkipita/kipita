@@ -1,17 +1,24 @@
 export type BookingStatus =
+  | "requested"
   | "pending_payment"
   | "confirmed"
   | "in_progress"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "rejected";
 
 export const CURRENT_STATES: BookingStatus[] = [
+  "requested",
   "pending_payment",
   "confirmed",
   "in_progress",
 ];
 
-export const PREVIOUS_STATES: BookingStatus[] = ["completed", "cancelled"];
+export const PREVIOUS_STATES: BookingStatus[] = [
+  "completed",
+  "cancelled",
+  "rejected",
+];
 
 export interface TripPerson {
   id: string;
