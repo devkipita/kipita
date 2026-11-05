@@ -6,14 +6,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const FEE_PERCENT = Number(Deno.env.get('KIPITA_FEE_PERCENT') ?? '12');
+const FEE_FALLBACK = Number(Deno.env.get('KIPITA_FEE_PERCENT') ?? '12');
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-function escrowSplit(amount: number): { fee: number; driverEarning: number } {
-  const fee = round2((amount * FEE_PERCENT) / 100);
+async function feePercent(
+  supabase: ReturnType<typeof createClient>,
+  payment: Record<string, unknown>,
+): Promise<number> {
+  const applied = Number(payment.fee_percent ?? NaN);
+  if (Number.isFinite(applied) && applied > 0) return applied;
+
+  const { data } = await supabase.rpc('setting_numeric', {
+    p_key: 'platform_fee_percent',
+    p_default: FEE_FALLBACK,
+  });
+
+  const rate = Number(data ?? NaN);
+  return Number.isFinite(rate) && rate > 0 ? rate : FEE_FALLBACK;
+}
+
+function escrowSplit(
+  amount: number,
+  percent: number,
+): { fee: number; driverEarning: number } {
+  const fee = round2((amount * percent) / 100);
   return { fee, driverEarning: round2(amount - fee) };
 }
 
@@ -107,7 +126,10 @@ serve(async (req) => {
     const stored = Number(payment.driver_earning) > 0;
     const { fee, driverEarning } = stored
       ? { fee: Number(payment.platform_fee), driverEarning: Number(payment.driver_earning) }
-      : escrowSplit(Number(payment.amount));
+      : escrowSplit(
+          Number(payment.amount),
+          await feePercent(supabase, payment as Record<string, unknown>),
+        );
 
     const { data: released } = await supabase
       .from('payments')

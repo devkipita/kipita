@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/auth/session";
 import { fetchRideDetail } from "@/lib/ride-detail.server";
+import { fetchPlatform } from "@/lib/platform.server";
+import { settingOf } from "@/lib/platform";
 import { RideDetailView } from "@/components/rides/RideDetailView";
 
 type PageProps = {
@@ -19,11 +21,18 @@ export const metadata: Metadata = {
 export default async function RidePage({ params, searchParams }: PageProps) {
   const [{ id }, { kind }] = await Promise.all([params, searchParams]);
 
-  const [ride, profile] = await Promise.all([
+  const [ride, profile, platform] = await Promise.all([
     fetchRideDetail(id, kind === "request" ? "request" : "trip"),
     getProfile(),
+    fetchPlatform(),
   ]);
 
   if (!ride) notFound();
-  return <RideDetailView ride={ride} profile={profile} />;
+  return (
+    <RideDetailView
+      ride={ride}
+      profile={profile}
+      feePercent={settingOf(platform, "platform_fee_percent")}
+    />
+  );
 }

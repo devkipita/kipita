@@ -17,6 +17,7 @@ import { PaymentDrawer } from "./PaymentDrawer";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
+import { fareBreakdown } from "@/lib/platform";
 import { nocturne } from "@/lib/nocturne";
 import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
@@ -435,6 +436,33 @@ const Left = styled.p<{ $scarce: boolean }>`
   }
 `;
 
+const Split = styled.dl`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 7px 16px;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1.5px solid ${RULE};
+
+  dt {
+    font-size: 15px;
+    color: ${nocturne.muted};
+  }
+  dd {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: ${nocturne.cream};
+  }
+  .total dt,
+  .total dd {
+    font-weight: 800;
+    color: ${nocturne.cream};
+  }
+`;
+
 const Escrow = styled.div`
   display: flex;
   flex-direction: column;
@@ -659,9 +687,11 @@ function preferenceFacts(prefs: RideDetail["preferences"]) {
 export function RideDetailView({
   ride,
   profile,
+  feePercent = 12,
 }: {
   ride: RideDetail;
   profile: Profile | null;
+  feePercent?: number;
 }) {
   const router = useRouter();
   const isTrip = ride.kind === "trip";
@@ -863,6 +893,25 @@ export function RideDetailView({
                   <b>{ride.seats_available}</b> of {ride.seats_total} seats left
                 </Left>
                 {renderAction()}
+                {(() => {
+                  const total = ride.price_per_seat * seats;
+                  const { fee, driverEarning } = fareBreakdown(total, feePercent);
+                  return (
+                    <Split>
+                      <dt>
+                        {seats} {seats === 1 ? "seat" : "seats"} at{" "}
+                        {formatKes(ride.price_per_seat)}
+                      </dt>
+                      <dd>{formatKes(total)}</dd>
+                      <dt>Goes to your driver</dt>
+                      <dd>{formatKes(driverEarning)}</dd>
+                      <dt>Kipita fee ({feePercent}%)</dt>
+                      <dd>{formatKes(fee)}</dd>
+                      <dt className="total">You pay</dt>
+                      <dd className="total">{formatKes(total)}</dd>
+                    </Split>
+                  );
+                })()}
                 <Escrow>
                   <span className="art">
                     <EscrowHeldArt />
