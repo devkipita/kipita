@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, QuestionCircle, Ticket, CaretRight as ChevronRight } from "@/components/icons";
+import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, QuestionCircle, SealCheck, Ticket, CaretRight as ChevronRight } from "@/components/icons";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
 import { Container, Grid, H2, Lead } from "@/components/ui/primitives";
@@ -21,6 +21,20 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
         <Lead>Manage Kipita day to day.</Lead>
 
         <Grid $cols={3} style={{ marginTop: 48 }}>
+          <FeatureCardLink href="/admin/drivers">
+            <IconBubble icon={SealCheck} variant="green" />
+            <FeatureTitle>
+              Driver verification
+              <InlineChevron data-chevron>
+                <ChevronRight size={18} />
+              </InlineChevron>
+            </FeatureTitle>
+            <FeatureBody>
+              Check licences and IDs, then approve or reject drivers waiting to
+              publish.
+            </FeatureBody>
+          </FeatureCardLink>
+
           <FeatureCardLink href="/admin/refunds">
             <IconBubble icon={Undo2} variant="green" />
             <FeatureTitle>

@@ -302,6 +302,22 @@ export const CarVan = createIcon("CarVan", () => (
   </>
 ));
 
+export const Truck = createIcon("Truck", () => (
+  <>
+    <path d="M2.4 6.6h10.2a1.2 1.2 0 0 1 1.2 1.2v8.6H3.6a1.2 1.2 0 0 1-1.2-1.2Z" />
+    <path d="M13.8 10.2h3.5a1.6 1.6 0 0 1 1.34.73l1.9 2.95a1.6 1.6 0 0 1 .26.87v1.65h-7Z" />
+    <path d="M8.4 17.6v.5a1.5 1.5 0 0 1-3 0v-.5M19.6 17.6v.5a1.5 1.5 0 0 1-3 0v-.5" />
+  </>
+));
+
+export const Package = createIcon("Package", () => (
+  <>
+    <path d="M12 2.9 20.6 7v10L12 21.1 3.4 17V7Z" />
+    <path d="M3.4 7 12 11.1 20.6 7" />
+    <path d="M12 11.1v10" />
+  </>
+));
+
 export const CarMinibus = createIcon("CarMinibus", () => (
   <>
     <path d="M3.2 5.4h17.6a1.4 1.4 0 0 1 1.4 1.4v9.4a1.2 1.2 0 0 1-1.2 1.2H3a1.2 1.2 0 0 1-1.2-1.2V6.8a1.4 1.4 0 0 1 1.4-1.4Z" />
