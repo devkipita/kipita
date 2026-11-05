@@ -706,7 +706,7 @@ export function RideDetailView({
     startTransition(async () => {
       const booked = await reserveSeatAction(ride.id, seats);
       setResult(booked);
-      if (!booked.ok) return;
+      if (!booked.ok || booked.awaitingDriver) return;
 
       const userId = await currentUserIdAction();
       if (userId) {
@@ -880,7 +880,11 @@ export function RideDetailView({
                 <CheckCircle2 size={20} />
                 <div>
                   <b>
-                    {paid ? "Seat confirmed" : "Seat held"}
+                    {paid
+                      ? "Seat confirmed"
+                      : result.awaitingDriver
+                        ? "Request sent"
+                        : "Seat held"}
                     {result.reference ? ` · ${result.reference}` : ""}
                   </b>
                   <p>
@@ -888,7 +892,9 @@ export function RideDetailView({
                     {formatKes(result.total)}.{" "}
                     {paid
                       ? "Paid. We hold your fare until the trip is done, then release it to your driver."
-                      : "Pay with M-Pesa to confirm; the seat is held until you do."}
+                      : result.awaitingDriver
+                        ? "The driver has to accept before you pay. We will tell you either way — nothing is charged yet."
+                        : "Pay with M-Pesa to confirm; the seat is held until you do."}
                   </p>
                 </div>
               </Banner>
@@ -898,7 +904,7 @@ export function RideDetailView({
               <Banner $tone="bad">
                 <Smartphone size={20} />
                 <div>
-                  <b>Couldn&apos;t hold that seat</b>
+                  <b>Couldn&apos;t send that request</b>
                   <p>{result.error}</p>
                 </div>
               </Banner>
@@ -960,7 +966,7 @@ export function RideDetailView({
       return (
         <Bar>
           <PrimaryLink href={`/auth/sign-in?next=${next}`}>
-            Sign in to {isTrip ? "reserve a seat" : "respond"}
+            Sign in to {isTrip ? "request a seat" : "respond"}
           </PrimaryLink>
         </Bar>
       );
@@ -1028,13 +1034,13 @@ export function RideDetailView({
         <Primary type="button" onClick={reserve} disabled={pending || soldOut} aria-busy={pending}>
           {pending ? (
             <>
-              <ButtonOrb job="committing" /> Holding…
+              <ButtonOrb job="committing" /> Sending…
             </>
           ) : soldOut ? (
             "Fully booked"
           ) : (
             <>
-              <span>Reserve · KES</span>
+              <span>Request · KES</span>
               <RollingNumber
                 value={ride.price_per_seat * seats}
                 duration={520}

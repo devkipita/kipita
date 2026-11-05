@@ -4,6 +4,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
+export type BookingStatus =
+  | "requested"
+  | "pending_payment"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "rejected";
+
 export type BookingResult =
   | {
       ok: true;
@@ -11,13 +20,14 @@ export type BookingResult =
       reference: string | null;
       seats: number;
       total: number;
-      existing: boolean;
+      status: BookingStatus;
       expiresAt: string | null;
+      awaitingDriver: boolean;
     }
   | { ok: false; error: string };
 
 const HOLD_ERRORS: Record<string, string> = {
-  "28000": "Sign in to reserve a seat.",
+  "28000": "Sign in to request a seat.",
   "22023": "This ride is no longer taking bookings.",
   "42501": "This is your own ride.",
   "53400": "Those seats have just gone. Try fewer, or another ride.",
@@ -53,15 +63,14 @@ export async function reserveSeatAction(
   if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const { data: held, error: holdError } = await supabase
-    .rpc("hold_seat", { p_trip_id: tripId, p_seats: requested })
+    .rpc("request_seat", { p_trip_id: tripId, p_seats: requested })
     .maybeSingle<{
       id: string;
       booking_reference: string | null;
       seats_booked: number;
       total_price: number;
-      status: string;
+      status: BookingStatus;
       expires_at: string | null;
-      was_existing: boolean;
     }>();
 
   if (holdError) {
@@ -69,12 +78,12 @@ export async function reserveSeatAction(
       ok: false,
       error:
         HOLD_ERRORS[holdError.code ?? ""] ??
-        "We couldn't hold that seat. Please try again.",
+        "We couldn't send that request. Please try again.",
     };
   }
 
   if (!held) {
-    return { ok: false, error: "We couldn't hold that seat. Please try again." };
+    return { ok: false, error: "We couldn't send that request. Please try again." };
   }
 
   revalidatePath(`/ride/${tripId}`);
@@ -84,7 +93,8 @@ export async function reserveSeatAction(
     reference: held.booking_reference,
     seats: held.seats_booked,
     total: Number(held.total_price),
-    existing: held.was_existing,
+    status: held.status,
+    awaitingDriver: held.status === "requested",
     expiresAt: held.expires_at,
   };
 }
