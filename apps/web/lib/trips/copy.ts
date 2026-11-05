@@ -8,7 +8,7 @@ export const TRIP_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if I need to cancel?",
-    a: "Cancel from the trip itself. A seat cancelled well before departure is refunded in full; closer to departure the driver keeps a share, because they have already turned away other passengers.",
+    a: "Cancel from the trip itself, or from the row on this page. During the pilot there is no cancellation charge at all: if you paid, the full fare goes back to your Kipita wallet; if you had not paid yet, the seat is simply released.",
   },
   {
     q: "The driver never arrived. What now?",

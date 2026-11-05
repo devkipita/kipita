@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
 import styled, { css, useTheme } from "styled-components";
 import {
   ArrowLeft,
@@ -17,6 +18,7 @@ import { Avatar } from "@/components/profile/Avatar";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
+import { cancelBookingAction } from "@/lib/trips/booking-actions";
 import type { Booking } from "@/lib/trips/types";
 import { STATUS_ICON, STATUS_LABEL, statusTone } from "./statusTone";
 import { TripHelp } from "./TripHelp";
@@ -409,6 +411,36 @@ const Actions = styled.div`
   gap: 10px;
 `;
 
+const Drop = styled.button`
+  ${action}
+  min-height: 50px;
+  border: none;
+  background: transparent;
+  color: ${nocturne.muted};
+  box-shadow: inset 0 0 0 1.5px transparent;
+  transition:
+    box-shadow 0.16s ease,
+    color 0.16s ease;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      color: ${nocturne.cream};
+      box-shadow: inset 0 0 0 1.5px ${RULE};
+    }
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+`;
+
+const Note = styled.p`
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: ${nocturne.muted};
+`;
+
 const Helping = styled.div`
   margin-top: clamp(34px, 5vh, 56px);
   padding-top: clamp(26px, 3.4vh, 36px);
@@ -456,6 +488,29 @@ export function TripDetail({
   const date = formatTripDate(booking.trip?.departure_date ?? null);
   const time = formatTripTime(booking.trip?.departure_time ?? null);
   const rating = person?.rating ? person.rating.toFixed(1) : null;
+
+  const [busy, setBusy] = useState(false);
+  const [, startTransition] = useTransition();
+
+  const paid = booking.status === "confirmed";
+  const canCancel =
+    booking.status === "requested" ||
+    booking.status === "pending_payment" ||
+    paid;
+
+  function cancel() {
+    const message = paid
+      ? `Cancel this trip? ${formatCurrency(booking.total_price)} goes back to your Kipita wallet in full.`
+      : "Cancel this request? The seat is released straight away.";
+    if (!window.confirm(message)) return;
+
+    setBusy(true);
+    startTransition(async () => {
+      const result = await cancelBookingAction(booking.id);
+      if (!result.ok) window.alert(result.error);
+      setBusy(false);
+    });
+  }
 
   return (
     <Page $max={1060}>
@@ -566,7 +621,24 @@ export function TripDetail({
                   <MapPin size={17} /> View the ride
                 </Secondary>
               )}
+              {canCancel && !isDriver && (
+                <Drop
+                  type="button"
+                  onClick={cancel}
+                  disabled={busy}
+                  aria-busy={busy}
+                >
+                  {busy ? "Cancelling…" : "Cancel this trip"}
+                </Drop>
+              )}
             </Actions>
+            {canCancel && !isDriver && (
+              <Note>
+                {paid
+                  ? "Cancelling is free during the pilot. The full fare returns to your wallet."
+                  : "Cancelling is free. Nothing has been charged yet."}
+              </Note>
+            )}
           </Money>
         </SideCol>
       </Layout>

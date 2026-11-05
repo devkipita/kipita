@@ -31,6 +31,14 @@ const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
 type Side = "send" | "offer";
 
+const WHEN_OPTIONS = [
+  "Any day this week",
+  "Today",
+  "Tomorrow",
+  "This weekend",
+  "Next week",
+];
+
 const Page = styled(ContentWidth)`
   padding-block: clamp(24px, 4vh, 44px) clamp(56px, 9vh, 96px);
   background: ${nocturne.bg};
@@ -144,33 +152,44 @@ const Panel = styled.div`
 
 const Fields = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  align-items: end;
-  gap: 14px 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
 
-  @media (max-width: 1040px) {
+  @media (max-width: 860px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  @media (max-width: 560px) {
+  @media (max-width: 520px) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const Bottom = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  flex-wrap: wrap;
+  margin-top: 16px;
 `;
 
 const Field = styled.label`
   position: relative;
   display: block;
   min-width: 0;
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: ${nocturne.bg};
   cursor: text;
-  transition: background-color 0.16s ease;
+  transition:
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
 
   > span {
     display: block;
-    margin-bottom: 4px;
-    font-size: 11px;
+    margin-bottom: 5px;
+    font-size: 10.5px;
     font-weight: 800;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     color: ${nocturne.muted2};
   }
@@ -218,6 +237,7 @@ const Field = styled.label`
   &:hover,
   &:focus-within {
     background: ${nocturne.surface2};
+    box-shadow: inset 0 0 0 1.5px ${nocturne.accent};
   }
 `;
 
@@ -258,8 +278,7 @@ const Go = styled.button`
     outline: 3px solid ${nocturne.accent};
     outline-offset: 3px;
   }
-  @media (max-width: 1040px) {
-    grid-column: 1 / -1;
+  @media (max-width: 520px) {
     width: 100%;
   }
   @media (prefers-reduced-motion: reduce) {
@@ -276,8 +295,6 @@ const Loads = styled.div`
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 16px;
-  padding: 0 12px;
 
   > span {
     margin-right: 6px;
@@ -659,6 +676,7 @@ export function SendView({
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [category, setCategory] = useState("Furniture & household");
+  const [when, setWhen] = useState(WHEN_OPTIONS[0]);
   const [load, setLoad] = useState<LoadSize>("boot");
 
   const shown = useMemo(
@@ -754,17 +772,19 @@ export function SendView({
             <span>When</span>
             <div className="row">
               <CalendarBlank size={17} aria-hidden />
-              <input
-                type="date"
-                defaultValue={new Date().toISOString().slice(0, 10)}
+              <select
+                value={when}
+                onChange={(e) => setWhen(e.target.value)}
                 aria-label="When"
-              />
+              >
+                {WHEN_OPTIONS.map((w) => (
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
+                ))}
+              </select>
             </div>
           </Field>
-          <Go type="button">
-            {side === "offer" ? "List return trip" : "Find space"}
-            <ArrowRight size={18} aria-hidden />
-          </Go>
         </Fields>
 
         <datalist id="send-towns">
@@ -773,21 +793,32 @@ export function SendView({
           ))}
         </datalist>
 
-        <Loads role="group" aria-label="Load size">
-          <span>Load size</span>
-          {LOAD_SIZES.map((l) => (
-            <Load
-              key={l.key}
-              type="button"
-              $on={load === l.key}
-              aria-pressed={load === l.key}
-              onClick={() => setLoad(l.key)}
-            >
-              {load === l.key ? <Check size={14} aria-hidden /> : <Package size={14} aria-hidden />}
-              {l.label}
-            </Load>
-          ))}
-        </Loads>
+        <Bottom>
+          <Loads role="group" aria-label="Load size">
+            <span>Load size</span>
+            {LOAD_SIZES.map((l) => (
+              <Load
+                key={l.key}
+                type="button"
+                $on={load === l.key}
+                aria-pressed={load === l.key}
+                onClick={() => setLoad(l.key)}
+              >
+                {load === l.key ? (
+                  <Check size={14} aria-hidden />
+                ) : (
+                  <Package size={14} aria-hidden />
+                )}
+                {l.label}
+              </Load>
+            ))}
+          </Loads>
+
+          <Go type="button">
+            {side === "offer" ? "List return trip" : "Find space"}
+            <ArrowRight size={18} aria-hidden />
+          </Go>
+        </Bottom>
       </Panel>
 
       <ResultsHead>

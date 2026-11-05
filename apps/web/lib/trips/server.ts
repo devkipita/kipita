@@ -4,6 +4,7 @@ import {
   CURRENT_STATES,
   PREVIOUS_STATES,
   type Booking,
+  type PublishedTrip,
   type TripLeg,
   type TripPerson,
 } from "./types";
@@ -112,6 +113,48 @@ export async function fetchSeatRequests(userId: string): Promise<Booking[]> {
 
     if (error || !data) return [];
     return data.map(toBooking);
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchPublishedTrips(
+  userId: string,
+): Promise<PublishedTrip[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("trips")
+      .select(
+        `id, from_location, to_location, departure_date, departure_time,
+         price_per_seat, seats_available, seats_total, status`,
+      )
+      .eq("driver_id", userId)
+      .in("status", ["posted", "active"])
+      .gte("departure_date", new Date().toISOString().slice(0, 10))
+      .order("departure_date", { ascending: true })
+      .order("departure_time", { ascending: true })
+      .limit(50);
+
+    if (error || !data) return [];
+
+    return data.map((raw) => {
+      const row = raw as Record<string, unknown>;
+      const total = Number(row.seats_total ?? 0);
+      const left = Number(row.seats_available ?? 0);
+      return {
+        id: row.id as string,
+        from_location: (row.from_location as string) ?? "",
+        to_location: (row.to_location as string) ?? "",
+        departure_date: (row.departure_date as string | null) ?? null,
+        departure_time: (row.departure_time as string | null) ?? null,
+        price_per_seat: Number(row.price_per_seat ?? 0),
+        seats_available: left,
+        seats_total: total,
+        status: (row.status as string) ?? "",
+        seats_taken: Math.max(0, total - left),
+      } satisfies PublishedTrip;
+    });
   } catch {
     return [];
   }

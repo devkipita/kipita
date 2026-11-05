@@ -20,6 +20,19 @@ export const PREVIOUS_STATES: BookingStatus[] = [
   "rejected",
 ];
 
+export interface PublishedTrip {
+  id: string;
+  from_location: string;
+  to_location: string;
+  departure_date: string | null;
+  departure_time: string | null;
+  price_per_seat: number;
+  seats_available: number;
+  seats_total: number;
+  status: string;
+  seats_taken: number;
+}
+
 export interface TripPerson {
   id: string;
   full_name: string | null;

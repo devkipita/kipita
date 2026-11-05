@@ -6,8 +6,9 @@ import styled from "styled-components";
 import { MagnifyingGlass } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { nocturne } from "@/lib/nocturne";
-import type { Booking } from "@/lib/trips/types";
+import type { Booking, PublishedTrip } from "@/lib/trips/types";
 import { BookingCard } from "./BookingCard";
+import { PublishedTrips } from "./PublishedTrips";
 import { SeatRequests } from "./SeatRequests";
 import { SupportPanel } from "./SupportPanel";
 import { TripFaqs } from "./TripFaqs";
@@ -282,11 +283,13 @@ export function TripsView({
   current,
   previous,
   requests = [],
+  published = [],
   viewerId,
 }: {
   current: Booking[];
   previous: Booking[];
   requests?: Booking[];
+  published?: PublishedTrip[];
   viewerId: string;
 }) {
   const [tab, setTab] = useState<Tab>("current");
@@ -305,6 +308,7 @@ export function TripsView({
       <Title>Trips</Title>
 
       <SeatRequests initial={requests} />
+      <PublishedTrips initial={published} />
 
       <Controls>
         <Tabs role="group" aria-label="Which trips">

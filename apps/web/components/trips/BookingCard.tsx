@@ -281,7 +281,7 @@ export function BookingCard({
   function cancel() {
     const paid = booking.status === "confirmed";
     const msg = paid
-      ? `Cancel this trip? ${formatCurrency(booking.total_price)} goes back to your Kipita wallet.`
+      ? `Cancel this trip? ${formatCurrency(booking.total_price)} goes back to your Kipita wallet in full.`
       : "Cancel this request? The seat is released straight away.";
     if (!window.confirm(msg)) return;
 
