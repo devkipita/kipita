@@ -50,17 +50,11 @@ export async function submitDriverKycAction(
   if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
   const { national_id, license_number, license_expiry } = parsed.data;
-  const { error } = await supabase.from("driver_profiles").upsert(
-    {
-      user_id: me.id,
-      national_id,
-      license_number,
-      license_expiry: license_expiry || null,
-      approval_status: "pending",
-      background_check_status: "pending",
-    },
-    { onConflict: "user_id" },
-  );
+  const { error } = await supabase.rpc("submit_driver_kyc", {
+    p_national_id: national_id,
+    p_license_number: license_number,
+    p_license_expiry: license_expiry || null,
+  });
 
   if (error) {
     return { ok: false, error: "We couldn't save that. Please try again." };
