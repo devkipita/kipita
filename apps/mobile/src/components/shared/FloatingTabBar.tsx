@@ -6,13 +6,18 @@ import Animated, {
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { ComponentProps } from 'react';
+import type { Tabs } from 'expo-router';
 import { Text } from '@/components/core/Text';
 import { Icon, IconName } from '@/components/core/Icon';
 import { useTheme } from '@/hooks';
 import { haptic } from '@/lib/utils/haptics';
 import { tabBarHidden } from '@/lib/utils/tabBar';
 import { spacing, radius, shadows } from '@/theme';
+
+type TabBarProps = Parameters<
+  NonNullable<ComponentProps<typeof Tabs>['tabBar']>
+>[0];
 
 export const FLOATING_TAB_BAR_SPACE = 112;
 
@@ -34,7 +39,7 @@ export const FloatingTabBar = memo(function FloatingTabBar({
   state,
   descriptors,
   navigation,
-}: BottomTabBarProps) {
+}: TabBarProps) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
