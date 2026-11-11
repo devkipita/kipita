@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { fetchBooking, fetchSeatRequests } from "./server";
+import type { Booking } from "./types";
 
 export type RequestDecision = "accept" | "decline";
 
@@ -51,5 +53,32 @@ export async function answerSeatRequestAction(
   }
 
   revalidatePath("/trips");
+  revalidatePath(`/trips/${bookingId}`);
   return { ok: true, status: data?.status ?? "" };
+}
+
+export async function seatRequestAction(
+  bookingId: string,
+): Promise<Booking | null> {
+  const booking = await fetchBooking(bookingId);
+  if (!booking || booking.status !== "requested") return null;
+  return booking;
+}
+
+export async function seatRequestsAction(): Promise<Booking[]> {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("id")
+    .eq("auth_id", user.id)
+    .maybeSingle<{ id: string }>();
+  if (!profile) return [];
+
+  return fetchSeatRequests(profile.id);
 }

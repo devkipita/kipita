@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { MagnifyingGlass } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { nocturne } from "@/lib/nocturne";
+import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking, PublishedTrip } from "@/lib/trips/types";
 import { BookingCard } from "./BookingCard";
 import { PublishedTrips } from "./PublishedTrips";
@@ -292,8 +294,16 @@ export function TripsView({
   published?: PublishedTrip[];
   viewerId: string;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("current");
   const [query, setQuery] = useState("");
+
+  const refresh = useCallback(() => router.refresh(), [router]);
+  useBookingStream(
+    `my-trips:${viewerId}`,
+    viewerId ? `passenger_id=eq.${viewerId}` : null,
+    refresh,
+  );
 
   const source = tab === "current" ? current : previous;
   const shown = useMemo(
@@ -307,7 +317,7 @@ export function TripsView({
     <Page $max={1080}>
       <Title>Trips</Title>
 
-      <SeatRequests initial={requests} />
+      <SeatRequests initial={requests} viewerId={viewerId} />
       <PublishedTrips initial={published} />
 
       <Controls>

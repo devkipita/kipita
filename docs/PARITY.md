@@ -69,6 +69,15 @@ Legend: **Yes** — works end to end · **Partial** — ships but with a caveat 
 > The lesson worth keeping: when a query against `users` returns
 > `permission denied for table users`, look at the *column list* before RLS.
 
+> **Migration `045_ride_flow_notifications.sql` is not pushed.** It rewrites
+> `request_seat`, `accept_booking`, `decline_booking`, `start_trip` and
+> `complete_trip` to write the `notifications` rows that drive the web inbox and
+> the Expo push, adds the "start before you end" guard to `complete_trip`, and
+> makes `start_trip` release unpaid seats rather than carrying them. Until it
+> lands, the web ride flow still works but nobody is told anything: the driver
+> only sees a request if `/trips` is already open, and the passenger learns
+> their seat was accepted by looking.
+
 > **The Daraja secrets must be set on the edge functions** (`MPESA_CONSUMER_KEY`,
 > `MPESA_CONSUMER_SECRET`, `MPESA_SHORTCODE`, `MPESA_PASSKEY`, `MPESA_CALLBACK_URL`,
 > and `MPESA_BASE_URL` for production rather than sandbox), or `initiate-payment`
@@ -89,6 +98,11 @@ Legend: **Yes** — works end to end · **Partial** — ships but with a caveat 
 | Post form opens on an empty search | Yes | Yes | The core loop: a search that finds nothing becomes a new post. |
 | Ride detail | Yes | Yes | |
 | Reserve a seat | **Broken** | Yes | See the booking-row note below — mobile never inserts a `bookings` row, web does. |
+| Driver sees a new seat request | Yes | Yes | Web's `/trips` request list arrives over Realtime (`bookings` INSERT filtered to `driver_id`) and `request_seat` now writes the driver a `request_match` notification. |
+| Accept / decline a request | Yes | Yes | Web: on `/trips` and on `/trips/[id]`. `accept_booking` holds the seat for 30 minutes and tells the passenger; `decline_booking` tells them too. |
+| Pay from the booking screen | Yes | Yes | `/trips/[id]` opens the M-Pesa drawer directly once a request is accepted — it no longer bounces back to `/ride/[id]`. |
+| Trip progress for the passenger | Partial | Yes | Booking now lands on `/trips/[id]`, which carries an illustrated stage card, a five-step meter, a live countdown on the hold and a celebration when a step clears. It updates over Realtime without a reload. |
+| Start / end a ride (driver) | Yes | Yes | Web: "Start ride" / "End ride" on the published-rides band. Ending calls `release-escrow` for every paid booking, same as the app. |
 | Pay with M-Pesa | **Broken in practice** | Yes | Both call the same Daraja backend. Mobile's wiring is real but unreachable; web's works end to end. See below. |
 | Escrow release to driver | Yes | — | `releaseEscrow` runs when the driver ends the ride. Driver-side is app-only. |
 | Register a vehicle | **No** | **No** | No CRUD and no UI on either platform, so every trip is created with `vehicle_id = NULL`. Car make/model/plate on a ride card only ever comes from mobile's seed data. |
@@ -226,11 +240,13 @@ from the referrer's rewarded count.
 |---|---|---|---|
 | In-app inbox | Yes | Yes | |
 | Live arrival | Yes | Partial | Mobile gets an Expo push. Web subscribes over Realtime and raises an OS notification only while a tab is open. |
+| In-app toast when one lands | Yes | Yes | `NotificationToast` in the app shell shows the newest row with its icon, body and a link to its target. The store's `incoming` field had no consumer before this. |
 | Background push | Partial | **No** | Mobile needs an EAS `projectId` and a native rebuild before tokens register. Web needs a service worker + VAPID; the migration-007 trigger only speaks the Expo push API. |
 | Broadcast audience | Targeted | Targeted | Rewritten from "every active user" to people with a matching open request, posted trip, or recent search. |
 | Contributes route interest on search | **No** | Yes | Mobile does not write `route_interests`, so its searches do not attract notifications yet. |
 | Tapping an alert notification opens it | Yes | Yes | |
-| Tapping a booking / chat notification | Yes | **No** | Web has no booking detail or chat screen, so those rows mark read and stay put. |
+| Tapping a booking notification | Yes | Yes | `booking_id` routes to `/trips/[id]`, which now shows the full ride ladder and the accept / pay actions. |
+| Tapping a chat notification | Yes | **No** | Web has no chat screen, so those rows mark read and stay put. |
 
 ## Chat
 

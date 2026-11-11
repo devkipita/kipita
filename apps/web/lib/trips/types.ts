@@ -31,6 +31,12 @@ export interface PublishedTrip {
   seats_total: number;
   status: string;
   seats_taken: number;
+  /** Requests still waiting on the driver. */
+  pending_requests: number;
+  /** Seats accepted but not yet paid for. */
+  awaiting_payment: number;
+  /** Seats paid for, or already riding. */
+  paid_seats: number;
 }
 
 export interface TripPerson {
@@ -64,6 +70,7 @@ export interface Booking {
   booking_reference: string | null;
   created_at: string;
   expires_at: string | null;
+  cancel_reason: string | null;
   trip: TripLeg | null;
   passenger: TripPerson | null;
   driver: TripPerson | null;
@@ -80,7 +87,7 @@ const PERSON = "id, full_name, avatar_url, is_verified, rating, total_trips";
 
 export const BOOKING_SELECT = `
   id, trip_id, passenger_id, driver_id, seats_booked, total_price, status,
-  booking_reference, created_at, expires_at,
+  booking_reference, created_at, expires_at, cancel_reason,
   trip:trips!trip_id (
     id, from_location, to_location, departure_date, departure_time,
     price_per_seat, status,

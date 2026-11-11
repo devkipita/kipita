@@ -1,18 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import {
   ArrowRight,
   CalendarBlank,
   Clock,
+  NavigationArrow,
   Users,
   Warning,
 } from "@/components/icons";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
+import { releaseEscrowForAll } from "@/lib/escrow";
 import { cancelTripAction } from "@/lib/trips/booking-actions";
+import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import type { PublishedTrip } from "@/lib/trips/types";
 
@@ -97,6 +101,25 @@ const Route = styled.p`
   }
 `;
 
+const Running = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 11px;
+  border-radius: 999px;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+
+  svg {
+    color: inherit;
+  }
+`;
+
 const Facts = styled.ul`
   display: flex;
   flex-wrap: wrap;
@@ -135,20 +158,20 @@ const Acts = styled.div`
   }
 `;
 
-const Act = styled.button`
+const Act = styled.button<{ $primary?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   min-height: 48px;
   padding: 0 20px;
-  border: 1.5px solid ${RULE};
+  border: 1.5px solid ${({ $primary }) => ($primary ? "transparent" : RULE)};
   border-radius: 999px;
-  background: transparent;
+  background: ${({ $primary }) => ($primary ? nocturne.ctaBg : "transparent")};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 16px;
   font-weight: 700;
-  color: ${nocturne.cream};
+  color: ${({ $primary }) => ($primary ? nocturne.ctaFg : nocturne.cream)};
   cursor: pointer;
   white-space: nowrap;
   text-decoration: none;
@@ -160,9 +183,12 @@ const Act = styled.button`
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      background: ${nocturne.surface2};
-      color: ${nocturne.accent};
-      border-color: ${nocturne.accent};
+      background: ${({ $primary }) =>
+        $primary ? nocturne.green : nocturne.surface2};
+      color: ${({ $primary }) =>
+        $primary ? nocturne.onGreen : nocturne.accent};
+      border-color: ${({ $primary }) =>
+        $primary ? "transparent" : nocturne.accent};
       transform: translateY(-1px);
     }
   }
@@ -227,12 +253,20 @@ const Err = styled.p`
   }
 `;
 
+type Job = "cancel" | "start" | "complete";
+
 export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
+  const router = useRouter();
   const [items, setItems] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
+  const [job, setJob] = useState<Job | null>(null);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState(false);
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setItems(initial);
+  }, [initial]);
 
   if (items.length === 0) return null;
 
@@ -251,16 +285,92 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
     if (!window.confirm(message)) return;
 
     setBusy(trip.id);
+    setJob("cancel");
     setError("");
     startTransition(async () => {
       const result = await cancelTripAction(trip.id);
       if (!result.ok) {
         setError(result.error);
         setBusy(null);
+        setJob(null);
         return;
       }
       setItems((prev) => prev.filter((t) => t.id !== trip.id));
       setBusy(null);
+      setJob(null);
+      router.refresh();
+    });
+  }
+
+  function start(trip: PublishedTrip) {
+    const unpaid = trip.awaiting_payment + trip.pending_requests;
+    const warning =
+      unpaid > 0
+        ? ` ${unpaid} unpaid ${unpaid === 1 ? "seat is" : "seats are"} released and those passengers are told.`
+        : "";
+
+    if (
+      !window.confirm(
+        `Start ${trip.from_location} to ${trip.to_location}?${warning}`,
+      )
+    ) {
+      return;
+    }
+
+    setBusy(trip.id);
+    setJob("start");
+    setError("");
+    startTransition(async () => {
+      const result = await startTripAction(trip.id);
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(null);
+        setJob(null);
+        return;
+      }
+      setItems((prev) =>
+        prev.map((t) =>
+          t.id === trip.id
+            ? {
+                ...t,
+                status: "in_progress",
+                pending_requests: 0,
+                awaiting_payment: 0,
+              }
+            : t,
+        ),
+      );
+      setBusy(null);
+      setJob(null);
+      router.refresh();
+    });
+  }
+
+  function complete(trip: PublishedTrip) {
+    if (
+      !window.confirm(
+        `End ${trip.from_location} to ${trip.to_location}? Fares held for this ride are released to you, minus the Kipita fee.`,
+      )
+    ) {
+      return;
+    }
+
+    setBusy(trip.id);
+    setJob("complete");
+    setError("");
+    startTransition(async () => {
+      const result = await completeTripAction(trip.id);
+      if (!result.ok) {
+        setError(result.error);
+        setBusy(null);
+        setJob(null);
+        return;
+      }
+      await releaseEscrowForAll(result.bookingIds);
+      setItems((prev) => prev.filter((t) => t.id !== trip.id));
+      setBusy(null);
+      setJob(null);
+      router.refresh();
     });
   }
 
@@ -270,8 +380,9 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
         Rides you published <Count>{items.length}</Count>
       </h2>
       <p>
-        Still open for bookings. Cancelling during the pilot costs you nothing,
-        and refunds anyone who has already paid.
+        Start a ride when you pull off and end it when you arrive — ending
+        releases every held fare to you, minus the Kipita fee. Cancelling during
+        the pilot costs you nothing, and refunds anyone who has already paid.
       </p>
 
       {error && (
@@ -281,54 +392,109 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
         </Err>
       )}
 
-      {shown.map((trip) => (
-        <Row key={trip.id}>
-          <div>
-            <Route>
-              <span>{trip.from_location}</span>
-              <ArrowRight size={19} aria-hidden />
-              <span>{trip.to_location}</span>
-            </Route>
-            <Facts>
-              <li>
-                <CalendarBlank size={16} />
-                {formatTripDate(trip.departure_date) || "Date to confirm"}
-              </li>
-              <li>
-                <Clock size={16} />
-                {formatTripTime(trip.departure_time) || "Time to confirm"}
-              </li>
-              <li>
-                <Users size={16} />
-                {trip.seats_taken} of {trip.seats_total} taken
-              </li>
-              <li>
-                <b>{formatCurrency(trip.price_per_seat)}</b> a seat
-              </li>
-            </Facts>
-          </div>
+      {shown.map((trip) => {
+        const running = trip.status === "in_progress";
+        const working = busy === trip.id;
 
-          <Acts>
-            <Act
-              type="button"
-              onClick={() => cancel(trip)}
-              disabled={busy === trip.id}
-              aria-busy={busy === trip.id}
-            >
-              {busy === trip.id ? (
-                <>
-                  <ButtonOrb job="committing" /> Cancelling…
-                </>
+        return (
+          <Row key={trip.id}>
+            <div>
+              <Route>
+                <span>{trip.from_location}</span>
+                <ArrowRight size={19} aria-hidden />
+                <span>{trip.to_location}</span>
+                {running && (
+                  <Running>
+                    <NavigationArrow size={14} weight="fill" aria-hidden />
+                    Under way
+                  </Running>
+                )}
+              </Route>
+              <Facts>
+                <li>
+                  <CalendarBlank size={16} />
+                  {formatTripDate(trip.departure_date) || "Date to confirm"}
+                </li>
+                <li>
+                  <Clock size={16} />
+                  {formatTripTime(trip.departure_time) || "Time to confirm"}
+                </li>
+                <li>
+                  <Users size={16} />
+                  {trip.seats_taken} of {trip.seats_total} taken
+                </li>
+                <li>
+                  <b>{trip.paid_seats}</b> paid
+                  {trip.awaiting_payment > 0
+                    ? `, ${trip.awaiting_payment} awaiting payment`
+                    : ""}
+                  {trip.pending_requests > 0
+                    ? `, ${trip.pending_requests} to answer`
+                    : ""}
+                </li>
+                <li>
+                  <b>{formatCurrency(trip.price_per_seat)}</b> a seat
+                </li>
+              </Facts>
+            </div>
+
+            <Acts>
+              {running ? (
+                <Act
+                  $primary
+                  type="button"
+                  onClick={() => complete(trip)}
+                  disabled={working}
+                  aria-busy={working}
+                >
+                  {working && job === "complete" ? (
+                    <>
+                      <ButtonOrb job="committing" /> Ending…
+                    </>
+                  ) : (
+                    "End ride"
+                  )}
+                </Act>
               ) : (
-                "Cancel ride"
+                <>
+                  <Act
+                    type="button"
+                    onClick={() => cancel(trip)}
+                    disabled={working}
+                    aria-busy={working && job === "cancel"}
+                  >
+                    {working && job === "cancel" ? (
+                      <>
+                        <ButtonOrb job="committing" /> Cancelling…
+                      </>
+                    ) : (
+                      "Cancel ride"
+                    )}
+                  </Act>
+                  <Act
+                    $primary
+                    type="button"
+                    onClick={() => start(trip)}
+                    disabled={working}
+                    aria-busy={working && job === "start"}
+                  >
+                    {working && job === "start" ? (
+                      <>
+                        <ButtonOrb job="committing" /> Starting…
+                      </>
+                    ) : (
+                      "Start ride"
+                    )}
+                  </Act>
+                </>
               )}
-            </Act>
-            <Act as={Link} href={`/ride/${trip.id}`}>
-              View
-            </Act>
-          </Acts>
-        </Row>
-      ))}
+              <Act as={Link} href={`/ride/${trip.id}`}>
+                View
+              </Act>
+            </Acts>
+          </Row>
+        );
+      })}
 
       {(hidden > 0 || expanded) && (
         <More type="button" onClick={() => setExpanded((on) => !on)}>

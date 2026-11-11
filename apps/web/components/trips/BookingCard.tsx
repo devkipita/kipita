@@ -13,6 +13,35 @@ import { STATUS_ICON, STATUS_LABEL, statusTone } from "./statusTone";
 
 const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
+const LADDER: Booking["status"][] = [
+  "requested",
+  "pending_payment",
+  "confirmed",
+  "in_progress",
+  "completed",
+];
+
+const Meter = styled.span`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  width: min(220px, 100%);
+  margin-top: 10px;
+  pointer-events: none;
+
+  i {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--n-accent) 22%, transparent);
+    transition: background-color 0.4s ease;
+  }
+  i[data-on] {
+    background: ${nocturne.accent};
+  }
+`;
+
 function useCountdown(iso: string | null): string | null {
   const [left, setLeft] = useState<string | null>(null);
 
@@ -167,6 +196,13 @@ const Status = styled.p<{ $on: string }>`
     border-radius: 999px;
     background: currentColor;
   }
+  em {
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    opacity: 0.72;
+  }
 `;
 
 const Route = styled.p`
@@ -265,6 +301,7 @@ export function BookingCard({
   const destination = booking.trip?.to_location ?? "Trip";
   const origin = booking.trip?.from_location ?? "";
   const live = booking.status === "in_progress";
+  const step = LADDER.indexOf(booking.status);
 
   const [busy, setBusy] = useState(false);
   const [, startTransition] = useTransition();
@@ -303,7 +340,16 @@ export function BookingCard({
         <Status $on={tone.bg}>
           {live ? <span className="dot" /> : <Icon size={15} weight="fill" />}
           {STATUS_LABEL[booking.status]}
+          {step >= 0 && <em>{step + 1}/5</em>}
         </Status>
+
+        {step >= 0 && (
+          <Meter aria-hidden>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <i key={i} data-on={i <= step ? "" : undefined} />
+            ))}
+          </Meter>
+        )}
 
         <Route className="route">
           {origin && (

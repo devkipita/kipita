@@ -21,5 +21,11 @@ export default async function TripPage({
   const booking = await fetchBooking(id);
   if (!booking) notFound();
 
-  return <TripDetail booking={booking} viewerId={profile.id} />;
+  return (
+    <TripDetail
+      booking={booking}
+      viewerId={profile.id}
+      viewerPhone={profile.phone}
+    />
+  );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import styled, { css, useTheme } from "styled-components";
 import {
   ArrowLeft,
@@ -19,7 +20,15 @@ import { ContentWidth } from "@/components/nav/AppShell";
 import { nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import { cancelBookingAction } from "@/lib/trips/booking-actions";
+import { answerSeatRequestAction } from "@/lib/trips/request-actions";
+import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
+import { PaymentDrawer } from "@/components/rides/PaymentDrawer";
+import { PushBanner } from "@/components/notifications/PushBanner";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { Reveal } from "@/components/anim/Reveal";
+import { RideProgress } from "./RideProgress";
+import { TripStage } from "./TripStage";
 import { STATUS_ICON, STATUS_LABEL, statusTone } from "./statusTone";
 import { TripHelp } from "./TripHelp";
 
@@ -172,6 +181,92 @@ const Band = styled.div`
   }
 `;
 
+const Stage = styled.div`
+  margin-top: clamp(22px, 3vh, 32px);
+`;
+
+const Landed = styled.p`
+  margin: clamp(18px, 2.4vh, 26px) 0 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-size: 15px;
+  line-height: 1.5;
+
+  b {
+    font-weight: 800;
+  }
+`;
+
+const StageAct = styled.button<{ $quiet?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 52px;
+  padding: 0 24px;
+  border: 1.5px solid ${({ $quiet }) => ($quiet ? RULE : "transparent")};
+  border-radius: 999px;
+  background: ${({ $quiet }) => ($quiet ? "transparent" : nocturne.ctaBg)};
+  color: ${({ $quiet }) => ($quiet ? nocturne.cream : nocturne.ctaFg)};
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  svg {
+    flex: none;
+  }
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ $quiet }) => ($quiet ? nocturne.surface : nocturne.green)};
+      color: ${({ $quiet }) => ($quiet ? nocturne.accent : nocturne.onGreen)};
+      border-color: ${({ $quiet }) => ($quiet ? nocturne.accent : "transparent")};
+      transform: translateY(-2px);
+    }
+  }
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+`;
+
+const StageError = styled.p`
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: ${nocturne.cream};
+`;
+
+const BandHead = styled.h2`
+  margin: 0 0 18px;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: clamp(20px, 2.2vw, 25px);
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  color: ${nocturne.cream};
+`;
+
 const Person = styled.div`
   display: flex;
   align-items: center;
@@ -319,7 +414,7 @@ const action = css`
   }
 `;
 
-const Pay = styled(Link)`
+const payLook = css`
   ${action}
   border: none;
   position: relative;
@@ -382,6 +477,15 @@ const Pay = styled(Link)`
     &:active {
       transform: none;
     }
+  }
+`;
+
+const PayButton = styled.button`
+  ${payLook}
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: progress;
   }
 `;
 
@@ -467,14 +571,43 @@ function LongArrow({ size = 26 }: { size?: number }) {
   );
 }
 
+function holdLeft(expiresAt: string | null): string | null {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (Number.isNaN(ms)) return null;
+  if (ms <= 0) return "The hold has run out";
+
+  const total = Math.floor(ms / 1000);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m left to pay`;
+  return `${minutes}:${String(seconds).padStart(2, "0")} left to pay`;
+}
+
 export function TripDetail({
   booking,
   viewerId,
+  viewerPhone,
 }: {
   booking: Booking;
   viewerId: string;
+  viewerPhone?: string | null;
 }) {
+  const router = useRouter();
+  const params = useSearchParams();
   const theme = useTheme();
+  const [justBooked, setJustBooked] = useState(
+    () => params?.get("new") === "1",
+  );
+
+  useEffect(() => {
+    if (!justBooked) return;
+    window.history.replaceState(null, "", `/trips/${booking.id}`);
+    const timer = setTimeout(() => setJustBooked(false), 9000);
+    return () => clearTimeout(timer);
+  }, [justBooked, booking.id]);
   const tone = statusTone(theme, booking.status);
   const Icon = STATUS_ICON[booking.status];
 
@@ -490,13 +623,50 @@ export function TripDetail({
   const rating = person?.rating ? person.rating.toFixed(1) : null;
 
   const [busy, setBusy] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState("");
+  const [hold, setHold] = useState<string | null>(() =>
+    holdLeft(booking.expires_at),
+  );
   const [, startTransition] = useTransition();
+
+  const refresh = useCallback(() => router.refresh(), [router]);
+  useBookingStream(`booking:${booking.id}`, `id=eq.${booking.id}`, refresh);
+
+  useEffect(() => {
+    if (!due) return;
+    setHold(holdLeft(booking.expires_at));
+    const timer = setInterval(
+      () => setHold(holdLeft(booking.expires_at)),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, [due, booking.expires_at]);
 
   const paid = booking.status === "confirmed";
   const canCancel =
     booking.status === "requested" ||
     booking.status === "pending_payment" ||
     paid;
+  const answerable = isDriver && booking.status === "requested";
+
+  function answer(decision: "accept" | "decline") {
+    if (decision === "decline") {
+      const name = booking.passenger?.full_name ?? "this passenger";
+      if (!window.confirm(`Decline ${name}'s request? They will be told.`)) {
+        return;
+      }
+    }
+
+    setBusy(true);
+    setError("");
+    startTransition(async () => {
+      const result = await answerSeatRequestAction(booking.id, decision);
+      if (!result.ok) setError(result.error);
+      setBusy(false);
+      router.refresh();
+    });
+  }
 
   function cancel() {
     const message = paid
@@ -507,13 +677,15 @@ export function TripDetail({
     setBusy(true);
     startTransition(async () => {
       const result = await cancelBookingAction(booking.id);
-      if (!result.ok) window.alert(result.error);
+      if (!result.ok) setError(result.error);
       setBusy(false);
+      router.refresh();
     });
   }
 
   return (
     <Page $max={1060}>
+      <ScrollProgress />
       <Back href="/trips">
         <ArrowLeft size={17} /> All trips
       </Back>
@@ -548,8 +720,62 @@ export function TripDetail({
         </li>
       </Facts>
 
+      {justBooked && (
+        <Landed role="status">
+          <b>You are booked in.</b> This page follows the trip by itself — leave
+          it open and every step lands here.
+        </Landed>
+      )}
+
+      <Stage>
+        <TripStage
+          status={booking.status}
+          isDriver={isDriver}
+          hold={hold}
+          since={booking.created_at}
+        >
+          {answerable && (
+            <>
+              <StageAct
+                type="button"
+                onClick={() => answer("accept")}
+                disabled={busy}
+                aria-busy={busy}
+              >
+                {busy ? "Saving…" : "Accept this request"}
+              </StageAct>
+              <StageAct
+                $quiet
+                type="button"
+                onClick={() => answer("decline")}
+                disabled={busy}
+              >
+                Decline
+              </StageAct>
+            </>
+          )}
+          {due && !isDriver && (
+            <StageAct
+              type="button"
+              onClick={() => setPaying(true)}
+              disabled={busy}
+            >
+              Pay {formatCurrency(booking.total_price)} with M-Pesa
+            </StageAct>
+          )}
+          {booking.status === "completed" && (
+            <StageAct as={Link} href={`/ride/${booking.trip_id}`}>
+              <Star size={17} weight="fill" /> Rate this trip
+            </StageAct>
+          )}
+          {error && <StageError role="alert">{error}</StageError>}
+        </TripStage>
+      </Stage>
+
+      {!finished && <PushBanner />}
+
       <Layout>
-        <MainCol>
+        <MainCol as={Reveal} stagger={0.08} y={22}>
           <Band>
             <Person>
               <Avatar
@@ -588,6 +814,15 @@ export function TripDetail({
             </Person>
           </Band>
 
+          <Band>
+            <BandHead>Where this trip is</BandHead>
+            <RideProgress
+              status={booking.status}
+              isDriver={isDriver}
+              stoppedNote={booking.cancel_reason}
+            />
+          </Band>
+
           {booking.booking_reference && (
             <Band>
               <Reference>
@@ -599,22 +834,28 @@ export function TripDetail({
           )}
         </MainCol>
 
+
         <SideCol>
           <Money>
             <Amount>
-              <small>{due ? "Due now" : "Total paid"}</small>
+              <small>
+                {due
+                  ? (hold ?? "Due now")
+                  : booking.status === "requested"
+                    ? "To pay once accepted"
+                    : "Total paid"}
+              </small>
               <b>{formatCurrency(booking.total_price)}</b>
             </Amount>
             <Actions>
-              {due && (
-                <Pay href={`/ride/${booking.trip_id}`}>
+              {due && !isDriver && (
+                <PayButton
+                  type="button"
+                  onClick={() => setPaying(true)}
+                  disabled={busy}
+                >
                   Pay this fare <LongArrow size={28} />
-                </Pay>
-              )}
-              {booking.status === "completed" && (
-                <Secondary href={`/ride/${booking.trip_id}`}>
-                  <Star size={17} weight="fill" /> Rate this trip
-                </Secondary>
+                </PayButton>
               )}
               {!finished && (
                 <Secondary href={`/ride/${booking.trip_id}`}>
@@ -646,6 +887,24 @@ export function TripDetail({
       <Helping>
         <TripHelp booking={booking} />
       </Helping>
+
+      {due && !isDriver && (
+        <PaymentDrawer
+          open={paying}
+          bookingId={booking.id}
+          userId={viewerId}
+          amount={booking.total_price}
+          defaultPhone={viewerPhone ?? null}
+          onClose={() => {
+            setPaying(false);
+            router.refresh();
+          }}
+          onPaid={() => {
+            setPaying(false);
+            router.refresh();
+          }}
+        />
+      )}
     </Page>
   );
 }

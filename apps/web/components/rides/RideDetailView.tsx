@@ -8,12 +8,7 @@ import { ContentWidth } from "@/components/nav/AppShell";
 import { ArrowLeft, SealCheck as BadgeCheck, Briefcase, CarProfile, CheckCircle as CheckCircle2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { EscrowHeldArt } from "@/components/ui/MoneyArt";
-import {
-  currentUserIdAction,
-  reserveSeatAction,
-  type BookingResult,
-} from "@/lib/bookings";
-import { PaymentDrawer } from "./PaymentDrawer";
+import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
@@ -701,12 +696,6 @@ export function RideDetailView({
   const [seats, setSeats] = useState(1);
   const [result, setResult] = useState<BookingResult | null>(null);
   const [pending, startTransition] = useTransition();
-  const [payingFor, setPayingFor] = useState<{
-    bookingId: string;
-    total: number;
-  } | null>(null);
-  const [payerId, setPayerId] = useState<string | null>(null);
-  const [paid, setPaid] = useState(false);
 
   const date = formatRideDate(isTrip ? ride.departure_date : ride.preferred_date);
   const time = formatRideTime(isTrip ? ride.departure_time : ride.preferred_time);
@@ -736,13 +725,9 @@ export function RideDetailView({
     startTransition(async () => {
       const booked = await reserveSeatAction(ride.id, seats);
       setResult(booked);
-      if (!booked.ok || booked.awaitingDriver) return;
+      if (!booked.ok) return;
 
-      const userId = await currentUserIdAction();
-      if (userId) {
-        setPayerId(userId);
-        setPayingFor({ bookingId: booked.bookingId, total: booked.total });
-      }
+      router.push(`/trips/${booked.bookingId}?new=1`);
     });
   }
 
@@ -929,21 +914,13 @@ export function RideDetailView({
                 <CheckCircle2 size={20} />
                 <div>
                   <b>
-                    {paid
-                      ? "Seat confirmed"
-                      : result.awaitingDriver
-                        ? "Request sent"
-                        : "Seat held"}
+                    {result.awaitingDriver ? "Request sent" : "Seat held"}
                     {result.reference ? ` · ${result.reference}` : ""}
                   </b>
                   <p>
                     {result.seats} seat{result.seats === 1 ? "" : "s"} ·{" "}
-                    {formatKes(result.total)}.{" "}
-                    {paid
-                      ? "Paid. We hold your fare until the trip is done, then release it to your driver."
-                      : result.awaitingDriver
-                        ? "The driver has to accept before you pay. We will tell you either way — nothing is charged yet."
-                        : "Pay with M-Pesa to confirm; the seat is held until you do."}
+                    {formatKes(result.total)}. Taking you to your trip, where
+                    you can watch every step.
                   </p>
                 </div>
               </Banner>
@@ -964,22 +941,6 @@ export function RideDetailView({
         </Layout>
       </Wrap>
 
-      {payingFor && payerId && (
-        <PaymentDrawer
-          open
-          bookingId={payingFor.bookingId}
-          userId={payerId}
-          amount={payingFor.total}
-          defaultPhone={profile?.phone}
-          onClose={() => setPayingFor(null)}
-          onPaid={() => {
-            const paidBooking = payingFor.bookingId;
-            setPaid(true);
-            setPayingFor(null);
-            router.push(`/trips/${paidBooking}`);
-          }}
-        />
-      )}
     </>
   );
 
@@ -1033,25 +994,6 @@ export function RideDetailView({
             </p>
           </div>
         </Banner>
-      );
-    }
-
-    if (result?.ok && !paid) {
-      return (
-        <Bar>
-          <Primary
-            type="button"
-            onClick={() =>
-              setPayingFor({
-                bookingId: result.bookingId,
-                total: result.total,
-              })
-            }
-            disabled={pending || !payerId}
-          >
-            <Smartphone size={18} /> Pay {formatKes(result.total)}
-          </Primary>
-        </Bar>
       );
     }
 

@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import styled from "styled-components";
+import { useCallback, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import styled, { css, keyframes } from "styled-components";
 import { ArrowRight, CalendarBlank, Clock, Users, Warning } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
-import { answerSeatRequestAction } from "@/lib/trips/request-actions";
+import {
+  answerSeatRequestAction,
+  seatRequestAction,
+} from "@/lib/trips/request-actions";
+import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
@@ -52,7 +57,12 @@ const Count = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const Row = styled.div`
+const arrive = keyframes`
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: none; }
+`;
+
+const Row = styled.div<{ $fresh?: boolean }>`
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -63,9 +73,35 @@ const Row = styled.div`
     border-top: 1.5px solid ${RULE};
   }
 
+  ${({ $fresh }) =>
+    $fresh &&
+    css`
+      animation: ${arrive} 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
+    `}
+
   @media (max-width: 760px) {
     grid-template-columns: minmax(0, 1fr);
   }
+`;
+
+const New = styled.span`
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  margin-left: 10px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: middle;
 `;
 
 const Who = styled.div`
@@ -201,11 +237,49 @@ const Err = styled.p`
   }
 `;
 
-export function SeatRequests({ initial }: { initial: Booking[] }) {
+export function SeatRequests({
+  initial,
+  viewerId,
+}: {
+  initial: Booking[];
+  viewerId: string;
+}) {
+  const router = useRouter();
   const [items, setItems] = useState(initial);
+  const [fresh, setFresh] = useState<string[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [, startTransition] = useTransition();
+
+  useEffect(() => {
+    setItems(initial);
+  }, [initial]);
+
+  const receive = useCallback(
+    (row: { id: string; status: string }, event: "INSERT" | "UPDATE") => {
+      if (row.status !== "requested") {
+        setItems((prev) => prev.filter((b) => b.id !== row.id));
+        setFresh((prev) => prev.filter((id) => id !== row.id));
+        return;
+      }
+      if (event === "UPDATE") return;
+
+      void seatRequestAction(row.id).then((booking) => {
+        if (!booking) return;
+        setItems((prev) =>
+          prev.some((b) => b.id === booking.id) ? prev : [booking, ...prev],
+        );
+        setFresh((prev) => (prev.includes(booking.id) ? prev : [booking.id, ...prev]));
+      });
+    },
+    [],
+  );
+
+  useBookingStream(
+    `seat-requests:${viewerId}`,
+    viewerId ? `driver_id=eq.${viewerId}` : null,
+    receive,
+  );
 
   if (items.length === 0) return null;
 
@@ -225,7 +299,9 @@ export function SeatRequests({ initial }: { initial: Booking[] }) {
         return;
       }
       setItems((prev) => prev.filter((b) => b.id !== booking.id));
+      setFresh((prev) => prev.filter((id) => id !== booking.id));
       setBusy(null);
+      router.refresh();
     });
   }
 
@@ -235,8 +311,8 @@ export function SeatRequests({ initial }: { initial: Booking[] }) {
         Seat requests <Count>{items.length}</Count>
       </h2>
       <p>
-        Passengers waiting on you. Accepting holds the seat and asks them to
-        pay; nothing is charged until they do.
+        Passengers waiting on you, live as they arrive. Accepting holds the seat
+        for 30 minutes and asks them to pay; nothing is charged until they do.
       </p>
 
       {error && (
@@ -247,7 +323,7 @@ export function SeatRequests({ initial }: { initial: Booking[] }) {
       )}
 
       {items.map((booking) => (
-        <Row key={booking.id}>
+        <Row key={booking.id} $fresh={fresh.includes(booking.id)}>
           <Who>
             <Avatar
               name={booking.passenger?.full_name || "Kipita passenger"}
@@ -257,6 +333,7 @@ export function SeatRequests({ initial }: { initial: Booking[] }) {
             <div>
               <div className="name">
                 {booking.passenger?.full_name || "Kipita passenger"}
+                {fresh.includes(booking.id) && <New>New</New>}
               </div>
               <div className="route">
                 <span>{booking.trip?.from_location ?? "—"}</span>

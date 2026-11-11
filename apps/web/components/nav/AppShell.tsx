@@ -24,6 +24,7 @@ import { nocturne } from "@/lib/nocturne";
 import { barNavFor, primaryNavFor } from "./nav-items";
 import { AppTopBar } from "./AppTopBar";
 import { AppBottomNav } from "./AppBottomNav";
+import { NotificationToast } from "@/components/notifications/NotificationToast";
 import { useNavCounts } from "./useNavCounts";
 import { RailModeSwitch } from "./RailModeSwitch";
 import { SkipToContent } from "./SkipToContent";
@@ -177,6 +178,8 @@ export function AppShell({
 
       {profile && <SupportDock />}
       </SupportProvider>
+
+      {profile && <NotificationToast />}
 
       <DriverKycForm
         open={kycOpen}

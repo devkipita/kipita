@@ -63,6 +63,41 @@ these before inventing a control:
 Three action tiers, in order of weight: ruled option → ruled toggle →
 green commit pill → the single orange page action.
 
+## Illustration
+
+Three families exist, and they share one drawing language rather than one file:
+`ui/MoneyArt.tsx` (payment drawer spots), `trips/WhyArt.tsx` (marketing bento),
+`trips/StageArt.tsx` (the trip stage scenes). Anything new joins them; do not
+start a fourth style.
+
+**Style.** Geometric, flat 2D, no perspective and no gradient. Representational
+enough to name the object — a seat is a seat, a car is a car — and no more.
+Strokes are `2.6` for primary ink, `2` for secondary, round caps and joins,
+`fill: none` by default. Depth comes from a single ground ellipse at 7–8%
+opacity, never a shadow.
+
+**Colour.** Token-only, through four classes each scene declares: `.ink`
+(`cream`), `.accent` (`accent`), `.cta-fill` / `.on-cta` (the one highlight),
+`.surface` (`surface-2`). Fills sit at 0.07–0.2 opacity under their own stroke.
+Because every value is a CSS variable, one drawing serves light and dark — never
+hardcode a hex into an SVG. A stopped state swaps `accent` for `muted-2` rather
+than introducing red: the copy carries the bad news.
+
+**Size and format.** Stage scenes are `320×180`, spots `180×128`, bento panels
+`300×150`. Width is 100% to a `max-width`, height auto. Every illustration is
+`aria-hidden` and `focusable="false"` where it has a stroke — the sentence next
+to it carries the meaning, so a screen reader loses nothing.
+
+**Motion.** Only three loops, all from `lib/nocturne.ts`: `dash` for a road,
+`pulse` for a waiting beacon, `float` for something in transit. One loop per
+scene. Every animation is switched off under `prefers-reduced-motion: reduce`,
+including the stage confetti, which is removed entirely rather than slowed.
+
+**Where they go.** A hero scene marks a state the user is waiting inside
+(`/trips/[id]`); a spot marks a step inside a drawer; a bento panel argues a
+claim. An illustration never carries information that is not also in text, and
+never decorates a dense list — rows get a meter, not a drawing.
+
 ## Rules the surface holds to
 
 - One live layer. Exactly one editor is open, on the page ground. No nested
