@@ -926,9 +926,17 @@ const BarBtn = styled.button`
 `;
 
 const ClearBtn = styled(BarBtn)`
-  width: 54px;
+  width: 48px;
   padding: 0;
-  color: ${nocturne.muted2};
+  border-color: transparent;
+  color: ${nocturne.muted3};
+
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+      background: ${nocturne.surface3};
+    }
+  }
 `;
 
 const Cta = styled.button<{ $tone: "go" | "publish" | "off" }>`
@@ -1200,10 +1208,14 @@ export function PublishMobile({
   const ask = (text: string) => <Asking>{text}</Asking>;
 
   const sentence: ReactNode[] = ["I’m driving from "];
-  sentence.push(draft.from ? filled(draft.from, 0, "Leaving from") : ask("where from?"));
-  sentence.push(" to ");
-  sentence.push(draft.to ? filled(draft.to, 0, "Going to") : ask("where?"));
-  if (reach >= 1) {
+  if (!draft.from) {
+    sentence.push(ask("pick a town"));
+  } else {
+    sentence.push(filled(draft.from, 0, "Leaving from"));
+    sentence.push(" to ");
+    sentence.push(draft.to ? filled(draft.to, 0, "Going to") : ask("where to?"));
+  }
+  if (draft.from && reach >= 1) {
     sentence.push(" ");
     sentence.push(draft.date ? filled(dayPhrase(draft.date), 1, "Day") : ask("which day?"));
   }
@@ -1220,8 +1232,8 @@ export function PublishMobile({
     sentence.push(fare > 0 ? filled(formatKes(fare), 4, "Price per seat") : ask("what price?"));
     sentence.push(" each");
   }
-  sentence.push(".");
-  if (reach >= 5 && (car || step === 5)) {
+  if (draft.from) sentence.push(".");
+  if (draft.from && reach >= 5 && (car || step === 5)) {
     sentence.push(" Look for my ");
     sentence.push(car ? filled(car, 5, "Car") : ask("which car?"));
     sentence.push(".");
@@ -1718,7 +1730,7 @@ export function PublishMobile({
           </Cta>
         )}
         <ClearBtn type="button" aria-label="Clear everything and start over" onClick={reset}>
-          <Trash size={20} />
+          <Trash size={22} />
         </ClearBtn>
       </Bar>
     </Page>

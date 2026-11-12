@@ -1366,8 +1366,10 @@ export function PublishWeb({
   const ask = (text: string) => <Asking key={text}>{text}</Asking>;
 
   const sentence: ReactNode[] = ["I’m driving from "];
-  sentence.push(
-    draft.from ? (
+  if (!draft.from) {
+    sentence.push(ask("pick a town"));
+  } else {
+    sentence.push(
       <Filled
         key="from"
         type="button"
@@ -1379,14 +1381,12 @@ export function PublishWeb({
         aria-label={`Leaving from: ${draft.from}. Change it.`}
       >
         {draft.from}
-      </Filled>
-    ) : (
-      ask("where from?")
-    ),
-  );
-  sentence.push(" to ");
-  sentence.push(draft.to ? filled(draft.to, 0, "Going to") : ask("where?"));
-  if (reach >= 1) {
+      </Filled>,
+    );
+    sentence.push(" to ");
+    sentence.push(draft.to ? filled(draft.to, 0, "Going to") : ask("where to?"));
+  }
+  if (draft.from && reach >= 1) {
     sentence.push(" ");
     sentence.push(draft.date ? filled(dayPhrase(draft.date), 1, "Day") : ask("which day?"));
   }
@@ -1403,10 +1403,10 @@ export function PublishWeb({
     sentence.push(fare > 0 ? filled(formatKes(fare), 4, "Price per seat") : ask("what price?"));
     sentence.push(" each");
   }
-  sentence.push(".");
+  if (draft.from) sentence.push(".");
 
   const carSentence: ReactNode[] =
-    reach >= 5 && (step === 5 || car)
+    draft.from && reach >= 5 && (step === 5 || car)
       ? [" Look for my ", car && maxStep > 5 ? filled(`${carName(car)}, ${car.plate}`, 5, "Car") : ask("which car?"), "."]
       : [];
 
