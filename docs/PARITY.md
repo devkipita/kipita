@@ -267,6 +267,15 @@ from the referrer's rewarded count.
 
 | Capability | Web | Notes |
 |---|---|---|
+| Console shell | Yes | `app/admin/(console)/layout.tsx`: sidebar, topbar, user search. Login stays outside the group. |
+| Overview | Yes | `/admin`, `admin_overview()` (migration 051). Live map groups in-progress trips by destination; only Nyeri, Mombasa, Kisumu, Nakuru have pins. |
+| Trips | Yes | `/admin/trips`, `admin_trips()` + `admin_trip()`. Read-only: no cancel-trip action exists. |
+| Driver verification | Yes | `/admin/drivers`, `driver_applications()` + `set_driver_approval()`. |
+| Payments | Yes | `/admin/payments`, `admin_payments()`. Read-only; no payout batch or M-Pesa reconciliation. |
+| Pricing | Partial | `/admin/pricing`. Fare settings save via `set_setting()`. **EPRA prices, fuel history, vehicle classes are sample data** (no tables). Simulator formula is not used by any quote path yet. |
+| Disputes | Partial | `/admin/disputes`, `admin_reports()` + `admin_set_report_status()` over `reports`. No SOS, chat evidence, or refund/suspend decision from the case. |
+| Events | **Sample** | `/admin/events`. No `events` table; every row and action is fake and not saved. |
+| Users | Yes | `/admin/users`, `admin_users()`, `admin_set_user_status()` (suspend flag only, nothing enforces it at sign-in yet), audit log via `admin_audit_log()`. |
 | Refund queue | Yes | `/admin/refunds`, calls the `resolve-refund` edge function. |
 | FAQ editor | Yes | `/admin/faq`. |
 | Promotions editor | Yes | `/admin/promotions`. |
