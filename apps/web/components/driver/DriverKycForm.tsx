@@ -7,12 +7,55 @@ import { ArrowRight, Camera, Car, Check, Lock, User, Warning, X } from "@/compon
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
 import { submitDriverKycAction } from "@/lib/driver/actions";
-import { uploadKycDocument, type KycDocument } from "@/lib/driver/documents";
+import { signKycDocuments, uploadKycDocument, type KycDocument } from "@/lib/driver/documents";
 import { createClient } from "@/lib/supabase/client";
 import { KYC_DOCUMENTS, type KycDocumentType } from "@/lib/validators/home";
 
 type Photo = { path: string; preview: string };
 type Step = 0 | 1 | 2 | 3;
+
+type KycProgress = {
+  open: boolean;
+  step: Step;
+  docChosen: boolean;
+  docType: KycDocumentType | null;
+  docNumber: string;
+  photos: Partial<Record<KycDocument, string>>;
+};
+
+const progressKey = (userId: string) => `kipita:kyc-progress:${userId}`;
+
+export function readKycProgress(userId: string): KycProgress | null {
+  try {
+    const raw = window.localStorage.getItem(progressKey(userId));
+    if (!raw) return null;
+    const p = JSON.parse(raw) as Partial<KycProgress>;
+    const step = p.step === 1 || p.step === 2 ? p.step : 0;
+    const docType = p.docType && p.docType in KYC_DOCUMENTS ? p.docType : null;
+    return {
+      open: p.open === true,
+      step: docType ? step : 0,
+      docChosen: !!docType && (p.docChosen === true || step > 0),
+      docType,
+      docNumber: typeof p.docNumber === "string" ? p.docNumber : "",
+      photos: p.photos && typeof p.photos === "object" ? p.photos : {},
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeKycProgress(userId: string, progress: KycProgress) {
+  try {
+    window.localStorage.setItem(progressKey(userId), JSON.stringify(progress));
+  } catch {}
+}
+
+function clearKycProgress(userId: string) {
+  try {
+    window.localStorage.removeItem(progressKey(userId));
+  } catch {}
+}
 
 const fade = keyframes`
   from { opacity: 0; }
@@ -816,17 +859,182 @@ const Timeline = styled.ol`
 const CamStage = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 1100;
   background: #000000;
   display: flex;
   flex-direction: column;
 
-  video {
+  .blocked {
     flex: 1;
-    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    text-align: center;
+    color: #ffffff;
+  }
+  .blocked p {
+    margin: 0;
+    max-width: 340px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .blocked button {
+    min-width: 220px;
+    height: 50px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 14px;
+    background: ${nocturne.lime};
+    color: ${nocturne.greenDeep};
+    font: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .blocked button + button {
+    background: transparent;
+    color: #ffffff;
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+  }
+`;
+
+const Viewfinder = styled.div<{ $mirror: boolean }>`
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #000000;
+
+  video {
+    position: absolute;
+    inset: 0;
     width: 100%;
-    object-fit: contain;
-    background: #000000;
+    height: 100%;
+    object-fit: cover;
+    transform: ${({ $mirror }) => ($mirror ? "scaleX(-1)" : "none")};
+  }
+
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 24px 20px;
+    pointer-events: none;
+  }
+  .title,
+  .hint {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    max-width: 320px;
+    text-align: center;
+    color: #ffffff;
+  }
+  .title {
+    font-family: var(--font-manrope), sans-serif;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .hint {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .guide {
+    position: relative;
+    flex: none;
+    box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.62);
+    border: 2px solid rgba(255, 255, 255, 0.92);
+  }
+  .guide.card {
+    width: min(88%, 460px);
+    aspect-ratio: 1.586;
+    border-radius: 16px;
+  }
+  .guide.car {
+    width: min(92%, 540px);
+    aspect-ratio: 16 / 10;
+    border-radius: 20px;
+  }
+  .guide.face {
+    width: min(66%, 280px);
+    aspect-ratio: 3 / 4;
+    border-radius: 50%;
+    border-width: 3px;
+    border-style: dashed;
+  }
+
+  .corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border: 0 solid ${nocturne.lime};
+  }
+  .tl { top: -4px; left: -4px; border-top-width: 4px; border-left-width: 4px; border-top-left-radius: 18px; }
+  .tr { top: -4px; right: -4px; border-top-width: 4px; border-right-width: 4px; border-top-right-radius: 18px; }
+  .bl { bottom: -4px; left: -4px; border-bottom-width: 4px; border-left-width: 4px; border-bottom-left-radius: 18px; }
+  .br { bottom: -4px; right: -4px; border-bottom-width: 4px; border-right-width: 4px; border-bottom-right-radius: 18px; }
+
+  .idcard {
+    position: absolute;
+    inset: 14% 8%;
+    display: flex;
+    align-items: center;
+    gap: 8%;
+    opacity: 0.4;
+  }
+  .idcard .photo {
+    flex: none;
+    width: 28%;
+    aspect-ratio: 3 / 4;
+    border: 2px dashed #ffffff;
+    border-radius: 10px;
+  }
+  .idcard .lines {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .idcard i {
+    display: block;
+    height: 8px;
+    border-radius: 4px;
+    background: #ffffff;
+  }
+
+  .car {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: 12%;
+    width: 80%;
+    height: auto;
+    opacity: 0.45;
+    stroke: #ffffff;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  @media (max-height: 560px) {
+    .overlay {
+      gap: 12px;
+    }
+    .hint {
+      display: none;
+    }
   }
 `;
 
@@ -840,12 +1048,13 @@ const CamBar = styled.div`
   background: #000000;
   color: #ffffff;
 
-  .hint {
+  > button:first-child,
+  .spacer {
     flex: 1;
     min-width: 0;
-    font-size: 14px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.75);
+  }
+  > button:first-child {
+    text-align: left;
   }
 `;
 
@@ -881,46 +1090,93 @@ const Shutter = styled.button`
   }
 `;
 
-/**
- * A real camera, because `capture` on a file input is ignored by every desktop
- * browser — it silently opens a file picker, so "Take photo" took no photo.
- * Falls back to the file input wherever `getUserMedia` is unavailable or
- * refused (insecure origin, no camera, permission denied).
- */
-function CameraStage({
+type CameraProblem = "denied" | "missing" | "busy" | "insecure" | "unsupported" | "unknown";
+
+const CAMERA_PROBLEMS: Record<CameraProblem, { title: string; text: string }> = {
+  denied: {
+    title: "Camera access is off",
+    text: "Tap the camera or lock icon in the address bar, set Camera to Allow, then try again.",
+  },
+  missing: {
+    title: "No camera found",
+    text: "This device has no camera we can use. Upload a photo instead, or continue on your phone.",
+  },
+  busy: {
+    title: "Your camera is in use",
+    text: "Another app is using the camera. Close it, then try again.",
+  },
+  insecure: {
+    title: "Camera needs a secure connection",
+    text: "Open Kipita over https to use the camera here.",
+  },
+  unsupported: {
+    title: "This browser can’t use the camera",
+    text: "Update your browser, or upload a photo instead.",
+  },
+  unknown: {
+    title: "The camera didn’t start",
+    text: "Try again. If it keeps failing, upload a photo instead.",
+  },
+};
+
+export function canUseLiveCamera() {
+  return typeof window !== "undefined" && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia;
+}
+
+export function CameraStage({
   facing,
+  shape,
   hint,
   onShot,
   onCancel,
-  onUnavailable,
+  onPhoneCamera,
+  onUpload,
 }: {
   facing: "user" | "environment";
+  shape: "card" | "face" | "car";
   hint: string;
   onShot: (file: File) => void;
   onCancel: () => void;
-  onUnavailable: () => void;
+  onPhoneCamera: () => void;
+  onUpload: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [live, setLive] = useState(false);
-
-  // Held in a ref so a re-render never restarts the stream mid-shot.
-  const giveUp = useRef(onUnavailable);
-  giveUp.current = onUnavailable;
+  const [problem, setProblem] = useState<CameraProblem | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const touch = typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
 
   useEffect(() => {
     let cancelled = false;
 
-    async function start() {
-      if (!navigator.mediaDevices?.getUserMedia) {
-        giveUp.current();
-        return;
-      }
+    async function open(): Promise<MediaStream> {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        return await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         });
+      } catch (err) {
+        const name = (err as DOMException | undefined)?.name;
+        if (name === "OverconstrainedError" || name === "NotReadableError" || name === "AbortError") {
+          return navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        }
+        throw err;
+      }
+    }
+
+    async function start() {
+      setLive(false);
+      if (!window.isSecureContext) {
+        setProblem("insecure");
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setProblem("unsupported");
+        return;
+      }
+      try {
+        const stream = await open();
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -931,8 +1187,18 @@ function CameraStage({
           await videoRef.current.play().catch(() => undefined);
         }
         setLive(true);
-      } catch {
-        if (!cancelled) giveUp.current();
+      } catch (err) {
+        if (cancelled) return;
+        const name = (err as DOMException | undefined)?.name;
+        setProblem(
+          name === "NotAllowedError" || name === "SecurityError"
+            ? "denied"
+            : name === "NotFoundError" || name === "OverconstrainedError"
+              ? "missing"
+              : name === "NotReadableError"
+                ? "busy"
+                : "unknown",
+        );
       }
     }
 
@@ -942,15 +1208,16 @@ function CameraStage({
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [facing]);
+  }, [facing, attempt]);
 
   useEffect(() => {
-    // React's KeyboardEvent is in scope here, so name the DOM one explicitly.
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      onCancel();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [onCancel]);
 
   function shoot() {
@@ -973,14 +1240,84 @@ function CameraStage({
   }
 
   return (
-    <CamStage role="dialog" aria-modal="true" aria-label="Camera">
-      <video ref={videoRef} playsInline muted autoPlay />
+    <CamStage
+      role="dialog"
+      aria-modal="true"
+      aria-label="Camera"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      {problem ? (
+        <div className="blocked" role="alert">
+          <Camera size={40} />
+          <b>{CAMERA_PROBLEMS[problem].title}</b>
+          <p>{CAMERA_PROBLEMS[problem].text}</p>
+          {problem !== "insecure" && problem !== "unsupported" && (
+            <button
+              type="button"
+              onClick={() => {
+                setProblem(null);
+                setAttempt((n) => n + 1);
+              }}
+            >
+              Try again
+            </button>
+          )}
+          {touch && (
+            <button type="button" onClick={onPhoneCamera}>
+              Use phone camera app
+            </button>
+          )}
+          <button type="button" onClick={onUpload}>
+            Upload a photo instead
+          </button>
+        </div>
+      ) : (
+        <Viewfinder $mirror={facing === "user"}>
+          <video ref={videoRef} playsInline muted autoPlay />
+          <div className="overlay">
+            <p className="title">{shape === "face" ? "Your face in the oval" : shape === "car" ? "Your car in the frame" : "Your document in the frame"}</p>
+            <div className={`guide ${shape}`} aria-hidden>
+              {shape !== "face" && (
+                <>
+                  <span className="corner tl" />
+                  <span className="corner tr" />
+                  <span className="corner bl" />
+                  <span className="corner br" />
+                </>
+              )}
+              {shape === "card" && (
+                <div className="idcard">
+                  <span className="photo" />
+                  <span className="lines">
+                    <i style={{ width: "78%" }} />
+                    <i style={{ width: "62%" }} />
+                    <i style={{ width: "70%" }} />
+                    <i style={{ width: "44%" }} />
+                  </span>
+                </div>
+              )}
+              {shape === "car" && (
+                <svg className="car" viewBox="0 0 200 90" fill="none">
+                  <path d="M14 70V52l18-24h82l24 24h36a10 10 0 0 1 10 10v8" />
+                  <path d="M14 70h172" />
+                  <path d="M44 50l12-16h40v16zM106 50V34h22l16 16z" />
+                  <circle cx="52" cy="70" r="11" />
+                  <circle cx="150" cy="70" r="11" />
+                  <rect x="82" y="56" width="36" height="12" rx="2" />
+                </svg>
+              )}
+            </div>
+            <p className="hint">{hint}</p>
+          </div>
+        </Viewfinder>
+      )}
       <CamBar>
         <CamText type="button" onClick={onCancel}>
           Cancel
         </CamText>
         <Shutter type="button" aria-label="Take the photo" disabled={!live} onClick={shoot} />
-        <span className="hint">{hint}</span>
+        <span className="spacer" aria-hidden />
       </CamBar>
     </CamStage>
   );
@@ -1043,7 +1380,7 @@ function Ground({ cx, rx }: { cx: number; rx: number }) {
   return <ellipse cx={cx} cy="118" rx={rx} ry="5" className="ink-fill" fillOpacity="0.08" />;
 }
 
-function DocumentArt() {
+export function DocumentArt() {
   return (
     <Art viewBox="0 0 180 128" fill="none" aria-hidden="true" focusable="false">
       <Ground cx={90} rx={60} />
@@ -1062,7 +1399,7 @@ function DocumentArt() {
   );
 }
 
-function SelfieArt() {
+export function SelfieArt() {
   return (
     <Art viewBox="0 0 180 128" fill="none" aria-hidden="true" focusable="false">
       <Ground cx={90} rx={50} />
@@ -1076,7 +1413,7 @@ function SelfieArt() {
   );
 }
 
-function CarArt() {
+export function CarArt() {
   return (
     <Art viewBox="0 0 180 128" fill="none" aria-hidden="true" focusable="false">
       <Ground cx={90} rx={64} />
@@ -1173,17 +1510,58 @@ export function DriverKycForm({
   useEffect(() => {
     if (!open) return;
     opener.current = document.activeElement;
-    setStep(0);
-    setDocChosen(false);
     setTried(false);
     setError("");
+    const saved = userId ? readKycProgress(userId) : null;
+    if (saved) {
+      setStep(saved.step);
+      setDocChosen(saved.docChosen);
+      setDocType(saved.docType);
+      setDocNumber(saved.docNumber);
+      const paths = Object.values(saved.photos).filter((p): p is string => !!p);
+      if (paths.length > 0) {
+        void signKycDocuments(createClient(), paths).then((urls) => {
+          setPhotos((current) => {
+            const next = { ...current };
+            for (const [slot, path] of Object.entries(saved.photos) as [KycDocument, string | undefined][]) {
+              if (!path || next[slot]?.path === path || !urls[path]) continue;
+              next[slot] = { path, preview: urls[path] };
+            }
+            return next;
+          });
+        });
+      }
+    } else {
+      setStep(0);
+      setDocChosen(false);
+    }
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
+      if (userId) {
+        const left = readKycProgress(userId);
+        if (left) writeKycProgress(userId, { ...left, open: false });
+      }
       if (opener.current instanceof HTMLElement) opener.current.focus();
     };
-  }, [open]);
+  }, [open, userId]);
+
+  useEffect(() => {
+    if (!open || !userId || step > 2) return;
+    writeKycProgress(userId, {
+      open: true,
+      step,
+      docChosen,
+      docType,
+      docNumber,
+      photos: {
+        document: photos.document?.path,
+        selfie: photos.selfie?.path,
+        vehicle: photos.vehicle?.path,
+      },
+    });
+  }, [open, userId, step, docChosen, docType, docNumber, photos]);
 
   useEffect(() => {
     if (!open) return;
@@ -1255,8 +1633,21 @@ export function DriverKycForm({
       setError(result.error);
       return;
     }
+    if (userId) clearKycProgress(userId);
     setStep(3);
     onSubmitted();
+  }
+
+  function openCamera() {
+    if (canUseLiveCamera()) {
+      setCamOpen(true);
+      return;
+    }
+    camRef.current?.click();
+  }
+
+  function closeCamera() {
+    setCamOpen(false);
   }
 
   function primary() {
@@ -1497,7 +1888,7 @@ export function DriverKycForm({
               </Frame>
 
               <PhotoActions>
-                <Btn type="button" $tone="solid" disabled={!!uploading} onClick={() => setCamOpen(true)}>
+                <Btn type="button" $tone="solid" disabled={!!uploading} onClick={openCamera}>
                   <Camera size={20} />
                   {current ? "Retake photo" : "Take photo"}
                 </Btn>
@@ -1667,16 +2058,20 @@ export function DriverKycForm({
       {camOpen && (
         <CameraStage
           facing={step === 1 ? "user" : "environment"}
+          shape={step === 1 ? "face" : step === 2 ? "car" : "card"}
           hint={frameText}
-          onCancel={() => setCamOpen(false)}
+          onCancel={closeCamera}
           onShot={(file) => {
             setCamOpen(false);
             void onFile(file);
           }}
-          onUnavailable={() => {
-            // No camera here — hand the driver the picker rather than a dead end.
+          onPhoneCamera={() => {
             setCamOpen(false);
             camRef.current?.click();
+          }}
+          onUpload={() => {
+            setCamOpen(false);
+            fileRef.current?.click();
           }}
         />
       )}

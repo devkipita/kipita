@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -13,7 +14,8 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import type { KycStatus } from "@/lib/driver/kyc";
 import styled from "styled-components";
-import { DriverKycForm } from "@/components/driver/DriverKycForm";
+import { DriverKycForm, readKycProgress } from "@/components/driver/DriverKycForm";
+import { DriverInvite } from "@/components/driver/DriverInvite";
 import { SupportDock } from "@/components/support/SupportDock";
 import { SupportProvider } from "@/components/support/SupportProvider";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
@@ -117,7 +119,26 @@ export function AppShell({
     setDriverReady(initialKycStatus !== "not_submitted");
   }
   const [kycOpen, setKycOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const afterKyc = useRef<(() => void) | null>(null);
+  const profileId = profile?.id ?? null;
+  const canApply = kycStatus === "not_submitted" || kycStatus === "rejected";
+
+  useEffect(() => {
+    if (!profileId) return;
+    const url = new URL(window.location.href);
+    const invited = url.searchParams.get("driver") === "invite";
+    if (invited) {
+      url.searchParams.delete("driver");
+      window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+    }
+    if (!canApply) return;
+    if (readKycProgress(profileId)?.open) setKycOpen(true);
+    else if (invited) setInviteOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileId]);
+
+  const closeInvite = useCallback(() => setInviteOpen(false), []);
   const requireKyc = useCallback((after?: () => void) => {
     afterKyc.current = typeof after === "function" ? after : null;
     setKycOpen(true);
@@ -198,6 +219,15 @@ export function AppShell({
       </SupportProvider>
 
       {profile && <NotificationToast />}
+
+      <DriverInvite
+        open={inviteOpen}
+        onLater={closeInvite}
+        onYes={() => {
+          setInviteOpen(false);
+          setKycOpen(true);
+        }}
+      />
 
       <DriverKycForm
         open={kycOpen}

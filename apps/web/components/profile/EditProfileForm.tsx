@@ -259,7 +259,7 @@ export function EditProfileForm({
 
   useEffect(() => {
     if (state.ok) {
-      router.push(welcome ? "/home" : "/profile");
+      router.push(welcome ? "/home?driver=invite" : "/profile");
       router.refresh();
     }
   }, [state.ok, welcome, router]);
@@ -366,7 +366,7 @@ export function EditProfileForm({
               {pending ? "Saving" : "Save changes"}
               {pending ? <ButtonOrb job="committing" /> : <DrawnCheck size={21} />}
             </CommitAction>
-            <Skip href={welcome ? "/home" : "/profile"}>
+            <Skip href={welcome ? "/home?driver=invite" : "/profile"}>
               {welcome ? "Skip for now" : "Back to profile"}
             </Skip>
           </Commit>

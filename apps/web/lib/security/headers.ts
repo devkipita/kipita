@@ -98,5 +98,5 @@ export const STATIC_SECURITY_HEADERS: Record<string, string> = {
   // Geolocation is allowed for our own origin only, and is requested at the
   // point of use (Nearby, Closest, the alert composer) — never on page load.
   "Permissions-Policy":
-    "camera=(), microphone=(), geolocation=(self), payment=()",
+    "camera=(self), microphone=(), geolocation=(self), payment=()",
 };
