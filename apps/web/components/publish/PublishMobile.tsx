@@ -13,7 +13,6 @@ import {
   Plus,
   SealCheck,
   ShieldCheck,
-  Trash,
   Wallet,
   Warning,
   X,
@@ -23,6 +22,8 @@ import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
+import { saveCarAction } from "@/lib/driver/cars";
+import { carName } from "@/components/driver/CarDialog";
 import { detectOrigin } from "@/lib/home/geo";
 import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
 import type { RidePreferences } from "@/lib/ride-detail";
@@ -42,6 +43,7 @@ type Draft = {
   seats: number | null;
   price: string;
   carMode: CarMode;
+  savedPlate: string;
   make: string;
   model: string;
   plate: string;
@@ -118,20 +120,22 @@ function ruleOn(prefs: Prefs, rule: Rule) {
   return rule.inverted ? !prefs[rule.key] : prefs[rule.key];
 }
 
-function pickedCar(d: Draft, saved: SavedCar | null) {
-  if (d.carMode === "saved" && saved)
-    return { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color ?? "" };
+function pickedCar(d: Draft, cars: SavedCar[]) {
+  if (d.carMode === "saved") {
+    const saved = cars.find((c) => c.plate === d.savedPlate) ?? cars[0];
+    if (saved) return { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color ?? "" };
+  }
   if (d.carMode === "new") return { make: d.make, model: d.model, plate: d.plate, color: d.color };
   return null;
 }
 
-function carLine(d: Draft, saved: SavedCar | null) {
-  const car = pickedCar(d, saved);
+function carLine(d: Draft, cars: SavedCar[]) {
+  const car = pickedCar(d, cars);
   if (!car || !car.plate.trim()) return "";
   return `${car.color} ${car.make} ${car.model}, ${car.plate}`.replace(/\s+/g, " ").trim();
 }
 
-function blankDraft(saved: SavedCar | null): Draft {
+function blankDraft(cars: SavedCar[]): Draft {
   return {
     from: "",
     to: "",
@@ -139,7 +143,8 @@ function blankDraft(saved: SavedCar | null): Draft {
     time: "",
     seats: null,
     price: "",
-    carMode: saved ? "saved" : "none",
+    carMode: cars.length > 0 ? "saved" : "none",
+    savedPlate: cars[0]?.plate ?? "",
     make: "",
     model: "",
     plate: "",
@@ -902,83 +907,117 @@ const Bar = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 20px 16px;
+  min-height: 52px;
+  padding: 12px 16px 14px;
+  border-top: 1px solid ${nocturne.line2};
   background: ${nocturne.bg};
 `;
 
+const press = css`
+  transition:
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+`;
+
 const BarBtn = styled.button`
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 54px;
-  padding: 0 18px;
-  border: 1.5px solid ${nocturne.line};
-  border-radius: 16px;
-  background: transparent;
-  color: ${nocturne.cream};
+  height: 52px;
+  padding: 0 16px;
+  border: 2px solid ${nocturne.green};
+  border-radius: 999px;
+  background: ${nocturne.surface};
+  color: ${nocturne.green};
   font: inherit;
+  font-family: var(--font-manrope), sans-serif;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.01em;
   cursor: pointer;
+  box-shadow: 0 2px 6px -3px rgba(15, 59, 44, 0.35);
+  ${press}
   ${ring}
-`;
-
-const ClearBtn = styled(BarBtn)`
-  flex-direction: column;
-  gap: 1px;
-  width: 58px;
-  padding: 0;
-  border-color: transparent;
-  color: ${nocturne.muted3};
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
 
   @media (hover: hover) {
     &:hover {
-      color: ${nocturne.cream};
-      background: ${nocturne.surface3};
+      background: ${nocturne.surface2};
     }
   }
 `;
 
 const Cta = styled.button<{ $tone: "go" | "publish" | "off" }>`
+  position: relative;
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  height: 54px;
-  border: 0;
-  border-radius: 16px;
+  gap: 6px;
+  height: 52px;
+  padding: 0 16px;
+  border: 2px solid transparent;
+  border-radius: 999px;
   font: inherit;
+  font-family: var(--font-manrope), sans-serif;
   font-size: 16px;
   font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
   cursor: pointer;
   background: ${({ $tone }) => ($tone === "publish" ? nocturne.ctaBg : $tone === "go" ? nocturne.green : nocturne.surface3)};
   color: ${({ $tone }) => ($tone === "publish" ? nocturne.ctaFg : $tone === "go" ? nocturne.onGreen : nocturne.muted3)};
-  transition: background-color 0.2s ease;
-
-  &:disabled {
-    cursor: not-allowed;
-  }
+  ${press}
   ${ring}
+
+  .go {
+    display: inline-flex;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (hover: hover) {
+    &:hover:not(:disabled) .go {
+      transform: translateX(3px);
+    }
+  }
+  &:disabled {
+    cursor: progress;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .go {
+      transition: none;
+    }
+  }
 `;
 
 export function PublishMobile({
-  savedCar = null,
+  savedCars: initialCars = [],
   publishBeforeApproval = false,
 }: {
-  savedCar?: SavedCar | null;
+  savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
 }) {
   const { kycStatus, requireKyc } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
   const willWait = kycStatus !== "approved" && !publishBeforeApproval;
 
-  const [draft, setDraft] = useState<Draft>(() => blankDraft(savedCar));
+  const [savedCars, setSavedCars] = useState<SavedCar[]>(initialCars);
+  const savedPlates = initialCars.map((c) => c.plate).join(",");
+  const [savingCar, setSavingCar] = useState(false);
+  const [draft, setDraft] = useState<Draft>(() => blankDraft(initialCars));
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
   const [ready, setReady] = useState(false);
@@ -995,19 +1034,15 @@ export function PublishMobile({
     const saved = loadDraft();
     let start = 0;
     if (saved) {
-      const carMode: CarMode =
-        saved.carMode === "none" || saved.carMode === "new" || saved.carMode === "saved"
-          ? saved.carMode === "saved" && !savedCar
+      const known = initialCars.find((c) => c.plate === saved.plate);
+      const carMode: CarMode = known
+        ? "saved"
+        : saved.carMode === "new" || (!saved.carMode && saved.plate)
+          ? "new"
+          : saved.carMode === "none" || initialCars.length === 0
             ? "none"
-            : saved.carMode
-          : savedCar && saved.plate === savedCar.plate
-            ? "saved"
-            : saved.plate
-              ? "new"
-              : savedCar
-                ? "saved"
-                : "none";
-      const base = blankDraft(savedCar);
+            : "saved";
+      const base = blankDraft(initialCars);
       setDraft({
         ...base,
         from: saved.from ?? "",
@@ -1017,6 +1052,7 @@ export function PublishMobile({
         seats: saved.seats ?? null,
         price: saved.price ?? "",
         carMode,
+        savedPlate: known?.plate ?? base.savedPlate,
         make: carMode === "new" ? (saved.make ?? "") : "",
         model: carMode === "new" ? (saved.model ?? "") : "",
         plate: carMode === "new" ? (saved.plate ?? "") : "",
@@ -1053,11 +1089,12 @@ export function PublishMobile({
       window.removeEventListener("popstate", onPop);
       abort.abort();
     };
-  }, [savedCar]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedPlates]);
 
   useEffect(() => {
     if (!ready) return;
-    const car = pickedCar(draft, savedCar);
+    const car = pickedCar(draft, savedCars);
     saveDraft({
       from: draft.from,
       to: draft.to,
@@ -1074,7 +1111,7 @@ export function PublishMobile({
       step,
       maxStep,
     });
-  }, [draft, step, maxStep, savedCar, ready]);
+  }, [draft, step, maxStep, savedCars, ready]);
 
   useEffect(() => {
     if (!moved.current) return;
@@ -1109,22 +1146,10 @@ export function PublishMobile({
     go(step - 1);
   }
 
-  function reset() {
-    clearDraft();
-    moved.current = true;
-    setDraft((d) => ({ ...blankDraft(savedCar), from: d.from }));
-    setStep(0);
-    setMaxStep(0);
-    window.history.replaceState({ ...window.history.state, publishStep: 0 }, "");
-    setError(null);
-    setQuery("");
-    setEditFrom(false);
-  }
-
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
   const fare = Number(draft.price) || 0;
-  const car = carLine(draft, savedCar);
+  const car = carLine(draft, savedCars);
 
   function carProblem(): string | null {
     if (draft.carMode !== "new") return null;
@@ -1167,7 +1192,7 @@ export function PublishMobile({
   }
 
   function sendTrip() {
-    const vehicle = pickedCar(draft, savedCar);
+    const vehicle = pickedCar(draft, savedCars);
     startTransition(async () => {
       const result = await createTripAction({
         from_location: draft.from.trim(),
@@ -1194,11 +1219,22 @@ export function PublishMobile({
     });
   }
 
-  function next() {
-    if (!valid) return;
+  async function next() {
+    if (!valid || savingCar) return;
     if (step === 7) {
       publish();
       return;
+    }
+    if (step === 5 && draft.carMode === "new") {
+      setSavingCar(true);
+      const result = await saveCarAction({ make: draft.make, model: draft.model, plate: draft.plate, color: draft.color });
+      setSavingCar(false);
+      if (!result.ok) {
+        setError({ text: result.error });
+        return;
+      }
+      setSavedCars((list) => [result.car, ...list.filter((c) => c.plate !== result.car.plate)]);
+      patch({ carMode: "saved", savedPlate: result.car.plate, make: "", model: "", plate: "", color: "" });
     }
     go(step + 1);
   }
@@ -1489,18 +1525,21 @@ export function PublishMobile({
               <>
                 <Heading>Which car are you driving?</Heading>
                 <CarStack role="radiogroup" aria-label="Car">
-                  {savedCar && (
-                    <CarOption type="button" role="radio" aria-checked={draft.carMode === "saved"} $on={draft.carMode === "saved"} onClick={() => patch({ carMode: "saved" })}>
-                      <span className="badge">
-                        <Car size={24} />
-                      </span>
-                      <span className="text">
-                        <span className="name">{[savedCar.color, savedCar.make, savedCar.model].filter(Boolean).join(" ")}</span>
-                        <span className="plate">{savedCar.plate}</span>
-                      </span>
-                      <span className="radio" aria-hidden />
-                    </CarOption>
-                  )}
+                  {savedCars.map((saved) => {
+                    const on = draft.carMode === "saved" && (pickedCar(draft, savedCars)?.plate ?? "") === saved.plate;
+                    return (
+                      <CarOption key={saved.plate} type="button" role="radio" aria-checked={on} $on={on} onClick={() => patch({ carMode: "saved", savedPlate: saved.plate })}>
+                        <span className="badge">
+                          <Car size={24} />
+                        </span>
+                        <span className="text">
+                          <span className="name">{carName({ color: saved.color ?? "", make: saved.make, model: saved.model })}</span>
+                          <span className="plate">{saved.plate}</span>
+                        </span>
+                        <span className="radio" aria-hidden />
+                      </CarOption>
+                    );
+                  })}
                   {draft.carMode === "new" ? (
                     <CarOption as="div" $on aria-hidden>
                       <span className="badge">
@@ -1517,7 +1556,7 @@ export function PublishMobile({
                   ) : (
                     <Dashed type="button" onClick={() => patch({ carMode: "new" })}>
                       <Plus size={18} weight="bold" />
-                      {savedCar ? "Add a car" : "Add your car"}
+                      {savedCars.length > 0 ? "Add a car" : "Add your car"}
                     </Dashed>
                   )}
                 </CarStack>
@@ -1613,8 +1652,8 @@ export function PublishMobile({
                           <Check size={16} weight="bold" /> Car ready
                         </span>
                       )}
-                      <Ghost type="button" onClick={() => patch({ carMode: savedCar ? "saved" : "none", make: "", model: "", plate: "", color: "" })}>
-                        {savedCar ? "Use saved car" : "Skip for now"}
+                      <Ghost type="button" onClick={() => patch({ carMode: savedCars.length > 0 ? "saved" : "none", make: "", model: "", plate: "", color: "" })}>
+                        {savedCars.length > 0 ? "Use saved car" : "Skip for now"}
                       </Ghost>
                     </div>
                   </NewCar>
@@ -1622,7 +1661,7 @@ export function PublishMobile({
 
                 {draft.carMode !== "new" && (
                   <Note>
-                    {savedCar
+                    {savedCars.length > 0
                       ? "Passengers use the plate to find you at pickup."
                       : "Optional. Passengers use the plate to find you at pickup."}
                   </Note>
@@ -1728,16 +1767,16 @@ export function PublishMobile({
           </BarBtn>
         )}
         {valid && (
-          <Cta type="button" $tone={ctaTone} disabled={pending} aria-busy={pending} onClick={next}>
-            {pending && <ButtonOrb job="committing" />}
+          <Cta type="button" $tone={ctaTone} disabled={pending || savingCar} aria-busy={pending || savingCar} onClick={() => void next()}>
+            {(pending || savingCar) && <ButtonOrb job="committing" />}
             {ctaLabel}
-            {!pending && <CaretRight size={18} weight="bold" />}
+            {!pending && !savingCar && (
+              <span className="go" aria-hidden>
+                <CaretRight size={18} weight="bold" />
+              </span>
+            )}
           </Cta>
         )}
-        <ClearBtn type="button" aria-label="Clear everything and start over" onClick={reset}>
-          <Trash size={20} />
-          Clear
-        </ClearBtn>
       </Bar>
     </Page>
   );

@@ -24,7 +24,7 @@ import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
 import { detectOrigin } from "@/lib/home/geo";
-import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
+import { CarDialog } from "@/components/driver/CarDialog";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime } from "./WhenPicker";
 import type { SavedCar } from "./draft";
@@ -59,16 +59,6 @@ const PERIODS: { key: Period; label: string; range: string; from: number; to: nu
   { key: "morning", label: "Morning", range: "5 – 11:30 am", from: 5, to: 11 },
   { key: "afternoon", label: "Afternoon", range: "12 – 4:30 pm", from: 12, to: 16 },
   { key: "evening", label: "Evening", range: "5 – 9:30 pm", from: 17, to: 21 },
-];
-
-const COLOURS: { label: string; swatch: string }[] = [
-  { label: "White", swatch: "#FFFFFF" },
-  { label: "Silver", swatch: "#C9CDD0" },
-  { label: "Black", swatch: "#1D1F1E" },
-  { label: "Grey", swatch: "#7D8381" },
-  { label: "Blue", swatch: "#2F5D9E" },
-  { label: "Red", swatch: "#B23A2E" },
-  { label: "Green", swatch: "#2F6B4C" },
 ];
 
 type RuleIcon = "smoke" | "pet" | "bag" | "music" | "chat";
@@ -892,63 +882,6 @@ const Money = styled.div`
   }
 `;
 
-const CarFields = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
-
-  label {
-    font-size: 14px;
-    font-weight: 700;
-  }
-  > div {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-`;
-
-const TextField = styled.input<{ $bad?: boolean; $plate?: boolean }>`
-  height: 50px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1.5px solid ${({ $bad }) => ($bad ? nocturne.danger : nocturne.line)};
-  background: ${nocturne.surface};
-  font: inherit;
-  font-size: 16px;
-  font-weight: ${({ $plate }) => ($plate ? 800 : 600)};
-  letter-spacing: ${({ $plate }) => ($plate ? "0.08em" : "normal")};
-  color: ${nocturne.cream};
-  outline: 0;
-  box-sizing: border-box;
-  ${ring}
-`;
-
-const Swatch = styled.button<{ $on: boolean; $sw: string }>`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 12px 0 8px;
-  border-radius: 19px;
-  border: 1.5px solid ${({ $on }) => ($on ? nocturne.green : nocturne.line)};
-  background: ${({ $on }) => ($on ? nocturne.surface2 : nocturne.surface)};
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: ${nocturne.cream};
-  cursor: pointer;
-  ${ring}
-
-  i {
-    width: 20px;
-    height: 20px;
-    border-radius: 10px;
-    background: ${({ $sw }) => $sw};
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
-  }
-`;
-
 const Review = styled.section`
   display: flex;
   flex-direction: column;
@@ -1087,11 +1020,11 @@ const Terms = styled.ul`
 `;
 
 export function PublishWeb({
-  savedCar = null,
+  savedCars = [],
   publishBeforeApproval = false,
   driverName = "",
 }: {
-  savedCar?: SavedCar | null;
+  savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
   driverName?: string;
 }) {
@@ -1100,9 +1033,8 @@ export function PublishWeb({
   const submitted = kycStatus === "approved" || kycStatus === "pending";
   const [awaiting, setAwaiting] = useState(false);
 
-  const initialCars: CarRow[] = savedCar
-    ? [{ make: savedCar.make, model: savedCar.model, plate: savedCar.plate, color: savedCar.color ?? "" }]
-    : [];
+  const initialCars: CarRow[] = savedCars.map((c) => ({ make: c.make, model: c.model, plate: c.plate, color: c.color ?? "" }));
+  const savedPlates = savedCars.map((c) => c.plate).join(",");
 
   const [draft, setDraft] = useState<Draft>(blankDraft);
   const [cars, setCars] = useState<CarRow[]>(initialCars);
@@ -1115,10 +1047,6 @@ export function PublishWeb({
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("morning");
   const [adding, setAdding] = useState(false);
-  const [newModel, setNewModel] = useState("");
-  const [newPlate, setNewPlate] = useState("");
-  const [newColour, setNewColour] = useState("");
-  const [addTried, setAddTried] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
   const [fareOpen, setFareOpen] = useState(false);
@@ -1143,11 +1071,14 @@ export function PublishWeb({
         prefs: { ...base.prefs, ...saved.prefs },
       });
       if (saved.time) setPeriod(periodOf(saved.time));
+      const known = saved.plate ? initialCars.findIndex((c) => c.plate === saved.plate) : -1;
       if (saved.carMode === "none") {
         setCarIndex(-1);
-      } else if (saved.plate && saved.plate !== savedCar?.plate) {
+      } else if (known >= 0) {
+        setCarIndex(known);
+      } else if (saved.plate) {
         const row = { make: saved.make ?? "", model: saved.model ?? "", plate: saved.plate, color: saved.color ?? "" };
-        setCars((list) => [...list, row]);
+        setCars([...initialCars, row]);
         setCarIndex(initialCars.length);
       }
       start = Math.min(Math.max(saved.step ?? 0, 0), STEPS.length - 1);
@@ -1179,7 +1110,8 @@ export function PublishWeb({
       window.removeEventListener("popstate", onPop);
       abort.abort();
     };
-  }, [savedCar]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedPlates]);
 
   const car = carIndex >= 0 ? (cars[carIndex] ?? null) : null;
 
@@ -1187,7 +1119,7 @@ export function PublishWeb({
     if (!ready) return;
     saveDraft({
       ...draft,
-      carMode: !car ? "none" : savedCar && car.plate === savedCar.plate ? "saved" : "new",
+      carMode: !car ? "none" : savedPlates.split(",").includes(car.plate) ? "saved" : "new",
       make: car?.make ?? "",
       model: car?.model ?? "",
       plate: car?.plate ?? "",
@@ -1195,7 +1127,7 @@ export function PublishWeb({
       step,
       maxStep,
     });
-  }, [ready, draft, car, savedCar, step, maxStep]);
+  }, [ready, draft, car, savedPlates, step, maxStep]);
 
   useEffect(() => {
     if (!moved.current) return;
@@ -1203,19 +1135,17 @@ export function PublishWeb({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
-  // Escape closes whichever dialog is open, from anywhere on the page.
   useEffect(() => {
-    if (!calOpen && !timeOpen && !fareOpen && !adding) return;
+    if (!calOpen && !timeOpen && !fareOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setCalOpen(false);
       setTimeOpen(false);
       setFareOpen(false);
-      if (adding) closeAdd();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [calOpen, timeOpen, fareOpen, adding]);
+  }, [calOpen, timeOpen, fareOpen]);
 
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
@@ -1325,34 +1255,17 @@ export function PublishWeb({
     go(step + 1);
   }
 
-  function saveNewCar() {
-    const words = newModel.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0 || !isPlate(newPlate) || !newColour) {
-      setAddTried(true);
-      return;
+  function onCarSaved(saved: CarRow) {
+    const row: CarRow = { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color };
+    const at = cars.findIndex((c) => c.plate === row.plate);
+    if (at >= 0) {
+      setCars(cars.map((c, i) => (i === at ? row : c)));
+      setCarIndex(at);
+    } else {
+      setCarIndex(cars.length);
+      setCars([...cars, row]);
     }
-    const titled = words.map((w) => w[0]!.toUpperCase() + w.slice(1));
-    const row: CarRow = {
-      make: titled[0]!,
-      model: titled.slice(1).join(" ") || titled[0]!,
-      plate: newPlate,
-      color: newColour,
-    };
-    setCarIndex(cars.length);
-    setCars([...cars, row]);
     setAdding(false);
-    setNewModel("");
-    setNewPlate("");
-    setNewColour("");
-    setAddTried(false);
-  }
-
-  function closeAdd() {
-    setAdding(false);
-    setNewModel("");
-    setNewPlate("");
-    setNewColour("");
-    setAddTried(false);
   }
 
   // ── The sentence. It is the page: every answer lands in it, and every
@@ -1481,17 +1394,6 @@ export function PublishWeb({
   const showCta = step === 5 || step === 6 || (valid && step < maxStep);
   const ctaTone: "go" | "off" = valid ? "go" : "off";
 
-  const plateBad = addTried && !isPlate(newPlate);
-  const modelBad = addTried && !newModel.trim();
-  const addError = addTried
-    ? !newModel.trim()
-      ? "Add the make and model."
-      : !isPlate(newPlate)
-        ? PLATE_ERROR
-        : !newColour
-          ? "Pick a colour so passengers can spot your car."
-          : ""
-    : "";
 
   const ruleViews = RULES.map((rule) => {
     const on = ruleOn(draft.prefs, rule);
@@ -1769,7 +1671,7 @@ export function PublishWeb({
                       </Radio>
                     </CarChip>
                   ))}
-                  <AddCar type="button" onClick={() => { setAdding(true); setAddTried(false); }}>
+                  <AddCar type="button" onClick={() => setAdding(true)}>
                     <Plus size={18} weight="bold" />
                     Add a car
                   </AddCar>
@@ -1950,76 +1852,7 @@ export function PublishWeb({
         </Backdrop>
       )}
 
-      {adding && (
-        <Backdrop onClick={closeAdd}>
-          <Dialog $w={520} role="dialog" aria-modal="true" aria-label="Add a car" onClick={(e) => e.stopPropagation()}>
-            <DialogHead>
-              <span>Add a car</span>
-              <IconBtn type="button" aria-label="Cancel adding a car" onClick={closeAdd}>
-                <X size={18} weight="bold" />
-              </IconBtn>
-            </DialogHead>
-            <CarFields>
-              <div>
-                <label htmlFor="carModel">Make and model</label>
-                <TextField
-                  id="carModel"
-                  value={newModel}
-                  placeholder="Toyota Fielder"
-                  autoComplete="off"
-                  $bad={modelBad}
-                  onChange={(e) => setNewModel(e.target.value)}
-                />
-              </div>
-              <div>
-                <label htmlFor="carPlate">Number plate</label>
-                <TextField
-                  id="carPlate"
-                  value={newPlate}
-                  placeholder={PLATE_EXAMPLE}
-                  autoComplete="off"
-                  maxLength={8}
-                  $plate
-                  $bad={plateBad}
-                  onChange={(e) => setNewPlate(formatPlate(e.target.value))}
-                />
-              </div>
-            </CarFields>
-            <Field>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>Colour</span>
-              <Row>
-                {COLOURS.map((c) => (
-                  <Swatch
-                    key={c.label}
-                    type="button"
-                    $on={newColour === c.label}
-                    $sw={c.swatch}
-                    aria-pressed={newColour === c.label}
-                    onClick={() => setNewColour(c.label)}
-                  >
-                    <i aria-hidden />
-                    {c.label}
-                  </Swatch>
-                ))}
-              </Row>
-            </Field>
-            {addError && (
-              <Alert role="alert">
-                <Warning size={16} weight="bold" />
-                {addError}
-              </Alert>
-            )}
-            <DialogFoot style={{ justifyContent: "flex-end" }}>
-              <Hollow type="button" onClick={closeAdd}>
-                Cancel
-              </Hollow>
-              <Solid type="button" onClick={saveNewCar}>
-                Save car
-              </Solid>
-            </DialogFoot>
-          </Dialog>
-        </Backdrop>
-      )}
+      <CarDialog open={adding} onClose={() => setAdding(false)} onSaved={onCarSaved} />
     </Page>
   );
 }

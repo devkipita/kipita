@@ -48,6 +48,7 @@ export function clearDraft() {
 }
 
 export type SavedCar = {
+  id?: string;
   make: string;
   model: string;
   plate: string;

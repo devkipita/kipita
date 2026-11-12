@@ -13,6 +13,8 @@ import { AvatarUploader } from "./AvatarUploader";
 import { NotificationsCard } from "./NotificationsCard";
 import { ControlRow, LinkRow, Panel, SectionTitle } from "./SettingsUI";
 import { ChangePasswordCard } from "./ChangePasswordCard";
+import { DriverSection } from "./DriverSection";
+import type { GarageCar } from "@/lib/home/vehicle";
 
 const Wrap = styled(ContentWidth)`
   padding-block: 24px 40px;
@@ -223,7 +225,7 @@ const GENDER_LABEL: Record<string, string> = {
   prefer_not_to_say: "Prefer not to say",
 };
 
-export function ProfileView({ profile }: { profile: Profile }) {
+export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageCar[] }) {
   const { mode, toggle } = useThemeMode();
   const {
     mode: appMode,
@@ -380,6 +382,8 @@ export function ProfileView({ profile }: { profile: Profile }) {
             />
           </ControlRow>
         </Panel>
+
+        <DriverSection cars={cars} />
 
         <SectionTitle>Appearance</SectionTitle>
         <Panel>

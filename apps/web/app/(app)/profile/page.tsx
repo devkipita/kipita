@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth/session";
+import { createClient } from "@/lib/supabase/server";
+import { fetchMyCars } from "@/lib/home/vehicle";
 import { ProfileView } from "@/components/profile/ProfileView";
 
 export const metadata: Metadata = {
@@ -9,5 +11,7 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage() {
   const profile = await requireProfile("/profile");
-  return <ProfileView profile={profile} />;
+  const supabase = await createClient();
+  const cars = await fetchMyCars(supabase, profile.id).catch(() => []);
+  return <ProfileView profile={profile} cars={cars} />;
 }

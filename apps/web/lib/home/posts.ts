@@ -54,11 +54,6 @@ function writeError(error: { code?: string } | null, fallback: string): string {
   return fallback;
 }
 
-/**
- * The car this ride is offered in. A driver keeps one vehicle, so posting
- * updates it rather than creating a new row each time. Never fails the post:
- * a ride without a car attached is still a ride.
- */
 async function resolveVehicle(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
@@ -73,12 +68,22 @@ async function resolveVehicle(
   };
 
   try {
+    if (!details.plate_number) {
+      const { data: latest } = await supabase
+        .from("vehicles")
+        .select("id")
+        .eq("driver_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (latest?.id as string | undefined) ?? null;
+    }
+
     const { data: existing } = await supabase
       .from("vehicles")
       .select("id")
       .eq("driver_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .eq("plate_number", details.plate_number)
       .maybeSingle();
 
     const patch = Object.fromEntries(
@@ -86,15 +91,11 @@ async function resolveVehicle(
     );
 
     if (existing) {
-      if (Object.keys(patch).length > 0) {
-        await supabase.from("vehicles").update(patch).eq("id", existing.id);
-      }
+      await supabase.from("vehicles").update(patch).eq("id", existing.id);
       return existing.id as string;
     }
 
-    // A plate is how the passenger identifies the car, so a new vehicle needs
-    // a real one rather than the placeholder this used to invent.
-    if (!details.make || !details.model || !details.plate_number) return null;
+    if (!details.make || !details.model) return null;
 
     const { data } = await supabase
       .from("vehicles")

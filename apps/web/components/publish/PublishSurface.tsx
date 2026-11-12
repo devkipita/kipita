@@ -15,11 +15,11 @@ function subscribe(onChange: () => void) {
 }
 
 export function PublishSurface({
-  savedCar,
+  savedCars,
   publishBeforeApproval,
   driverName,
 }: {
-  savedCar: SavedCar | null;
+  savedCars: SavedCar[];
   publishBeforeApproval: boolean;
   driverName: string;
 }) {
@@ -31,8 +31,8 @@ export function PublishSurface({
 
   if (phone === null) return <PublishSkeleton />;
   return phone ? (
-    <PublishMobile savedCar={savedCar} publishBeforeApproval={publishBeforeApproval} />
+    <PublishMobile savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} />
   ) : (
-    <PublishWeb savedCar={savedCar} publishBeforeApproval={publishBeforeApproval} driverName={driverName} />
+    <PublishWeb savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} driverName={driverName} />
   );
 }

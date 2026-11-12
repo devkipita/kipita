@@ -110,3 +110,38 @@ export async function fetchMyVehicle(
   if (error || !data) return null;
   return data as DriverVehicle;
 }
+
+export type GarageCar = {
+  id: string;
+  make: string;
+  model: string;
+  plate: string;
+  color: string;
+};
+
+export function toGarageCar(row: DriverVehicle): GarageCar | null {
+  const plate = row.plate_number?.trim() ?? "";
+  if (plate.length < 4 || /^pending/i.test(plate)) return null;
+  const color = row.color?.trim() ?? "";
+  return {
+    id: row.id,
+    make: row.make?.trim() ?? "",
+    model: row.model?.trim() ?? "",
+    plate,
+    color: /^unspecified$/i.test(color) ? "" : color,
+  };
+}
+
+export async function fetchMyCars(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<GarageCar[]> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("id, make, model, color, plate_number, image_url")
+    .eq("driver_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as DriverVehicle[]).map(toGarageCar).filter((c): c is GarageCar => c !== null);
+}
