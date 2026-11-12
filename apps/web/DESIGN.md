@@ -121,3 +121,17 @@ never decorates a dense list — rows get a meter, not a drawing.
 `components/publish/controls.tsx` (the vocabulary above).
 The direction contract for the surface is in
 `.impeccable/surfaces/components-publish-publishwizard-tsx.md`.
+
+**2026-11-11 changes on top of the declaration.**
+
+- **Time is tap-to-pick:** eight preset time words (past ones are hidden for today), plus a ruled `Another time` action that reveals a bare time input and one commit pill. The departure-board clock is no longer used here, because a stepper next to presets was two ways to set one value.
+- **Publishing waits for an admin to approve the driver.** The gate under the money lines names the state: not submitted, under review (the action reads `Waiting for approval`) or rejected.
+- **Rejected redesigns:** a stepped wizard, a 3-column rail with a preview, and one-question screens. Keep the sentence that builds up clause by clause.
+- **Phones (under 900px) get `PublishMobile.tsx`,** built from the `Publish a Ride.dc.html` design. It has a green header with back, discard and an 8-segment progress bar, the build-up sentence with a lime pill on the open question, one step panel at a time, and a sticky bottom action. Time on phones is a tap grid plus `Another time`. `PublishSurface.tsx` picks the version by viewport and shows the skeleton until it knows.
+- **Desktop car and ride details follow `Publish a Ride Web.dc.html`.** The car editor is a tile grid: an icon badge, name, plate and radio, plus a dashed `Add a car` tile that opens the make, model, colour and plate fields. Passenger preferences are check/cross chips under the car line, and they open a `What should passengers know?` editor of switch rows.
+- **Large screens (900px and up) get `PublishWeb.tsx`,** built from the current `Publish a Ride Web.dc.html`:
+  - **Layout:** a step rail, the sentence above one white card per step, and a passenger preview with the payout card on Review only.
+  - **Time:** Morning / Afternoon / Evening tabs, half-hour slots, and a ±5 minute exact stepper with AM/PM.
+  - **Price:** fare tiles, plus 'or set your own' with a KES prefix and a 'per seat' suffix.
+  - **Car:** car tiles and an inline Add-a-car panel (one make-and-model field, auto-spaced Kenyan plate KDA 456B, colour swatches).
+  `PublishDeclaration.tsx` (the old desktop sentence) is no longer rendered.

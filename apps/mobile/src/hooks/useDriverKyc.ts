@@ -1,20 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store";
-import { fetchDriverProfile, type KycStatus } from "@/lib/api/driver";
+import { resolveAppUserId } from "@/lib/api/session";
+import {
+  fetchDriverProfile,
+  type DriverProfile,
+  type KycStatus,
+} from "@/lib/api/driver";
+
+export const DRIVER_KYC_KEY = ["driverProfile"] as const;
 
 /**
- * Driver KYC state for the current user. `hasApplied` is the gate for driver
- * mode: a passenger becomes usable instantly, but driving requires that
- * identity details have been submitted at least once (status leaves
- * `not_submitted`). Approval itself is reviewed out-of-band.
+ * Driver verification state for the current user.
+ *
+ * Passengers ride with no verification. Driving requires an approved
+ * application; a pending one may still compose a ride, which the server parks
+ * at `awaiting_approval` until an admin clears it (migration 047).
+ *
+ * The id is resolved from the database rather than read off the auth store,
+ * because the store seeds `user.id` with the auth id until the profile loads.
  */
 export function useDriverKyc() {
-  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const sessionToken = useAuthStore((s) => s.session?.access_token ?? null);
 
-  const query = useQuery({
-    queryKey: ["driverProfile", userId],
-    queryFn: () => fetchDriverProfile(userId!),
-    enabled: Boolean(userId),
+  const query = useQuery<DriverProfile | null>({
+    queryKey: DRIVER_KYC_KEY,
+    queryFn: async () => fetchDriverProfile(await resolveAppUserId()),
+    enabled: Boolean(sessionToken),
     staleTime: 60 * 1000,
   });
 
@@ -22,9 +33,18 @@ export function useDriverKyc() {
 
   return {
     status,
+    profile: query.data ?? null,
     hasApplied: status !== "not_submitted",
     isApproved: status === "approved",
+    isPendingReview: status === "pending",
+    isRejected: status === "rejected",
     isLoading: query.isLoading,
-    profile: query.data ?? null,
+    refetch: query.refetch,
   };
+}
+
+/** Pull the verification state again — call after a submit or an approval push. */
+export function useRefreshDriverKyc() {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: DRIVER_KYC_KEY });
 }

@@ -10,7 +10,7 @@ import { useUIStore } from "@/store";
  */
 export function useRoleSwitch() {
   const { mode, setMode } = useAppMode();
-  const { hasApplied } = useDriverKyc();
+  const { hasApplied, isRejected } = useDriverKyc();
   const openSheet = useUIStore((s) => s.openSheet);
 
   const requestToggle = useCallback(() => {
@@ -18,12 +18,14 @@ export function useRoleSwitch() {
       setMode("passenger");
       return;
     }
-    if (hasApplied) {
+    // A rejected application is back to square one: send them to resubmit
+    // rather than into a driver mode that cannot publish anything.
+    if (hasApplied && !isRejected) {
       setMode("driver");
       return;
     }
     openSheet("driver_kyc", { returnAction: () => setMode("driver") });
-  }, [mode, setMode, hasApplied, openSheet]);
+  }, [mode, setMode, hasApplied, isRejected, openSheet]);
 
   return { requestToggle, mode, isDriver: mode === "driver" };
 }

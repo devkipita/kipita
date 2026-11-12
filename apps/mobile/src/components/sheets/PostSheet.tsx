@@ -1,6 +1,16 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { View, StyleSheet, Pressable } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  useWindowDimensions,
+} from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Text } from "../core/Text";
@@ -10,10 +20,16 @@ import { TextInput } from "../forms/TextInput";
 import { DatePicker } from "../forms/DatePicker";
 import { TimePicker } from "../forms/TimePicker";
 import { Toggle } from "../forms/Toggle";
-import { useTheme, useLocale } from "@/hooks";
+import { useTheme, useLocale, useDriverKyc } from "@/hooks";
 import { useAuthStore, useUIStore } from "@/store";
-import { createTrip, createRideRequest, queryKeys } from "@/lib/api";
+import {
+  publishTrip,
+  publishRideRequest,
+  PublishError,
+  queryKeys,
+} from "@/lib/api";
 import { MAX_SEATS, MIN_SEATS } from "@/lib/constants";
+import { haptic } from "@/lib/utils/haptics";
 import { spacing, radius } from "@/theme";
 import type { AppMode, RidePreferences } from "@/types";
 
@@ -55,11 +71,15 @@ export function PostSheet({
 }: PostSheetProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
+  const { height } = useWindowDimensions();
   const user = useAuthStore((s) => s.user);
   const closeSheet = useUIStore((s) => s.closeSheet);
+  const openSheet = useUIStore((s) => s.openSheet);
   const queryClient = useQueryClient();
+  const kyc = useDriverKyc();
 
   const isDriver = role === "driver";
+  const compact = height < 720;
 
   // Only treat the searched time as a real schedule if it's actually in the
   // future — a stale draft (e.g. 02:30 from a past search) should default to
@@ -82,7 +102,9 @@ export function PostSheet({
   const [price, setPrice] = useState("");
   const [prefs, setPrefs] = useState<RidePreferences>(preferences);
   const [showComfort, setShowComfort] = useState(false);
-  const [posted, setPosted] = useState(false);
+  const [posted, setPosted] = useState<"live" | "awaiting" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [needsKyc, setNeedsKyc] = useState(false);
 
   const togglePref = useCallback(
     (key: keyof RidePreferences) => (val: boolean) =>
@@ -113,27 +135,29 @@ export function PostSheet({
   }, [when, pickDate, pickTime, t]);
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Not signed in");
+    mutationFn: async (): Promise<"live" | "awaiting"> => {
+      if (!user) throw new PublishError("Not signed in");
       const now = new Date();
-      const useDate = when === "later" ? pickDate! : format(now, "yyyy-MM-dd");
-      const useTime =
-        when === "later" ? pickTime ?? "00:00" : format(now, "HH:mm");
 
       if (isDriver) {
-        return createTrip({
-          driver_id: user.id,
+        // "Leaving now" still has to clear the server's future-departure check,
+        // so give the driver a couple of minutes to finish the sheet.
+        const soon = new Date(now.getTime() + 2 * 60 * 1000);
+        const { awaiting } = await publishTrip({
           from_location: from.trim(),
           to_location: to.trim(),
-          departure_date: useDate,
-          departure_time: useTime,
+          departure_date:
+            when === "later" ? pickDate! : format(soon, "yyyy-MM-dd"),
+          departure_time:
+            when === "later" ? (pickTime ?? "00:00") : format(soon, "HH:mm"),
           seats_total: seats,
           price_per_seat: priceNumber,
           preferences: prefs,
         });
+        return awaiting ? "awaiting" : "live";
       }
-      return createRideRequest({
-        passenger_id: user.id,
+
+      await publishRideRequest({
         from_location: from.trim(),
         to_location: to.trim(),
         preferred_date: when === "later" ? pickDate : null,
@@ -141,17 +165,45 @@ export function PostSheet({
         seats_needed: seats,
         preferences: prefs,
       });
+      return "live";
     },
-    onSuccess: () => {
+    onSuccess: (outcome) => {
+      haptic.success();
       queryClient.invalidateQueries({ queryKey: queryKeys.trips.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.all() });
       queryClient.invalidateQueries({
         queryKey: queryKeys.notifications.all(),
       });
-      setPosted(true);
-      setTimeout(closeSheet, 1600);
+      setPosted(outcome);
+      // A ride parked for approval needs reading, so it stays until dismissed.
+      if (outcome === "live") setTimeout(closeSheet, 1800);
+    },
+    onError: (e: unknown) => {
+      haptic.error();
+      const publishError = e instanceof PublishError ? e : null;
+      setNeedsKyc(publishError?.fix === "kyc");
+      setError(
+        publishError?.message ??
+          (e instanceof Error ? e.message : "Something went wrong."),
+      );
     },
   });
+
+  // Verification replaces this sheet, so hand it the route back: the driver
+  // returns to the ride they were composing rather than an empty home screen.
+  const openKyc = useCallback(() => {
+    openSheet("driver_kyc", {
+      returnAction: () =>
+        openSheet("post", {
+          role,
+          from,
+          to,
+          date,
+          departure_time,
+          preferences: prefs,
+        }),
+    });
+  }, [openSheet, role, from, to, date, departure_time, prefs]);
 
   const stepSeats = useCallback(
     (delta: number) =>
@@ -159,19 +211,78 @@ export function PostSheet({
     [],
   );
 
+  // ── Readiness rail. The route is already filled in from the search, so the
+  //    sheet opens part-done rather than empty — the cheapest nudge there is.
+  const checklist = useMemo(() => {
+    const routeDone = from.trim().length > 1 && to.trim().length > 1;
+    const steps = [
+      { key: "route", label: t("post_step_route"), done: routeDone },
+      { key: "when", label: t("post_step_when"), done: scheduleReady },
+    ];
+    if (isDriver) {
+      steps.push({
+        key: "fare",
+        label: t("post_step_fare"),
+        done: priceNumber > 0 && !Number.isNaN(priceNumber),
+      });
+    }
+    return steps;
+  }, [from, to, scheduleReady, isDriver, priceNumber, t]);
+
+  const doneCount = checklist.filter((c) => c.done).length;
+  const progress = useSharedValue(0);
+
+  useEffect(() => {
+    progress.value = withTiming(doneCount / checklist.length, {
+      duration: 360,
+    });
+  }, [doneCount, checklist.length, progress]);
+
+  const progressStyle = useAnimatedStyle(() => ({
+    width: `${Math.max(progress.value * 100, 6)}%`,
+  }));
+
+  // Verification state, so a driver sees the gate before they fill the form in.
+  const kycBlocked = isDriver && !kyc.isLoading && !kyc.hasApplied;
+  const kycRejected = isDriver && kyc.isRejected;
+  const kycPending = isDriver && kyc.isPendingReview;
+
   // ── Success state ──
   if (posted) {
+    const awaiting = posted === "awaiting";
     return (
       <View style={[styles.container, styles.successBox]}>
-        <View style={[styles.successIcon, { backgroundColor: colors.primary }]}>
-          <Icon name="checkmark" size={34} color={colors.onPrimary} />
+        <View
+          style={[
+            styles.successIcon,
+            { backgroundColor: awaiting ? colors.warningContainer : colors.primary },
+          ]}
+        >
+          <Icon
+            name={awaiting ? "time-outline" : "checkmark"}
+            size={34}
+            color={awaiting ? colors.onWarningContainer : colors.onPrimary}
+          />
         </View>
         <Text variant="titleLarge" style={styles.bold} align="center">
-          {isDriver ? t("ride_posted") : t("request_posted")}
+          {awaiting
+            ? t("publish_awaiting_title")
+            : isDriver
+              ? t("ride_posted")
+              : t("request_posted")}
         </Text>
         <Text variant="bodyMedium" color={colors.textSecondary} align="center">
-          {t("post_broadcast_note")}
+          {awaiting ? t("publish_awaiting_note") : t("post_broadcast_note")}
         </Text>
+        {awaiting && (
+          <Button
+            label={t("done")}
+            onPress={closeSheet}
+            variant="filled"
+            size="lg"
+            fullWidth
+          />
+        )}
       </View>
     );
   }
@@ -179,7 +290,7 @@ export function PostSheet({
   return (
     <BottomSheetScrollView
       style={styles.container}
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={[styles.scroll, compact && styles.scrollCompact]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
     >
@@ -220,6 +331,82 @@ export function PostSheet({
             {isDriver ? t("post_ride_prompt") : t("post_request_prompt")}
           </Text>
         </View>
+
+        {/* ── Readiness rail ── */}
+        <View style={styles.rail}>
+          <View style={[styles.railTrack, { backgroundColor: colors.surfaceVariant }]}>
+            <Animated.View
+              style={[
+                styles.railFill,
+                progressStyle,
+                { backgroundColor: colors.primary },
+              ]}
+            />
+          </View>
+          <View style={styles.railLabels}>
+            {checklist.map((item) => (
+              <View key={item.key} style={styles.railLabel}>
+                <Icon
+                  name={item.done ? "checkmark-circle" : "ellipse-outline"}
+                  size={14}
+                  color={item.done ? colors.primary : colors.textSecondary}
+                />
+                <Text
+                  variant="labelSmall"
+                  color={item.done ? colors.primary : colors.textSecondary}
+                  numberOfLines={1}
+                >
+                  {item.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* ── Verification gate, stated before the form is filled in ── */}
+        {(kycBlocked || kycRejected || kycPending) && (
+          <View
+            style={[
+              styles.banner,
+              {
+                backgroundColor: kycPending
+                  ? colors.surfaceVariant
+                  : colors.warningContainer,
+              },
+            ]}
+          >
+            <Icon
+              name={kycPending ? "hourglass-outline" : "shield-outline"}
+              size={18}
+              color={kycPending ? colors.textSecondary : colors.onWarningContainer}
+            />
+            <View style={styles.flex}>
+              <Text
+                variant="bodySmall"
+                color={
+                  kycPending ? colors.textSecondary : colors.onWarningContainer
+                }
+              >
+                {kycPending
+                  ? t("kyc_pending_banner")
+                  : kycRejected
+                    ? t("kyc_rejected_banner")
+                    : t("kyc_required_banner")}
+              </Text>
+              {!kycPending && (
+                <Pressable onPress={openKyc} hitSlop={8}>
+                  <Text
+                    variant="labelLarge"
+                    color={colors.onWarningContainer}
+                    style={styles.bannerLink}
+                  >
+                    {t("verify_to_publish")}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* ── Route card (what they just searched) ── */}
         <View style={[styles.routeCard, { backgroundColor: colors.surfaceVariant }]}>
@@ -444,17 +631,67 @@ export function PostSheet({
             </View>
           )}
         </View>
+        {error && (
+          <View
+            style={[styles.banner, { backgroundColor: colors.errorContainer }]}
+          >
+            <Icon
+              name="alert-circle-outline"
+              size={18}
+              color={colors.onErrorContainer}
+            />
+            <View style={styles.flex}>
+              <Text variant="bodySmall" color={colors.onErrorContainer}>
+                {error}
+              </Text>
+              {needsKyc && (
+                <Pressable onPress={openKyc} hitSlop={8}>
+                  <Text
+                    variant="labelLarge"
+                    color={colors.onErrorContainer}
+                    style={styles.bannerLink}
+                  >
+                    {t("verify_to_publish")}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        )}
+
         <View style={styles.submitWrap}>
           <Button
-            label={isDriver ? t("offer_a_ride") : t("request_a_ride")}
-            onPress={() => mutation.mutate()}
+            label={
+              kycBlocked || kycRejected
+                ? t("verify_to_publish")
+                : isDriver
+                  ? t("offer_a_ride")
+                  : t("request_a_ride")
+            }
+            onPress={
+              kycBlocked || kycRejected ? openKyc : () => mutation.mutate()
+            }
             variant="filled"
             size="lg"
             fullWidth
-            disabled={!canPost}
+            disabled={!(kycBlocked || kycRejected) && !canPost}
             loading={mutation.isPending}
-            icon="megaphone-outline"
+            icon={
+              kycBlocked || kycRejected
+                ? "shield-checkmark-outline"
+                : "megaphone-outline"
+            }
           />
+          {kycPending && (
+            <Text
+              variant="bodySmall"
+              color={colors.textSecondary}
+              align="center"
+              style={styles.submitNote}
+            >
+              {t("publish_pending_note")}
+            </Text>
+          )}
         </View>
     </BottomSheetScrollView>
   );
@@ -468,9 +705,28 @@ const styles = StyleSheet.create({
     // Room so the CTA clears the bottom of the sheet when scrolled.
     paddingBottom: spacing["4xl"],
   },
-  submitWrap: { marginTop: spacing.xs },
+  scrollCompact: { padding: spacing.md, gap: spacing.md },
+  submitWrap: { marginTop: spacing.xs, gap: spacing.sm },
+  submitNote: { paddingHorizontal: spacing.md },
   bold: { fontWeight: "700" },
   flex: { flex: 1 },
+  rail: { gap: spacing.sm },
+  railTrack: { height: 6, borderRadius: 3, overflow: "hidden" },
+  railFill: { height: 6, borderRadius: 3 },
+  railLabels: { flexDirection: "row", gap: spacing.md },
+  railLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    flexShrink: 1,
+  },
+  banner: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  bannerLink: { marginTop: 4, textDecorationLine: "underline" },
   header: { gap: spacing.xs, alignItems: "flex-start" },
   eyebrowPill: {
     flexDirection: "row",

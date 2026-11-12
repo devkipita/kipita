@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { fetchMyVehicle } from "@/lib/home/vehicle";
-import { PublishDeclaration } from "@/components/publish/PublishDeclaration";
+import { fetchPlatform } from "@/lib/platform.server";
+import { PublishSurface } from "@/components/publish/PublishSurface";
 
 export const metadata: Metadata = {
   title: "Publish a ride",
@@ -14,14 +15,19 @@ export const metadata: Metadata = {
 export default async function PublishPage() {
   const profile = await requireProfile("/publish");
   const supabase = await createClient();
-  const vehicle = await fetchMyVehicle(supabase, profile.id).catch(() => null);
+  const [vehicle, platform] = await Promise.all([
+    fetchMyVehicle(supabase, profile.id).catch(() => null),
+    fetchPlatform(),
+  ]);
 
   const plate = vehicle?.plate_number?.trim() ?? "";
   const realPlate =
     plate.length >= 4 && !/^pending/i.test(plate) ? plate : null;
 
   return (
-    <PublishDeclaration
+    <PublishSurface
+      publishBeforeApproval={platform.flags.publish_before_approval === true}
+      driverName={profile.full_name ?? ""}
       savedCar={
         realPlate
           ? {

@@ -26,7 +26,7 @@ function loadImage(file: File): Promise<HTMLImageElement> {
   });
 }
 
-async function downscale(file: File): Promise<Blob> {
+export async function downscale(file: File): Promise<Blob> {
   try {
     const img = await loadImage(file);
     const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height));

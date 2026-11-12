@@ -1,5 +1,6 @@
 "use client";
 
+import styled from "styled-components";
 import { ArrowUUpLeft as Undo2, Question as HelpCircle, Flag, QuestionCircle, SealCheck, Ticket, CaretRight as ChevronRight } from "@/components/icons";
 import { AdminBar } from "@/components/admin/AdminBar";
 import { IconBubble } from "@/components/ui/IconBubble";
@@ -12,7 +13,29 @@ import {
   InlineChevron,
 } from "@/components/ui/FeatureCard";
 
-export function AdminHomeView({ name, image }: { name: string, image?: string }) {
+/** Drivers are reviewed by hand, so the queue has to announce itself. */
+const Waiting = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.color.warnBg};
+  color: ${({ theme }) => theme.color.warnText};
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+`;
+
+export function AdminHomeView({
+  name,
+  image,
+  pendingDrivers = 0,
+}: {
+  name: string;
+  image?: string;
+  pendingDrivers?: number;
+}) {
   return (
     <>
       <AdminBar name={name} image={image} />
@@ -25,13 +48,19 @@ export function AdminHomeView({ name, image }: { name: string, image?: string })
             <IconBubble icon={SealCheck} variant="green" />
             <FeatureTitle>
               Driver verification
+              {pendingDrivers > 0 && (
+                <Waiting>
+                  {pendingDrivers} waiting
+                </Waiting>
+              )}
               <InlineChevron data-chevron>
                 <ChevronRight size={18} />
               </InlineChevron>
             </FeatureTitle>
             <FeatureBody>
-              Check licences and IDs, then approve or reject drivers waiting to
-              publish.
+              {pendingDrivers > 0
+                ? `${pendingDrivers === 1 ? "One driver has" : `${pendingDrivers} drivers have`} sent documents and cannot publish until you review them.`
+                : "Check licences and IDs, then approve or reject drivers waiting to publish."}
             </FeatureBody>
           </FeatureCardLink>
 

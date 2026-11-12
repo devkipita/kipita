@@ -1,4 +1,4 @@
-﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, QuestionCircle as LifeBuoy, PlusSquare, SearchSpark, Ticket, Wallet } from "@/components/icons";
+﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, PlusCircle, QuestionCircle as LifeBuoy, PlusSquare, SearchSpark, Ticket, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -240,6 +240,12 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   return PRIMARY_NAV[mode];
 }
 
+/**
+ * The four tabs, with the icons the published design draws: a plain house, a
+ * plain magnifier, a circled plus and a bell. The sparkled magnifier, the
+ * squared plus and the crowd glyph belong to richer surfaces — at 22px in a
+ * bar they read as noise.
+ */
 export function bottomNavFor(): NavItem[] {
   return [
     { key: "landing", href: "/", label: "Home", shortLabel: "Home", icon: House },
@@ -248,15 +254,15 @@ export function bottomNavFor(): NavItem[] {
       href: "/home",
       label: "Find a ride",
       shortLabel: "Find",
-      icon: SearchSpark,
+      icon: MagnifyingGlass,
     },
-    { ...PUBLISH_ITEM, shortLabel: "Post" },
+    { ...PUBLISH_ITEM, shortLabel: "Post", icon: PlusCircle },
     {
       key: "alerts",
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Crowd,
+      icon: Bell,
       badge: "alerts",
       owns: ["/alerts"],
     },

@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       profile={profile}
       mode={mode}
       driverHasApplied={driverHasApplied}
+      kycStatus={kyc?.status ?? "not_submitted"}
       supportCases={supportCases}
     >
       {children}

@@ -5,11 +5,13 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   startTransition,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import type { KycStatus } from "@/lib/driver/kyc";
 import styled from "styled-components";
 import { DriverKycForm } from "@/components/driver/DriverKycForm";
 import { SupportDock } from "@/components/support/SupportDock";
@@ -33,7 +35,8 @@ type ModeContext = {
   mode: AppMode;
   setMode: (next: AppMode) => void;
   driverReady: boolean;
-  requireKyc: () => void;
+  kycStatus: KycStatus;
+  requireKyc: (after?: () => void) => void;
 };
 
 const Ctx = createContext<ModeContext | null>(null);
@@ -91,19 +94,34 @@ export function AppShell({
   profile,
   mode: initialMode,
   driverHasApplied,
+  kycStatus: initialKycStatus = "not_submitted",
   supportCases = [],
   children,
 }: {
   profile: Profile | null;
   mode: AppMode;
   driverHasApplied: boolean;
+  kycStatus?: KycStatus;
   supportCases?: SupportCase[];
   children: ReactNode;
 }) {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const [mode, setModeState] = useState<AppMode>(initialMode);
   const [driverReady, setDriverReady] = useState(driverHasApplied);
+  const [kycStatus, setKycStatus] = useState<KycStatus>(initialKycStatus);
+  const [seenKycStatus, setSeenKycStatus] = useState<KycStatus>(initialKycStatus);
+  if (seenKycStatus !== initialKycStatus) {
+    setSeenKycStatus(initialKycStatus);
+    setKycStatus(initialKycStatus);
+    setDriverReady(initialKycStatus !== "not_submitted");
+  }
   const [kycOpen, setKycOpen] = useState(false);
+  const afterKyc = useRef<(() => void) | null>(null);
+  const requireKyc = useCallback((after?: () => void) => {
+    afterKyc.current = typeof after === "function" ? after : null;
+    setKycOpen(true);
+  }, []);
 
   const items = useMemo(
     () => primaryNavFor(mode, Boolean(profile)),
@@ -126,8 +144,8 @@ export function AppShell({
   }, []);
 
   const ctx = useMemo<ModeContext>(
-    () => ({ mode, setMode, driverReady, requireKyc: () => setKycOpen(true) }),
-    [mode, setMode, driverReady],
+    () => ({ mode, setMode, driverReady, kycStatus, requireKyc }),
+    [mode, setMode, driverReady, kycStatus, requireKyc],
   );
 
   const navCounts = useNavCounts(profile?.id ?? null, mode);
@@ -183,12 +201,21 @@ export function AppShell({
 
       <DriverKycForm
         open={kycOpen}
-        onClose={() => setKycOpen(false)}
-        onSubmitted={async () => {
+        userId={profile?.id ?? null}
+        rejected={kycStatus === "rejected"}
+        onClose={() => {
+          afterKyc.current = null;
           setKycOpen(false);
+        }}
+        onSubmitted={async () => {
+          const after = afterKyc.current;
+          afterKyc.current = null;
           setDriverReady(true);
+          setKycStatus("pending");
+          after?.();
           const result = await setModeAction("driver");
           if (result.ok) setModeState("driver");
+          router.refresh();
         }}
       />
     </Ctx.Provider>

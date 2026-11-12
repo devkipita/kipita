@@ -5,15 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { driverKycSchema, type DriverKycInput } from "@/lib/validators/home";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
-/**
- * Driver KYC submission — the web port of `submitDriverKyc`
- * (`apps/mobile/src/lib/api/driver.ts`).
- *
- * Upserts `driver_profiles` on `user_id` and sets both review fields to
- * `pending`. Approval happens out of band; there is no admin screen for it yet
- * on either platform.
- */
-
 export type KycResult = { ok: true } | { ok: false; error: string };
 
 export async function submitDriverKycAction(
@@ -49,17 +40,25 @@ export async function submitDriverKycAction(
   );
   if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
-  const { national_id, license_number, license_expiry } = parsed.data;
+  const d = parsed.data;
   const { error } = await supabase.rpc("submit_driver_kyc", {
-    p_national_id: national_id,
-    p_license_number: license_number,
-    p_license_expiry: license_expiry || null,
+    p_document_type: d.document_type,
+    p_document_number: d.document_number,
+    p_document_photo: d.document_photo,
+    p_selfie_photo: d.selfie_photo,
+    p_vehicle_photo: d.vehicle_photo,
   });
 
   if (error) {
-    return { ok: false, error: "We couldn't save that. Please try again." };
+    return {
+      ok: false,
+      error:
+        error.code === "22023"
+          ? error.message
+          : "We couldn't save that. Please try again.",
+    };
   }
 
-  revalidatePath("/home");
+  revalidatePath("/", "layout");
   return { ok: true };
 }

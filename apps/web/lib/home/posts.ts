@@ -18,7 +18,7 @@ import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
  */
 
 export type PostResult =
-  | { ok: true; kind: "trip" | "request"; id: string }
+  | { ok: true; kind: "trip" | "request"; id: string; awaiting?: boolean }
   | { ok: false; error: string; fix?: "kyc" };
 
 const PROFILE_NOT_READY =
@@ -139,12 +139,31 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (!kyc.hasApplied) {
     return {
       ok: false,
-      error: "Kipita needs your licence details before your ride can go live.",
+      error: "Get verified to publish a ride.",
       fix: "kyc",
     };
   }
+  if (kyc.status === "rejected") {
+    return {
+      ok: false,
+      error: "Verification unsuccessful. Submit your details again to publish.",
+      fix: "kyc",
+    };
+  }
+  let status: "posted" | "awaiting_approval" = "posted";
+  if (kyc.status === "pending") {
+    const { data: early } = await supabase.rpc("flag_enabled", {
+      p_key: "publish_before_approval",
+    });
+    if (early !== true) status = "awaiting_approval";
+  }
 
   const trip = parsed.data;
+  const leaves = Date.parse(`${trip.departure_date}T${trip.departure_time}:00+03:00`);
+  if (!Number.isFinite(leaves) || leaves <= Date.now()) {
+    return { ok: false, error: "That departure time has already passed. Pick a later one." };
+  }
+
   const vehicleId = await resolveVehicle(supabase, session.userId, trip);
 
   const { data, error } = await supabase
@@ -161,7 +180,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       price_per_seat: trip.price_per_seat,
       discount_percent: trip.discount_percent ?? null,
       preferences: trip.preferences,
-      status: "posted",
+      status,
     })
     .select("id")
     .maybeSingle();
@@ -169,12 +188,18 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (error || !data) {
     return {
       ok: false,
-      error: writeError(error, "We couldn't post that ride. Please try again."),
+      error: writeError(
+        error,
+        error?.code === "42501"
+          ? "Your verification hasn't cleared yet, so this ride can't go live."
+          : "We couldn't post that ride. Please try again.",
+      ),
     };
   }
 
   revalidatePath("/home");
-  return { ok: true, kind: "trip", id: data.id as string };
+  revalidatePath("/trips");
+  return { ok: true, kind: "trip", id: data.id as string, awaiting: status === "awaiting_approval" };
 }
 
 export async function createRideRequestAction(

@@ -237,15 +237,39 @@ An unpaid booking (`requested` or `pending_payment`) simply releases the seat.
 
 ### Driver verification
 
+Since migration 047, a submission is one identity document, a profile photo and a car photo.
+
+1. Upload each photo to the private `kyc-documents` bucket at `<users.id>/<kind>-<uuid>.jpg`, where kind is `document`, `selfie` or `vehicle` (JPG, PNG or WebP, 5 MB max).
+2. Pass the storage paths, not URLs:
+
 ```kotlin
 supabase.postgrest.rpc("submit_driver_kyc", buildJsonObject {
-    put("p_national_id", nationalId)
-    put("p_license_number", licenceNumber)
-    put("p_license_expiry", expiry)      // nullable
+    put("p_document_type", "national_id")   // or "driving_licence" / "passport"
+    put("p_document_number", number)        // ID: 7-9 digits; licence: DL0123456; passport: AK0123456
+    put("p_document_photo", "$userId/document-$uuid.jpg")
+    put("p_selfie_photo", "$userId/selfie-$uuid.jpg")
+    put("p_vehicle_photo", "$userId/vehicle-$uuid.jpg")
 })
 ```
 
-Only ever writes `pending`. A driver cannot approve themselves — that column is revoked, and `set_driver_approval` checks `is_admin()`.
+The older signatures are dropped. The RPC returns `22023` when:
+- the number doesn't match the document's format
+- a photo path is outside your own folder
+- an object doesn't exist
+
+Its message is safe to show the user.
+
+The RPC only ever writes `pending`. A driver cannot approve themselves: that column is revoked, and `set_driver_approval` checks `is_admin()`. An admin reviews the three photos in the web admin, and approval sends the driver a `system` notification.
+
+**Rides saved before approval.** A `pending` driver may insert a trip with `status = 'awaiting_approval'`. RLS refuses `posted` until the driver is approved. These trips:
+- stay out of search, which filters on `posted` / `active`
+- send no route alerts
+
+What happens next depends on the admin's decision:
+- **Approved:** `set_driver_approval` sets future awaiting trips to `posted`, which fires the route alerts, and cancels any whose departure has passed.
+- **Rejected:** it cancels them all.
+
+A trigger blocks the driver from moving an awaiting trip to anything except `cancelled`, and `cancel_trip` works on these trips.
 
 ### State machine
 
@@ -344,7 +368,7 @@ suspend fun fareFor(total: Double): Fare =
 | `send` | **on** | Kipita Send (§7). Preview only — off before public launch |
 | `ride_chat` | on | chat on a live ride — **not built yet** |
 | `road_alerts` | on | road alerts feed |
-| `publish_before_approval` | on | drivers may publish while under review |
+| `publish_before_approval` | off (since 046) | drivers may publish while under review |
 | `live_tracking` | off | location sharing during a trip |
 | `instant_booking` | off | skip driver approval, hold the seat immediately |
 | `web_push` | off | browser push |
@@ -525,7 +549,7 @@ Still open:
 - **Push is Expo-only.** The `notifications` trigger still posts to `exp.host`, which nothing listens to now that mobile is Kotlin. **FCM/APNs needs that trigger rewritten — this is a joint piece of work, talk to us before you add a token table.** Until it lands, nothing reaches a user who does not have the app open. That includes the ride-cancellation notices `cancel_trip` writes.
 - **No chat.** `conversations` and `messages` are migrated and unused. `ride_chat` is flagged on, which means nothing yet. Scoped to appear while a ride is live, not as a standalone inbox.
 - **`send` is flagged on for preview** and must be off before public launch. Build behind `flag_enabled('send')` and it costs you nothing when it flips.
-- **`publish_before_approval` is on**, so `publish_trip` still accepts any driver with a `driver_profiles` row, approved or not. When it flips off, unapproved drivers start getting `42501` from `publish_trip`. Handle that error now rather than when it changes.
+- **`publish_before_approval` is off since migration 046**, so only `approved` drivers can publish. A pending or rejected driver gets `42501` from `publish_trip`, and the same from a direct `trips` insert through RLS. Show "waiting for approval" for pending, and "resubmit documents" for rejected.
 - **Escrow release is unproven from any client.** `complete_trip` moves bookings, but the `release-escrow` function has no confirmed caller, so money may not actually reach drivers at the end of a ride. We are checking this. Do not assume completion pays out until we confirm.
 
 ---

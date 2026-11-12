@@ -431,10 +431,25 @@ export const sw: Record<TranslationKey, string> = {
   offer_a_ride: 'Toa safari',
   post_broadcast_note: 'Tumewajulisha wote kwenye njia hii.',
 
+  // Publishing
+  post_step_route: 'Njia',
+  post_step_when: 'Lini',
+  post_step_fare: 'Nauli',
+  publish_awaiting_title: 'Imehifadhiwa — itaanza ukishathibitishwa',
+  publish_awaiting_note:
+    'Akaunti yako ya udereva ikikubaliwa, safari hii itachapishwa yenyewe na wote walio kwenye njia watajulishwa.',
+  publish_pending_note:
+    'Uthibitisho wako bado unakaguliwa, kwa hiyo safari hii itasubiri hadi ukamilike.',
+  verify_to_publish: 'Thibitisha',
+  section_published_rides: 'Safari ulizochapisha',
+  section_published_rides_sub: 'Zile abiria wanaweza kuweka nafasi sasa hivi.',
+  trip_awaiting_review: 'Inasubiri ukaguzi',
+  trip_live: 'Hewani',
+
   // Driver KYC
   become_a_driver: 'Kuwa dereva',
   driver_kyc_intro:
-    'Kuendesha kunahitaji uthibitisho wa haraka. Ongeza kitambulisho na leseni yako — abiria husafiri bila hatua za ziada.',
+    'Picha tatu na namba moja. Abiria husafiri bila hatua za ziada — dereva hukaguliwa mara moja.',
   national_id: 'Namba ya kitambulisho',
   license_number: 'Namba ya leseni ya udereva',
   license_expiry: 'Mwisho wa leseni',
@@ -442,4 +457,38 @@ export const sw: Record<TranslationKey, string> = {
   driver_kyc_review_note:
     'Tutakagua taarifa zako hivi karibuni. Unaweza kuanza kutoa safari wakati uthibitisho ukisubiri.',
   submit_for_review: 'Wasilisha kwa ukaguzi',
+  kyc_progress_label: 'Uthibitisho',
+  kyc_pick_document: 'Unatumia kitambulisho gani?',
+  kyc_doc_national_id: 'Kitambulisho',
+  kyc_doc_driving_licence: 'Leseni',
+  kyc_doc_passport: 'Paspoti',
+  kyc_number_label: 'Namba kama ilivyoandikwa',
+  kyc_number_hint: 'Mfano',
+  kyc_number_invalid: 'Angalia namba hiyo. Inapaswa kuwa kama',
+  kyc_title_document: 'Kitambulisho chako',
+  kyc_title_selfie: 'Picha yako',
+  kyc_title_vehicle: 'Gari lako',
+  kyc_photo_document: 'Picha ya kitambulisho',
+  kyc_photo_selfie: 'Picha yako ukishika kitambulisho',
+  kyc_photo_vehicle: 'Picha ya gari lako',
+  kyc_photo_document_help: 'Pembe zote nne zionekane, hakuna kilichofunikwa.',
+  kyc_photo_selfie_help: 'Tazama kamera kwenye mwanga mzuri. Bila kofia wala miwani.',
+  kyc_photo_vehicle_help: 'Simama mbali ili namba ya gari isomeke.',
+  kyc_photo_added: 'Imeongezwa',
+  kyc_replace_photo: 'Piga picha nyingine',
+  kyc_uploading: 'Inapakia…',
+  kyc_upload_failed: 'Picha hiyo haikupakiwa. Jaribu tena.',
+  kyc_continue: 'Endelea',
+  kyc_back: 'Rudi',
+  kyc_review_title: 'Imewasilishwa kwa ukaguzi',
+  kyc_review_body:
+    'Tunakagua vitambulisho ndani ya saa chache. Utapata taarifa mara tu ukikubaliwa, na safari ulizohifadhi zitachapishwa zenyewe.',
+  kyc_required_banner:
+    'Kipita inahitaji kitambulisho chako, picha yako na gari lako kabla safari haijaanza.',
+  kyc_pending_banner:
+    'Uthibitisho wako unakaguliwa. Bado unaweza kuandaa safari.',
+  kyc_rejected_banner:
+    'Hatukuweza kuthibitisha uliyowasilisha mwisho. Wasilisha tena.',
+  kyc_privacy_note:
+    'Vitambulisho vyako ni siri. Timu ya ukaguzi ya Kipita pekee huviona — si abiria.',
 };

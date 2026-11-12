@@ -32,20 +32,24 @@ import {
   fetchCurrentBookings,
   fetchPreviousBookings,
   fetchIncomingRequests,
+  fetchMyTrips,
 } from '@/lib/api';
 import { QUERY_STALE_TIMES } from '@/lib/constants';
+import { formatDate, formatCurrency } from '@/lib/formatters';
 import { spacing, radius, typography } from '@/theme';
 import { FLOATING_TAB_BAR_SPACE } from '@/components/shared/FloatingTabBar';
-import type { Booking } from '@/types';
+import type { Booking, Trip } from '@/types';
 
 type Tab = 'current' | 'previous' | 'incoming';
 type Row =
   | { kind: 'heading'; id: string; title: string; subtitle: string; first?: boolean }
   | { kind: 'booking'; booking: Booking }
+  | { kind: 'myTrip'; trip: Trip }
   | { kind: 'promoRail' }
   | { kind: 'whyRail' };
 
 const EMPTY_BOOKINGS: Booking[] = [];
+const EMPTY_TRIPS: Trip[] = [];
 const SEARCH_HEIGHT = 44;
 const COLLAPSE_AT = 28;
 
@@ -159,6 +163,16 @@ export default function TripsScreen() {
     staleTime: QUERY_STALE_TIMES.trips,
   });
 
+  // A driver's own published rides. Route search only returns `posted` rides
+  // and only to other people, so this is the only place a driver sees what they
+  // put out — including one still waiting on verification.
+  const { data: myTrips = EMPTY_TRIPS } = useQuery({
+    queryKey: queryKeys.trips.mine(),
+    queryFn: fetchMyTrips,
+    enabled: !!user && isDriver && activeTab === 'current',
+    staleTime: QUERY_STALE_TIMES.trips,
+  });
+
   useEffect(() => {
     for (const b of [...currentBookings, ...incomingBookings, ...previousBookings]) {
       setTripBooking(b);
@@ -193,8 +207,17 @@ export default function TripsScreen() {
     });
   }, [bookings, needle, isDriver]);
 
+  const visibleTrips = useMemo(() => {
+    if (!needle) return myTrips;
+    return myTrips.filter(
+      (trip) =>
+        trip.from_location.toLowerCase().includes(needle) ||
+        trip.to_location.toLowerCase().includes(needle),
+    );
+  }, [myTrips, needle]);
+
   const rows = useMemo<Row[]>(() => {
-    if (filtered.length === 0) return [];
+    if (filtered.length === 0 && visibleTrips.length === 0) return [];
 
     const headingKey =
       activeTab === 'current'
@@ -203,16 +226,33 @@ export default function TripsScreen() {
           ? 'section_previous_trips'
           : 'section_incoming_trips';
 
-    const out: Row[] = [
-      {
+    const out: Row[] = [];
+
+    if (visibleTrips.length > 0) {
+      out.push({
+        kind: 'heading',
+        id: 'published',
+        title: t('section_published_rides'),
+        subtitle: t('section_published_rides_sub'),
+        first: true,
+      });
+      out.push(
+        ...visibleTrips.map((trip) => ({ kind: 'myTrip' as const, trip })),
+      );
+    }
+
+    if (filtered.length > 0) {
+      out.push({
         kind: 'heading',
         id: 'trips',
         title: t(headingKey as any),
         subtitle: t(`${headingKey}_sub` as any),
-        first: true,
-      },
-      ...filtered.map((booking) => ({ kind: 'booking' as const, booking })),
-    ];
+        first: visibleTrips.length === 0,
+      });
+      out.push(
+        ...filtered.map((booking) => ({ kind: 'booking' as const, booking })),
+      );
+    }
 
     if (promos.length > 0) {
       out.push({
@@ -233,7 +273,7 @@ export default function TripsScreen() {
     out.push({ kind: 'whyRail' });
 
     return out;
-  }, [filtered, promos, activeTab, t]);
+  }, [filtered, visibleTrips, promos, activeTab, t]);
 
   const handleBookingPress = useCallback(
     (booking: Booking) => {
@@ -312,6 +352,68 @@ export default function TripsScreen() {
           />
         );
       }
+      if (item.kind === 'myTrip') {
+        const trip = item.trip;
+        const waiting = trip.status === 'awaiting_approval';
+        return (
+          <Pressable
+            onPress={() => router.push(`/ride/${trip.id}` as any)}
+            style={[
+              styles.myTrip,
+              { backgroundColor: colors.surfaceContainerHigh },
+            ]}
+          >
+            <View style={styles.myTripHead}>
+              <Text variant="titleSmall" numberOfLines={1} style={styles.flex}>
+                {trip.from_location} → {trip.to_location}
+              </Text>
+              <View
+                style={[
+                  styles.myTripPill,
+                  {
+                    backgroundColor: waiting
+                      ? colors.warningContainer
+                      : colors.primaryContainer,
+                  },
+                ]}
+              >
+                <Icon
+                  name={waiting ? 'hourglass-outline' : 'radio-outline'}
+                  size={12}
+                  color={
+                    waiting
+                      ? colors.onWarningContainer
+                      : colors.onPrimaryContainer
+                  }
+                />
+                <Text
+                  variant="labelSmall"
+                  color={
+                    waiting
+                      ? colors.onWarningContainer
+                      : colors.onPrimaryContainer
+                  }
+                >
+                  {waiting ? t('trip_awaiting_review') : t('trip_live')}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.myTripMeta}>
+              <Icon name="calendar-outline" size={14} color={colors.textSecondary} />
+              <Text variant="bodySmall" color={colors.textSecondary}>
+                {formatDate(trip.departure_date)} · {trip.departure_time.slice(0, 5)}
+              </Text>
+              <Icon name="people-outline" size={14} color={colors.textSecondary} />
+              <Text variant="bodySmall" color={colors.textSecondary}>
+                {trip.seats_available}/{trip.seats_total}
+              </Text>
+              <Text variant="labelLarge" color={colors.primary}>
+                {formatCurrency(trip.price_per_seat)}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      }
       if (item.kind === 'promoRail') {
         return (
           <ScrollView
@@ -352,7 +454,16 @@ export default function TripsScreen() {
         />
       );
     },
-    [handleBookingPress, handleAvatarPress, handlePromoPress, promos, whyItems],
+    [
+      handleBookingPress,
+      handleAvatarPress,
+      handlePromoPress,
+      promos,
+      whyItems,
+      colors,
+      router,
+      t,
+    ],
   );
 
   if (!user) {
@@ -473,6 +584,33 @@ export default function TripsScreen() {
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
+  myTrip: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    gap: spacing.xs,
+  },
+  myTripHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  myTripPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+  },
+  myTripMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
   screen: {
     flex: 1,
   },

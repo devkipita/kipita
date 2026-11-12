@@ -430,17 +430,66 @@ export const en = {
   offer_a_ride: 'Offer a ride',
   post_broadcast_note: "We've let everyone on this route know.",
 
+  // Publishing
+  post_step_route: 'Route',
+  post_step_when: 'When',
+  post_step_fare: 'Fare',
+  publish_awaiting_title: 'Saved — it goes live when you’re verified',
+  publish_awaiting_note:
+    'The moment your driver account is cleared, this ride publishes itself and everyone on the route hears about it.',
+  publish_pending_note:
+    'Your verification is still in review, so this ride waits until it clears.',
+  verify_to_publish: 'Get verified',
+  section_published_rides: 'Rides you published',
+  section_published_rides_sub: 'What passengers can book from you right now.',
+  trip_awaiting_review: 'Waiting on review',
+  trip_live: 'Live',
+
   // Driver KYC
   become_a_driver: 'Become a driver',
   driver_kyc_intro:
-    'Driving needs a quick verification. Add your ID and licence — passengers ride with no extra steps.',
+    'Three photos and a number. Passengers ride with no extra steps — drivers get checked once.',
   national_id: 'National ID number',
   license_number: 'Driver’s licence number',
   license_expiry: 'Licence expiry',
   optional: 'Optional',
   driver_kyc_review_note:
     "We'll review your details shortly. You can start offering rides while your verification is pending.",
-  submit_for_review: 'Submit for review',
+  submit_for_review: 'Send for review',
+  kyc_progress_label: 'Verification',
+  kyc_pick_document: 'Which document are you using?',
+  kyc_doc_national_id: 'National ID',
+  kyc_doc_driving_licence: 'Licence',
+  kyc_doc_passport: 'Passport',
+  kyc_number_label: 'Number as printed',
+  kyc_number_hint: 'Looks like',
+  kyc_number_invalid: 'Check that number. It should look like',
+  kyc_title_document: 'Your document',
+  kyc_title_selfie: 'A photo of you',
+  kyc_title_vehicle: 'Your car',
+  kyc_photo_document: 'Photo of the document',
+  kyc_photo_selfie: 'Selfie holding the document',
+  kyc_photo_vehicle: 'Photo of your car',
+  kyc_photo_document_help: 'All four corners in frame, nothing covered.',
+  kyc_photo_selfie_help: 'Face the camera in good light. No hat, no sunglasses.',
+  kyc_photo_vehicle_help: 'Stand back so the number plate reads clearly.',
+  kyc_photo_added: 'Added',
+  kyc_replace_photo: 'Take a different photo',
+  kyc_uploading: 'Uploading…',
+  kyc_upload_failed: "That photo didn't upload. Try again.",
+  kyc_continue: 'Continue',
+  kyc_back: 'Back',
+  kyc_review_title: 'Sent for review',
+  kyc_review_body:
+    'We check documents within a few hours. You’ll get a notification the moment you’re cleared, and any saved rides go live by themselves.',
+  kyc_required_banner:
+    'Kipita needs your ID, your photo and your car before a ride can go live.',
+  kyc_pending_banner:
+    'Your verification is in review. You can still prepare rides.',
+  kyc_rejected_banner:
+    "We couldn't verify your last submission. Send it again.",
+  kyc_privacy_note:
+    'Your documents are private. Only Kipita’s review team sees them — never passengers.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

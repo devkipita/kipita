@@ -73,3 +73,6 @@ media-src/
 
 # ── Expo generated ──
 expo-env.d.ts
+
+# ── Supabase CLI scratch state (machine-local; `supabase link` regenerates it) ──
+supabase/.temp/

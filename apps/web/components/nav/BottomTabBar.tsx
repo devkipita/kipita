@@ -46,7 +46,7 @@ const Item = styled(Link)`
   gap: 1px;
   height: 48px;
   border-radius: 16px;
-  color: ${nocturne.muted};
+  color: ${nocturne.muted2};
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
@@ -69,26 +69,27 @@ const Item = styled(Link)`
     font-weight: 600;
     line-height: 1.3;
     letter-spacing: 0.01em;
-    transition: font-variation-settings 0.18s ${EASE};
   }
 
+  /* The current tab is a lime well under a deep-green glyph — the one
+     highlight inside the bar, matching the published design. */
   &[data-active="true"] {
-    color: ${nocturne.accent};
+    color: ${nocturne.greenDeep};
 
     .well {
-      background: color-mix(in oklab, ${nocturne.accent} 15%, transparent);
+      background: ${nocturne.lime};
     }
     .label {
-      font-weight: 700;
+      font-weight: 800;
     }
   }
 
   @media (hover: hover) {
     &:hover .well {
-      background: color-mix(in oklab, ${nocturne.accent} 9%, transparent);
+      background: color-mix(in oklab, ${nocturne.lime} 40%, transparent);
     }
     &[data-active="true"]:hover .well {
-      background: color-mix(in oklab, ${nocturne.accent} 22%, transparent);
+      background: ${nocturne.lime};
     }
   }
 
@@ -98,8 +99,8 @@ const Item = styled(Link)`
   }
 
   &:active .well {
-    transform: scale(0.9);
-    background: color-mix(in oklab, ${nocturne.accent} 24%, transparent);
+    transform: scale(0.92);
+    background: color-mix(in oklab, ${nocturne.lime} 70%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -122,7 +123,7 @@ const Item = styled(Link)`
 const Count = styled.span`
   position: absolute;
   top: 0;
-  left: calc(50% + 5px);
+  left: calc(50% + 10px);
   display: grid;
   place-items: center;
   min-width: 17px;

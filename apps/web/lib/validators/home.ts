@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PLATE_ERROR, formatPlate, isPlate } from "@/lib/home/plate";
 
 /**
  * Validation for everything posted from the home page. Mirrors the rules mobile
@@ -53,13 +54,13 @@ export const postTripSchema = z.object({
   vehicle_make: z.string().trim().max(40).optional(),
   vehicle_model: z.string().trim().max(40).optional(),
   vehicle_color: z.string().trim().max(30).optional(),
-  // How a passenger actually finds the car at the pickup point.
+  // How a passenger actually finds the car at the pickup point, so it has to
+  // be a real plate rather than any string a client happens to send.
   vehicle_plate: z
     .string()
     .trim()
-    .min(4, "That number plate looks too short")
-    .max(12, "That number plate looks too long")
-    .regex(/^[A-Za-z0-9][A-Za-z0-9 -]*$/, "Use letters, numbers and spaces only")
+    .transform(formatPlate)
+    .refine(isPlate, PLATE_ERROR)
     .optional(),
   vehicle_photo_url: z.string().url().max(500).optional(),
 });
@@ -98,20 +99,54 @@ export const commentSchema = z.object({
   content: z.string().trim().min(1, "Write a comment").max(1000, "Too long"),
 });
 
-// `license_number` is NOT NULL in migration 001 — the form must collect it.
-export const driverKycSchema = z.object({
-  national_id: z
-    .string()
-    .trim()
-    .min(4, "Enter your national ID number")
-    .max(40, "That doesn't look right"),
-  license_number: z
-    .string()
-    .trim()
-    .min(4, "Enter your licence number")
-    .max(40, "That doesn't look right"),
-  license_expiry: isoDate.nullable().optional(),
-});
+export const KYC_DOCUMENTS = {
+  national_id: {
+    label: "National ID",
+    number: "ID number",
+    placeholder: "e.g. 12345678",
+    pattern: /^\d{7,9}$/,
+    inputMode: "numeric",
+    frame: "Front of your ID, all corners visible",
+    error: "Enter the 7 to 9 digits on your ID.",
+  },
+  driving_licence: {
+    label: "Driving licence",
+    number: "Licence number",
+    placeholder: "e.g. DL0123456",
+    pattern: /^[A-Z]{1,3}\d{5,9}$/,
+    inputMode: "text",
+    frame: "Licence number clearly readable",
+    error: "Enter it as printed, like DL0123456.",
+  },
+  passport: {
+    label: "Passport",
+    number: "Passport number",
+    placeholder: "e.g. AK0123456",
+    pattern: /^[A-Z]{1,2}\d{6,8}$/,
+    inputMode: "text",
+    frame: "Photo page, all text readable",
+    error: "Enter it as printed, like AK0123456.",
+  },
+} as const;
+
+export type KycDocumentType = keyof typeof KYC_DOCUMENTS;
+
+export const driverKycSchema = z
+  .object({
+    document_type: z.enum(["national_id", "driving_licence", "passport"], {
+      message: "Choose a document to continue.",
+    }),
+    document_number: z.string().trim().toUpperCase(),
+    document_photo: z.string().min(3, "Add a photo of your document."),
+    selfie_photo: z.string().min(3, "Add a profile photo."),
+    vehicle_photo: z.string().min(3, "Add a photo of your car."),
+  })
+  .superRefine((value, ctx) => {
+    const doc = KYC_DOCUMENTS[value.document_type];
+    if (!doc.pattern.test(value.document_number)) {
+      ctx.addIssue({ code: "custom", path: ["document_number"], message: doc.error });
+    }
+  });
 
 export type PostTripInput = z.infer<typeof postTripSchema>;
 export type PostRequestInput = z.infer<typeof postRequestSchema>;

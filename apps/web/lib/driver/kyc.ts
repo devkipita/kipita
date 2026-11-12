@@ -1,13 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/**
- * Driver KYC status — the web port of `apps/mobile/src/hooks/useDriverKyc.ts`.
- *
- * Note the gate mobile actually uses is `hasApplied` ("has submitted"), not
- * `isApproved`. Web mirrors that so the two clients agree; tightening it to
- * approval is a product decision, not a porting one.
- */
-
 export type KycStatus = "not_submitted" | "pending" | "approved" | "rejected";
 
 export type DriverKyc = {

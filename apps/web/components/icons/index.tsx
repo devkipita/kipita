@@ -140,6 +140,14 @@ export const MagnifyingGlass = createIcon("MagnifyingGlass", () => (
   </>
 ));
 
+/** The circled plus the bottom bar uses for Post. */
+export const PlusCircle = createIcon("PlusCircle", (f) => (
+  <>
+    <circle cx="12" cy="12" r="8.6" {...(f ? SOLID : {})} />
+    <path d="M12 8.1v7.8M8.1 12h7.8" {...(f ? { stroke: "var(--n-surface)" } : {})} />
+  </>
+));
+
 export const Bell = createIcon("Bell", (f) => (
   <>
     <path d={BELL_BODY} {...(f ? SOLID : {})} />

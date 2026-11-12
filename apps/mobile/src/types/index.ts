@@ -129,6 +129,7 @@ export interface City {
 
 // ── Trips & Requests ──
 export type TripStatus =
+  | "awaiting_approval"
   | "posted"
   | "active"
   | "in_progress"

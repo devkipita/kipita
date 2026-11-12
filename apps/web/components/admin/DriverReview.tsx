@@ -75,15 +75,30 @@ const Docs = styled.dl`
 
 const Shots = styled.div`
   display: flex;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 12px;
 
-  a {
-    display: block;
-    width: 64px;
-    height: 64px;
+  figure {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  a,
+  .missing {
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 84px;
     border-radius: ${({ theme }) => theme.radius.sm};
     overflow: hidden;
     border: 1px solid ${({ theme }) => theme.color.line};
+  }
+  .missing {
+    border-style: dashed;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: ${({ theme }) => theme.color.error};
   }
   img {
     width: 100%;
@@ -91,7 +106,31 @@ const Shots = styled.div`
     object-fit: cover;
     display: block;
   }
+  figcaption {
+    font-size: 0.78rem;
+    color: ${({ theme }) => theme.color.muted};
+  }
 `;
+
+const DOC_LABEL: Record<NonNullable<DriverApplication["document_type"]>, string> = {
+  national_id: "National ID",
+  driving_licence: "Driving licence",
+  passport: "Passport",
+};
+
+function documentsOf(item: DriverApplication) {
+  const docs = [
+    { label: item.document_type ? DOC_LABEL[item.document_type] : "Document", url: item.document_photo ?? item.license_photo },
+    { label: "Profile photo", url: item.selfie_photo },
+    { label: "Car", url: item.vehicle_photo },
+  ];
+  if (item.document_photo && item.license_photo) docs.push({ label: "Licence (earlier)", url: item.license_photo });
+  return docs;
+}
+
+function hasAllDocuments(item: DriverApplication) {
+  return !!((item.document_photo || item.license_photo) && item.selfie_photo && item.vehicle_photo);
+}
 
 const Actions = styled.div`
   margin-left: auto;
@@ -131,8 +170,12 @@ export function DriverReview() {
       const name = item.full_name ?? "this driver";
       const msg =
         status === "approved"
-          ? `Approve ${name}? They will be able to publish rides immediately.`
-          : `Reject ${name}? They will be told to resubmit, and cannot publish.`;
+          ? `${hasAllDocuments(item) ? "" : `${name} is missing at least one photo. `}Approve ${name}? They can publish rides immediately${
+              item.waiting_rides > 0 ? `, and their ${item.waiting_rides} saved ${item.waiting_rides === 1 ? "ride goes" : "rides go"} live now` : ""
+            }.`
+          : `Reject ${name}? They will be asked to send their details again${
+              item.waiting_rides > 0 ? `, and their ${item.waiting_rides} saved ${item.waiting_rides === 1 ? "ride is" : "rides are"} cancelled` : ""
+            }.`;
       if (!window.confirm(msg)) return;
 
       setBusy(item.user_id);
@@ -185,36 +228,44 @@ export function DriverReview() {
                 </Muted>
               )}
               <Docs>
-                <dt>Licence</dt>
-                <dd>{item.license_number ?? "—"}</dd>
-                <dt>National ID</dt>
-                <dd>{item.national_id ?? "—"}</dd>
-                {item.license_expiry && (
+                {item.document_type ? (
                   <>
-                    <dt>Expires</dt>
-                    <dd>{item.license_expiry}</dd>
+                    <dt>{DOC_LABEL[item.document_type]}</dt>
+                    <dd>{item.document_number ?? "—"}</dd>
+                  </>
+                ) : (
+                  <>
+                    <dt>Licence</dt>
+                    <dd>{item.license_number ?? "—"}</dd>
+                    <dt>National ID</dt>
+                    <dd>{item.national_id ?? "—"}</dd>
+                  </>
+                )}
+                {item.waiting_rides > 0 && (
+                  <>
+                    <dt>Saved rides</dt>
+                    <dd>{item.waiting_rides} waiting</dd>
                   </>
                 )}
               </Docs>
             </div>
           </Who>
 
-          {(item.license_photo || item.selfie_photo) && (
-            <Shots>
-              {item.license_photo && (
-                <a href={item.license_photo} target="_blank" rel="noopener noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.license_photo} alt="Licence" />
-                </a>
-              )}
-              {item.selfie_photo && (
-                <a href={item.selfie_photo} target="_blank" rel="noopener noreferrer">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.selfie_photo} alt="Selfie" />
-                </a>
-              )}
-            </Shots>
-          )}
+          <Shots>
+            {documentsOf(item).map((doc) => (
+              <figure key={doc.label}>
+                {doc.url ? (
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={doc.url} alt={`${doc.label} for ${item.full_name || "this driver"}`} />
+                  </a>
+                ) : (
+                  <span className="missing">Missing</span>
+                )}
+                <figcaption>{doc.label}</figcaption>
+              </figure>
+            ))}
+          </Shots>
 
           <Actions>
             <SmallButton

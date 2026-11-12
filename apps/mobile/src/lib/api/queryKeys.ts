@@ -10,6 +10,7 @@ export const queryKeys = {
     list: (filters?: Record<string, unknown>) =>
       ["trips", "list", filters] as const,
     detail: (id: string) => ["trips", "detail", id] as const,
+    mine: () => ["trips", "mine"] as const,
     search: (
       from: string,
       to: string,

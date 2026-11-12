@@ -394,6 +394,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
 
       {shown.map((trip) => {
         const running = trip.status === "in_progress";
+        const held = trip.status === "awaiting_approval";
         const working = busy === trip.id;
 
         return (
@@ -409,6 +410,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                     Under way
                   </Running>
                 )}
+                {held && <Running>Goes live once you’re approved</Running>}
               </Route>
               <Facts>
                 <li>
@@ -471,21 +473,23 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                       "Cancel ride"
                     )}
                   </Act>
-                  <Act
-                    $primary
-                    type="button"
-                    onClick={() => start(trip)}
-                    disabled={working}
-                    aria-busy={working && job === "start"}
-                  >
-                    {working && job === "start" ? (
-                      <>
-                        <ButtonOrb job="committing" /> Starting…
-                      </>
-                    ) : (
-                      "Start ride"
-                    )}
-                  </Act>
+                  {!held && (
+                    <Act
+                      $primary
+                      type="button"
+                      onClick={() => start(trip)}
+                      disabled={working}
+                      aria-busy={working && job === "start"}
+                    >
+                      {working && job === "start" ? (
+                        <>
+                          <ButtonOrb job="committing" /> Starting…
+                        </>
+                      ) : (
+                        "Start ride"
+                      )}
+                    </Act>
+                  )}
                 </>
               )}
               <Act as={Link} href={`/ride/${trip.id}`}>

@@ -21,7 +21,9 @@ const PILL_H = 52;
 const Shell = styled.div<{ $open: boolean }>`
   position: fixed;
   right: clamp(12px, 2vw, 24px);
-  bottom: clamp(12px, 2vw, 24px);
+  /* Clears the floating tab bar on phones, where this used to sit on top of
+     the last tab and clip it. The variable is 0 wherever there is no bar. */
+  bottom: calc(var(--bottom-bar-space, 0px) + clamp(12px, 2vw, 24px));
   z-index: ${Z.notificationToast};
 
   width: ${({ $open }) => ($open ? "min(380px, calc(100vw - 24px))" : "auto")};

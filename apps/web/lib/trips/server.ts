@@ -172,7 +172,7 @@ export async function fetchPublishedTrips(
         .from("trips")
         .select(columns)
         .eq("driver_id", userId)
-        .in("status", ["posted", "active"])
+        .in("status", ["posted", "active", "awaiting_approval"])
         .gte("departure_date", today)
         .order("departure_date", { ascending: true })
         .order("departure_time", { ascending: true })

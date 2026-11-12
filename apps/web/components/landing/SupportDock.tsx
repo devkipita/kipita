@@ -34,7 +34,8 @@ const DockShell = styled.div<{
 }>`
   position: fixed;
   right: clamp(16px, 2vw, 28px);
-  bottom: clamp(16px, 2vw, 28px);
+  /* Clears the floating tab bar on phones. The variable is 0 without one. */
+  bottom: calc(var(--bottom-bar-space, 0px) + clamp(16px, 2vw, 28px));
   z-index: 96;
   opacity: ${({ $visible }) => ($visible ? 1 : 0)};
   visibility: ${({ $visible }) => ($visible ? "visible" : "hidden")};

@@ -23,6 +23,14 @@ function base64ToBytes(b64: string): Uint8Array {
   return bytes;
 }
 
+/** Read a local file into bytes ready for a Supabase Storage upload. */
+export async function readLocalBytes(localUri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(localUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return base64ToBytes(base64);
+}
+
 function extAndMime(kind: MessageAttachmentType, uri: string): { ext: string; mime: string } {
   if (kind === "audio") {
     const ext = uri.split(".").pop()?.toLowerCase();
@@ -50,10 +58,7 @@ export async function uploadChatMedia(
   const base = (localUri.split(/[\\/]/).pop() ?? "file").replace(/\.[^.]+$/, "");
   const path = `${userId}/${Date.now()}-${base}.${ext}`;
 
-  const base64 = await FileSystem.readAsStringAsync(localUri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
-  const bytes = base64ToBytes(base64);
+  const bytes = await readLocalBytes(localUri);
 
   const { error } = await supabase.storage
     .from(bucket)
