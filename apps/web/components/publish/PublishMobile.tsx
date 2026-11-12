@@ -12,8 +12,6 @@ import {
   MapPin,
   Plus,
   SealCheck,
-  ShieldCheck,
-  Wallet,
   Warning,
   X,
 } from "@/components/icons";
@@ -524,27 +522,6 @@ const Day = styled.button<{ $on: boolean; $today: boolean }>`
   ${ring}
 `;
 
-const Sum = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  background: ${nocturne.surface2};
-
-  .what {
-    font-size: 14px;
-    color: ${nocturne.muted};
-  }
-  .total {
-    font-size: 17px;
-    font-weight: 800;
-    color: ${nocturne.green};
-    white-space: nowrap;
-  }
-`;
-
 const CarOption = styled.button<{ $on: boolean }>`
   display: flex;
   align-items: center;
@@ -816,33 +793,6 @@ const Payout = styled.div`
   border-radius: 18px;
   background: ${nocturne.surface2};
 
-  .top {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 12px;
-  }
-  .what {
-    font-size: 14px;
-    font-weight: 600;
-    color: ${nocturne.muted};
-  }
-  .total {
-    font-size: 22px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${nocturne.green};
-    white-space: nowrap;
-  }
-  hr {
-    width: 100%;
-    height: 1px;
-    margin: 0;
-    border: 0;
-    background: ${nocturne.line};
-  }
-  /* One short line each, with the mark big enough to read at arm's length.
-     A phone at the kerb gets scanned, not read. */
   .line {
     display: flex;
     align-items: center;
@@ -1510,14 +1460,6 @@ export function PublishMobile({
                     />
                   </Box>
                 </FieldLabel>
-                {fare > 0 && (
-                  <Sum>
-                    <span className="what">
-                      {seats} {seats === 1 ? "seat" : "seats"} × {formatKes(fare)}
-                    </span>
-                    <span className="total">{formatKes(fare * seats)}</span>
-                  </Sum>
-                )}
               </>
             )}
 
@@ -1710,24 +1652,8 @@ export function PublishMobile({
                     );
                   })}
                 </Chips>
-                <Payout>
-                  <div className="top">
-                    <span className="what">{seats === 1 ? "Passenger pays" : `If all ${seats} seats fill, passengers pay`}</span>
-                    <span className="total">{formatKes(fare * seats)}</span>
-                  </div>
-                  <hr />
-                  <div className="line">
-                    <Wallet size={22} />
-                    <span>Paid after the trip, minus Kipita’s fee</span>
-                  </div>
-                  <div className="line">
-                    <ShieldCheck size={22} />
-                    <span>Free to publish. Passengers pay to book</span>
-                  </div>
-                  {/* Verification belongs with the other terms of publishing,
-                      not in a banner of its own underneath them. The action
-                      lives on the page button, so this line only states it. */}
-                  {kycStatus !== "approved" && (
+                {kycStatus !== "approved" && (
+                  <Payout>
                     <div className="line">
                       <SealCheck size={22} />
                       <span>
@@ -1738,8 +1664,8 @@ export function PublishMobile({
                             : "Drivers are verified before publishing"}
                       </span>
                     </div>
-                  )}
-                </Payout>
+                  </Payout>
+                )}
                 {error && (
                   <Alert $warn role="alert">
                     <Warning size={20} />

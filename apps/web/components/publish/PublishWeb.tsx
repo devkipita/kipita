@@ -13,8 +13,6 @@ import {
   Minus,
   Plus,
   SealCheck,
-  ShieldCheck,
-  Wallet,
   Warning,
   X,
 } from "@/components/icons";
@@ -902,56 +900,23 @@ const CarLine = styled.p`
   }
 `;
 
-const EarnBar = styled.div`
+const Acts = styled.div`
   display: flex;
   align-items: center;
-  gap: 24px 40px;
+  justify-content: flex-end;
+  gap: 10px;
   flex-wrap: wrap;
-  padding: 22px 26px;
-  border-radius: 24px;
-  background: ${nocturne.greenDeep};
-  color: ${nocturne.onGreen};
-
-  .sum {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex: 1 1 220px;
-  }
-  .lead {
-    font-size: 13px;
-    font-weight: 700;
-    color: ${nocturne.onGreenMuted};
-  }
-  .total {
-    font-size: clamp(28px, 3vw, 34px);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    color: ${nocturne.lime};
-  }
-  .fine {
-    font-size: 13px;
-    color: ${nocturne.onGreenMuted};
-  }
-  .acts {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-left: auto;
-    flex-wrap: wrap;
-  }
 `;
 
-const GhostOnGreen = styled.button`
+const ReviewBack = styled.button`
   height: 56px;
-  padding: 0 18px;
+  padding: 0 22px;
   border-radius: 28px;
-  border: 1.5px solid rgba(255, 255, 255, 0.25);
-  background: transparent;
-  color: ${nocturne.onGreen};
+  border: 2px solid ${nocturne.green};
+  background: ${nocturne.surface};
+  color: ${nocturne.green};
   font: inherit;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 15px;
   display: flex;
   align-items: center;
@@ -961,7 +926,7 @@ const GhostOnGreen = styled.button`
 
   @media (hover: hover) {
     &:hover {
-      border-color: #ffffff;
+      background: ${nocturne.surface2};
     }
   }
 `;
@@ -1406,7 +1371,6 @@ export function PublishWeb({
     };
   });
 
-  const total = fare > 0 ? formatKes(fare * seats) : "—";
 
   return (
     <Page>
@@ -1445,27 +1409,16 @@ export function PublishWeb({
               ))}
             </Row>
 
-            <Terms>
-              <li>
-                <Wallet size={22} />
-                Paid after the trip, minus Kipita’s fee
-              </li>
-              <li>
-                <ShieldCheck size={22} />
-                Free to publish. Passengers pay to book
-              </li>
-              {/* Verification sits with the other terms of publishing rather
-                  than in a banner of its own. The action lives on the page
-                  button, so this line only states it. */}
-              {kycStatus !== "approved" && (
+            {kycStatus !== "approved" && (
+              <Terms>
                 <li>
                   <SealCheck size={22} />
                   {submitted
                     ? "Verification in review. It goes live once this clears"
                     : "Drivers are verified before publishing"}
                 </li>
-              )}
-            </Terms>
+              </Terms>
+            )}
 
             {error && (
               <Alert role="alert">
@@ -1479,24 +1432,17 @@ export function PublishWeb({
               </Alert>
             )}
 
-            <EarnBar>
-              <div className="sum">
-                <span className="lead">{seats === 1 ? "You could earn" : `You could earn with all ${seats} seats filled`}</span>
-                <span className="total">{total}</span>
-                <span className="fine">Before Kipita’s fee · paid after the trip · free to publish</span>
-              </div>
-              <div className="acts">
-                <GhostOnGreen type="button" onClick={back}>
-                  <CaretLeft size={16} weight="bold" />
-                  Back
-                </GhostOnGreen>
-                <PublishBtn type="button" onClick={publish} disabled={pending} aria-busy={pending}>
-                  {pending && <ButtonOrb job="committing" />}
-                  {pending ? "Publishing" : submitted ? "Publish ride" : "Verify to publish"}
-                  {!pending && <ArrowRight size={20} weight="bold" />}
-                </PublishBtn>
-              </div>
-            </EarnBar>
+            <Acts>
+              <ReviewBack type="button" onClick={back}>
+                <CaretLeft size={16} weight="bold" />
+                Back
+              </ReviewBack>
+              <PublishBtn type="button" onClick={publish} disabled={pending} aria-busy={pending}>
+                {pending && <ButtonOrb job="committing" />}
+                {pending ? "Publishing" : submitted ? "Publish ride" : "Verify to publish"}
+                {!pending && <ArrowRight size={20} weight="bold" />}
+              </PublishBtn>
+            </Acts>
           </Review>
         )}
 
