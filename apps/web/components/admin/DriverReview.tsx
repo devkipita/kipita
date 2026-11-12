@@ -14,6 +14,7 @@ import {
   fetchDriverApplications,
   setDriverApproval,
   type DriverApplication,
+  type ReviewStatus,
 } from "@/lib/driver/admin";
 
 const spin = keyframes`
@@ -146,15 +147,51 @@ const Muted = styled.div`
   gap: 6px;
 `;
 
+const Tabs = styled.div`
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  width: fit-content;
+  border-radius: 999px;
+  background: ${({ theme }) => theme.color.surface2};
+`;
+
+const Tab = styled.button<{ $on: boolean }>`
+  height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: ${({ theme, $on }) => ($on ? theme.color.surface : "transparent")};
+  box-shadow: ${({ $on }) => ($on ? "0 1px 3px rgba(15, 59, 44, 0.15)" : "none")};
+  color: ${({ theme, $on }) => ($on ? theme.color.text : theme.color.muted)};
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: ${({ $on }) => ($on ? 800 : 600)};
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+`;
+
+const TABS: { key: ReviewStatus; label: string; empty: string }[] = [
+  { key: "pending", label: "Waiting", empty: "No applications waiting. Every driver has been reviewed." },
+  { key: "approved", label: "Approved", empty: "No approved drivers yet." },
+  { key: "rejected", label: "Rejected", empty: "No rejected applications." },
+];
+
 export function DriverReview() {
+  const [tab, setTab] = useState<ReviewStatus>("pending");
   const [items, setItems] = useState<DriverApplication[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (status: ReviewStatus) => {
     setError("");
+    setItems(null);
     try {
-      setItems(await fetchDriverApplications());
+      setItems(await fetchDriverApplications(status));
     } catch {
       setError("Could not load driver applications. Check your access and try again.");
       setItems([]);
@@ -162,8 +199,8 @@ export function DriverReview() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(tab);
+  }, [load, tab]);
 
   const act = useCallback(
     async (item: DriverApplication, status: "approved" | "rejected") => {
@@ -192,27 +229,34 @@ export function DriverReview() {
     [],
   );
 
-  if (items === null) {
-    return (
-      <Empty>
-        <Spinner size={18} style={{ verticalAlign: "-3px" }} /> Loading driver
-        applications…
-      </Empty>
-    );
-  }
+  const current = TABS.find((t) => t.key === tab)!;
 
   return (
     <List>
+      <Tabs role="tablist" aria-label="Driver applications">
+        {TABS.map((t) => (
+          <Tab key={t.key} type="button" role="tab" aria-selected={tab === t.key} $on={tab === t.key} onClick={() => setTab(t.key)}>
+            {t.label}
+          </Tab>
+        ))}
+      </Tabs>
+
       {error && <Notice $variant="error">{error}</Notice>}
 
-      {items.length === 0 && !error && (
+      {items === null && (
         <Empty>
-          <CheckCircle2 size={18} style={{ verticalAlign: "-3px" }} /> No
-          applications waiting. Every driver has been reviewed.
+          <Spinner size={18} style={{ verticalAlign: "-3px" }} /> Loading driver
+          applications…
         </Empty>
       )}
 
-      {items.map((item) => (
+      {items?.length === 0 && !error && (
+        <Empty>
+          <CheckCircle2 size={18} style={{ verticalAlign: "-3px" }} /> {current.empty}
+        </Empty>
+      )}
+
+      {items?.map((item) => (
         <Row key={item.user_id}>
           <Who>
             <Avatar
@@ -268,23 +312,27 @@ export function DriverReview() {
           </Shots>
 
           <Actions>
-            <SmallButton
-              type="button"
-              $variant="reject"
-              onClick={() => act(item, "rejected")}
-              disabled={busy === item.user_id}
-            >
-              Reject
-            </SmallButton>
-            <SmallButton
-              type="button"
-              $variant="approve"
-              onClick={() => act(item, "approved")}
-              disabled={busy === item.user_id}
-              aria-busy={busy === item.user_id}
-            >
-              <SealCheck size={15} weight="fill" /> Approve
-            </SmallButton>
+            {tab !== "rejected" && (
+              <SmallButton
+                type="button"
+                $variant="reject"
+                onClick={() => act(item, "rejected")}
+                disabled={busy === item.user_id}
+              >
+                {tab === "approved" ? "Revoke" : "Reject"}
+              </SmallButton>
+            )}
+            {tab !== "approved" && (
+              <SmallButton
+                type="button"
+                $variant="approve"
+                onClick={() => act(item, "approved")}
+                disabled={busy === item.user_id}
+                aria-busy={busy === item.user_id}
+              >
+                <SealCheck size={15} weight="fill" /> Approve
+              </SmallButton>
+            )}
           </Actions>
         </Row>
       ))}

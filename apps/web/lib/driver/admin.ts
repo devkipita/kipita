@@ -23,9 +23,11 @@ export type DriverApplication = {
 
 const PHOTO_KEYS = ["document_photo", "license_photo", "selfie_photo", "vehicle_photo"] as const;
 
-export async function fetchDriverApplications(): Promise<DriverApplication[]> {
+export type ReviewStatus = Extract<KycStatus, "pending" | "approved" | "rejected">;
+
+export async function fetchDriverApplications(status: ReviewStatus = "pending"): Promise<DriverApplication[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.rpc("pending_driver_applications");
+  const { data, error } = await supabase.rpc("driver_applications", { p_status: status });
   if (error) throw error;
   const rows = (data ?? []) as DriverApplication[];
 
