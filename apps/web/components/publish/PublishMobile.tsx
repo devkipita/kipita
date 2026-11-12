@@ -926,10 +926,15 @@ const BarBtn = styled.button`
 `;
 
 const ClearBtn = styled(BarBtn)`
-  width: 48px;
+  flex-direction: column;
+  gap: 1px;
+  width: 58px;
   padding: 0;
   border-color: transparent;
   color: ${nocturne.muted3};
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 
   @media (hover: hover) {
     &:hover {
@@ -1730,7 +1735,8 @@ export function PublishMobile({
           </Cta>
         )}
         <ClearBtn type="button" aria-label="Clear everything and start over" onClick={reset}>
-          <Trash size={22} />
+          <Trash size={20} />
+          Clear
         </ClearBtn>
       </Bar>
     </Page>
