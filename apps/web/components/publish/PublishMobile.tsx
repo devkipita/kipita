@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } f
 import styled, { css, keyframes } from "styled-components";
 import { KENYAN_TOWNS, POPULAR_ROUTES, searchTowns } from "@kipita/shared";
 import {
+  CaretLeft,
   CaretRight,
   Car,
   Check,
@@ -12,6 +13,7 @@ import {
   Plus,
   SealCheck,
   ShieldCheck,
+  Trash,
   Wallet,
   Warning,
   X,
@@ -898,9 +900,35 @@ const Alert = styled.div<{ $warn?: boolean }>`
 const Bar = styled.div`
   flex-shrink: 0;
   display: flex;
+  align-items: center;
   gap: 10px;
   padding: 4px 20px 16px;
   background: ${nocturne.bg};
+`;
+
+const BarBtn = styled.button`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 54px;
+  padding: 0 18px;
+  border: 1.5px solid ${nocturne.line};
+  border-radius: 16px;
+  background: transparent;
+  color: ${nocturne.cream};
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  ${ring}
+`;
+
+const ClearBtn = styled(BarBtn)`
+  width: 54px;
+  padding: 0;
+  color: ${nocturne.muted2};
 `;
 
 const Cta = styled.button<{ $tone: "go" | "publish" | "off" }>`
@@ -1056,6 +1084,16 @@ export function PublishMobile({
     setEditFrom(false);
     setQuery("");
     setOtherTime(false);
+  }
+
+  function back() {
+    if (step === 0) return;
+    const here = (window.history.state as { publishStep?: unknown } | null)?.publishStep;
+    if (here === step) {
+      window.history.back();
+      return;
+    }
+    go(step - 1);
   }
 
   function reset() {
@@ -1665,18 +1703,24 @@ export function PublishMobile({
         )}
       </Scroll>
 
-      {/* The bar arrives when this step has an answer. Before that it is a
-          dead button taking up the screen, and most steps advance themselves
-          the moment you tap a value. */}
-      {valid && (
-        <Bar className="bar">
+      <Bar className="bar">
+        {step > 0 && (
+          <BarBtn type="button" onClick={back}>
+            <CaretLeft size={18} weight="bold" />
+            Back
+          </BarBtn>
+        )}
+        {valid && (
           <Cta type="button" $tone={ctaTone} disabled={pending} aria-busy={pending} onClick={next}>
             {pending && <ButtonOrb job="committing" />}
             {ctaLabel}
             {!pending && <CaretRight size={18} weight="bold" />}
           </Cta>
-        </Bar>
-      )}
+        )}
+        <ClearBtn type="button" aria-label="Clear everything and start over" onClick={reset}>
+          <Trash size={20} />
+        </ClearBtn>
+      </Bar>
     </Page>
   );
 }
