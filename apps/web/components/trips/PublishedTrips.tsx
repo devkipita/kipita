@@ -1,17 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import {
-  ArrowRight,
-  CalendarBlank,
-  Clock,
-  NavigationArrow,
-  Users,
-  Warning,
-} from "@/components/icons";
+import { Warning } from "@/components/icons";
+import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
 import { releaseEscrowForAll } from "@/lib/escrow";
@@ -19,192 +13,42 @@ import { cancelTripAction } from "@/lib/trips/booking-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import type { PublishedTrip } from "@/lib/trips/types";
+import {
+  Act,
+  Acts,
+  Count,
+  Depart,
+  Meta,
+  Road,
+  Row,
+  RULE,
+  SectionHead,
+  SectionLead,
+  Tag,
+  fs,
+} from "./RideRow";
 
-const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 const SHOWN = 4;
 
 const Section = styled.section`
-  margin: clamp(26px, 4vh, 38px) 0 clamp(30px, 4.5vh, 46px);
-  padding-bottom: clamp(26px, 4vh, 36px);
-  border-bottom: 1.5px solid ${RULE};
-
-  section + & {
-    margin-top: 0;
-  }
-
-  > h2 {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 6px;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(24px, 3vw, 34px);
-    font-weight: 800;
-    letter-spacing: -0.033em;
-    line-height: 1.08;
-    color: ${nocturne.cream};
-  }
-  > p {
-    margin: 0 0 20px;
-    max-width: 58ch;
-    font-size: 16px;
-    line-height: 1.55;
-    color: ${nocturne.muted};
-  }
+  margin: clamp(40px, 6vh, 64px) 0 0;
 `;
 
-const Count = styled.span`
-  display: inline-grid;
-  place-items: center;
-  min-width: 30px;
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: ${nocturne.surface2};
-  color: ${nocturne.cream};
-  font-size: 16px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-`;
-
-const Row = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px 32px;
-  padding: clamp(18px, 2.4vh, 24px) 0;
-
-  & + & {
-    border-top: 1.5px solid ${RULE};
-  }
-
-  @media (max-width: 760px) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-`;
-
-const Route = styled.p`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  margin: 0;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: clamp(20px, 2.1vw, 25px);
-  font-weight: 800;
-  letter-spacing: -0.028em;
-  color: ${nocturne.cream};
-
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-`;
-
-const Running = styled.span`
+const Meter = styled.span`
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 26px;
-  padding: 0 11px;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
+  gap: 4px;
 
-  svg {
-    color: inherit;
+  i {
+    width: 20px;
+    height: 10px;
+    border-radius: 3px;
+    border: 2px solid var(--row-mark);
   }
-`;
-
-const Facts = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 10px 0 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 15px;
-    color: ${nocturne.muted};
+  i[data-seat="paid"] {
+    background: var(--row-mark);
   }
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-  b {
-    color: ${nocturne.cream};
-    font-variant-numeric: tabular-nums;
-  }
-`;
-
-const Acts = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  @media (max-width: 760px) {
-    width: 100%;
-    > * {
-      flex: 1;
-    }
-  }
-`;
-
-const Act = styled.button<{ $primary?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-  padding: 0 20px;
-  border: 1.5px solid ${({ $primary }) => ($primary ? "transparent" : RULE)};
-  border-radius: 999px;
-  background: ${({ $primary }) => ($primary ? nocturne.ctaBg : "transparent")};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 16px;
-  font-weight: 700;
-  color: ${({ $primary }) => ($primary ? nocturne.ctaFg : nocturne.cream)};
-  cursor: pointer;
-  white-space: nowrap;
-  text-decoration: none;
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.16s ease;
-
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: ${({ $primary }) =>
-        $primary ? nocturne.green : nocturne.surface2};
-      color: ${({ $primary }) =>
-        $primary ? nocturne.onGreen : nocturne.accent};
-      border-color: ${({ $primary }) =>
-        $primary ? "transparent" : nocturne.accent};
-      transform: translateY(-1px);
-    }
-  }
-  &:disabled {
-    opacity: 0.6;
-    cursor: progress;
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover:not(:disabled) {
-      transform: none;
-    }
+  i[data-seat="taken"] {
+    background: color-mix(in oklab, var(--row-mark) 35%, transparent);
   }
 `;
 
@@ -216,8 +60,8 @@ const More = styled.button`
   padding: 0 2px;
   border: none;
   background: transparent;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: ${fs.meta};
+  font-weight: 800;
   color: ${nocturne.muted};
   cursor: pointer;
   box-shadow: inset 0 -2px 0 ${RULE};
@@ -242,21 +86,36 @@ const Err = styled.p`
   align-items: flex-start;
   gap: 10px;
   margin: 0 0 18px;
-  font-size: 16px;
+  font-size: ${fs.meta};
   font-weight: 600;
   color: ${nocturne.cream};
 
   svg {
     flex: none;
-    margin-top: 2px;
+    margin-top: 1px;
     color: ${nocturne.ctaBg};
   }
 `;
 
 type Job = "cancel" | "start" | "complete";
 
+function departsAt(t: PublishedTrip) {
+  return `${t.departure_date ?? "9999-12-31"}T${t.departure_time ?? "23:59"}`;
+}
+
+function seatLine(trip: PublishedTrip) {
+  const parts = [`${trip.seats_taken} of ${trip.seats_total} seats booked`];
+  if (trip.seats_taken > 0) {
+    parts.push(trip.paid_seats >= trip.seats_taken ? "all paid" : `${trip.paid_seats} paid`);
+  }
+  if (trip.pending_requests > 0) parts.push(`${trip.pending_requests} to answer`);
+  return parts.join(" · ");
+}
+
 export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
   const router = useRouter();
+  const { kycStatus, requireKyc } = useAppMode();
+  const canVerify = kycStatus === "not_submitted" || kycStatus === "rejected";
   const [items, setItems] = useState(initial);
   const [busy, setBusy] = useState<string | null>(null);
   const [job, setJob] = useState<Job | null>(null);
@@ -267,6 +126,14 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
   useEffect(() => {
     setItems(initial);
   }, [initial]);
+
+  const nextId = useMemo(
+    () =>
+      items
+        .filter((t) => t.status !== "awaiting_approval" && t.status !== "in_progress")
+        .sort((a, b) => departsAt(a).localeCompare(departsAt(b)))[0]?.id ?? null,
+    [items],
+  );
 
   if (items.length === 0) return null;
 
@@ -309,11 +176,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
         ? ` ${unpaid} unpaid ${unpaid === 1 ? "seat is" : "seats are"} released and those passengers are told.`
         : "";
 
-    if (
-      !window.confirm(
-        `Start ${trip.from_location} to ${trip.to_location}?${warning}`,
-      )
-    ) {
+    if (!window.confirm(`Start ${trip.from_location} to ${trip.to_location}?${warning}`)) {
       return;
     }
 
@@ -331,12 +194,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
       setItems((prev) =>
         prev.map((t) =>
           t.id === trip.id
-            ? {
-                ...t,
-                status: "in_progress",
-                pending_requests: 0,
-                awaiting_payment: 0,
-              }
+            ? { ...t, status: "in_progress", pending_requests: 0, awaiting_payment: 0 }
             : t,
         ),
       );
@@ -376,14 +234,10 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
 
   return (
     <Section>
-      <h2>
+      <SectionHead>
         Rides you published <Count>{items.length}</Count>
-      </h2>
-      <p>
-        Start a ride when you pull off and end it when you arrive — ending
-        releases every held fare to you, minus the Kipita fee. Cancelling during
-        the pilot costs you nothing, and refunds anyone who has already paid.
-      </p>
+      </SectionHead>
+      <SectionLead>Start each ride when you leave. Ending it pays you.</SectionLead>
 
       {error && (
         <Err role="alert">
@@ -395,49 +249,58 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
       {shown.map((trip) => {
         const running = trip.status === "in_progress";
         const held = trip.status === "awaiting_approval";
+        const full = trip.seats_taken >= trip.seats_total;
         const working = busy === trip.id;
+        const paid = Math.min(trip.paid_seats, trip.seats_total);
+        const taken = Math.min(Math.max(trip.seats_taken, paid), trip.seats_total);
+        const seats = Array.from({ length: trip.seats_total }, (_, i) =>
+          i < paid ? "paid" : i < taken ? "taken" : "free",
+        );
 
         return (
-          <Row key={trip.id}>
+          <Row
+            key={trip.id}
+            $mood={running ? "running" : "plain"}
+            aria-label={`${trip.from_location} to ${trip.to_location}`}
+          >
+            <Depart>
+              <span>{formatTripDate(trip.departure_date) || "Date to confirm"}</span>
+              <b>{formatTripTime(trip.departure_time) || "Time to confirm"}</b>
+              {running ? (
+                <Tag $tone="live">
+                  <i data-pulse aria-hidden />
+                  Under way
+                </Tag>
+              ) : held ? (
+                <Tag $tone={canVerify ? "pay" : "wait"}>
+                  {canVerify ? "Not live yet" : "ID in review"}
+                </Tag>
+              ) : full ? (
+                <Tag $tone="wait">Full</Tag>
+              ) : (
+                <Tag $tone="go">Open for booking</Tag>
+              )}
+            </Depart>
+
             <div>
-              <Route>
+              <Road $moving={running || trip.id === nextId}>
                 <span>{trip.from_location}</span>
-                <ArrowRight size={19} aria-hidden />
+                <i aria-hidden />
                 <span>{trip.to_location}</span>
-                {running && (
-                  <Running>
-                    <NavigationArrow size={14} weight="fill" aria-hidden />
-                    Under way
-                  </Running>
-                )}
-                {held && <Running>Goes live once you’re approved</Running>}
-              </Route>
-              <Facts>
-                <li>
-                  <CalendarBlank size={16} />
-                  {formatTripDate(trip.departure_date) || "Date to confirm"}
-                </li>
-                <li>
-                  <Clock size={16} />
-                  {formatTripTime(trip.departure_time) || "Time to confirm"}
-                </li>
-                <li>
-                  <Users size={16} />
-                  {trip.seats_taken} of {trip.seats_total} taken
-                </li>
-                <li>
-                  <b>{trip.paid_seats}</b> paid
-                  {trip.awaiting_payment > 0
-                    ? `, ${trip.awaiting_payment} awaiting payment`
-                    : ""}
-                  {trip.pending_requests > 0
-                    ? `, ${trip.pending_requests} to answer`
-                    : ""}
-                </li>
-                <li>
+              </Road>
+              <Meta>
+                <span>
+                  <Meter aria-hidden>
+                    {seats.map((s, i) => (
+                      <i key={i} data-seat={s} />
+                    ))}
+                  </Meter>
+                  {seatLine(trip)}
+                </span>
+                <span>
                   <b>{formatCurrency(trip.price_per_seat)}</b> a seat
-                </li>
-              </Facts>
+                </span>
+              </Meta>
             </div>
 
             <Acts>
@@ -460,6 +323,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
               ) : (
                 <>
                   <Act
+                    $quiet
                     type="button"
                     onClick={() => cancel(trip)}
                     disabled={working}
@@ -473,7 +337,13 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                       "Cancel ride"
                     )}
                   </Act>
-                  {!held && (
+                  {held ? (
+                    canVerify && (
+                      <Act $primary type="button" onClick={() => requireKyc()}>
+                        Finish verification
+                      </Act>
+                    )
+                  ) : (
                     <Act
                       $primary
                       type="button"
@@ -502,9 +372,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
 
       {(hidden > 0 || expanded) && (
         <More type="button" onClick={() => setExpanded((on) => !on)}>
-          {expanded
-            ? `Show fewer`
-            : `Show all ${items.length} published rides`}
+          {expanded ? "Show fewer" : `Show all ${items.length} published rides`}
         </More>
       )}
     </Section>

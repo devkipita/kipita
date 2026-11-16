@@ -22,15 +22,15 @@ const Topic = styled.button<{ $open: boolean }>`
   justify-content: space-between;
   gap: 18px;
   width: 100%;
-  min-height: 72px;
-  padding: 18px 24px;
+  min-height: 60px;
+  padding: 14px 20px;
   border: none;
   background: transparent;
   font: inherit;
-  font-family: ${({ theme }) => theme.fontHeading};
-  font-size: 1.4rem;
-  font-weight: 500;
-  letter-spacing: -0.022em;
+  font-family: ${({ theme }) => theme.font};
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
   text-align: left;
   cursor: pointer;
   color: ${({ theme }) => theme.color.onSurface};
@@ -181,7 +181,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
               onClick={() => setTopic(open ? null : t.key)}
             >
               {t.subject}
-              <ArrowOut size={30} />
+              <ArrowOut size={20} />
             </Topic>
 
             {open && (
