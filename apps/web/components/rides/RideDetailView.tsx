@@ -12,7 +12,8 @@ import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { safeTelHref } from "@/lib/security/url";
 import { formatKes } from "@/lib/rides";
-import { fareBreakdown } from "@/lib/platform";
+import { bookingBreakdown } from "@/lib/platform";
+import { DEFAULT_FARE_CONFIG, type FareConfig } from "@kipita/shared";
 import { nocturne } from "@/lib/nocturne";
 import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
@@ -329,8 +330,8 @@ const Split = styled.dl`
     text-align: right;
     color: ${nocturne.cream};
   }
-  .total dt,
-  .total dd {
+  dt.total,
+  dd.total {
     font-weight: 800;
     color: ${nocturne.cream};
   }
@@ -560,11 +561,11 @@ function preferenceFacts(prefs: RideDetail["preferences"]) {
 export function RideDetailView({
   ride,
   profile,
-  feePercent = 12,
+  fareConfig = DEFAULT_FARE_CONFIG,
 }: {
   ride: RideDetail;
   profile: Profile | null;
-  feePercent?: number;
+  fareConfig?: FareConfig;
 }) {
   const router = useRouter();
   const isTrip = ride.kind === "trip";
@@ -763,21 +764,33 @@ export function RideDetailView({
                 </Left>
                 {renderAction()}
                 {(() => {
-                  const total = ride.price_per_seat * seats;
-                  const { fee, driverEarning } = fareBreakdown(total, feePercent);
+                  const b = bookingBreakdown(ride.price_per_seat, seats, fareConfig);
                   return (
                     <Split>
                       <dt>
                         {seats} {seats === 1 ? "seat" : "seats"} at{" "}
                         {formatKes(ride.price_per_seat)}
                       </dt>
-                      <dd>{formatKes(total)}</dd>
-                      <dt>Goes to your driver</dt>
-                      <dd>{formatKes(driverEarning)}</dd>
-                      <dt>Kipita fee ({feePercent}%)</dt>
-                      <dd>{formatKes(fee)}</dd>
-                      <dt className="total">You pay</dt>
-                      <dd className="total">{formatKes(total)}</dd>
+                      <dd>{formatKes(b.subtotal)}</dd>
+                      {b.onTop ? (
+                        <>
+                          <dt>Kipita service fee ({b.feePercent}%)</dt>
+                          <dd>{formatKes(b.fee)}</dd>
+                          <dt className="total">You pay</dt>
+                          <dd className="total">{formatKes(b.total)}</dd>
+                          <dt>Your driver receives</dt>
+                          <dd>{formatKes(b.driverEarning)}</dd>
+                        </>
+                      ) : (
+                        <>
+                          <dt>Goes to your driver</dt>
+                          <dd>{formatKes(b.driverEarning)}</dd>
+                          <dt>Kipita fee ({b.feePercent}%)</dt>
+                          <dd>{formatKes(b.fee)}</dd>
+                          <dt className="total">You pay</dt>
+                          <dd className="total">{formatKes(b.total)}</dd>
+                        </>
+                      )}
                     </Split>
                   );
                 })()}

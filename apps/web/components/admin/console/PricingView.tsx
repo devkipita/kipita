@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import styled from "styled-components";
+import { fareConfigFromSettings, quoteSeat, resolveFuelPrice, type FuelPriceRow } from "@kipita/shared";
 import { Calendar, Car, Info, Lightning, Lock, Minus, Plus, SlidersHorizontal, Warning } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { ago, describeAction, kes, SETTING_LABELS, type AuditRow } from "@/lib/admin/console";
-import { saveSettingsAction } from "@/lib/admin/console-actions";
-import { fareBreakdown } from "@/lib/platform";
+import { addFuelPricesAction, saveSettingsAction, setVehicleClassAction } from "@/lib/admin/console-actions";
 import {
   Banner,
   Button,
@@ -19,16 +19,41 @@ import {
   Note,
   PageHeader,
   Pill,
-  SamplePill,
   TextLink,
   useToast,
 } from "./ui";
 
 export type PricingSettings = {
   platform_fee_percent: number;
+  /** 1 = the fee is added on top of the seat price, 0 = deducted from the driver */
+  fee_on_top: number;
+  fee_min_kes: number;
+  /** used for the VAT split in reports, not editable here */
+  fee_vat_percent: number;
   hold_minutes: number;
-  fuel_cost_per_km: number;
   fare_margin_percent: number;
+  fare_wear_per_km: number;
+  fare_min_seat_price: number;
+  fare_round_step: number;
+};
+
+export type FuelPriceRecord = {
+  id: string;
+  fuel_type: "petrol" | "diesel";
+  region: string;
+  price_kes: number;
+  effective_from: string;
+  effective_to: string;
+  note: string | null;
+};
+
+export type VehicleClassRecord = {
+  code: string;
+  label: string;
+  km_per_litre: number;
+  fuel_type: "petrol" | "diesel";
+  active: boolean;
+  sort_order: number;
 };
 
 const Summary = styled.section`
@@ -292,59 +317,150 @@ const Log = styled.div`
   }
 `;
 
-const SAMPLE_HISTORY = [
-  { period: "15 Jun–14 Jul", petrol: 205.4, diesel: 196.1 },
-  { period: "15 Jul–14 Aug", petrol: 210.2, diesel: 198.8 },
-  { period: "15 Aug–14 Sep", petrol: 216.7, diesel: 215.2 },
-  { period: "15 Sep–14 Oct", petrol: 214.1, diesel: 215.3 },
-  { period: "15 Oct–14 Nov", petrol: 226.96, diesel: 227.76 },
-];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-const SAMPLE_CLASSES = [
-  ["Small car", "Petrol", "15"],
-  ["Sedan", "Petrol", "13"],
-  ["SUV petrol", "Petrol", "10"],
-  ["SUV diesel", "Diesel", "9"],
-  ["Minivan", "Diesel", "9"],
-];
+/** '2026-10-15' → '15 Oct'. Dates are plain calendar days, so no time zone maths. */
+function shortDate(iso: string) {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${d} ${MONTHS[(m ?? 1) - 1]}`;
+}
+
+function addDaysIso(iso: string, days: number) {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** A month-long EPRA period: starts on `from`, ends the day before the same day next month (15 Oct to 14 Nov). */
+function monthPeriodEnd(from: string) {
+  const d = new Date(`${from}T00:00:00Z`);
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate() - 1)).toISOString().slice(0, 10);
+}
 
 const FIELDS: { key: keyof PricingSettings; hint: string; step: number; unit: string }[] = [
-  { key: "platform_fee_percent", hint: "Taken from each seat price", step: 1, unit: "%" },
-  { key: "fuel_cost_per_km", hint: "KES per km behind the suggestion", step: 0.5, unit: "KES" },
-  { key: "fare_margin_percent", hint: "Cap above the fuel share", step: 1, unit: "%" },
+  { key: "platform_fee_percent", hint: "Percent of the seat subtotal", step: 1, unit: "%" },
+  { key: "fee_min_kes", hint: "Smallest fee on any booking", step: 10, unit: "KES" },
+  { key: "fare_margin_percent", hint: "How far above the cost share a driver may price", step: 1, unit: "%" },
+  { key: "fare_wear_per_km", hint: "Wear and tear added to fuel, per km", step: 0.5, unit: "KES" },
+  { key: "fare_min_seat_price", hint: "Lowest seat price a driver can list", step: 10, unit: "KES" },
+  { key: "fare_round_step", hint: "Seat prices snap to this step", step: 5, unit: "KES" },
   { key: "hold_minutes", hint: "Time a passenger has to pay", step: 5, unit: "min" },
 ];
 
-function roundTo10(n: number) {
-  return Math.max(0, Math.round(n / 10) * 10);
-}
+const EDITABLE_KEYS: (keyof PricingSettings)[] = ["fee_on_top", ...FIELDS.map((f) => f.key)];
 
-export function PricingView({ settings, log, logError }: { settings: PricingSettings; log: AuditRow[]; logError: string | null }) {
+type Period = { key: string; from: string; to: string; petrol: number | null; diesel: number | null };
+
+export function PricingView({
+  settings,
+  fuel,
+  classes,
+  today,
+  loadError,
+  log,
+  logError,
+}: {
+  settings: PricingSettings;
+  fuel: FuelPriceRecord[];
+  classes: VehicleClassRecord[];
+  today: string;
+  loadError: string | null;
+  log: AuditRow[];
+  logError: string | null;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [draft, setDraft] = useState<PricingSettings>(settings);
   const [confirm, setConfirm] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  // Simulator
   const [km, setKm] = useState(157);
   const [seats, setSeats] = useState(3);
+  const [tolls, setTolls] = useState(0);
+  const [classCode, setClassCode] = useState(classes.find((c) => c.code === "sedan")?.code ?? classes[0]?.code ?? "");
+  const regions = useMemo(() => Array.from(new Set(fuel.map((f) => f.region))).sort(), [fuel]);
+  const [simRegion, setSimRegion] = useState(regions.includes("nairobi") ? "nairobi" : (regions[0] ?? "nairobi"));
+  const [histRegion, setHistRegion] = useState(simRegion);
 
-  const changed = (Object.keys(settings) as (keyof PricingSettings)[]).filter((k) => settings[k] !== draft[k]);
+  // Fuel price entry
+  const [fuelOpen, setFuelOpen] = useState(false);
+
+  // Vehicle class edits, keyed by class code
+  const [kmDraft, setKmDraft] = useState<Record<string, number>>({});
+
+  const changed = EDITABLE_KEYS.filter((k) => settings[k] !== draft[k]);
+
+  const fuelRows: FuelPriceRow[] = useMemo(
+    () =>
+      fuel.map((f) => ({
+        fuelType: f.fuel_type,
+        region: f.region,
+        priceKes: f.price_kes,
+        effectiveFrom: f.effective_from,
+        effectiveTo: f.effective_to,
+      })),
+    [fuel],
+  );
+
+  const at = useMemo(() => new Date(`${today}T12:00:00+03:00`), [today]);
+  const fareConfig = useMemo(() => fareConfigFromSettings(draft), [draft]);
+
+  const petrolNow = useMemo(() => {
+    try {
+      return resolveFuelPrice(fuelRows, "petrol", "nairobi", at);
+    } catch {
+      return null;
+    }
+  }, [fuelRows, at]);
+  const dieselNow = useMemo(() => {
+    try {
+      return resolveFuelPrice(fuelRows, "diesel", "nairobi", at);
+    } catch {
+      return null;
+    }
+  }, [fuelRows, at]);
+  const pricesMissing = !petrolNow || !dieselNow || petrolNow.stale || dieselNow.stale;
+
+  const periods: Period[] = useMemo(() => {
+    const map = new Map<string, Period>();
+    for (const f of fuel.filter((x) => x.region === histRegion)) {
+      const key = `${f.effective_from}|${f.effective_to}`;
+      const p = map.get(key) ?? { key, from: f.effective_from, to: f.effective_to, petrol: null, diesel: null };
+      p[f.fuel_type] = f.price_kes;
+      map.set(key, p);
+    }
+    return Array.from(map.values()).sort((a, b) => (a.from < b.from ? -1 : 1)); // oldest first
+  }, [fuel, histRegion]);
+  const chartPeriods = periods.slice(-6);
+  const maxPrice = Math.max(1, ...chartPeriods.map((p) => p.petrol ?? p.diesel ?? 0));
 
   const sim = useMemo(() => {
-    const fuel = km * draft.fuel_cost_per_km;
-    const share = fuel / (seats + 1);
-    const suggested = roundTo10(share);
-    const cap = roundTo10(share * (1 + draft.fare_margin_percent / 100));
-    const split = fareBreakdown(suggested, draft.platform_fee_percent);
-    return { fuel, share, suggested, cap, fee: split.fee, driver: split.driverEarning };
-  }, [km, seats, draft]);
+    const vc = classes.find((c) => c.code === classCode);
+    if (!vc) return { error: "Add a vehicle class first." } as const;
+    try {
+      const fuelNow = resolveFuelPrice(fuelRows, vc.fuel_type, simRegion, at);
+      const quote = quoteSeat({
+        distanceKm: km,
+        vehicle: { code: vc.code, label: vc.label, kmPerLitre: kmDraft[vc.code] ?? vc.km_per_litre, fuelType: vc.fuel_type },
+        seatsOffered: seats,
+        tollsKes: tolls,
+        fuel: fuelNow,
+        config: fareConfig,
+        now: at,
+      });
+      return { quote, fuelNow } as const;
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Could not work out a fare" } as const;
+    }
+  }, [classes, classCode, fuelRows, simRegion, km, seats, tolls, fareConfig, at, kmDraft]);
 
   const save = () => {
     const values = Object.fromEntries(changed.map((k) => [k, draft[k]]));
     startTransition(async () => {
       const res = await saveSettingsAction(values);
       if (res.ok) {
-        toast.show("Fare settings saved. New quotes use them now.");
+        toast.show("Fare settings saved. New bookings use them now.");
         router.refresh();
       } else {
         toast.show(res.error, true);
@@ -356,33 +472,69 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
   const set = (key: keyof PricingSettings, value: number) =>
     setDraft((d) => ({ ...d, [key]: Number.isFinite(value) ? Math.max(0, Math.round(value * 100) / 100) : d[key] }));
 
-  const maxPrice = Math.max(...SAMPLE_HISTORY.map((h) => h.petrol));
+  const saveClass = (code: string) => {
+    const value = kmDraft[code];
+    if (value === undefined) return;
+    startTransition(async () => {
+      const res = await setVehicleClassAction(code, value, true);
+      if (res.ok) {
+        toast.show("Vehicle class saved.");
+        setKmDraft((d) => {
+          const { [code]: _gone, ...rest } = d;
+          return rest;
+        });
+        router.refresh();
+      } else {
+        toast.show(res.error, true);
+      }
+    });
+  };
+
+  const feeOnTop = draft.fee_on_top === 1;
 
   return (
     <>
-      <PageHeader title="Pricing" description="Manage fuel inputs, cost-sharing rules and fare guardrails." />
-      <Banner $tone="info">
-        <Info size={20} />
-        <span>
-          Fare settings below are live. EPRA fuel prices, price history and vehicle classes have no table yet and show sample data.
-        </span>
-      </Banner>
+      <PageHeader title="Pricing" description="Manage fuel prices, vehicle classes, the Kipita fee and fare guardrails." />
+      {loadError && (
+        <Banner $tone="error">
+          <Warning size={20} />
+          <span>Could not load fuel prices or vehicle classes. {loadError}</span>
+        </Banner>
+      )}
+      {!loadError && pricesMissing && (
+        <Banner $tone="warning">
+          <Warning size={20} />
+          <span>
+            {petrolNow && dieselNow
+              ? `Today's EPRA fuel prices are missing. Quotes are using the last period, which ended ${shortDate(petrolNow.effectiveTo)}.`
+              : "No EPRA fuel prices are entered for Nairobi, so fares cannot be suggested."}{" "}
+            Enter the new prices after each EPRA review (the 14th of the month).
+          </span>
+          <Button $variant="green" onClick={() => setFuelOpen(true)}>
+            Enter new prices
+          </Button>
+        </Banner>
+      )}
       <Summary>
         <SummaryCard>
           <span>
             <Lightning size={20} />
           </span>
-          <small>Fuel cost per km</small>
-          <strong>KES {settings.fuel_cost_per_km}</strong>
-          <p>Used to suggest seat prices</p>
+          <small>Petrol today, Nairobi</small>
+          <strong>{petrolNow ? `KES ${petrolNow.priceKes.toFixed(2)} per litre` : "Not entered"}</strong>
+          <p>
+            {petrolNow
+              ? `EPRA ${shortDate(petrolNow.effectiveFrom)} to ${shortDate(petrolNow.effectiveTo)}${petrolNow.stale ? " (out of date)" : ""}`
+              : "Enter an EPRA period below"}
+          </p>
         </SummaryCard>
         <SummaryCard>
           <span>
             <SlidersHorizontal size={20} />
           </span>
-          <small>Platform fee</small>
+          <small>Kipita service fee</small>
           <strong>{settings.platform_fee_percent}%</strong>
-          <p>Deducted from the driver&apos;s fare</p>
+          <p>{settings.fee_on_top === 1 ? "Added on top of the seat price" : "Deducted from the driver's fare"}</p>
         </SummaryCard>
         <SummaryCard>
           <span>
@@ -395,50 +547,99 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
       </Summary>
       <Main>
         <Card>
-          <CardHead title="Fuel price history" sub="EPRA monthly super petrol, Nairobi" aside={<SamplePill />} />
-          <Bars aria-hidden="true">
-            {SAMPLE_HISTORY.map((h) => (
-              <div key={h.period}>
-                <span style={{ height: `${(h.petrol / maxPrice) * 130}px` }} />
-                {h.period.split("–")[0]}
-              </div>
-            ))}
-          </Bars>
-          <Compact>
-            <thead>
-              <tr>
-                <th>Period</th>
-                <th>Petrol</th>
-                <th>Diesel</th>
-                <th>Change</th>
-              </tr>
-            </thead>
-            <tbody>
-              {SAMPLE_HISTORY.slice()
-                .reverse()
-                .slice(0, 3)
-                .map((h, i) => {
-                  const prev = SAMPLE_HISTORY[SAMPLE_HISTORY.length - 2 - i];
-                  const pct = prev ? ((h.petrol - prev.petrol) / prev.petrol) * 100 : 0;
-                  return (
-                    <tr key={h.period}>
-                      <td>{h.period}</td>
-                      <td>KES {h.petrol.toFixed(2)}</td>
-                      <td>KES {h.diesel.toFixed(2)}</td>
-                      <td>
-                        <Change $down={pct < 0}>
-                          {pct >= 0 ? "+" : ""}
-                          {pct.toFixed(1)}%
-                        </Change>
-                      </td>
-                    </tr>
-                  );
-                })}
-            </tbody>
-          </Compact>
+          <CardHead
+            title="Fuel price history"
+            sub={`EPRA maximum pump prices, ${histRegion.charAt(0).toUpperCase()}${histRegion.slice(1)}`}
+            aside={
+              <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+                {regions.length > 1 && (
+                  <select aria-label="Town" value={histRegion} onChange={(e) => setHistRegion(e.target.value)}>
+                    {regions.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <Button $variant="green" onClick={() => setFuelOpen(true)}>
+                  Enter new prices
+                </Button>
+              </span>
+            }
+          />
+          {periods.length === 0 ? (
+            <Note $tone="neutral">
+              <Info size={15} />
+              No prices entered for this town yet.
+            </Note>
+          ) : (
+            <>
+              <Bars aria-hidden="true">
+                {chartPeriods.map((p) => (
+                  <div key={p.key}>
+                    <span style={{ height: `${(((p.petrol ?? p.diesel ?? 0) / maxPrice) * 130).toFixed(0)}px` }} />
+                    {shortDate(p.from)}
+                  </div>
+                ))}
+              </Bars>
+              <Compact>
+                <thead>
+                  <tr>
+                    <th>Period</th>
+                    <th>Petrol</th>
+                    <th>Diesel</th>
+                    <th>Petrol change</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {periods
+                    .slice()
+                    .reverse()
+                    .slice(0, 4)
+                    .map((p, i, arr) => {
+                      const prev = arr[i + 1];
+                      const pct = prev && p.petrol && prev.petrol ? ((p.petrol - prev.petrol) / prev.petrol) * 100 : null;
+                      return (
+                        <tr key={p.key}>
+                          <td>
+                            {shortDate(p.from)} to {shortDate(p.to)}
+                          </td>
+                          <td>{p.petrol ? `KES ${p.petrol.toFixed(2)}` : "-"}</td>
+                          <td>{p.diesel ? `KES ${p.diesel.toFixed(2)}` : "-"}</td>
+                          <td>
+                            {pct === null ? (
+                              "-"
+                            ) : (
+                              <Change $down={pct < 0}>
+                                {pct >= 0 ? "+" : ""}
+                                {pct.toFixed(1)}%
+                              </Change>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </Compact>
+            </>
+          )}
         </Card>
         <Card>
-          <CardHead title="Fare settings" sub="Applied to new quotes" aside={<Pill $tone="success">Live</Pill>} />
+          <CardHead title="Fare settings" sub="Applied to new bookings" aside={<Pill $tone="success">Live</Pill>} />
+          <SettingRow>
+            <span>
+              <strong>{SETTING_LABELS.fee_on_top}</strong>
+              <small>{feeOnTop ? "The passenger pays the seat price plus the fee. The driver keeps the full seat price." : "The fee comes out of the driver's share (the old way)."}</small>
+            </span>
+            <input
+              type="checkbox"
+              role="switch"
+              aria-label={SETTING_LABELS.fee_on_top}
+              checked={feeOnTop}
+              onChange={(e) => set("fee_on_top", e.target.checked ? 1 : 0)}
+              style={{ width: 20, height: 20 }}
+            />
+          </SettingRow>
           {FIELDS.map((f) => (
             <SettingRow key={f.key}>
               <span>
@@ -463,7 +664,7 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
           ))}
           <Note>
             <Lock size={15} />
-            Booked rides keep their locked price. Only quotes created after saving use the new values.
+            Each booking keeps the fee it was made with. Only bookings made after saving use the new values.
           </Note>
           <Button $variant="green" style={{ width: "100%", marginTop: 14 }} disabled={changed.length === 0} onClick={() => setConfirm(true)}>
             {changed.length === 0 ? "No changes" : `Save ${changed.length} ${changed.length === 1 ? "change" : "changes"}`}
@@ -472,30 +673,54 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
       </Main>
       <Bottom>
         <Card>
-          <CardHead title="Vehicle classes" sub="Fuel efficiency assumptions" aside={<SamplePill />} />
+          <CardHead title="Vehicle classes" sub="Real-world km per litre, mixed driving" aside={<Pill $tone="success">Live</Pill>} />
           <Compact>
             <thead>
               <tr>
                 <th>Class</th>
                 <th>Fuel</th>
                 <th>Km per litre</th>
+                <th />
               </tr>
             </thead>
             <tbody>
-              {SAMPLE_CLASSES.map((r) => (
-                <tr key={r[0]}>
-                  <td>
-                    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-                      <Car size={16} />
-                      {r[0]}
-                    </span>
-                  </td>
-                  <td>{r[1]}</td>
-                  <td>{r[2]}</td>
-                </tr>
-              ))}
+              {classes.map((c) => {
+                const value = kmDraft[c.code] ?? c.km_per_litre;
+                const dirty = kmDraft[c.code] !== undefined && kmDraft[c.code] !== c.km_per_litre;
+                return (
+                  <tr key={c.code}>
+                    <td>
+                      <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+                        <Car size={16} />
+                        {c.label}
+                      </span>
+                    </td>
+                    <td>{c.fuel_type === "petrol" ? "Petrol" : "Diesel"}</td>
+                    <td>
+                      <input
+                        inputMode="decimal"
+                        aria-label={`Km per litre, ${c.label}`}
+                        style={{ width: 64, minHeight: 30, padding: "0 8px", font: "inherit" }}
+                        value={value}
+                        onChange={(e) => setKmDraft((d) => ({ ...d, [c.code]: Number(e.target.value) || 0 }))}
+                      />
+                    </td>
+                    <td>
+                      {dirty && (
+                        <Button $variant="green" disabled={pending} onClick={() => saveClass(c.code)}>
+                          Save
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Compact>
+          <Note $tone="neutral">
+            <Info size={15} />
+            These are starting assumptions, not measured figures. Adjust them as drivers report real consumption.
+          </Note>
         </Card>
         <Card>
           <CardHead title="Fare simulator" sub="Uses the settings above, saved or not" aside={<Pill>Preview only</Pill>} />
@@ -508,45 +733,79 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
               Seats offered
               <input inputMode="numeric" value={seats} onChange={(e) => setSeats(Math.min(8, Math.max(1, Number(e.target.value) || 1)))} />
             </Field>
+            <Field>
+              Vehicle class
+              <select value={classCode} onChange={(e) => setClassCode(e.target.value)}>
+                {classes.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field>
+              Fuel price town
+              <select value={simRegion} onChange={(e) => setSimRegion(e.target.value)}>
+                {(regions.length ? regions : ["nairobi"]).map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field>
+              Tolls (KES)
+              <input inputMode="numeric" value={tolls} onChange={(e) => setTolls(Math.max(0, Number(e.target.value) || 0))} />
+            </Field>
           </SimInputs>
-          <SimOutput>
-            <span>
-              <small>Fuel</small>
-              <b>{kes(sim.fuel)}</b>
-            </span>
-            <span>
-              <small>Split among {seats + 1}</small>
-              <b>{kes(sim.share)}</b>
-            </span>
-            <span>
-              <small>Suggested seat</small>
-              <b>{kes(sim.suggested)}</b>
-            </span>
-            <span>
-              <small>Price cap</small>
-              <b>{kes(sim.cap)}</b>
-            </span>
-            <span data-strong="">
-              <small>Passenger pays</small>
-              <b>{kes(sim.suggested)}</b>
-            </span>
-            <span data-strong="">
-              <small>Kipita fee</small>
-              <b>{kes(sim.fee)}</b>
-            </span>
-            <span data-strong="">
-              <small>Driver receives</small>
-              <b>{kes(sim.driver)}</b>
-            </span>
-            <span data-strong="">
-              <small>Driver total</small>
-              <b>{kes(sim.driver * seats)}</b>
-            </span>
-          </SimOutput>
-          <Note $tone="neutral">
-            <Info size={15} />
-            Fuel cost is shared by the passengers and the driver, rounded to KES 10. The cap adds the headroom setting.
-          </Note>
+          {"error" in sim ? (
+            <Note>
+              <Warning size={15} />
+              {sim.error}
+            </Note>
+          ) : (
+            <>
+              <SimOutput>
+                <span>
+                  <small>Fuel + wear + tolls</small>
+                  <b>{kes(sim.quote.costShare.tripCostKes)}</b>
+                </span>
+                <span>
+                  <small>Split among {sim.quote.costShare.shares}</small>
+                  <b>{kes(sim.quote.costShare.perSeatRawKes)}</b>
+                </span>
+                <span>
+                  <small>Suggested seat</small>
+                  <b>{kes(sim.quote.suggestedKes)}</b>
+                </span>
+                <span>
+                  <small>Price cap</small>
+                  <b>{kes(sim.quote.capKes)}</b>
+                </span>
+                <span data-strong="">
+                  <small>Seat price</small>
+                  <b>{kes(sim.quote.seatPriceKes)}</b>
+                </span>
+                <span data-strong="">
+                  <small>Kipita fee</small>
+                  <b>{kes(sim.quote.platformFeeKes)}</b>
+                </span>
+                <span data-strong="">
+                  <small>Passenger pays</small>
+                  <b>{kes(sim.quote.passengerTotalKes)}</b>
+                </span>
+                <span data-strong="">
+                  <small>Driver receives</small>
+                  <b>{kes(sim.quote.driverPayoutKes)}</b>
+                </span>
+              </SimOutput>
+              <Note $tone="neutral">
+                <Info size={15} />
+                Petrol or diesel at KES {sim.fuelNow.priceKes.toFixed(2)} per litre
+                {sim.fuelNow.stale ? " (the last period, now out of date)" : ""}. The driver's own share counts as one seat in the split. The cap adds the headroom setting.
+              </Note>
+            </>
+          )}
         </Card>
       </Bottom>
       <Card style={{ marginTop: 12 }}>
@@ -558,7 +817,7 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
         <Log>
           {logError && <em>Could not load changes. {logError}</em>}
           {!logError && log.length === 0 && <em>No pricing changes recorded yet.</em>}
-          {log.slice(0, 3).map((r) => (
+          {log.slice(0, 4).map((r) => (
             <div key={r.id}>
               <Avatar name={r.actor || "Admin"} src={r.actor_avatar} size={28} />
               <strong>{r.actor ?? "Admin"}</strong>
@@ -585,7 +844,7 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
         >
           <span style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <Warning size={18} />
-            This affects all new fare quotes immediately. Existing bookings keep their locked prices.
+            This affects all new bookings immediately. Existing bookings keep the fee they were made with.
           </span>
           <ConsequenceList>
             {changed.map((k) => (
@@ -599,7 +858,118 @@ export function PricingView({ settings, log, logError }: { settings: PricingSett
           </ConsequenceList>
         </Modal>
       )}
+      {fuelOpen && (
+        <FuelPriceModal
+          fuel={fuel}
+          regions={regions}
+          defaultRegion={histRegion}
+          close={() => setFuelOpen(false)}
+          onSaved={() => {
+            setFuelOpen(false);
+            toast.show("Fuel prices saved. Quotes use them from their start date.");
+            router.refresh();
+          }}
+          onError={(m) => toast.show(m, true)}
+        />
+      )}
       {toast.node}
     </>
+  );
+}
+
+function FuelPriceModal({
+  fuel,
+  regions,
+  defaultRegion,
+  close,
+  onSaved,
+  onError,
+}: {
+  fuel: FuelPriceRecord[];
+  regions: string[];
+  defaultRegion: string;
+  close: () => void;
+  onSaved: () => void;
+  onError: (message: string) => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [region, setRegion] = useState(defaultRegion);
+
+  // Start the next period the day after the latest one this town already has.
+  const latestEnd = fuel.filter((f) => f.region === region.trim().toLowerCase()).reduce((m, f) => (f.effective_to > m ? f.effective_to : m), "");
+  const suggestedFrom = latestEnd ? addDaysIso(latestEnd, 1) : "";
+  const [from, setFrom] = useState(suggestedFrom);
+  const [to, setTo] = useState(suggestedFrom ? monthPeriodEnd(suggestedFrom) : "");
+  const [petrol, setPetrol] = useState("");
+  const [diesel, setDiesel] = useState("");
+  const [note, setNote] = useState("");
+
+  const toNumber = (v: string) => (v.trim() === "" ? null : Number(v));
+
+  const submit = () =>
+    startTransition(async () => {
+      const res = await addFuelPricesAction({
+        region,
+        from,
+        to,
+        petrol: toNumber(petrol),
+        diesel: toNumber(diesel),
+        note,
+      });
+      if (res.ok) onSaved();
+      else onError(res.error);
+    });
+
+  return (
+    <Modal
+      title="Enter EPRA fuel prices"
+      close={close}
+      footer={
+        <>
+          <Button $variant="secondary" onClick={close}>
+            Cancel
+          </Button>
+          <Button $variant="green" onClick={submit} disabled={pending} aria-busy={pending}>
+            Save prices
+          </Button>
+        </>
+      }
+    >
+      <SimInputs>
+        <Field>
+          Town
+          <input list="fuel-regions" value={region} onChange={(e) => setRegion(e.target.value)} />
+          <datalist id="fuel-regions">
+            {regions.map((r) => (
+              <option key={r} value={r} />
+            ))}
+          </datalist>
+        </Field>
+        <Field>
+          Source note (optional)
+          <input value={note} placeholder="EPRA review 14 Nov 2026" onChange={(e) => setNote(e.target.value)} />
+        </Field>
+        <Field>
+          Starts
+          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </Field>
+        <Field>
+          Ends
+          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </Field>
+        <Field>
+          Petrol (KES per litre)
+          <input inputMode="decimal" value={petrol} onChange={(e) => setPetrol(e.target.value)} />
+        </Field>
+        <Field>
+          Diesel (KES per litre)
+          <input inputMode="decimal" value={diesel} onChange={(e) => setDiesel(e.target.value)} />
+        </Field>
+      </SimInputs>
+      <Note $tone="neutral">
+        <Info size={15} />
+        Use the maximum pump price EPRA publishes for the town, VAT included. A period cannot overlap one already entered for the same town.
+      </Note>
+    </Modal>
   );
 }
