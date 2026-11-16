@@ -31,6 +31,27 @@ function escrowSplit(
   return { fee, driverEarning: round2(amount - fee) };
 }
 
+/**
+ * bookings.service_fee is the fee added on top of the seat price when the booking was created
+ * (migration 052). When it is set, the driver earns the paid amount minus that fee, at whatever
+ * rate applied then. When it is null (older bookings, or fee_on_top = 0) the fee is deducted
+ * from the paid amount at the current rate, as before.
+ */
+function paidSplit(
+  amount: number,
+  serviceFee: unknown,
+  percent: number,
+): { fee: number; driverEarning: number; percent: number } {
+  const stored = serviceFee === null || serviceFee === undefined ? NaN : Number(serviceFee);
+  if (Number.isFinite(stored) && stored >= 0 && stored <= amount) {
+    const fee = round2(stored);
+    const driverEarning = round2(amount - fee);
+    const effective = driverEarning > 0 ? round2((fee / driverEarning) * 100) : percent;
+    return { fee, driverEarning, percent: effective };
+  }
+  return { ...escrowSplit(amount, percent), percent };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -101,8 +122,12 @@ serve(async (req) => {
     // Passenger payment captured to the Kipita paybill. Compute the escrow
     // split now and HOLD the funds — they are released to the driver (minus the
     // Kipita fee) only when the ride is ended. See release-escrow.
-    const percent = await feePercent(supabase);
-    const { fee, driverEarning } = escrowSplit(Number(payment.amount), percent);
+    const settingPercent = await feePercent(supabase);
+    const { fee, driverEarning, percent } = paidSplit(
+      Number(payment.amount),
+      booking.service_fee,
+      settingPercent,
+    );
     const { data: updatedPayment } = await supabase
       .from('payments')
       .update({

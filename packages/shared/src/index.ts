@@ -1,4 +1,5 @@
 export * from "./escrow";
+export * from "./fare";
 export * from "./wallet";
 export * from "./referral";
 export * from "./types";
