@@ -145,7 +145,7 @@ export type AuditRow = {
   action: string;
   subject: string | null;
   subject_id: string | null;
-  detail: { from?: unknown; to?: unknown } | null;
+  detail: { from?: unknown; to?: unknown; petrol?: unknown; diesel?: unknown } | null;
   created_at: string;
   actor: string | null;
   actor_avatar: string | null;
@@ -193,10 +193,15 @@ export function ago(value: string) {
 }
 
 export const SETTING_LABELS: Record<string, string> = {
-  platform_fee_percent: "Platform fee",
+  platform_fee_percent: "Kipita service fee",
+  fee_on_top: "Fee on top of the seat price",
+  fee_min_kes: "Smallest fee per booking",
   hold_minutes: "Payment hold window",
-  fuel_cost_per_km: "Fuel cost per km",
-  fare_margin_percent: "Fare headroom",
+  fuel_cost_per_km: "Fuel cost per km (no longer used)",
+  fare_margin_percent: "Fare headroom (price cap)",
+  fare_wear_per_km: "Wear and tear per km",
+  fare_min_seat_price: "Lowest seat price",
+  fare_round_step: "Seat price rounding step",
 };
 
 export function describeAction(row: AuditRow) {
@@ -205,6 +210,13 @@ export function describeAction(row: AuditRow) {
   switch (row.action) {
     case "setting.update":
       return `Changed ${SETTING_LABELS[row.subject_id ?? ""] ?? row.subject_id} from ${String(from ?? "unset")} to ${String(to)}`;
+    case "fuel.add": {
+      const d = row.detail ?? {};
+      const parts = [d.petrol ? `petrol ${String(d.petrol)}` : null, d.diesel ? `diesel ${String(d.diesel)}` : null].filter(Boolean);
+      return `Entered ${String(row.subject_id ?? "")} fuel prices for ${String(d.from ?? "")} to ${String(d.to ?? "")}: ${parts.join(", ")}`;
+    }
+    case "vehicle_class.update":
+      return `Set ${row.subject_id} to ${String(to)} km per litre (was ${String(from)})`;
     case "flag.update":
       return `${to ? "Turned on" : "Turned off"} ${row.subject_id}`;
     case "driver.approval":
