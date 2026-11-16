@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, usePathname } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUIStore, useAuthStore, useTripStore } from "@/store";
 import { SheetProvider } from "../sheets/SheetProvider";
 import { AuthSheet } from "../sheets/AuthSheet";
@@ -15,7 +16,7 @@ import { ReportSheet } from "../sheets/ReportSheet";
 import { PostSheet } from "../sheets/PostSheet";
 import { DriverKycSheet } from "../sheets/DriverKycSheet";
 import { updateProfile } from "@/lib/api/profile";
-import { initiatePayment, pollPaymentStatus } from "@/lib/api";
+import { initiatePayment, pollPaymentStatus, isRealBookingId, queryKeys } from "@/lib/api";
 import type { Booking, PaymentMethod } from "@/types";
 
 /** Central sheet orchestrator — renders the correct sheet based on global state */
@@ -28,33 +29,44 @@ export const SheetOrchestrator = memo(function SheetOrchestrator() {
   const setUser = useAuthStore((s) => s.setUser);
   const profileLoaded = useAuthStore((s) => s.profileLoaded);
   const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
   const setTripBooking = useTripStore((s) => s.setBooking);
   const setTripStatus = useTripStore((s) => s.setStatus);
 
   const handlePaymentDone = useCallback(() => {
-    const booking = (payload as any)?.booking;
+    const booking = (payload as any)?.booking as Booking | undefined;
     closeSheet();
-    if (booking) {
-      // Payment confirmed → hand off to the live trip screen.
+    if (!booking) return;
+
+    if (isRealBookingId(booking.id)) {
+      // The payment callback has confirmed the booking on the server. Show that
+      // now; the trip screen reloads the rest while it is open.
+      setTripBooking({ ...booking, status: "confirmed", expires_at: null });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+    } else {
+      // Seeded demo booking: no row to read back, so keep the status locally.
       setTripBooking(booking);
       setTripStatus(booking.id, "confirmed");
+    }
+
+    // Payment opens from the trip screen, so avoid stacking the same trip twice.
+    if (pathname !== `/trip/${booking.id}`) {
       router.push(`/trip/${booking.id}` as any);
     }
-  }, [payload, closeSheet, setTripBooking, setTripStatus, router]);
+  }, [payload, closeSheet, setTripBooking, setTripStatus, router, pathname, queryClient]);
 
   /**
    * Real payment: M-Pesa STK push → poll our backend until the funds are
-   * captured into escrow. Mock/optimistic bookings (temp- ids, seed data)
-   * can't reach the backend, so we let the animated flow play and resolve
-   * success — keeps the demo working without a live booking row.
+   * captured into escrow. Seeded demo bookings have no row to pay against, so
+   * the animated flow plays and resolves success instead.
    */
   const handlePay = useCallback(
     async (method: PaymentMethod, phone?: string): Promise<boolean> => {
       const booking = (payload as any)?.booking as Booking | undefined;
       if (!booking || !user) return false;
 
-      const isRealBooking = /^[0-9a-f-]{36}$/i.test(booking.id);
-      if (!isRealBooking) {
+      if (!isRealBookingId(booking.id)) {
         await new Promise((r) => setTimeout(r, 1400));
         return true;
       }

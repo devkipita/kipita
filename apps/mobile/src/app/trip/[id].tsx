@@ -19,10 +19,22 @@ import { Avatar } from "@/components/core/Avatar";
 import { Icon } from "@/components/core/Icon";
 import { Divider } from "@/components/core/Divider";
 import { EmptyState } from "@/components/feedback/EmptyState";
+import { LoadingState } from "@/components/feedback/LoadingState";
 import { StatusFlow } from "@/components/shared/StatusFlow";
 import { useTheme, useLocale, useAppMode, useSafeBack } from "@/hooks";
 import { useAuthStore, useUIStore, useTripStore, useReviewStore } from "@/store";
-import { updateBookingStatus, fetchCurrentBookings, releaseEscrow, requestRefund, queryKeys } from "@/lib/api";
+import {
+  fetchBooking,
+  acceptBooking,
+  declineBooking,
+  cancelBooking,
+  startTrip,
+  completeTrip,
+  errorMessageKey,
+  isRealBookingId,
+  paymentBreakdown,
+  queryKeys,
+} from "@/lib/api";
 import { spacing, radius, typography } from "@/theme";
 import { statusTone, STATUS_ICON } from "@/theme/statusTone";
 import {
@@ -38,11 +50,13 @@ import type { TranslationKey } from "@/lib/i18n/en";
 
 /** Which stepper node is active for a given status (0=Booked, 1=On the way, 2=Arrived). */
 const STEP_INDEX: Record<BookingStatus, number> = {
+  requested: 0,
   pending_payment: 0,
   confirmed: 0,
   in_progress: 1,
   completed: 2,
   cancelled: 0,
+  rejected: 0,
 };
 
 const STEPS: { key: TranslationKey; icon: IconName }[] = [
@@ -64,7 +78,7 @@ function formatReviewDate(d: Date): string {
 export default function TripScreen() {
   const { colors } = useTheme();
   const { t } = useLocale();
-  const { isDriver } = useAppMode();
+  const { isDriver: driverMode } = useAppMode();
   const router = useRouter();
   const goBack = useSafeBack();
   const insets = useSafeAreaInsets();
@@ -84,34 +98,65 @@ export default function TripScreen() {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
 
-  // Cold-load fallback: opened via deep-link / refresh with an empty store.
-  const { data: coldBookings } = useQuery({
-    queryKey: queryKeys.bookings.current(user?.id ?? ""),
-    queryFn: () => fetchCurrentBookings(user!.id),
-    enabled: !!user && !booking,
+  // Real bookings are read from the database, on open (deep link, refresh) and
+  // every few seconds until they finish, so the passenger sees the driver accept
+  // and the driver sees the payment land. Seeded demo bookings stay local.
+  const live = isRealBookingId(id);
+  const { data: fresh, isFetching } = useQuery({
+    queryKey: queryKeys.bookings.detail(id ?? ""),
+    queryFn: () => fetchBooking(id!),
+    enabled: !!user && live,
+    refetchInterval: (query) => {
+      const s = query.state.data?.status;
+      return s === "completed" || s === "cancelled" || s === "rejected" ? false : 10_000;
+    },
   });
   useEffect(() => {
-    if (booking || !coldBookings) return;
-    const found = coldBookings.find((b) => b.id === id);
-    if (found) setTripBooking(found);
-  }, [booking, coldBookings, id, setTripBooking]);
+    if (fresh) setTripBooking(fresh);
+  }, [fresh, setTripBooking]);
 
-  const status: BookingStatus = override ?? booking?.status ?? "confirmed";
+  // On a real booking you are the driver if the booking says so, whatever mode
+  // the app is in; the database enforces the same rule.
+  const isDriver =
+    live && booking && user ? booking.driver_id === user.id : driverMode;
+  const [busy, setBusy] = useState(false);
+
+  const status: BookingStatus = (live ? undefined : override) ?? booking?.status ?? "confirmed";
   const ride = booking?.trip;
   const person = isDriver ? booking?.passenger : booking?.driver;
   const alreadyReviewed =
     !!person &&
     (reviewsByPerson[person.id] ?? []).some((r) => r.id === `booking-${id}`);
 
-  const transition = useCallback(
-    (next: BookingStatus) => {
-      if (!id) return;
+  /**
+   * Run a booking action against the database, then reload the booking so the
+   * screen shows what the server now says. Seeded demo bookings have no row, so
+   * they just move to `demoNext` locally.
+   */
+  const run = useCallback(
+    async (call: () => Promise<unknown>, demoNext: BookingStatus): Promise<boolean> => {
+      if (!id || busy) return false;
+      setBusy(true);
       haptic.light();
-      setStatus(id, next);
-      void updateBookingStatus(id, next).catch(() => {});
-      queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+      try {
+        if (live) {
+          await call();
+          const latest = await fetchBooking(id);
+          if (latest) setTripBooking(latest);
+        } else {
+          setStatus(id, demoNext);
+        }
+        void queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+        return true;
+      } catch (error) {
+        haptic.error();
+        RNAlert.alert(t("booking_err_title"), t(errorMessageKey(error)));
+        return false;
+      } finally {
+        setBusy(false);
+      }
     },
-    [id, setStatus, queryClient],
+    [id, busy, live, setTripBooking, setStatus, queryClient, t],
   );
 
   const handleMessage = useCallback(() => {
@@ -130,10 +175,39 @@ export default function TripScreen() {
     if (person?.phone) Linking.openURL(`tel:${person.phone}`);
   }, [person]);
 
+  const handleAccept = useCallback(() => {
+    if (!booking) return;
+    void run(() => acceptBooking(booking.id), "pending_payment");
+  }, [booking, run]);
+
+  const handleDecline = useCallback(() => {
+    if (!booking) return;
+    RNAlert.alert(t("decline_title"), undefined, [
+      { text: t("not_now"), style: "cancel" },
+      {
+        text: t("decline_request"),
+        style: "destructive",
+        onPress: () => void run(() => declineBooking(booking.id), "rejected"),
+      },
+    ]);
+  }, [booking, run, t]);
+
+  /** Driver leaves. This starts the whole ride, so unpaid requests on it are released. */
+  const handleStart = useCallback(() => {
+    if (!booking) return;
+    RNAlert.alert(t("start_ride_title"), t("start_ride_body"), [
+      { text: t("not_now"), style: "cancel" },
+      {
+        text: t("start_trip"),
+        onPress: () => void run(() => startTrip(booking.trip_id), "in_progress"),
+      },
+    ]);
+  }, [booking, run, t]);
+
   /**
-   * Driver ends the ride → complete the trip and release the escrowed fare to
-   * the driver (minus the Kipita fee). Best-effort against the backend; the
-   * status override keeps the UI moving even for mock/temp bookings.
+   * Driver ends the ride: the trip and every paid booking on it complete, and
+   * each fare is released from escrow to the driver (seat price in full when the
+   * service fee was added on top).
    */
   const endRideAndRelease = useCallback(() => {
     if (!booking) return;
@@ -141,44 +215,39 @@ export default function TripScreen() {
       { text: t("not_now"), style: "cancel" },
       {
         text: t("end_and_pay"),
-        onPress: () => {
-          transition("completed");
-          if (!booking.id.startsWith("temp-")) {
-            void releaseEscrow(booking.id, booking.driver_id)
-              .then((r) => {
-                if (r.released) haptic.success();
-              })
-              .catch(() => {});
-          }
-        },
+        onPress: () =>
+          void run(
+            () => completeTrip(booking.trip_id, booking.driver_id),
+            "completed",
+          ).then((ok) => {
+            if (ok) haptic.success();
+          }),
       },
     ]);
-  }, [booking, t, transition]);
+  }, [booking, run, t]);
 
+  /**
+   * Cancel as passenger or driver. The database refunds a paid fare to the
+   * passenger's wallet in the same step and releases any held seat.
+   */
   const confirmCancel = useCallback(() => {
-    RNAlert.alert(t("confirm_cancel_trip"), undefined, [
+    if (!booking) return;
+    const asking = status === "requested";
+    RNAlert.alert(t(asking ? "confirm_cancel_request" : "confirm_cancel_trip"), undefined, [
       { text: t("not_now"), style: "cancel" },
       {
-        text: t("cancel_trip"),
+        text: t(asking ? "cancel_request" : "cancel_trip"),
         style: "destructive",
-        onPress: () => {
-          transition("cancelled");
-          // Passenger cancelling a paid ride opens an admin-verified refund of
-          // the escrowed fare (no money moves until an admin approves).
-          if (!isDriver && booking && !booking.id.startsWith("temp-")) {
-            void requestRefund(booking.id)
-              .then((r) => {
-                if (r.requested) {
-                  haptic.success();
-                  RNAlert.alert(t("refund_requested_title"), t("refund_requested_body"));
-                }
-              })
-              .catch(() => {});
+        onPress: async () => {
+          const wasPaid = status === "confirmed";
+          const ok = await run(() => cancelBooking(booking.id), "cancelled");
+          if (ok && wasPaid && !isDriver) {
+            RNAlert.alert(t("refund_wallet_title"), t("refund_wallet_body"));
           }
         },
       },
     ]);
-  }, [t, transition, isDriver, booking]);
+  }, [booking, status, isDriver, run, t]);
 
   const submitRating = useCallback(() => {
     if (rating === 0 || !person || !id) return;
@@ -198,29 +267,39 @@ export default function TripScreen() {
     return (
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
         <Header onBack={() => goBack()} title={t("your_trip")} />
-        <EmptyState icon="car-outline" message={t("empty_trips")} />
+        {live && isFetching ? (
+          <LoadingState />
+        ) : (
+          <EmptyState icon="car-outline" message={t("empty_trips")} />
+        )}
       </View>
     );
   }
 
   const tone = statusTone(colors, status);
   const stepIdx = STEP_INDEX[status];
-  const isCancelled = status === "cancelled";
+  const isCancelled = status === "cancelled" || status === "rejected";
   const isCompleted = status === "completed";
   const isLive = status === "in_progress";
 
-  const bannerText: string =
-    status === "pending_payment"
-      ? t("awaiting_payment")
-      : status === "confirmed"
-        ? isDriver
-          ? t("passengers_boarding")
-          : t("getting_ready")
-        : status === "in_progress"
-          ? t("on_trip")
-          : status === "completed"
-            ? t("trip_complete")
-            : t("trip_cancelled_status");
+  const bannerText: string = (() => {
+    switch (status) {
+      case "requested":
+        return isDriver ? t("section_incoming_trips") : t("awaiting_driver");
+      case "pending_payment":
+        return isDriver ? t("awaiting_payment") : t("seat_held");
+      case "confirmed":
+        return isDriver ? t("passengers_boarding") : t("getting_ready");
+      case "in_progress":
+        return t("on_trip");
+      case "completed":
+        return t("trip_complete");
+      case "rejected":
+        return t("request_declined");
+      default:
+        return t("trip_cancelled_status");
+    }
+  })();
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -246,6 +325,11 @@ export default function TripScreen() {
               {ride && (
                 <Text variant="caption" color={tone.onContainer} style={styles.heroSub}>
                   {ride.from_location} → {ride.to_location}
+                </Text>
+              )}
+              {status === "pending_payment" && !!booking.expires_at && (
+                <Text variant="caption" color={tone.onContainer} style={styles.heroSub}>
+                  {t("pay_by")} {formatTime(booking.expires_at)}
                 </Text>
               )}
             </View>
@@ -377,10 +461,12 @@ export default function TripScreen() {
             </View>
             <View style={styles.summaryRow}>
               <Text variant="bodyMedium" color={colors.textSecondary}>
-                {t("fare")}
+                {isDriver ? t("you_receive") : t("fare")}
               </Text>
               <Text variant="titleMedium" color={colors.primary} style={styles.bold}>
-                {formatCurrency(booking.total_price)}
+                {formatCurrency(
+                  isDriver ? paymentBreakdown(booking).driverEarning : booking.total_price,
+                )}
               </Text>
             </View>
             <Divider />
@@ -521,24 +607,46 @@ export default function TripScreen() {
               />
             </>
           )
-        ) : status === "pending_payment" ? (
+        ) : status === "requested" ? (
           isDriver ? (
-            <PrimaryBtn label={t("awaiting_payment")} icon="time-outline" disabled onPress={() => {}} />
+            <>
+              <SecondaryBtn label={t("decline_request")} onPress={handleDecline} danger disabled={busy} />
+              <PrimaryBtn
+                label={t("accept_request")}
+                icon="checkmark"
+                disabled={busy}
+                onPress={handleAccept}
+              />
+            </>
           ) : (
-            <PrimaryBtn
-              label={t("pay_now")}
-              icon="lock-closed-outline"
-              onPress={() => openSheet("payment", { booking })}
-            />
+            <>
+              <SecondaryBtn label={t("cancel_request")} onPress={confirmCancel} danger disabled={busy} />
+              <PrimaryBtn label={t("message")} icon="chatbubble-ellipses-outline" onPress={handleMessage} />
+            </>
           )
+        ) : status === "pending_payment" ? (
+          <>
+            <SecondaryBtn label={t("cancel_trip")} onPress={confirmCancel} danger disabled={busy} />
+            {isDriver ? (
+              <PrimaryBtn label={t("awaiting_payment")} icon="time-outline" disabled onPress={() => {}} />
+            ) : (
+              <PrimaryBtn
+                label={t("pay_now")}
+                icon="lock-closed-outline"
+                disabled={busy}
+                onPress={() => openSheet("payment", { booking })}
+              />
+            )}
+          </>
         ) : status === "confirmed" ? (
           <>
-            <SecondaryBtn label={t("cancel_trip")} onPress={confirmCancel} danger />
+            <SecondaryBtn label={t("cancel_trip")} onPress={confirmCancel} danger disabled={busy} />
             {isDriver ? (
               <PrimaryBtn
                 label={t("start_trip")}
                 icon="play"
-                onPress={() => transition("in_progress")}
+                disabled={busy}
+                onPress={handleStart}
               />
             ) : (
               <PrimaryBtn label={t("message")} icon="chatbubble-ellipses-outline" onPress={handleMessage} />
@@ -550,6 +658,7 @@ export default function TripScreen() {
             <PrimaryBtn
               label={t("end_trip")}
               icon="flag"
+              disabled={busy}
               onPress={endRideAndRelease}
             />
           ) : (
@@ -708,10 +817,12 @@ function SecondaryBtn({
   label,
   onPress,
   danger,
+  disabled,
 }: {
   label: string;
   onPress: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   const { colors } = useTheme();
   const bg = danger ? colors.errorContainer : colors.secondaryContainer;
@@ -719,10 +830,11 @@ function SecondaryBtn({
   return (
     <Pressable
       onPress={onPress}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.actionBtn,
         styles.actionSecondary,
-        { backgroundColor: bg, opacity: pressed ? 0.85 : 1 },
+        { backgroundColor: bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
       ]}
       accessibilityRole="button"
       accessibilityLabel={label}

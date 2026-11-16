@@ -141,12 +141,20 @@ export type RequestStatus =
   | "confirmed"
   | "cancelled"
   | "expired";
+/**
+ * Mirrors the database enum. The lifecycle is:
+ * requested (passenger asked) -> pending_payment (driver accepted, seat held
+ * until expires_at) -> confirmed (paid, fare in escrow) -> in_progress ->
+ * completed. A request can end as rejected, any open booking as cancelled.
+ */
 export type BookingStatus =
+  | "requested"
   | "pending_payment"
   | "confirmed"
   | "in_progress"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "rejected";
 
 export interface RidePreferences {
   luggage: boolean;
@@ -232,7 +240,10 @@ export interface Booking {
   driver_id: string;
   request_id?: string | null;
   seats_booked: number;
+  /** What the passenger pays. The database sets it on insert: seat price x seats, plus service_fee. */
   total_price: number;
+  /** Kipita fee added on top of the seat subtotal. null on bookings made before fee-on-top (fee deducted from the driver). */
+  service_fee?: number | null;
   status: BookingStatus;
   payment_status?: PaymentStatus | null;
   payment_id: string | null;
@@ -240,6 +251,8 @@ export interface Booking {
   pickup_location?: string | null;
   dropoff_location?: string | null;
   cancel_reason?: string | null;
+  /** While pending_payment: when the held seat is released if still unpaid. */
+  expires_at?: string | null;
   created_at: string;
   updated_at: string;
   // Joined

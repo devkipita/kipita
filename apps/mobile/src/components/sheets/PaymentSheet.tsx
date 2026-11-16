@@ -12,7 +12,7 @@ import { useTheme, useLocale } from '@/hooks';
 import { useAuthStore } from '@/store';
 import { spacing, radius, typography } from '@/theme';
 import { formatCurrency } from '@/lib/formatters';
-import { computeEscrowSplit } from '@/lib/api';
+import { paymentBreakdown } from '@/lib/api';
 import { haptic } from '@/lib/utils/haptics';
 import type { Booking, PaymentMethod } from '@/types';
 
@@ -44,7 +44,7 @@ export const PaymentSheet = memo(function PaymentSheet({ booking, onPay, onClose
   // whatever the (unabortable) STK push eventually resolves to.
   const cancelled = useRef(false);
 
-  const { fee, driverEarning } = computeEscrowSplit(booking.total_price);
+  const { fee, driverEarning } = paymentBreakdown(booking);
 
   const handlePay = useCallback(async () => {
     if (method === 'mpesa' && !isValidPhone(phone)) {
