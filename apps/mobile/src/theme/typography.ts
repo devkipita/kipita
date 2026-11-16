@@ -2,7 +2,8 @@ import { Platform, TextStyle } from "react-native";
 
 /**
  * App font family.
- * DM Sans is loaded during bootstrap and kept consistent across weights.
+ * DM Sans (body, labels) and Manrope (display, headlines, amounts) are loaded
+ * during bootstrap.
  */
 const webSansFallback =
   'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
@@ -19,6 +20,10 @@ export const fonts = {
   semiBold: withWebFallback("DM Sans SemiBold"),
   bold: withWebFallback("DM Sans Bold"),
   extraBold: withWebFallback("DM Sans ExtraBold"),
+  /** Manrope Bold: headlines and amounts. */
+  display: withWebFallback("Manrope Bold"),
+  /** Manrope ExtraBold: the largest display text. */
+  displayHeavy: withWebFallback("Manrope ExtraBold"),
 };
 
 type TypographyVariant = {
@@ -49,34 +54,34 @@ export function resolveFontFamily(
 
 export const typography = {
   displayLarge: {
-    fontFamily: fonts.extraBold,
+    fontFamily: fonts.displayHeavy,
     fontSize: 32,
     lineHeight: 40,
     letterSpacing: -0.3,
   },
   displayMedium: {
-    fontFamily: fonts.bold,
+    fontFamily: fonts.displayHeavy,
     fontSize: 28,
     lineHeight: 36,
     letterSpacing: -0.2,
   },
   headlineLarge: {
-    fontFamily: fonts.bold,
+    fontFamily: fonts.display,
     fontSize: 24,
     lineHeight: 32,
   },
   headlineMedium: {
-    fontFamily: fonts.bold,
+    fontFamily: fonts.display,
     fontSize: 20,
     lineHeight: 28,
   },
   headlineSmall: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 18,
     lineHeight: 24,
   },
   titleLarge: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 16,
     lineHeight: 22,
   },
@@ -117,13 +122,13 @@ export const typography = {
   },
   labelSmall: {
     fontFamily: fonts.medium,
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
   },
   caption: {
     fontFamily: fonts.regular,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
   },
   /**
    * Text the user types. Use this for every TextInput instead of `bodyMedium`.

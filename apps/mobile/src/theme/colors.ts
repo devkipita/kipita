@@ -58,6 +58,11 @@ type BaseColors = {
   inversePrimary: string;
   scrim: string;
   shadow: string;
+  /** The one call-to-action per screen (orange in light, lime in dark). */
+  cta: string;
+  onCta: string;
+  /** Quiet text that still passes 4.5:1 on the canvas (was `outline`). */
+  mutedText: string;
 };
 
 type AliasColors = {
@@ -104,7 +109,7 @@ const withAliases = (
   ...colors,
   text: colors.onSurface,
   textSecondary: colors.onSurfaceVariant,
-  textTertiary: colors.outline,
+  textTertiary: colors.mutedText,
   textInverse: colors.inverseOnSurface,
   surfaceElevated: colors.surfaceContainerLow,
   card: colors.surfaceContainerLow,
@@ -114,8 +119,8 @@ const withAliases = (
   overlay: options.overlay,
   shimmer: colors.surfaceContainerHigh,
   ripple: options.ripple,
-  inputBackground: colors.surfaceContainerHigh,
-  inputBorder: colors.outlineVariant,
+  inputBackground: colors.surfaceContainerLowest,
+  inputBorder: colors.outline,
   inputFocusBorder: colors.primary,
   placeholder: colors.outline,
   tabActive: colors.primary,
@@ -166,29 +171,26 @@ const lightBase: BaseColors = {
   errorContainer: "#FFDAD6",
   onErrorContainer: "#410002",
 
-  // ── Surfaces: M3 neutral palette tinted toward the brand green.
-  // Light mode is a soft sage canvas — never plain white. The background is
-  // the mid sage tone; elevation is expressed by stepping *brighter* toward a
-  // soft sage-white (Lowest), while inset tones (Variant/Dim) step *deeper*.
-  // The steps carry real green chroma and enough ΔL to read as distinct soft
-  // surfaces — cards, sheets and inputs never dissolve into the canvas.
-  background: "#DBE8D6",
+  // ── Surfaces: warm cream canvas with white cards, matching the web app.
+  // White on cream is only 1.08:1, so every card carries a 1dp
+  // `outlineVariant` border. Inset tones step deeper than the canvas.
+  background: "#F8F6EF",
   onBackground: "#161D17",
-  surface: "#DBE8D6",
+  surface: "#F8F6EF",
   onSurface: "#161D17",
-  surfaceVariant: "#CBDBC6",
+  surfaceVariant: "#E6EAE0",
   onSurfaceVariant: "#404A41",
 
-  surfaceDim: "#C1D1BB",
-  surfaceBright: "#F5FBF2",
-  surfaceContainerLowest: "#F7FCF5",
-  surfaceContainerLow: "#EFF7EC",
-  surfaceContainer: "#E9F2E5",
-  surfaceContainerHigh: "#E3EDDF",
-  surfaceContainerHighest: "#DDE8D8",
+  surfaceDim: "#DEDCD3",
+  surfaceBright: "#FFFFFF",
+  surfaceContainerLowest: "#FFFFFF",
+  surfaceContainerLow: "#FFFFFF",
+  surfaceContainer: "#F2F0E8",
+  surfaceContainerHigh: "#ECEAE1",
+  surfaceContainerHighest: "#E6E4DB",
 
   outline: "#6E796E",
-  outlineVariant: "#BCC8B8",
+  outlineVariant: "#DCD8CB",
 
   inverseSurface: "#2E312E",
   inverseOnSurface: "#EFF1ED",
@@ -196,6 +198,10 @@ const lightBase: BaseColors = {
 
   scrim: "#000000",
   shadow: "#000000",
+
+  cta: "#EA7747",
+  onCta: "#14301F",
+  mutedText: "#5B665D",
 };
 
 const darkBase: BaseColors = {
@@ -234,18 +240,18 @@ const darkBase: BaseColors = {
   errorContainer: "#93000A",
   onErrorContainer: "#FFDAD6",
 
-  background: "#111412",
+  background: "#0C0F0D",
   onBackground: "#E1E3DF",
-  surface: "#111412",
+  surface: "#0C0F0D",
   onSurface: "#E1E3DF",
   surfaceVariant: "#404943",
   onSurfaceVariant: "#C0C9C1",
 
-  surfaceDim: "#111412",
+  surfaceDim: "#0C0F0D",
   surfaceBright: "#373A37",
-  surfaceContainerLowest: "#0C0F0D",
-  surfaceContainerLow: "#191C1A",
-  surfaceContainer: "#1D201E",
+  surfaceContainerLowest: "#1D201E",
+  surfaceContainerLow: "#202321",
+  surfaceContainer: "#242725",
   surfaceContainerHigh: "#272B28",
   surfaceContainerHighest: "#323633",
 
@@ -258,6 +264,10 @@ const darkBase: BaseColors = {
 
   scrim: "#000000",
   shadow: "#000000",
+
+  cta: "#E5FFC3",
+  onCta: "#14392A",
+  mutedText: "#A3ACA5",
 };
 
 export const lightColors = withAliases(lightBase, {
