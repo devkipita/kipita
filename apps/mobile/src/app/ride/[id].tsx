@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   ScrollView,
@@ -8,6 +8,7 @@ import {
   Alert as RNAlert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/core/Text";
 import { Avatar } from "@/components/core/Avatar";
@@ -25,7 +26,9 @@ import {
 } from "@/lib/formatters";
 import { getReviewsForPerson } from "@/lib/mock/reviews";
 import { haptic } from "@/lib/utils/haptics";
-import type { Trip, RideRequest, Booking } from "@/types";
+import { previewBooking } from "@/lib/api/payments";
+import { requestSeat, errorMessageKey, queryKeys } from "@/lib/api";
+import type { Trip, RideRequest } from "@/types";
 
 export default function RideProfileScreen() {
   const { colors } = useTheme();
@@ -33,6 +36,7 @@ export default function RideProfileScreen() {
   const router = useRouter();
   const goBack = useSafeBack();
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { id, view } = useLocalSearchParams<{ id: string; view?: string }>();
   // Profile mode reuses this page to show just the person + reviews (no ride
   // details). `id` is then a person id and the person is read from the store.
@@ -45,6 +49,7 @@ export default function RideProfileScreen() {
   const openSheet = useUIStore((s) => s.openSheet);
   const setActiveChat = useUIStore((s) => s.setActiveChat);
   const setTripBooking = useTripStore((s) => s.setBooking);
+  const [requesting, setRequesting] = useState(false);
 
   const item = (trip ?? request) as Trip | RideRequest | undefined;
   const isRide = !!trip;
@@ -78,32 +83,30 @@ export default function RideProfileScreen() {
     router.push(`/chat/${conversationId}` as any);
   }, [person, user, openSheet, setActiveChat, router]);
 
-  const handleBook = useCallback(() => {
+  const handleBook = useCallback(async () => {
     if (!user) {
       openSheet("auth", { returnAction: handleBook });
       return;
     }
+    if (requesting) return;
     haptic.light();
 
     if (isRide && trip) {
-      const nowIso = new Date().toISOString();
-      const booking: Booking = {
-        id: `temp-${trip.id}`,
-        trip_id: trip.id,
-        passenger_id: user.id,
-        driver_id: trip.driver_id,
-        seats_booked: 1,
-        total_price: trip.price_per_seat,
-        status: "pending_payment",
-        payment_id: null,
-        created_at: nowIso,
-        updated_at: nowIso,
-        trip,
-        driver: trip.driver,
-      };
-      // Stash so the live-trip screen can pick it up after payment succeeds.
-      setTripBooking(booking);
-      openSheet("payment", { booking });
+      // Ask the driver. Nothing is charged until they accept; the trip screen
+      // then shows the request and, once accepted, the Pay button.
+      setRequesting(true);
+      try {
+        const booking = await requestSeat(trip.id, 1);
+        setTripBooking(booking);
+        void queryClient.invalidateQueries({ queryKey: queryKeys.bookings.all() });
+        haptic.success();
+        router.push(`/trip/${booking.id}` as any);
+      } catch (error) {
+        haptic.error();
+        RNAlert.alert(t("booking_err_title"), t(errorMessageKey(error)));
+      } finally {
+        setRequesting(false);
+      }
       return;
     }
 
@@ -116,7 +119,7 @@ export default function RideProfileScreen() {
         { text: t("accept_request"), onPress: handleMessage },
       ],
     );
-  }, [user, isRide, trip, item, t, openSheet, handleMessage, setTripBooking]);
+  }, [user, requesting, isRide, trip, item, t, openSheet, handleMessage, setTripBooking, queryClient, router]);
 
   const handleCall = useCallback(() => {
     if (person?.phone) Linking.openURL(`tel:${person.phone}`);
@@ -135,8 +138,10 @@ export default function RideProfileScreen() {
     );
   }
 
+  // What the passenger will pay for one seat once the driver accepts: the seat
+  // price plus the Kipita service fee. The database sets the real figure.
   const primaryLabel = isRide
-    ? `${t("book")} · ${formatCurrency((item as Trip).price_per_seat)}`
+    ? `${t("request_seat")} · ${formatCurrency(previewBooking((item as Trip).price_per_seat, 1).total_price)}`
     : t("accept_request");
 
   return (
@@ -414,13 +419,15 @@ export default function RideProfileScreen() {
         {!isProfileMode && (
           <Pressable
             onPress={handleBook}
+            disabled={requesting}
             style={({ pressed }) => [
               styles.actionBtn,
               styles.bookBtn,
               shadows.md,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+              { backgroundColor: colors.primary, opacity: pressed || requesting ? 0.7 : 1 },
             ]}
             accessibilityRole="button"
+            accessibilityState={{ disabled: requesting, busy: requesting }}
             accessibilityLabel={primaryLabel}
           >
             <Icon
