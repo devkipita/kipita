@@ -11,7 +11,6 @@ import {
   MagnifyingGlass,
   MapPin,
   Plus,
-  SealCheck,
   Warning,
   X,
 } from "@/components/icons";
@@ -29,6 +28,8 @@ import { prettyTime, todayISO } from "./WhenPicker";
 import type { SavedCar } from "./draft";
 import { clearDraft, loadDraft, saveDraft } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
+import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
+import { VerifyStatusCard } from "./VerifyStatus";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -809,45 +810,6 @@ const Chip = styled.button<{ $good: boolean }>`
   ${ring}
 `;
 
-const Payout = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  border-radius: 18px;
-  background: ${nocturne.surface2};
-
-  .line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    color: ${nocturne.cream};
-  }
-  .line svg {
-    flex: none;
-    width: 22px;
-    height: 22px;
-    color: ${nocturne.green};
-  }
-  .line .act {
-    display: block;
-    margin-top: 4px;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    font: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    color: ${nocturne.green};
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    cursor: pointer;
-  }
-`;
-
 const Alert = styled.div<{ $warn?: boolean }>`
   display: flex;
   align-items: flex-start;
@@ -1002,7 +964,8 @@ export function PublishMobile({
   const [discardOpen, setDiscardOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [otherTime, setOtherTime] = useState(false);
-  const [error, setError] = useState<{ text: string; fix?: "kyc" } | null>(null);
+  const [error, setError] = useState<{ text: string } | null>(null);
+  const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
   const panelRef = useRef<HTMLElement>(null);
   const moved = useRef(false);
@@ -1105,6 +1068,7 @@ export function PublishMobile({
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
     setError(null);
+    setBlock(null);
   }
 
   function go(next: number) {
@@ -1177,17 +1141,32 @@ export function PublishMobile({
     true,
   ][step];
 
-  function problem(): string | null {
-    if (draft.from.toLowerCase() === draft.to.toLowerCase()) return "Pick two different towns.";
+  function problem(): Block | null {
+    if (draft.from.toLowerCase() === draft.to.toLowerCase())
+      return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
     if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now())
-      return "That time has already passed. Pick a later one.";
-    return carProblem();
+      return draft.date < todayISO()
+        ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
+        : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
+    const car = carProblem();
+    return car ? { kind: "car", text: car } : null;
+  }
+
+  function fixBlock() {
+    const kind = block?.kind;
+    setBlock(null);
+    if (kind === "towns") go(0);
+    else if (kind === "day") go(1);
+    else if (kind === "time") go(2);
+    else if (kind === "car") go(5);
+    else if (kind === "kyc") requireKyc(sendTrip);
+    else publish();
   }
 
   function publish() {
     const wrong = problem();
     if (wrong) {
-      setError({ text: wrong });
+      setBlock(wrong);
       return;
     }
     if (!submitted) {
@@ -1214,7 +1193,7 @@ export function PublishMobile({
         vehicle_color: vehicle?.color.trim() || undefined,
       });
       if (!result.ok) {
-        setError({ text: result.error, fix: result.fix });
+        setBlock(blockOf(result.error, result.fix));
         return;
       }
       clearDraft();
@@ -1755,29 +1734,19 @@ export function PublishMobile({
                   })}
                 </Chips>
                 {kycStatus !== "approved" && (
-                  <Payout>
-                    <div className="line">
-                      <SealCheck size={22} />
-                      <span>
-                        {kycStatus === "pending"
-                          ? "Verification in review. It goes live once this clears"
-                          : kycStatus === "rejected"
-                            ? "Verification unsuccessful"
-                            : "Drivers are verified before publishing"}
-                      </span>
-                    </div>
-                  </Payout>
+                  <VerifyStatusCard
+                    compact
+                    stage={kycStatus === "pending" ? "pending" : kycStatus === "rejected" ? "rejected" : "none"}
+                    liveNow={publishBeforeApproval}
+                    action={kycStatus === "pending" ? undefined : kycStatus === "rejected" ? "Resubmit documents" : "Verify now"}
+                    onAction={kycStatus === "pending" ? undefined : publish}
+                  />
                 )}
                 {error && (
                   <Alert $warn role="alert">
                     <Warning size={20} />
                     <div>
                       <p style={{ fontWeight: 600 }}>{error.text}</p>
-                      {error.fix === "kyc" && (
-                        <Ghost type="button" onClick={() => requireKyc(sendTrip)} style={{ paddingLeft: 0 }}>
-                          {kycStatus === "rejected" ? "Resubmit documents" : "Add documents"}
-                        </Ghost>
-                      )}
                     </div>
                   </Alert>
                 )}
@@ -1806,6 +1775,7 @@ export function PublishMobile({
           </Cta>
         )}
       </Bar>
+      {block && <PublishBlocker block={block} busy={pending} onFix={fixBlock} onClose={() => setBlock(null)} />}
 
       <DiscardDialog open={discardOpen} onCancel={() => setDiscardOpen(false)} onConfirm={discard} />
     </Page>

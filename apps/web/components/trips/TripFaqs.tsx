@@ -24,12 +24,12 @@ const Question = styled.details`
     align-items: center;
     justify-content: space-between;
     gap: 18px;
-    min-height: 72px;
-    padding: 18px 24px;
-    font-family: ${({ theme }) => theme.fontHeading};
-    font-size: 1.4rem;
-    font-weight: 500;
-    letter-spacing: -0.022em;
+    min-height: 60px;
+    padding: 14px 20px;
+    font-family: ${({ theme }) => theme.font};
+    font-size: 1.0625rem;
+    font-weight: 600;
+    letter-spacing: -0.005em;
     color: ${({ theme }) => theme.color.onSurface};
   }
   summary::-webkit-details-marker {
@@ -60,7 +60,7 @@ const Question = styled.details`
   /* Body: text face, lighter weight, one tonal step down. */
   p {
     margin: 0;
-    padding: 0 24px 24px;
+    padding: 0 20px 20px;
     font-family: ${({ theme }) => theme.font};
     font-size: 1rem;
     font-weight: 400;
@@ -105,7 +105,7 @@ export function TripFaqs() {
         <Question key={f.q}>
           <summary>
             {f.q}
-            <ArrowOut size={30} />
+            <ArrowOut size={20} />
           </summary>
           <p>{f.a}</p>
         </Question>

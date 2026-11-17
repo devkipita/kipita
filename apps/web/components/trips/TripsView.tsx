@@ -4,23 +4,24 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { MagnifyingGlass } from "@/components/icons";
+import { MagnifyingGlass, PlusCircle } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
+import { GreenHero, HeroGhostLink, HeroPrimaryLink, HeroTicket } from "@/components/ui/GreenHero";
 import { nocturne } from "@/lib/nocturne";
+import { formatTripDate, formatTripTime } from "@/lib/trips/format";
 import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking, PublishedTrip } from "@/lib/trips/types";
 import { BookingCard } from "./BookingCard";
 import { PublishedTrips } from "./PublishedTrips";
+import { RULE, SectionHead, fs } from "./RideRow";
 import { SeatRequests } from "./SeatRequests";
 import { SupportPanel } from "./SupportPanel";
 import { TripFaqs } from "./TripFaqs";
 
 type Tab = "current" | "previous";
 
-const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
-
 const Page = styled(ContentWidth)`
-  padding-block: clamp(22px, 4vh, 40px) 72px;
+  padding-block: 0 72px;
   display: flex;
   flex-direction: column;
   background: ${nocturne.bg};
@@ -35,14 +36,19 @@ const Page = styled(ContentWidth)`
   }
 `;
 
-const Title = styled.h1`
-  margin: 0;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: clamp(34px, 5.4vw, 60px);
-  font-weight: 800;
-  line-height: 1.02;
-  letter-spacing: -0.038em;
-  color: ${nocturne.cream};
+const Booked = styled.section`
+  margin-top: clamp(48px, 7vh, 72px);
+  padding: clamp(32px, 5vh, 48px) 0 clamp(20px, 3vh, 32px);
+  background: ${nocturne.surface2};
+  box-shadow: 0 0 0 100vmax ${nocturne.surface2};
+  clip-path: inset(0 -100vmax);
+`;
+
+const TicketLink = styled(HeroGhostLink)`
+  margin-top: 16px;
+  min-height: 44px;
+  padding: 0 18px;
+  font-size: 15px;
 `;
 
 const Controls = styled.div`
@@ -51,7 +57,7 @@ const Controls = styled.div`
   align-items: flex-end;
   justify-content: space-between;
   gap: 18px 40px;
-  margin-top: clamp(22px, 3vh, 32px);
+  margin-top: 14px;
   border-bottom: 1.5px solid ${RULE};
 
   @media (max-width: 720px) {
@@ -91,7 +97,7 @@ const TabButton = styled.button<{ $active: boolean }>`
   border: none;
   background: transparent;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 19px;
+  font-size: ${fs.body};
   font-weight: ${({ $active }) => ($active ? 800 : 600)};
   letter-spacing: -0.02em;
   cursor: pointer;
@@ -144,7 +150,7 @@ const Search = styled.label`
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 16px;
+    font-size: ${fs.body};
     color: ${nocturne.cream};
     caret-color: ${nocturne.accent};
   }
@@ -152,10 +158,13 @@ const Search = styled.label`
     outline: none;
   }
   input::placeholder {
-    color: ${nocturne.muted2};
+    color: ${nocturne.muted};
+  }
+  &::after {
+    background: ${RULE};
   }
   &:hover::after {
-    background: ${RULE};
+    background: ${nocturne.accent};
   }
   &:focus-within::after {
     background: ${nocturne.accent};
@@ -175,16 +184,7 @@ const Search = styled.label`
 const Rows = styled.div`
   display: flex;
   flex-direction: column;
-
-  > * + *::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 14px;
-    right: 14px;
-    height: 1.5px;
-    background: ${RULE};
-  }
+  padding-top: 6px;
 `;
 
 const Empty = styled.div`
@@ -194,14 +194,14 @@ const Empty = styled.div`
   b {
     display: block;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(22px, 2.6vw, 28px);
+    font-size: ${fs.route};
     font-weight: 800;
     letter-spacing: -0.03em;
     color: ${nocturne.cream};
   }
   p {
     margin: 10px 0 0;
-    font-size: 17px;
+    font-size: ${fs.body};
     line-height: 1.55;
     color: ${nocturne.muted};
   }
@@ -217,8 +217,8 @@ const Find = styled(Link)`
   background: ${nocturne.ctaBg};
   color: ${nocturne.ctaFg};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 17px;
-  font-weight: 700;
+  font-size: ${fs.body};
+  font-weight: 800;
   text-decoration: none;
   transition:
     background-color 0.2s ease,
@@ -251,20 +251,36 @@ const Find = styled(Link)`
 `;
 
 const Section = styled.section`
-  margin-top: clamp(44px, 7vh, 80px);
-  padding-top: clamp(28px, 4vh, 40px);
-  border-top: 1.5px solid ${RULE};
+  margin-top: clamp(48px, 7vh, 72px);
 
   > h2 {
-    margin: 0 0 18px;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(24px, 3vw, 34px);
-    font-weight: 800;
-    letter-spacing: -0.033em;
-    line-height: 1.08;
-    color: ${nocturne.cream};
+    margin-bottom: 20px;
   }
 `;
+
+const HelpGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px;
+  align-items: start;
+
+  h3 {
+    margin: 0 0 12px;
+    font-size: ${fs.meta};
+    font-weight: 800;
+    color: ${nocturne.muted};
+  }
+
+  @media (max-width: 860px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+const LIVE = new Set(["posted", "active", "in_progress"]);
+
+function departsAt(t: PublishedTrip) {
+  return `${t.departure_date ?? "9999-12-31"}T${t.departure_time ?? "23:59"}`;
+}
 
 function matches(booking: Booking, query: string): boolean {
   if (!query) return true;
@@ -313,13 +329,65 @@ export function TripsView({
 
   const searchable = current.length + previous.length > 0;
 
+  const next = useMemo(
+    () =>
+      published
+        .filter((t) => LIVE.has(t.status))
+        .sort((a, b) =>
+          a.status === "in_progress" ? -1 : b.status === "in_progress" ? 1 : departsAt(a).localeCompare(departsAt(b)),
+        )[0] ?? null,
+    [published],
+  );
+
+  const lead =
+    requests.length > 0
+      ? `${requests.length} ${requests.length === 1 ? "passenger is" : "passengers are"} waiting on your answer.`
+      : next
+        ? next.status === "in_progress"
+          ? `You're on the road to ${next.to_location}.`
+          : `Your next ride leaves ${formatTripDate(next.departure_date)?.toLowerCase() || "soon"} at ${formatTripTime(next.departure_time) || "the time you set"}.`
+        : current.length > 0
+          ? `You have ${current.length} ${current.length === 1 ? "trip" : "trips"} coming up.`
+          : "Rides you publish and seats you book live here.";
+
   return (
     <Page $max={1080}>
-      <Title>Trips</Title>
+      <GreenHero
+        title="Trips"
+        lead={lead}
+        actions={
+          <>
+            <HeroPrimaryLink href="/publish">
+              <PlusCircle size={19} /> Publish a ride
+            </HeroPrimaryLink>
+            <HeroGhostLink href="/home">
+              <MagnifyingGlass size={19} /> Find a ride
+            </HeroGhostLink>
+          </>
+        }
+        aside={
+          next ? (
+            <HeroTicket>
+              <small>{next.status === "in_progress" ? "Under way" : formatTripDate(next.departure_date) || "Next departure"}</small>
+              <b>{formatTripTime(next.departure_time) || "Time to confirm"}</b>
+              <p>
+                <strong>
+                  {next.from_location} to {next.to_location}
+                </strong>
+                <br />
+                {next.seats_taken} of {next.seats_total} seats taken
+              </p>
+              <TicketLink href={`/ride/${next.id}`}>Open ride</TicketLink>
+            </HeroTicket>
+          ) : undefined
+        }
+      />
 
       <SeatRequests initial={requests} viewerId={viewerId} />
       <PublishedTrips initial={published} />
 
+      <Booked>
+      <SectionHead>Seats you booked</SectionHead>
       <Controls>
         <Tabs role="group" aria-label="Which trips">
           <TabButton
@@ -388,15 +456,20 @@ export function TripsView({
           )}
         </Empty>
       )}
-
-      <Section>
-        <h2>Common questions</h2>
-        <TripFaqs />
-      </Section>
+      </Booked>
 
       <Section id="help">
-        <h2>Contact support</h2>
-        <SupportPanel trips={[...current, ...previous]} />
+        <SectionHead>Need help?</SectionHead>
+        <HelpGrid>
+          <div>
+            <h3>Common questions</h3>
+            <TripFaqs />
+          </div>
+          <div>
+            <h3>Report a problem</h3>
+            <SupportPanel trips={[...current, ...previous]} />
+          </div>
+        </HelpGrid>
       </Section>
     </Page>
   );

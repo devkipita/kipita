@@ -12,8 +12,6 @@ import {
   MagnifyingGlass,
   Minus,
   Plus,
-  SealCheck,
-  Warning,
   X,
 } from "@/components/icons";
 import { useAppMode } from "@/components/nav/AppShell";
@@ -28,6 +26,8 @@ import { prettyTime } from "./WhenPicker";
 import type { SavedCar } from "./draft";
 import { clearDraft, loadDraft, saveDraft } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
+import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
+import { VerifyStatusCard } from "./VerifyStatus";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -975,30 +975,6 @@ const PublishBtn = styled.button`
 `;
 
 
-/** One short line each, mark first: the terms of publishing, scanned not read. */
-const Terms = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    color: ${nocturne.cream};
-  }
-  li > svg {
-    flex: none;
-    color: ${nocturne.green};
-  }
-`;
-
 export function PublishWeb({
   userId,
   savedCars = [],
@@ -1033,7 +1009,7 @@ export function PublishWeb({
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
   const [fareOpen, setFareOpen] = useState(false);
-  const [error, setError] = useState<{ text: string; fix?: "kyc" } | null>(null);
+  const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
   const sentenceRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
@@ -1137,7 +1113,7 @@ export function PublishWeb({
 
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
-    setError(null);
+    setBlock(null);
   }
 
   function go(next: number) {
@@ -1174,7 +1150,7 @@ export function PublishWeb({
     setStep(0);
     setMaxStep(0);
     window.history.replaceState({ ...window.history.state, publishStep: 0 }, "");
-    setError(null);
+    setBlock(null);
     setQuery("");
     setEditFrom(false);
     setAdding(false);
@@ -1201,17 +1177,34 @@ export function PublishWeb({
     true,
   ][step];
 
-  function problem(): string | null {
-    if (draft.from.toLowerCase() === draft.to.toLowerCase()) return "Pick two different towns.";
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now())
-      return "That departure time has already passed. Pick a later one.";
+  function problem(): Block | null {
+    if (draft.from.toLowerCase() === draft.to.toLowerCase())
+      return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
+    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now()) {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      return draft.date < today
+        ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
+        : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
+    }
     return null;
+  }
+
+  function fixBlock() {
+    const kind = block?.kind;
+    setBlock(null);
+    if (kind === "towns") go(0);
+    else if (kind === "day") go(1);
+    else if (kind === "time") go(2);
+    else if (kind === "car") go(5);
+    else if (kind === "kyc") requireKyc(sendTrip);
+    else publish();
   }
 
   function publish() {
     const wrong = problem();
     if (wrong) {
-      setError({ text: wrong });
+      setBlock(wrong);
       return;
     }
     if (!submitted) {
@@ -1237,7 +1230,7 @@ export function PublishWeb({
         vehicle_color: car?.color.trim() || undefined,
       });
       if (!result.ok) {
-        setError({ text: result.error, fix: result.fix });
+        setBlock(blockOf(result.error, result.fix));
         return;
       }
       clearDraft();
@@ -1346,7 +1339,7 @@ export function PublishWeb({
   function pickTown(name: string) {
     if (choosingFrom) {
       if (sameTown(draft.to, name)) {
-        setError({ text: "That is where you are going. Pick a different town to leave from." });
+        setBlock({ kind: "towns", text: "That is where you are going. Pick a different town to leave from." });
         return;
       }
       patch({ from: name });
@@ -1355,7 +1348,7 @@ export function PublishWeb({
       return;
     }
     if (sameTown(draft.from, name)) {
-      setError({ text: "That is where you are leaving from. Pick a different destination." });
+      setBlock({ kind: "towns", text: "That is where you are leaving from. Pick a different destination." });
       return;
     }
     patch({ to: name });
@@ -1465,26 +1458,14 @@ export function PublishWeb({
             </Row>
 
             {kycStatus !== "approved" && (
-              <Terms>
-                <li>
-                  <SealCheck size={22} />
-                  {submitted
-                    ? "Verification in review. It goes live once this clears"
-                    : "Drivers are verified before publishing"}
-                </li>
-              </Terms>
-            )}
-
-            {error && (
-              <Alert role="alert">
-                <Warning size={16} weight="bold" />
-                {error.text}
-                {error.fix === "kyc" && (
-                  <Hollow type="button" onClick={() => requireKyc(sendTrip)} style={{ height: 36 }}>
-                    Verify to publish
-                  </Hollow>
-                )}
-              </Alert>
+              <div style={{ marginTop: 28 }}>
+                <VerifyStatusCard
+                  stage={kycStatus === "pending" ? "pending" : kycStatus === "rejected" ? "rejected" : "none"}
+                  liveNow={publishBeforeApproval}
+                  action={kycStatus === "pending" ? undefined : kycStatus === "rejected" ? "Resubmit documents" : "Verify now"}
+                  onAction={kycStatus === "pending" ? undefined : publish}
+                />
+              </div>
             )}
 
             <Acts>
@@ -1516,7 +1497,6 @@ export function PublishWeb({
                         onClick={() => {
                           setEditFrom(true);
                           setQuery("");
-                          setError(null);
                         }}
                       >
                         {draft.from}
@@ -1542,10 +1522,7 @@ export function PublishWeb({
                       autoComplete="off"
                       placeholder="Search a town or city"
                       enterKeyHint="go"
-                      onChange={(e) => {
-                        setQuery(e.target.value);
-                        setError(null);
-                      }}
+                      onChange={(e) => setQuery(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -1729,13 +1706,6 @@ export function PublishWeb({
               </Field>
             )}
 
-            {error && (
-              <Alert role="alert">
-                <Warning size={16} weight="bold" />
-                {error.text}
-              </Alert>
-            )}
-
             <Actions>
               {step > 0 && (
                 <BackBtn type="button" onClick={back}>
@@ -1754,6 +1724,8 @@ export function PublishWeb({
         )}
 
       </Layout>
+
+      {block && <PublishBlocker block={block} busy={pending} onFix={fixBlock} onClose={() => setBlock(null)} />}
 
       {calOpen && (
         <Backdrop onClick={() => setCalOpen(false)}>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { ArrowLeft, SealCheck as BadgeCheck, Briefcase, CarProfile, CheckCircle as CheckCircle2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
+import { CalendarBlank, SealCheck as BadgeCheck, Briefcase, CarProfile, CheckCircle as CheckCircle2, MapPin, Minus, MusicNote as Music, PawPrint, Phone, Plus, DeviceMobile as Smartphone, Star, Users, SpeakerSimpleX as VolumeX } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { EscrowHeldArt } from "@/components/ui/MoneyArt";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
@@ -18,6 +18,8 @@ import { nocturne } from "@/lib/nocturne";
 import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
+import { GreenHero, HeroTicket } from "@/components/ui/GreenHero";
 
 const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
@@ -27,10 +29,9 @@ const rise = keyframes`
 `;
 
 const Wrap = styled(ContentWidth)`
-  padding-block: 18px 56px;
+  padding-block: 0 56px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   background: ${nocturne.bg};
 
   ::selection {
@@ -43,82 +44,12 @@ const Wrap = styled(ContentWidth)`
   }
 `;
 
-const Back = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 8px 2px;
-  font-size: 15px;
-  font-weight: 700;
-  color: ${nocturne.muted};
-  text-decoration: none;
-  box-shadow: inset 0 -2px 0 transparent;
-  transition:
-    color 0.16s ease,
-    box-shadow 0.16s ease;
-
-  svg {
-    flex: none;
-    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: ${nocturne.cream};
-      box-shadow: inset 0 -2px 0 ${RULE};
-    }
-    &:hover svg {
-      transform: translateX(-3px);
-    }
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    svg {
-      transition: none;
-    }
-    &:hover svg {
-      transform: none;
-    }
-  }
-`;
-
-const PageHead = styled.header`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: clamp(26px, 4vh, 40px);
-
-  h1 {
-    margin: 0;
-    max-width: 18ch;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(32px, 5vw, 56px);
-    font-weight: 800;
-    line-height: 1.04;
-    letter-spacing: -0.035em;
-    color: ${nocturne.cream};
-    text-wrap: balance;
-  }
-  p {
-    margin: 0;
-    max-width: 48ch;
-    font-size: 17px;
-    line-height: 1.55;
-    color: ${nocturne.muted};
-  }
-`;
-
 const Layout = styled.div`
   display: grid;
   grid-template-columns: minmax(0, 1fr) 352px;
   align-items: start;
   gap: clamp(28px, 4vw, 64px);
+  margin-top: clamp(28px, 4vh, 44px);
 
   @media (max-width: 960px) {
     grid-template-columns: minmax(0, 1fr);
@@ -145,83 +76,16 @@ const SideCol = styled.div`
   }
 `;
 
-const Route = styled.div`
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 0 18px;
-`;
-
-const Rail = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-top: 0.44em;
-
-  .node {
-    width: 17px;
-    height: 17px;
-    flex: none;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 5px ${nocturne.accent};
-  }
-  .line {
-    flex: 1;
-    width: 2.5px;
-    min-height: 24px;
-    margin: 8px 0;
-    border-radius: 2px;
-    background: ${nocturne.accent};
-    opacity: 0.4;
-  }
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-`;
-
-const Stops = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: clamp(18px, 2.4vh, 26px);
-  min-width: 0;
-
-  b {
-    display: block;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(25px, 3.1vw, 38px);
-    font-weight: 800;
-    line-height: 1.04;
-    letter-spacing: -0.032em;
-    color: ${nocturne.cream};
-  }
-  span.point {
-    display: block;
-    margin-top: 7px;
-    font-size: 15px;
-    line-height: 1.45;
-    color: ${nocturne.muted};
-  }
-`;
-
-const When = styled.p`
-  margin: clamp(22px, 3vh, 30px) 0 0;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: clamp(19px, 2.1vw, 25px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: ${nocturne.cream};
-
-  em {
-    font-style: normal;
-    font-weight: 500;
-    color: ${nocturne.muted};
-  }
-`;
-
 const Band = styled.div`
   margin-top: clamp(24px, 3.2vh, 34px);
   padding-top: clamp(22px, 3vh, 30px);
   border-top: 1.5px solid ${RULE};
+
+  &:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
 `;
 
 const Facts = styled.ul`
@@ -396,6 +260,20 @@ const BookPanel = styled.section`
   padding: clamp(22px, 2.6vw, 28px);
   border-radius: 20px;
   background: ${nocturne.surface2};
+`;
+
+const OwnerLink = styled(Link)`
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  border: 1.5px solid ${nocturne.green};
+  color: ${nocturne.green};
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
 `;
 
 const Fare = styled.p`
@@ -707,19 +585,28 @@ export function RideDetailView({
   const rawPlate = isTrip ? ride.vehicle?.plate_number?.trim() : null;
   const plate = rawPlate && !/^PENDING-/i.test(rawPlate) ? rawPlate : null;
 
-  const lead = isTrip
-    ? "Check the driver and the car, then reserve your seat. You only pay once you're happy."
-    : "If you're driving this route, you can offer them a seat.";
   const isOwn = !!profile && !!person && profile.id === person.id;
+  const awaiting = isTrip && ride.status === "awaiting_approval";
   const soldOut = isTrip && ride.seats_available < 1;
   const closed = isTrip
-    ? !["posted", "active"].includes(ride.status)
+    ? !["posted", "active"].includes(ride.status) && !(isOwn && awaiting)
     : ride.status !== "pending";
   const scarce = isTrip && ride.seats_available > 0 && ride.seats_available <= 2;
+  const ownerView = isOwn && isTrip && !closed;
 
-  const back = profile
-    ? { href: "/notifications", label: "Notifications" }
-    : { href: "/home", label: "Find a ride" };
+  const lead = ownerView
+    ? awaiting
+      ? "Saved and waiting on your verification. This is how passengers will see it."
+      : "This is how passengers see your ride."
+    : isTrip
+      ? "Check the driver and the car, then reserve your seat. You only pay once you're happy."
+      : "If you're driving this route, you can offer them a seat.";
+
+  const back = ownerView
+    ? { href: "/trips", label: "Your trips" }
+    : profile
+      ? { href: "/notifications", label: "Notifications" }
+      : { href: "/home", label: "Find a ride" };
 
   function reserve() {
     if (!isTrip) return;
@@ -735,63 +622,53 @@ export function RideDetailView({
   return (
     <>
       <Wrap $max={1120}>
-        <Back href={back.href}>
-          <ArrowLeft size={17} /> {back.label}
-        </Back>
-
-        <PageHead>
-          <h1>
-            {isTrip
-              ? `Get your ride to ${ride.to_location}`
-              : `Offer a ride to ${ride.to_location}`}
-          </h1>
-          <p>{lead}</p>
-        </PageHead>
+        <GreenHero
+          back={back}
+          status={
+            ownerView
+              ? awaiting
+                ? "Your ride · waiting on verification"
+                : "Your ride · live"
+              : closed
+                ? "Closed"
+                : isTrip
+                  ? soldOut
+                    ? "Full"
+                    : `${ride.seats_available} ${ride.seats_available === 1 ? "seat" : "seats"} left`
+                  : "Passenger looking for a ride"
+          }
+          route={{ from: ride.from_location, to: ride.to_location }}
+          lead={lead}
+          meta={[
+            ...(date || time
+              ? [{ icon: <CalendarBlank size={20} />, label: [date, time].filter(Boolean).join(" at ") }]
+              : []),
+            ...(isTrip && ride.pickup_point ? [{ icon: <MapPin size={20} />, label: `Pickup: ${ride.pickup_point}` }] : []),
+            ...(isTrip && ride.dropoff_point ? [{ icon: <MapPin size={20} />, label: `Drop-off: ${ride.dropoff_point}` }] : []),
+            ...(!isTrip ? [{ icon: <Users size={20} />, label: `${ride.seats_needed} ${ride.seats_needed === 1 ? "seat" : "seats"} needed` }] : []),
+          ]}
+          aside={
+            isTrip ? (
+              <HeroTicket>
+                <small>Per seat</small>
+                <b>{formatKes(ride.price_per_seat)}</b>
+                <p>
+                  <strong>
+                    {ride.seats_available} of {ride.seats_total}
+                  </strong>{" "}
+                  seats left
+                </p>
+              </HeroTicket>
+            ) : undefined
+          }
+        />
 
         <Layout>
           <MainCol>
-            <Route>
-              <Rail>
-                <span className="node" />
-                <span className="line" />
-                <MapPin size={19} weight="fill" />
-              </Rail>
-              <Stops>
-                <div>
-                  <b>{ride.from_location}</b>
-                  {isTrip && ride.pickup_point && (
-                    <span className="point">Pickup: {ride.pickup_point}</span>
-                  )}
-                </div>
-                <div>
-                  <b>{ride.to_location}</b>
-                  {isTrip && ride.dropoff_point && (
-                    <span className="point">
-                      Drop-off: {ride.dropoff_point}
-                    </span>
-                  )}
-                </div>
-              </Stops>
-            </Route>
 
-            {(date || time) && (
-              <When>
-                {date}
-                {date && time ? <em> at </em> : null}
-                {time}
-              </When>
-            )}
-
-            {(prefs.length > 0 || (!isTrip && ride.seats_needed > 0)) && (
+            {prefs.length > 0 && (
               <Band>
                 <Facts>
-                  {!isTrip && (
-                    <li>
-                      <Users size={19} />
-                      {ride.seats_needed} seat
-                      {ride.seats_needed === 1 ? "" : "s"} needed
-                    </li>
-                  )}
                   {prefs.map(({ icon: Icon, label }) => (
                     <li key={label}>
                       <Icon size={19} /> {label}
@@ -869,7 +746,14 @@ export function RideDetailView({
           </MainCol>
 
           <SideCol>
-            {isTrip && !closed && (
+            {ownerView && (
+              <>
+                <VerifyStatusCard compact context="ride" stage={awaiting ? "pending" : "live"} />
+                <OwnerLink href="/trips">Manage in your trips</OwnerLink>
+              </>
+            )}
+
+            {isTrip && !closed && !ownerView && (
               <BookPanel>
                 <Fare>
                   <b>{formatKes(ride.price_per_seat)}</b>
