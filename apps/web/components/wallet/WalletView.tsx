@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import {
@@ -28,13 +28,15 @@ import {
 } from "@/components/icons";
 import type { KipitaIcon } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { ButtonEl } from "@/components/ui/primitives";
-import { nocturne } from "@/lib/nocturne";
-import { dur, ease } from "@/lib/motion";
+import { RollingNumber } from "@/components/ui/Counter";
+import { pressable } from "@/components/ui/interactions";
+import { dur, nocturne } from "@/lib/nocturne";
 import type { AppMode } from "@/lib/home/mode";
 import { LedgerArt } from "./LedgerArt";
 import { TopUpDrawer } from "./TopUpDrawer";
 import { WithdrawDrawer } from "./WithdrawDrawer";
+
+const ROLL_MS = parseInt(dur.max, 10);
 
 const Page = styled(ContentWidth)`
   padding-block: 20px 56px;
@@ -42,28 +44,16 @@ const Page = styled(ContentWidth)`
   gap: 28px;
 `;
 
-const Header = styled.header`
-  display: grid;
-  gap: 10px;
-
-  h1 {
-    margin: 0;
-    font-size: clamp(2.3rem, 6vw, 3.4rem);
-    font-weight: 800;
-    line-height: 1.02;
-    letter-spacing: -0.042em;
-    color: ${({ theme }) => theme.color.onSurface};
-  }
-  p {
-    margin: 0;
-    font-size: clamp(1rem, 1.6vw, 1.12rem);
-    line-height: 1.6;
-    max-width: 52ch;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
-  }
+export const WalletTitle = styled.h1`
+  margin: 0;
+  font-size: clamp(2.3rem, 6vw, 3.4rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.042em;
+  color: ${({ theme }) => theme.color.onSurface};
 `;
 
-const Band = styled.div`
+export const Band = styled.div`
   display: grid;
   gap: 14px;
 
@@ -74,9 +64,11 @@ const Band = styled.div`
 `;
 
 const Balance = styled.section`
+  container-type: inline-size;
   display: grid;
   gap: 22px;
-  align-items: center;
+  align-content: space-between;
+  min-width: 0;
   padding: 26px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.color.primaryContainer};
@@ -90,18 +82,21 @@ const Balance = styled.section`
     font-size: 0.92rem;
     font-weight: 700;
     letter-spacing: 0.01em;
-    opacity: 0.82;
   }
   .value {
-    font-size: clamp(2.9rem, 7vw, 4.2rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 0.28em;
+    min-width: 0;
+    font-size: clamp(2.2rem, 13cqi, 4.2rem);
     font-weight: 800;
     letter-spacing: -0.045em;
-    line-height: 0.96;
+    line-height: 1.04;
     font-variant-numeric: tabular-nums;
   }
 
   @media (min-width: 720px) {
-    grid-template-columns: 1fr auto;
     padding: 32px 34px;
   }
 `;
@@ -110,74 +105,37 @@ const Actions = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-
-  > button {
-    padding-inline: 20px;
-    font-size: 1rem;
-    transition:
-      background ${dur.short4}ms ${ease.standard},
-      border-color ${dur.short4}ms ${ease.standard},
-      transform ${dur.short3}ms ${ease.emphasized},
-      box-shadow ${dur.medium2}ms ${ease.emphasizedDecelerate};
-  }
-
-  @media (hover: hover) {
-    > button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px -12px rgba(0, 33, 19, 0.6);
-    }
-  }
-  > button:active:not(:disabled) {
-    transform: scale(0.97);
-    box-shadow: none;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    > button {
-      transition:
-        background ${dur.short4}ms ${ease.standard},
-        color ${dur.short4}ms ${ease.standard},
-        border-color ${dur.short4}ms ${ease.standard};
-    }
-    > button:hover:not(:disabled),
-    > button:active:not(:disabled) {
-      transform: none;
-    }
-  }
 `;
 
-const TopUp = styled(ButtonEl)`
-  @media (hover: hover) {
-    &&:hover:not(:disabled) {
-      background: ${nocturne.lime};
-      color: ${nocturne.greenDeep};
-    }
-    &&:hover:not(:disabled) svg {
-      color: ${nocturne.greenDeep};
-    }
-  }
-  &&:active:not(:disabled) {
-    background: ${nocturne.greenDeep};
-    color: ${nocturne.lime};
-  }
+const actionBase = `
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
 `;
 
-const Withdraw = styled(ButtonEl)`
-  @media (hover: hover) {
-    &&:hover:not(:disabled) {
-      background: ${nocturne.greenDeep};
-      border-color: ${nocturne.greenDeep};
-      color: ${nocturne.lime};
-    }
-  }
-  &&:active:not(:disabled) {
-    background: ${nocturne.green};
-    border-color: ${nocturne.green};
-    color: ${nocturne.lime};
-  }
+const TopUp = styled.button`
+  ${actionBase}
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+  ${pressable()}
 `;
 
-const Tiles = styled.div`
+const Withdraw = styled.button`
+  ${actionBase}
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+  ${pressable(nocturne.green)}
+`;
+
+export const Tiles = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 14px;
@@ -187,6 +145,7 @@ const Tile = styled.div`
   display: grid;
   align-content: start;
   gap: 8px;
+  min-width: 0;
   padding: 22px;
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.color.surfaceContainerLow};
@@ -203,14 +162,14 @@ const Tile = styled.div`
     font-size: clamp(1.8rem, 3vw, 2.2rem);
     font-weight: 800;
     letter-spacing: -0.038em;
-    line-height: 1;
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
     color: ${({ theme }) => theme.color.onSurface};
   }
   .note {
-    max-width: 40ch;
     font-size: 0.88rem;
-    line-height: 1.55;
+    line-height: 1.45;
     color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
 `;
@@ -219,18 +178,13 @@ const Section = styled.section`
   display: grid;
   gap: 14px;
 
-  > header h2 {
+  > h2 {
     margin: 0;
     font-size: clamp(1.7rem, 3.4vw, 2.3rem);
     font-weight: 800;
     line-height: 1.05;
     letter-spacing: -0.04em;
     color: ${({ theme }) => theme.color.onSurface};
-  }
-  > header p {
-    margin: 4px 0 0;
-    font-size: 1rem;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
 `;
 
@@ -312,11 +266,8 @@ const Empty = styled.div`
     letter-spacing: -0.035em;
     color: ${({ theme }) => theme.color.onSurface};
   }
-  p {
-    margin: 0;
-    max-width: 42ch;
+  span {
     font-size: 1rem;
-    line-height: 1.6;
   }
 `;
 
@@ -330,6 +281,10 @@ const Pending = styled.div`
   font-weight: 600;
   background: ${({ theme }) => theme.color.tertiaryContainer};
   color: ${({ theme }) => theme.color.onTertiaryContainer};
+
+  svg {
+    flex: none;
+  }
 `;
 
 const TXN_GLYPH: Record<WalletTxnType, KipitaIcon> = {
@@ -362,21 +317,24 @@ export function WalletView({
   withdrawals,
   mode,
   phone,
+  payoutPhone,
 }: {
   summary: WalletSummary;
   transactions: WalletTransaction[];
   withdrawals: WalletWithdrawal[];
   mode: AppMode;
   phone?: string | null;
+  payoutPhone: string | null;
 }) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [topUpOpen, setTopUpOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setTopUpOpen(false);
     setWithdrawOpen(false);
-    router.refresh();
+    startTransition(() => router.refresh());
   }, [router]);
 
   const openWithdrawals = useMemo(
@@ -388,61 +346,54 @@ export function WalletView({
   );
 
   const isDriver = mode === "driver";
+  const balance = Math.round(summary.balance);
 
   return (
     <Page>
-      <Header>
-        <h1>Wallet</h1>
-        <p>
-          {isDriver
-            ? "What you've earned, what's still held in escrow, and every payout Kipita has made to you."
-            : "Your Kipita balance, the fares we're holding in escrow for you, and every movement in between."}
-        </p>
-      </Header>
+      <WalletTitle>Wallet</WalletTitle>
 
       <Band>
-      <Balance>
-        <div>
-          <span className="cap">
-            <Wallet size={20} weight="bold" />
-            Available balance
-          </span>
-          <div className="value">{formatKes(summary.balance)}</div>
-        </div>
-        <Actions>
-          <TopUp type="button" $compact onClick={() => setTopUpOpen(true)}>
-            <Plus size={20} />
-            Top up
-          </TopUp>
-          <Withdraw
-            type="button"
-            $variant="onContainer"
-            $compact
-            onClick={() => setWithdrawOpen(true)}
-          >
-            <HandCoins size={20} />
-            Withdraw
-          </Withdraw>
-        </Actions>
-      </Balance>
+        <Balance aria-labelledby="wallet-balance-cap">
+          <div>
+            <span className="cap" id="wallet-balance-cap">
+              <Wallet size={20} weight="bold" />
+              Available balance
+            </span>
+            <div className="value">
+              <span aria-hidden="true">KES</span>
+              <RollingNumber
+                value={balance}
+                duration={ROLL_MS}
+                ariaLabel={formatKes(balance)}
+              />
+            </div>
+          </div>
+          <Actions>
+            <TopUp type="button" onClick={() => setTopUpOpen(true)}>
+              <Plus size={20} weight="bold" />
+              Top up
+            </TopUp>
+            <Withdraw type="button" onClick={() => setWithdrawOpen(true)}>
+              <HandCoins size={20} />
+              Withdraw
+            </Withdraw>
+          </Actions>
+        </Balance>
 
-      <Tiles>
-        <Tile>
-          <span className="cap">
-            <Lock size={18} weight="bold" />
-            Held in escrow
-          </span>
-          <span className="value">{formatKes(summary.in_escrow)}</span>
-          <span className="note">
-            Fares you&apos;ve paid for rides that haven&apos;t finished. Kipita
-            holds this and releases it to your driver when the trip ends.
-          </span>
-        </Tile>
-      </Tiles>
+        <Tiles>
+          <Tile>
+            <span className="cap">
+              <Lock size={18} weight="bold" />
+              Held in escrow
+            </span>
+            <span className="value">{formatKes(summary.in_escrow)}</span>
+            <span className="note">Held until the ride ends.</span>
+          </Tile>
+        </Tiles>
       </Band>
 
       {openWithdrawals.length > 0 && (
-        <Pending>
+        <Pending role="status">
           <Clock size={20} />
           {formatKes(
             openWithdrawals.reduce((total, w) => total + w.amount, 0),
@@ -454,54 +405,43 @@ export function WalletView({
       {(isDriver ||
         summary.pending_earnings > 0 ||
         summary.lifetime_earnings > 0) && (
-      <Tiles>
-        {(isDriver || summary.pending_earnings > 0) && (
-          <Tile>
-            <span className="cap">
-              <ShieldCheck size={18} weight="bold" />
-              Waiting to be released
-            </span>
-            <span className="value">
-              {formatKes(summary.pending_earnings)}
-            </span>
-            <span className="note">
-              Your share of fares passengers have already paid. It lands in your
-              balance once you end each ride.
-            </span>
-          </Tile>
-        )}
+        <Tiles>
+          {(isDriver || summary.pending_earnings > 0) && (
+            <Tile>
+              <span className="cap">
+                <ShieldCheck size={18} weight="bold" />
+                Waiting to be released
+              </span>
+              <span className="value">
+                {formatKes(summary.pending_earnings)}
+              </span>
+              <span className="note">Lands in your balance when you end the ride.</span>
+            </Tile>
+          )}
 
-        {(isDriver || summary.lifetime_earnings > 0) && (
-          <Tile>
-            <span className="cap">
-              <TrendUp size={18} weight="bold" />
-              Earned all time
-            </span>
-            <span className="value">
-              {formatKes(summary.lifetime_earnings)}
-            </span>
-            <span className="note">
-              Everything Kipita has released to you, after the platform fee.
-            </span>
-          </Tile>
-        )}
-      </Tiles>
+          {(isDriver || summary.lifetime_earnings > 0) && (
+            <Tile>
+              <span className="cap">
+                <TrendUp size={18} weight="bold" />
+                Earned all time
+              </span>
+              <span className="value">
+                {formatKes(summary.lifetime_earnings)}
+              </span>
+              <span className="note">After the platform fee.</span>
+            </Tile>
+          )}
+        </Tiles>
       )}
 
       <Section>
-        <header>
-          <h2>Activity</h2>
-          <p>Every credit, hold and payout on your account.</p>
-        </header>
+        <h2>Activity</h2>
 
         {transactions.length === 0 ? (
           <Empty>
             <LedgerArt />
             <b>Nothing here yet</b>
-            <p>
-              Top up your wallet or book a ride. Holds, refunds and payouts all
-              show up here.
-            </p>
+            <span>Top-ups, holds and payouts show up here.</span>
           </Empty>
         ) : (
           <Ledger>
@@ -541,7 +481,7 @@ export function WalletView({
       <WithdrawDrawer
         open={withdrawOpen}
         summary={summary}
-        defaultPhone={phone}
+        payoutPhone={payoutPhone}
         onClose={() => setWithdrawOpen(false)}
         onWithdrawn={refresh}
       />

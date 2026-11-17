@@ -1,10 +1,23 @@
+export const curve = {
+  standard: [0.2, 0, 0, 1],
+  standardAccelerate: [0.3, 0, 1, 1],
+  standardDecelerate: [0, 0, 0, 1],
+  emphasized: [0.2, 0, 0, 1],
+  emphasizedAccelerate: [0.3, 0, 0.8, 0.15],
+  emphasizedDecelerate: [0.05, 0.7, 0.1, 1],
+  spring: [0.34, 1.56, 0.64, 1],
+} as const satisfies Record<string, readonly [number, number, number, number]>;
+
+const bezier = (c: readonly number[]) => `cubic-bezier(${c.join(", ")})`;
+
 export const ease = {
-  standard: "cubic-bezier(0.2, 0, 0, 1)",
-  standardAccelerate: "cubic-bezier(0.3, 0, 1, 1)",
-  standardDecelerate: "cubic-bezier(0, 0, 0, 1)",
-  emphasized: "cubic-bezier(0.2, 0, 0, 1)",
-  emphasizedAccelerate: "cubic-bezier(0.3, 0, 0.8, 0.15)",
-  emphasizedDecelerate: "cubic-bezier(0.05, 0.7, 0.1, 1)",
+  standard: bezier(curve.standard),
+  standardAccelerate: bezier(curve.standardAccelerate),
+  standardDecelerate: bezier(curve.standardDecelerate),
+  emphasized: bezier(curve.emphasized),
+  emphasizedAccelerate: bezier(curve.emphasizedAccelerate),
+  emphasizedDecelerate: bezier(curve.emphasizedDecelerate),
+  spring: bezier(curve.spring),
 } as const;
 
 export const dur = {
@@ -22,4 +35,17 @@ export const dur = {
   long4: 600,
   extraLong1: 700,
   extraLong2: 800,
+} as const;
+
+export const spring = {
+  morph: { type: "spring", visualDuration: dur.medium3 / 1000, bounce: 0 },
+  sheet: { type: "spring", visualDuration: dur.medium4 / 1000, bounce: 0 },
+  press: { type: "spring", visualDuration: dur.short3 / 1000, bounce: 0 },
+  success: { type: "spring", visualDuration: dur.long1 / 1000, bounce: 0.25 },
+} as const;
+
+export const tween = {
+  enter: { duration: dur.medium2 / 1000, ease: curve.emphasizedDecelerate },
+  exit: { duration: dur.short4 / 1000, ease: curve.emphasizedAccelerate },
+  state: { duration: dur.short4 / 1000, ease: curve.standard },
 } as const;

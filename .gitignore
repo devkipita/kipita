@@ -35,7 +35,12 @@ coverage/
 
 # ── Agent skills / tooling (installed locally, not part of the app) ──
 .agents/
-.claude/
+.claude/*
+!.claude/settings.json
+!.claude/rules/
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/kipita-*/
 .impeccable/
 skills-lock.json
 

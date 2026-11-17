@@ -8,48 +8,77 @@ import {
   SkeletonStack,
   SrOnly,
 } from "@/components/ui/Shimmer";
+import { ALERT_TABS } from "@/lib/alerts/status";
+import { nocturne } from "@/lib/nocturne";
 
-const Head = styled.header`
-  padding: 20px 0 16px;
+const Tabs = styled.div`
+  display: flex;
+  overflow: hidden;
+  border-bottom: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
 `;
 
-const Title = styled.h1`
-  margin: 0 0 6px;
-  font-family: ${({ theme }) => theme.fontHeading};
-  font-size: clamp(26px, 4vw, 34px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: ${({ theme }) => theme.color.text};
+const Tab = styled.span<{ $active: boolean }>`
+  position: relative;
+  flex: 1 0 auto;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 0.875rem;
+  font-weight: ${({ $active }) => ($active ? 700 : 500)};
+  white-space: nowrap;
+  color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
+
+  &::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 0;
+    height: 3px;
+    border-radius: 3px;
+    background: ${({ $active }) => ($active ? nocturne.accent : "transparent")};
+  }
 `;
 
-const Lead = styled.p`
-  margin: 0;
-  font-size: 16px;
-  color: ${({ theme }) => theme.color.muted};
-`;
+const Toolbar = styled.div`
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 18px 2px 10px;
 
-const Composer = styled.div`
-  height: 72px;
-  margin: 18px 0 22px;
-  border-radius: 18px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  h1 {
+    margin: 0 0 6px;
+    font-size: 1.28rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: ${({ theme }) => theme.color.text};
+  }
 `;
 
 export default function Loading() {
   return (
     <Busy>
       <SrOnly>Loading road alerts</SrOnly>
-      <Head>
-        <Title>Road alerts</Title>
-        <Lead>What drivers are reporting right now.</Lead>
-      </Head>
-      <Composer aria-hidden />
-      <SkeletonStack $gap="16px" aria-hidden>
-        <SkeletonCard $h="150px" />
-        <SkeletonCard $h="132px" />
-        <SkeletonCard $h="166px" />
-        <Shimmer $w="40%" $h="14px" />
+      <Tabs aria-hidden>
+        {ALERT_TABS.map((t) => (
+          <Tab key={t.key} $active={t.key === "all"}>
+            {t.label}
+          </Tab>
+        ))}
+      </Tabs>
+      <Toolbar aria-hidden>
+        <div>
+          <h1>Road alerts</h1>
+          <Shimmer $w="72px" $h="12px" />
+        </div>
+        <Shimmer $w="112px" $h="44px" $r="999px" />
+      </Toolbar>
+      <SkeletonStack $gap="12px" aria-hidden>
+        <SkeletonCard $h="176px" />
+        <SkeletonCard $h="290px" />
+        <SkeletonCard $h="176px" />
       </SkeletonStack>
     </Busy>
   );

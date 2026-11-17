@@ -1,7 +1,5 @@
-import { RouteSkeleton } from "@/components/ui/RouteSkeleton";
+import { RideDetailSkeleton } from "@/components/rides/RideDetailSkeleton";
 
 export default function Loading() {
-  return (
-    <RouteSkeleton title="Ride" sections={[{ cards: 2, cardHeight: "200px" }]} />
-  );
+  return <RideDetailSkeleton />;
 }

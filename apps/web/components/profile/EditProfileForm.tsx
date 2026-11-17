@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import styled, { keyframes } from "styled-components";
@@ -16,7 +16,7 @@ import {
 } from "@/components/icons";
 import { updateProfileAction, type ActionState } from "@/lib/auth/actions";
 import type { Profile } from "@/lib/auth/types";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import {
   BareInput,
   Choice,
@@ -111,7 +111,7 @@ const Welcome = styled.div`
   font-size: 16.5px;
   font-weight: 600;
   line-height: 1.45;
-  animation: ${rise} 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ${rise} ${dur.enter} ${ease.enter} both;
 
   .burst {
     display: grid;
@@ -122,7 +122,7 @@ const Welcome = styled.div`
     border-radius: 50%;
     background: color-mix(in oklab, var(--n-lime) 22%, transparent);
     color: ${nocturne.lime};
-    animation: ${pop} 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+    animation: ${pop} ${dur.max} ${ease.enter} ${dur.press} both;
   }
 
   strong {
@@ -215,8 +215,8 @@ const Skip = styled.a`
   box-shadow: inset 0 -2px 0 ${RULE};
   padding-bottom: 2px;
   transition:
-    color 0.16s ease,
-    box-shadow 0.16s ease;
+    color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
 
   &:hover {
     color: ${nocturne.accent};
@@ -231,6 +231,29 @@ const Skip = styled.a`
     align-self: center;
   }
 `;
+
+const FieldHint = styled.p<{ $bad: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: ${({ $bad, theme }) => ($bad ? theme.color.dangerText : nocturne.muted2)};
+
+  span:last-child {
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+const NAME_MAX = 60;
+
+function nameProblem(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 2) return "Tell us your name";
+  if (trimmed.length > NAME_MAX) return "That name is a little long";
+  return "";
+}
 
 const GENDERS = [
   { value: "male", label: "Male" },
@@ -256,6 +279,10 @@ export function EditProfileForm({
   const [city, setCity] = useState(profile.city ?? "");
   const [dob, setDob] = useState(profile.date_of_birth ?? "");
   const [gender, setGender] = useState<string>(profile.gender ?? "");
+  const [nameTouched, setNameTouched] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const nameError = nameProblem(fullName);
+  const showNameError = nameTouched && nameError !== "";
 
   useEffect(() => {
     if (state.ok) {
@@ -303,20 +330,44 @@ export function EditProfileForm({
 
           <EditorRule />
 
-          <form action={action}>
+          <form
+            action={action}
+            onSubmit={(e) => {
+              if (!nameError) return;
+              e.preventDefault();
+              setNameTouched(true);
+              nameRef.current?.focus();
+            }}
+          >
         <Fields>
           <Field>
             <Legend htmlFor="profile-full-name">
               <User size={21} /> Full name
             </Legend>
             <BareInput
+              ref={nameRef}
               id="profile-full-name"
               name="full_name"
               value={fullName}
+              maxLength={NAME_MAX}
+              required
+              aria-invalid={showNameError}
+              aria-describedby="profile-full-name-hint"
               onChange={(e) => setFullName(e.target.value)}
+              onBlur={() => setNameTouched(true)}
               placeholder="Wanjiku Kamau"
               autoComplete="name"
             />
+            <FieldHint
+              id="profile-full-name-hint"
+              $bad={showNameError}
+              role={showNameError ? "alert" : undefined}
+            >
+              <span>{showNameError ? nameError : ""}</span>
+              <span>
+                {fullName.length}/{NAME_MAX}
+              </span>
+            </FieldHint>
           </Field>
 
           <Field>

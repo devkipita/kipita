@@ -7,15 +7,15 @@ import { Brand } from "@/components/ui/Brand";
 import { AnimatedHeading } from "@/components/anim/AnimatedHeading";
 import { Reveal } from "@/components/anim/Reveal";
 import { KenyaFlag } from "@/components/ui/KenyaFlag";
+import { nocturne } from "@/lib/nocturne";
 
-/* Panel palette — deep brand green, cream ink, lime pop. Independent of the
-   light/dark app theme so the left rail is always striking. */
 const PANEL = {
-  bg: "#0c3b28",
-  ink: "#f2f7ee",
-  muted: "#a9c6b3",
-  lime: "#dcffab",
-  line: "rgba(255,255,255,0.12)",
+  bg: nocturne.greenDeep,
+  ink: nocturne.onGreen,
+  muted: nocturne.onGreenMuted,
+  lime: nocturne.lime,
+  line: `color-mix(in srgb, ${nocturne.onGreen} 14%, transparent)`,
+  chip: `color-mix(in srgb, ${nocturne.onGreen} 9%, transparent)`,
 };
 
 const Grid = styled.div`
@@ -43,7 +43,6 @@ const Panel = styled.aside`
   }
 `;
 
-/* Repeated Kipita car-icon motif (cream on deep green) — texture, not noise. */
 const Texture = styled.div`
   position: absolute;
   inset: -10%;
@@ -55,15 +54,13 @@ const Texture = styled.div`
   transform: rotate(-8deg);
   mask-image: radial-gradient(
     115% 85% at 18% 12%,
-    #000 0%,
-    rgba(0, 0, 0, 0.45) 42%,
+    black 0%,
+    color-mix(in srgb, black 45%, transparent) 42%,
     transparent 72%
   );
   pointer-events: none;
 `;
 
-/* Wrapper styles the heading by tag to avoid clashing with AnimatedHeading's
-   own `as` prop (styled() would intercept `as`). */
 const PanelHeadWrap = styled.div`
   position: relative;
   h2 {
@@ -106,7 +103,7 @@ const Benefit = styled.li`
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.08);
+    background: ${PANEL.chip};
     color: ${PANEL.lime};
     flex: none;
   }
@@ -139,7 +136,6 @@ const TopBar = styled.div`
   margin-bottom: auto;
 `;
 
-/* Brand shows in the form column only when the rail is hidden (mobile). */
 const MobileBrand = styled(Brand)`
   display: none;
   @media (max-width: 960px) {
@@ -170,7 +166,6 @@ const FormArea = styled.div`
   }
 `;
 
-/** Two-pane auth layout: immersive brand rail + focused form column. */
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <Grid>

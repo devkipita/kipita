@@ -2,8 +2,23 @@
 
 import { createGlobalStyle } from "styled-components";
 import { nocturneDark, nocturneLight, nocturneVars } from "@/lib/nocturne";
+import { dur, ease } from "@/lib/motion";
 
 export const GlobalStyle = createGlobalStyle`
+  @property --sticky-top {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+  }
+
+  ::view-transition-group(*) {
+    animation-duration: ${dur.medium3}ms;
+    animation-timing-function: ${ease.emphasizedDecelerate};
+  }
+  ::view-transition-old(root) {
+    animation-duration: ${dur.short4}ms;
+  }
+
   :root {
     ${nocturneVars(nocturneLight)}
     --n-selection-fg: #ffffff;

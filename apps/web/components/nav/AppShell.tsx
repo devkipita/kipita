@@ -24,8 +24,10 @@ import type { SupportCase } from "@/lib/support/types";
 import type { AppMode } from "@/lib/home/mode";
 import { setModeAction } from "@/lib/home/mode-actions";
 import { BOTTOM_BAR_SPACE, TOPBAR_H, TOPBAR_H_SM } from "@/lib/nav/rail";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { barNavFor, primaryNavFor } from "./nav-items";
+import { useScrollChrome } from "./useScrollChrome";
+import { ViewTransitionBridge } from "@/lib/ui/viewTransition";
 import { AppTopBar } from "./AppTopBar";
 import { AppBottomNav } from "./AppBottomNav";
 import { NotificationToast } from "@/components/notifications/NotificationToast";
@@ -69,6 +71,12 @@ export const Shell = styled.div`
   }
   @media (max-width: 899px) {
     --bottom-bar-space: ${BOTTOM_BAR_SPACE}px;
+    transition: --sticky-top ${dur.enter} ${ease.standard};
+
+    &[data-chrome="hidden"] {
+      --sticky-top: 0px;
+      transition-timing-function: ${ease.exit};
+    }
   }
 `;
 
@@ -121,6 +129,8 @@ export function AppShell({
   const [kycOpen, setKycOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const afterKyc = useRef<(() => void) | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useScrollChrome(shellRef);
   const profileId = profile?.id ?? null;
   const canApply = kycStatus === "not_submitted" || kycStatus === "rejected";
 
@@ -195,7 +205,8 @@ export function AppShell({
   return (
     <Ctx.Provider value={ctx}>
       <SupportProvider initial={supportCases}>
-      <Shell>
+      <Shell ref={shellRef}>
+        <ViewTransitionBridge />
         <SkipToContent />
 
         {!chromeless && (

@@ -10,6 +10,7 @@ import {
 } from "@/lib/notifications/meta";
 import { notificationRoute } from "@/lib/notifications/route";
 import type { AppNotification } from "@/lib/notifications/types";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const rowBase = css<{ $unread: boolean }>`
   display: flex;
@@ -23,18 +24,21 @@ const rowBase = css<{ $unread: boolean }>`
   text-decoration: none;
   background: ${({ theme, $unread }) =>
     $unread ? theme.color.surface : "transparent"};
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background ${dur.state} ${ease.standard};
 
-  &:hover {
-    background: ${({ theme }) => theme.color.surface2};
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surface2};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
   }
 `;
 
 const RowLink = styled(Link)<{ $unread: boolean }>`
   ${rowBase}
-  &:hover {
-    transform: translateY(-1px);
-  }
 `;
 
 const RowButton = styled.button<{ $unread: boolean }>`
@@ -43,7 +47,7 @@ const RowButton = styled.button<{ $unread: boolean }>`
   font: inherit;
 `;
 
-const Lead = styled.span<{ $tone: NotifTone; $unread: boolean }>`
+const Lead = styled.span<{ $tone: NotifTone }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -51,7 +55,6 @@ const Lead = styled.span<{ $tone: NotifTone; $unread: boolean }>`
   height: 40px;
   border-radius: 50%;
   flex: none;
-  opacity: ${({ $unread }) => ($unread ? 1 : 0.55)};
   background: ${({ theme, $tone }) => notifToneColors(theme, $tone).bg};
   color: ${({ theme, $tone }) => notifToneColors(theme, $tone).on};
 `;
@@ -75,14 +78,14 @@ const Title = styled.span<{ $unread: boolean }>`
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.95rem;
-  font-weight: ${({ $unread }) => ($unread ? 800 : 700)};
+  font-weight: ${({ $unread }) => ($unread ? 800 : 600)};
   color: ${({ theme, $unread }) =>
     $unread ? theme.color.text : theme.color.textSoft};
 `;
 
 const Stamp = styled.span`
   flex: none;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: ${({ theme }) => theme.color.muted};
 `;
@@ -107,12 +110,6 @@ const Text = styled.span<{ $unread: boolean }>`
     $unread ? theme.color.textSoft : theme.color.muted};
 `;
 
-/**
- * One row in the inbox. Rows whose payload has a web destination navigate;
- * the rest (system messages, and targets that still only exist in the app)
- * are buttons that just clear the unread state — matching mobile, where
- * `notificationRoute` returning null means "mark read and stay put".
- */
 export function NotificationItem({
   notification,
   onOpen,
@@ -127,7 +124,7 @@ export function NotificationItem({
 
   const inner = (
     <>
-      <Lead $tone={meta.tone} $unread={unread}>
+      <Lead $tone={meta.tone}>
         <Icon size={19} strokeWidth={2.2} />
       </Lead>
       <Body>

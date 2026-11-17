@@ -1,29 +1,28 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import styled from "styled-components";
-import { ArrowRight, Check, MapPin, NavigationArrow, Users, Warning } from "@/components/icons";
-import { Drawer } from "@/components/ui/Drawer";
-import { nocturne } from "@/lib/nocturne";
+import { ArrowRight, Calendar, Check, MapPin, NavigationArrow, Users, Warning } from "@/components/icons";
+import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { createRideRequestAction } from "@/lib/home/posts";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
+const Body = styled(DrawerBody)`
   gap: 14px;
 `;
 
 const Lead = styled.p`
   margin: 0;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.5;
   color: ${nocturne.muted};
 `;
 
 const Summary = styled.dl`
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 12px 16px;
   margin: 0;
   padding: 16px;
@@ -42,9 +41,11 @@ const Summary = styled.dl`
   }
   dd {
     margin: 0;
+    min-width: 0;
     text-align: right;
     font-weight: 700;
     color: ${nocturne.cream};
+    overflow-wrap: anywhere;
   }
 `;
 
@@ -61,11 +62,12 @@ const Err = styled.p`
 
   svg {
     flex: none;
-    color: ${nocturne.ctaBg};
+    color: ${nocturne.danger};
   }
 `;
 
-const Primary = styled.button`
+
+const action = `
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -75,26 +77,55 @@ const Primary = styled.button`
   padding: 0 24px;
   border: none;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
   font: inherit;
   font-size: 17px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+`;
+
+const Primary = styled.button`
+  ${action}
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
 
   &:disabled {
     opacity: 0.6;
     cursor: progress;
   }
-  &:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 4px ${nocturne.ring};
+`;
+
+const SeeRequest = styled(Link)`
+  ${action}
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.greenDeep};
+    }
   }
 `;
 
-const DoneBox = styled.div`
+const DoneBox = styled(DrawerBody)`
+  align-items: center;
+  gap: 0;
   text-align: center;
-  padding: 12px 0 4px;
 
   .tick {
     display: grid;
@@ -103,8 +134,8 @@ const DoneBox = styled.div`
     height: 60px;
     margin: 0 auto 16px;
     border-radius: 50%;
-    background: ${nocturne.lime};
-    color: ${nocturne.greenDeep};
+    background: ${nocturne.green};
+    color: ${nocturne.onGreen};
   }
   h3 {
     margin: 0 0 8px;
@@ -114,26 +145,24 @@ const DoneBox = styled.div`
   p {
     margin: 0;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.5;
     color: ${nocturne.muted};
+    overflow-wrap: anywhere;
   }
 `;
 
 function dayLabel(date: string) {
   if (!date) return "Any day";
-  const d = new Date(`${date}T00:00:00`);
+  const d = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return "Any day";
-  return d.toLocaleDateString("en-KE", {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi",
     weekday: "long",
     day: "numeric",
     month: "short",
-  });
+  }).format(d);
 }
 
-/**
- * A passenger-side request: "nobody is driving this yet, tell drivers I want
- * it". Deliberately not the same thing as publishing a ride.
- */
 export function RequestRideDrawer({
   open,
   from,
@@ -150,7 +179,7 @@ export function RequestRideDrawer({
   onClose: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
+  const [postedId, setPostedId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function submit() {
@@ -174,27 +203,42 @@ export function RequestRideDrawer({
         setError(result.error);
         return;
       }
-      setDone(true);
+      setPostedId(result.id);
     });
   }
+
+  const done = postedId !== null;
 
   return (
     <Drawer
       open={open}
       onClose={() => {
-        setDone(false);
+        setPostedId(null);
         setError(null);
         onClose();
       }}
-      title={done ? "Request posted" : "Request this ride"}
+      title={done ? "Request posted" : "Ask drivers for this route"}
       dismissible={!pending}
       footer={
-        done ? undefined : (
-          <Primary type="button" onClick={submit} disabled={pending} aria-busy={pending}>
-            {pending ? <><ButtonOrb job="committing" /> Posting…</> : "Post my request"}
-            {!pending && <ArrowRight size={18} aria-hidden />}
-          </Primary>
-        )
+        <DrawerFooter>
+          {done ? (
+            <SeeRequest href={`/ride/${postedId}?kind=request`}>
+              See your request <ArrowRight size={18} aria-hidden />
+            </SeeRequest>
+          ) : (
+            <Primary type="button" onClick={submit} disabled={pending} aria-busy={pending}>
+              {pending ? (
+                <>
+                  <ButtonOrb job="committing" /> Posting request…
+                </>
+              ) : (
+                <>
+                  Post my request <ArrowRight size={18} aria-hidden />
+                </>
+              )}
+            </Primary>
+          )}
+        </DrawerFooter>
       }
     >
       {done ? (
@@ -204,16 +248,12 @@ export function RequestRideDrawer({
           </span>
           <h3>Drivers can see it now</h3>
           <p>
-            We will notify you as soon as a driver offers a seat on {from} to{" "}
-            {to}.
+            When a driver offers a seat to {to}, it shows up in your Kipita notifications.
           </p>
         </DoneBox>
       ) : (
         <Body>
-          <Lead>
-            No one has posted this route yet. Put in a request and drivers
-            heading that way will see it. You only pay once someone accepts.
-          </Lead>
+          <Lead>Drivers heading that way see your request. You pay only once one accepts.</Lead>
 
           <Summary>
             <dt>
@@ -231,7 +271,10 @@ export function RequestRideDrawer({
               Seats
             </dt>
             <dd>{seats}</dd>
-            <dt>When</dt>
+            <dt>
+              <Calendar size={18} aria-hidden />
+              When
+            </dt>
             <dd>{dayLabel(date)}</dd>
           </Summary>
 

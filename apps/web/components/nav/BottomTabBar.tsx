@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styled from "styled-components";
+import { m } from "motion/react";
 import { Z } from "@/lib/z";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
+import { spring } from "@/lib/motion";
 import { isNavItemActive, isNavItemCurrent, type NavItem } from "./nav-items";
-
-const EASE = "cubic-bezier(0.2, 0, 0, 1)";
 
 const Bar = styled.nav`
   position: fixed;
@@ -23,11 +23,15 @@ const Bar = styled.nav`
   align-items: center;
   padding: 0 4px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  box-shadow:
-    0 1px 2px rgba(8, 28, 20, 0.08),
-    0 8px 24px -8px rgba(8, 28, 20, 0.22);
+  box-shadow: ${({ theme }) => theme.shadow.card};
   border: 1px solid ${nocturne.line2};
   background: ${nocturne.surface};
+  transition: translate ${dur.enter} ${ease.enter};
+
+  [data-chrome="hidden"] & {
+    translate: 0 calc(100% + 24px);
+    transition: translate ${dur.exit} ${ease.exit};
+  }
 
   @media (min-width: 900px) {
     display: none;
@@ -50,9 +54,10 @@ const Item = styled(Link)`
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
-  transition: color 0.18s ${EASE};
+  transition: color ${dur.state} ${ease.standard};
 
   .well {
+    position: relative;
     display: grid;
     place-items: center;
     width: 100%;
@@ -60,8 +65,14 @@ const Item = styled(Link)`
     height: 26px;
     border-radius: 999px;
     transition:
-      background 0.22s ${EASE},
-      transform 0.22s ${EASE};
+      background ${dur.state} ${ease.standard},
+      transform ${dur.press} ${ease.standard};
+  }
+
+  .glyph {
+    position: relative;
+    display: grid;
+    place-items: center;
   }
 
   .label {
@@ -71,25 +82,17 @@ const Item = styled(Link)`
     letter-spacing: 0.01em;
   }
 
-  /* The current tab is a lime well under a deep-green glyph — the one
-     highlight inside the bar, matching the published design. */
   &[data-active="true"] {
     color: ${nocturne.greenDeep};
 
-    .well {
-      background: ${nocturne.lime};
-    }
     .label {
       font-weight: 800;
     }
   }
 
   @media (hover: hover) {
-    &:hover .well {
+    &[data-active="false"]:hover .well {
       background: color-mix(in oklab, ${nocturne.lime} 40%, transparent);
-    }
-    &[data-active="true"]:hover .well {
-      background: ${nocturne.lime};
     }
   }
 
@@ -100,14 +103,9 @@ const Item = styled(Link)`
 
   &:active .well {
     transform: scale(0.92);
-    background: color-mix(in oklab, ${nocturne.lime} 70%, transparent);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    .well {
-      transition: none;
-    }
     &:active .well {
       transform: none;
     }
@@ -120,19 +118,26 @@ const Item = styled(Link)`
   }
 `;
 
+const WellFill = styled(m.span)`
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: ${nocturne.lime};
+`;
+
 const Count = styled.span`
   position: absolute;
   top: 0;
   left: calc(50% + 10px);
   display: grid;
   place-items: center;
-  min-width: 17px;
-  height: 17px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 4px;
   border-radius: 999px;
   background: ${nocturne.ctaBg};
   color: ${nocturne.ctaFg};
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -149,7 +154,7 @@ export function BottomTabBar({
   const pathname = usePathname() ?? "/";
 
   return (
-    <Bar aria-label="Main">
+    <Bar aria-label="Main" data-chrome-bar="">
       {items.slice(0, 5).map((item) => {
         const Icon = item.icon;
         const active = isNavItemActive(item, pathname);
@@ -160,25 +165,23 @@ export function BottomTabBar({
             href={item.href}
             data-active={active ? "true" : "false"}
             aria-current={isNavItemCurrent(item, pathname) ? "page" : undefined}
-            aria-label={
-              count ? `${item.label}, ${count} new` : item.label
-            }
+            aria-label={count ? `${item.label}, ${count} new` : item.label}
           >
             <span className="well" aria-hidden="true">
-              <Icon
-                size={23}
-                weight={active ? "bold" : "regular"}
-                {...(active ? {} : { strokeWidth: 1.7 })}
-              />
+              {active ? <WellFill layoutId="bottom-tab-well" transition={spring.morph} /> : null}
+              <span className="glyph">
+                <Icon
+                  size={23}
+                  weight={active ? "bold" : "regular"}
+                  {...(active ? {} : { strokeWidth: 1.7 })}
+                />
+              </span>
             </span>
             <span className="label">{item.shortLabel}</span>
-            {count ? (
-              <Count aria-hidden="true">{count > 9 ? "9+" : count}</Count>
-            ) : null}
+            {count ? <Count aria-hidden="true">{count > 9 ? "9+" : count}</Count> : null}
           </Item>
         );
       })}
     </Bar>
   );
 }
-

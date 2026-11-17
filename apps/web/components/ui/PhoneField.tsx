@@ -69,10 +69,11 @@ export type PhoneFieldProps = {
   onChange: (digits: string) => void;
   invalid?: boolean;
   describedBy?: string;
+  placeholder?: string;
 };
 
 export const PhoneField = forwardRef<HTMLInputElement, PhoneFieldProps>(
-  function PhoneField({ id, value, onChange, invalid = false, describedBy }, ref) {
+  function PhoneField({ id, value, onChange, invalid = false, describedBy, placeholder = "7XX XXX XXX" }, ref) {
     return (
       <Shell $invalid={invalid}>
         <Prefix aria-hidden="true">
@@ -84,7 +85,7 @@ export const PhoneField = forwardRef<HTMLInputElement, PhoneFieldProps>(
           ref={ref}
           value={formatKeLocal(value)}
           onChange={(event) => onChange(normalizeKeLocal(event.target.value))}
-          placeholder="712 345 678"
+          placeholder={placeholder}
           inputMode="numeric"
           autoComplete="tel-national"
           maxLength={11}

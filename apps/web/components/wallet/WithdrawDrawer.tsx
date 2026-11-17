@@ -8,20 +8,27 @@ import {
   MIN_WITHDRAWAL,
   type WalletSummary,
 } from "@kipita/shared";
-import { CircleNotch as Loader2, HandCoins } from "@/components/icons";
+import {
+  CircleNotch as Loader2,
+  DeviceMobile,
+  HandCoins,
+} from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
-import { ButtonEl, Notice } from "@/components/ui/primitives";
+import { ButtonEl, ButtonLink, Notice } from "@/components/ui/primitives";
 import {
   WalletShortArt,
   WalletToPhoneArt,
 } from "@/components/ui/MoneyArt";
 import { AmountField } from "@/components/ui/AmountField";
-import { PhoneField } from "@/components/ui/PhoneField";
 import { FieldBlock, FieldError, FieldHead } from "@/components/home/fields";
-import { isValidKeLocal, normalizeKeLocal, toDaraja } from "@/lib/phone";
+import { dur, ease } from "@/lib/nocturne";
 import { requestWithdrawal } from "@/lib/wallet/api";
 
 type Stage = "form" | "sending" | "done" | "queued";
+
+export function maskKePhone(local: string): string {
+  return `0${local.slice(0, 1)}XX XXX ${local.slice(6, 9)}`;
+}
 
 const spin = keyframes`to { transform: rotate(360deg); }`;
 
@@ -36,7 +43,8 @@ const Summary = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   padding: 16px 18px;
   border-radius: ${({ theme }) => theme.radius.sm};
   background: ${({ theme }) => theme.color.surface2};
@@ -48,7 +56,34 @@ const Summary = styled.div`
   .amount {
     font-size: 1.3rem;
     font-weight: 800;
+    font-variant-numeric: tabular-nums;
     color: ${({ theme }) => theme.color.primary};
+  }
+`;
+
+const PaidTo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 16px;
+  border-radius: ${({ theme }) => theme.radius.sm};
+  border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
+
+  svg {
+    flex: none;
+    color: ${({ theme }) => theme.color.primary};
+  }
+  span {
+    font-size: 1rem;
+    font-weight: 600;
+    color: ${({ theme }) => theme.color.onSurfaceVariant};
+  }
+  b {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    color: ${({ theme }) => theme.color.onSurface};
   }
 `;
 
@@ -93,38 +128,62 @@ const Hint = styled.p`
 `;
 
 const MaxButton = styled.button`
-  justify-self: end;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 16px;
   border: none;
-  background: transparent;
-  padding: 0;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  color: ${({ theme }) => theme.color.primary};
   font: inherit;
-  font-size: ${({ theme }) => theme.type.micro};
+  font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   cursor: pointer;
-  color: ${({ theme }) => theme.color.primary};
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover {
-    text-decoration: underline;
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    }
   }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const Grow = styled(ButtonEl)`
+  flex: 1;
+`;
+
+const GrowLink = styled(ButtonLink)`
+  flex: 1;
 `;
 
 export function WithdrawDrawer({
   open,
   summary,
-  defaultPhone,
+  payoutPhone,
   onClose,
   onWithdrawn,
 }: {
   open: boolean;
   summary: WalletSummary;
-  defaultPhone?: string | null;
+  payoutPhone: string | null;
   onClose: () => void;
   onWithdrawn: () => void;
 }) {
   const [amount, setAmount] = useState("");
-  const [phone, setPhone] = useState(() =>
-    normalizeKeLocal(defaultPhone ?? ""),
-  );
   const [stage, setStage] = useState<Stage>("form");
   const [error, setError] = useState("");
   const amountRef = useRef<HTMLInputElement>(null);
@@ -135,19 +194,14 @@ export function WithdrawDrawer({
     setError("");
   }, [open]);
 
-  useEffect(() => {
-    const digits = normalizeKeLocal(defaultPhone ?? "");
-    if (digits) setPhone((current) => current || digits);
-  }, [defaultPhone]);
-
   const value = Number(amount);
   const busy = stage === "sending";
-  const phoneOk = isValidKeLocal(phone);
-  const phoneBad = phone.length > 0 && !phoneOk;
+  const settled = stage === "done" || stage === "queued";
   const amountOk = canWithdraw(summary, value);
   const amountBad = amount.length > 0 && !amountOk;
-  const valid = amountOk && phoneOk;
+  const valid = amountOk && payoutPhone !== null;
   const belowMinimum = summary.balance < MIN_WITHDRAWAL;
+  const masked = payoutPhone ? maskKePhone(payoutPhone) : "";
 
   async function submit() {
     if (!valid || busy) return;
@@ -155,10 +209,7 @@ export function WithdrawDrawer({
     setStage("sending");
 
     try {
-      const result = await requestWithdrawal({
-        amount: value,
-        phone: toDaraja(phone),
-      });
+      const result = await requestWithdrawal({ amount: value });
       setStage(result.status === "paid" ? "done" : "queued");
     } catch (err) {
       setError(
@@ -171,7 +222,7 @@ export function WithdrawDrawer({
   }
 
   function body() {
-    if (stage === "done" || stage === "queued") {
+    if (settled) {
       return (
         <Status>
           <WalletToPhoneArt />
@@ -182,8 +233,8 @@ export function WithdrawDrawer({
           </b>
           <p>
             {stage === "done"
-              ? `M-Pesa is sending ${formatKes(value)} to +254 ${phone}. It usually arrives within a minute.`
-              : `We've reserved ${formatKes(value)} from your balance and will send it to +254 ${phone} shortly.`}
+              ? `Sent to ${masked}. It usually lands within a minute.`
+              : `${formatKes(value)} is reserved for ${masked}.`}
           </p>
         </Status>
       );
@@ -191,12 +242,11 @@ export function WithdrawDrawer({
 
     if (busy) {
       return (
-        <Status>
+        <Status role="status">
           <span className="badge">
             <Spinner size={32} />
           </span>
           <b>Sending to M-Pesa…</b>
-          <p>Hold on while we move the money out of your Kipita wallet.</p>
         </Status>
       );
     }
@@ -207,10 +257,19 @@ export function WithdrawDrawer({
           <WalletShortArt />
           <b>Not enough to withdraw yet</b>
           <p>
-            The smallest withdrawal is {formatKes(MIN_WITHDRAWAL)}, and you have{" "}
-            {formatKes(summary.balance)} available. Finish a ride or top up to
-            build your balance.
+            The minimum is {formatKes(MIN_WITHDRAWAL)}. You have{" "}
+            {formatKes(summary.balance)}.
           </p>
+        </Status>
+      );
+    }
+
+    if (!payoutPhone) {
+      return (
+        <Status>
+          <WalletToPhoneArt />
+          <b>Verify your phone to withdraw</b>
+          <p>Payouts only go to a verified M-Pesa number.</p>
         </Status>
       );
     }
@@ -222,7 +281,11 @@ export function WithdrawDrawer({
           <span className="amount">{formatKes(summary.balance)}</span>
         </Summary>
 
-        {error && <Notice $variant="error">{error}</Notice>}
+        {error && (
+          <Notice $variant="error" role="alert">
+            {error}
+          </Notice>
+        )}
 
         <FieldBlock>
           <FieldHead>
@@ -243,92 +306,81 @@ export function WithdrawDrawer({
             Withdraw everything
           </MaxButton>
           {amountBad && (
-            <FieldError>
+            <FieldError role="alert">
               Enter between {formatKes(MIN_WITHDRAWAL)} and{" "}
               {formatKes(Math.floor(summary.balance))}.
             </FieldError>
           )}
         </FieldBlock>
 
-        <FieldBlock>
-          <FieldHead>
-            <label htmlFor="withdraw-phone">Send to M-Pesa number</label>
-          </FieldHead>
-          <PhoneField
-            id="withdraw-phone"
-            value={phone}
-            onChange={setPhone}
-            invalid={phoneBad}
-          />
-          {phoneBad && (
-            <FieldError>
-              That isn&apos;t a Kenyan mobile number. It should be nine digits
-              starting with 7 or 1.
-            </FieldError>
-          )}
-        </FieldBlock>
+        <PaidTo aria-label={`Paid to your verified number ending ${payoutPhone.slice(6, 9)}`}>
+          <DeviceMobile size={22} />
+          <span>
+            Paid to <b>{masked}</b>
+          </span>
+        </PaidTo>
 
         <Hint>
-          Minimum {formatKes(MIN_WITHDRAWAL)}. Money held in escrow for rides
-          that haven&apos;t finished can&apos;t be withdrawn yet.
+          Minimum {formatKes(MIN_WITHDRAWAL)}. Escrow can&apos;t be withdrawn.
         </Hint>
       </DrawerBody>
     );
   }
 
-  const settled = stage === "done" || stage === "queued";
+  function footer() {
+    if (busy) return undefined;
+    if (settled) {
+      return (
+        <DrawerFooter>
+          <Grow type="button" $compact onClick={onWithdrawn}>
+            Back to wallet
+          </Grow>
+        </DrawerFooter>
+      );
+    }
+    if (belowMinimum) {
+      return (
+        <DrawerFooter>
+          <Grow type="button" $variant="ghost" $compact onClick={onClose}>
+            Close withdrawal
+          </Grow>
+        </DrawerFooter>
+      );
+    }
+    if (!payoutPhone) {
+      return (
+        <DrawerFooter>
+          <ButtonEl type="button" $variant="ghost" $compact onClick={onClose}>
+            Close withdrawal
+          </ButtonEl>
+          <GrowLink href="/profile" $compact>
+            Open your profile
+          </GrowLink>
+        </DrawerFooter>
+      );
+    }
+    return (
+      <DrawerFooter>
+        <ButtonEl type="button" $variant="ghost" $compact onClick={onClose}>
+          Cancel withdrawal
+        </ButtonEl>
+        <Grow type="button" $compact onClick={submit} disabled={!valid}>
+          <HandCoins size={18} />
+          {amountOk ? `Withdraw ${formatKes(value)}` : "Withdraw"}
+        </Grow>
+      </DrawerFooter>
+    );
+  }
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={settled ? onWithdrawn : onClose}
       dismissible={!busy}
-      initialFocusRef={amountRef}
+      initialFocusRef={payoutPhone && !belowMinimum ? amountRef : undefined}
       size="sm"
       title="Withdraw to M-Pesa"
-      description="Move your Kipita balance to your phone."
-      footer={
-        settled ? (
-          <DrawerFooter>
-            <ButtonEl
-              type="button"
-              $compact
-              style={{ flex: 1 }}
-              onClick={onWithdrawn}
-            >
-              Done
-            </ButtonEl>
-          </DrawerFooter>
-        ) : busy ? undefined : belowMinimum ? (
-          <DrawerFooter>
-            <ButtonEl
-              type="button"
-              $variant="ghost"
-              $compact
-              style={{ flex: 1 }}
-              onClick={onClose}
-            >
-              Close
-            </ButtonEl>
-          </DrawerFooter>
-        ) : (
-          <DrawerFooter>
-            <ButtonEl type="button" $variant="ghost" $compact onClick={onClose}>
-              Cancel
-            </ButtonEl>
-            <ButtonEl
-              type="button"
-              $compact
-              style={{ flex: 1 }}
-              onClick={submit}
-              disabled={!valid}
-            >
-              <HandCoins size={18} />
-              Withdraw
-            </ButtonEl>
-          </DrawerFooter>
-        )
-      }
+      footer={footer()}
     >
       {body()}
     </Drawer>

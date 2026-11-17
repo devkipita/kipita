@@ -2,108 +2,95 @@
 
 import { useState, useTransition } from "react";
 import styled from "styled-components";
-import { ArrowOut, Check } from "@/components/icons";
+import { Check, Plus } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
-import { ButtonEl, Notice } from "@/components/ui/primitives";
+import { Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
-import { openSupportCaseAction } from "@/lib/support/actions";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-
-const Panel = styled.div`
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
-  overflow: hidden;
-`;
+import { HelpPanel, Unfold, rowLook } from "./helpRows";
 
 const Topic = styled.button<{ $open: boolean }>`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  width: 100%;
-  min-height: 60px;
-  padding: 14px 20px;
-  border: none;
-  background: transparent;
-  font: inherit;
-  font-family: ${({ theme }) => theme.font};
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  text-align: left;
-  cursor: pointer;
-  color: ${({ theme }) => theme.color.onSurface};
-
-  &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainer};
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -2px;
-  }
+  ${rowLook}
 
   svg {
-    flex: none;
-    color: ${({ theme, $open }) =>
-      $open ? theme.color.primary : theme.color.onSurfaceVariant};
-    transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
-    transition: transform 0.22s ease, color 0.22s ease;
-  }
-  &:hover svg {
-    color: ${({ theme }) => theme.color.primary};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    svg {
-      transition: none;
-    }
+    transform: rotate(${({ $open }) => ($open ? 45 : 0)}deg);
   }
 `;
 
-const Item = styled.div`
-  & + & {
-    border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-  }
-`;
-
-const Form = styled.div`
+const Form = styled(Unfold)`
   display: grid;
-  gap: 12px;
-  padding: 0 22px 22px;
+  gap: 10px;
 
   label {
-    font-size: 0.86rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    font-size: 13px;
+    font-weight: 800;
+    color: ${nocturne.muted};
   }
-
   textarea,
   select {
     width: 100%;
-    border: none;
-    border-radius: ${({ theme }) => theme.radius.xs};
-    padding: 11px 13px;
-    background: ${({ theme }) => theme.color.surfaceContainerHigh};
-    color: ${({ theme }) => theme.color.onSurface};
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: ${nocturne.surface2};
+    box-shadow: inset 0 0 0 1px ${nocturne.line};
+    color: ${nocturne.cream};
     font: inherit;
-    font-size: 0.96rem;
+    font-size: 16px;
   }
   textarea {
     min-height: 104px;
-    line-height: 1.55;
+    line-height: 1.5;
     resize: vertical;
   }
   textarea:focus-visible,
   select:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 1px;
+    outline: none;
+    box-shadow: inset 0 0 0 2px ${nocturne.accent};
   }
+`;
 
-  .acts {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+const Btns = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+`;
+
+const Btn = styled.button<{ $main?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  border-radius: 999px;
+  border: 2px solid ${({ $main }) => ($main ? "transparent" : nocturne.green)};
+  background: ${({ $main }) => ($main ? nocturne.green : nocturne.surface)};
+  color: ${({ $main }) => ($main ? nocturne.onGreen : nocturne.green)};
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform ${dur.press} ${ease.standard};
+
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
 
@@ -112,19 +99,18 @@ const Done = styled.p`
   align-items: center;
   gap: 10px;
   margin: 0;
-  padding: 16px 18px;
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.onSuccessContainer};
-  background: ${({ theme }) => theme.color.successContainer};
+  min-height: 76px;
+  font-size: 18px;
+  font-weight: 800;
+  color: ${nocturne.cream};
 
   svg {
     flex: none;
+    color: ${nocturne.green};
   }
 `;
 
 export function SupportPanel({ trips }: { trips: Booking[] }) {
-  // Opening a case is the provider's job — this component only collects it.
   const { openCase } = useSupport();
   const [topic, setTopic] = useState<string | null>(null);
   const [bookingId, setBookingId] = useState("");
@@ -146,7 +132,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
       });
 
       if (!result.ok) {
-        setError(result.error ?? "We couldn't open that case.");
+        setError(result.error ?? "We couldn't send that report.");
         return;
       }
 
@@ -159,29 +145,24 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
 
   if (done) {
     return (
-      <Panel>
+      <HelpPanel>
         <Done>
-          <Check size={18} />
-          Case opened. Track it from the Support button.
+          <Check size={20} weight="bold" />
+          Report sent
         </Done>
-      </Panel>
+      </HelpPanel>
     );
   }
 
   return (
-    <Panel>
+    <HelpPanel>
       {HELP_TOPICS.map((t) => {
         const open = topic === t.key;
         return (
-          <Item key={t.key}>
-            <Topic
-              type="button"
-              $open={open}
-              aria-expanded={open}
-              onClick={() => setTopic(open ? null : t.key)}
-            >
+          <div key={t.key}>
+            <Topic type="button" $open={open} aria-expanded={open} onClick={() => setTopic(open ? null : t.key)}>
               {t.subject}
-              <ArrowOut size={20} />
+              <Plus size={28} />
             </Topic>
 
             {open && (
@@ -191,11 +172,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                 {trips.length > 0 && (
                   <>
                     <label htmlFor="case-trip">Which trip?</label>
-                    <select
-                      id="case-trip"
-                      value={bookingId}
-                      onChange={(e) => setBookingId(e.target.value)}
-                    >
+                    <select id="case-trip" value={bookingId} onChange={(e) => setBookingId(e.target.value)}>
                       <option value="">Not about a specific trip</option>
                       {trips.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -213,33 +190,29 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                   value={detail}
                   maxLength={2000}
                   onChange={(e) => setDetail(e.target.value)}
-                  placeholder="Include times, names and what you expected."
+                  placeholder="Times, names, what you expected"
                 />
 
-                <div className="acts">
-                  <ButtonEl
+                <Btns>
+                  <Btn type="button" onClick={() => setTopic(null)}>
+                    Discard report
+                  </Btn>
+                  <Btn
                     type="button"
-                    $compact
-                    $variant="ghost"
-                    onClick={() => setTopic(null)}
-                  >
-                    Cancel
-                  </ButtonEl>
-                  <ButtonEl
-                    type="button"
-                    $compact
+                    $main
                     onClick={() => submit(t.subject, t.category)}
                     disabled={pending || detail.trim().length < 10}
                     aria-busy={pending}
                   >
-                    {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}
-                  </ButtonEl>
-                </div>
+                    {pending && <ButtonOrb job="committing" />}
+                    Send report
+                  </Btn>
+                </Btns>
               </Form>
             )}
-          </Item>
+          </div>
         );
       })}
-    </Panel>
+    </HelpPanel>
   );
 }

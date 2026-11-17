@@ -11,7 +11,7 @@ const Pill = styled.span<{ $accent: AccentName; $step: AccentStep }>`
   gap: 5px;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -19,7 +19,6 @@ const Pill = styled.span<{ $accent: AccentName; $step: AccentStep }>`
   background: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].bg};
   color: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].on};
 
-  /* Filled glyphs knock their inner marks out against the surface behind. */
   --icon-knockout: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].bg};
 
   svg {

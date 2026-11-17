@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
+import { nocturneDark, nocturneLight } from "@/lib/nocturne";
 import { landingFonts } from "@/components/landing/fonts";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -66,7 +67,10 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#f8f6ef",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: nocturneLight["--n-bg"] },
+    { media: "(prefers-color-scheme: dark)", color: nocturneDark["--n-bg"] },
+  ],
 };
 
 export default function RootLayout({

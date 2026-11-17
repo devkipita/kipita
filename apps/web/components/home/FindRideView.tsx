@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import styled, { css, keyframes } from "styled-components";
-import { ArrowRight, Car, SealCheck, SlidersHorizontal, Star } from "@/components/icons";
+import styled from "styled-components";
+import { ArrowClockwise, ArrowRight, MagnifyingGlass, SlidersHorizontal } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
+import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { ButtonEl } from "@/components/ui/primitives";
-import { nocturne } from "@/lib/nocturne";
-import { formatKes } from "@/lib/rides";
+import { BreakArt, DeadEndArt } from "@/components/ui/StatusArt";
+import { Shimmer } from "@/components/ui/Shimmer";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { HomeTrip } from "@/lib/home/search";
 import type { Profile } from "@/lib/auth/types";
 import { useHomeSearch } from "./useHomeSearch";
-import { FindRideSearchBar, type SearchBarValue } from "./FindRideSearchBar";
+import { FindRideSearchBar, SearchBarSkeleton, type SearchBarValue } from "./FindRideSearchBar";
 import { RequestRideDrawer } from "./RequestRideDrawer";
+import { RideCard, RideList, RideListSkeleton, isNewDriver } from "./RideCard";
 import {
   EMPTY_FILTERS,
   RideFilters,
@@ -23,13 +25,16 @@ import {
 
 type Sort = "time" | "price" | "rating";
 
-const SORTS: { key: Sort; label: string }[] = [
-  { key: "time", label: "Earliest departure" },
-  { key: "price", label: "Lowest price" },
-  { key: "rating", label: "Best rated" },
+const SORTS: { key: Sort; label: string; short: string }[] = [
+  { key: "time", label: "Earliest departure", short: "Earliest" },
+  { key: "price", label: "Lowest price", short: "Lowest price" },
+  { key: "rating", label: "Best rated", short: "Best rated" },
 ];
 
-const Page = styled.main`
+const PAGE = 6;
+const STAGGERED = 5;
+
+export const Page = styled.main`
   position: relative;
   min-height: 100vh;
   padding: 56px max(34px, calc((100% - 1212px) / 2)) 120px;
@@ -40,26 +45,27 @@ const Page = styled.main`
   }
 `;
 
-const Title = styled.h1`
+export const Title = styled.h1`
   margin: 0;
   font-size: clamp(32px, 5vw, 64px);
   line-height: 1.05;
   letter-spacing: -0.035em;
   color: ${nocturne.cream};
+  overflow-wrap: anywhere;
 `;
 
-const Layout = styled.div`
+export const Layout = styled.div`
   display: grid;
-  grid-template-columns: 215px 1fr;
+  grid-template-columns: 215px minmax(0, 1fr);
   gap: 32px;
   align-items: start;
 
   @media (max-width: 960px) {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
-const FilterCol = styled.aside`
+export const FilterCol = styled.aside`
   position: sticky;
   top: calc(var(--sticky-top, 0px) + 20px);
 
@@ -72,14 +78,16 @@ const Results = styled.section`
   min-width: 0;
 `;
 
-const Head = styled.div`
+export const Head = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
+  min-height: 44px;
   margin-bottom: 16px;
   font-size: 16px;
+  line-height: 22px;
   color: ${nocturne.muted};
 
   strong {
@@ -87,7 +95,7 @@ const Head = styled.div`
   }
 `;
 
-const HeadTools = styled.div`
+export const HeadTools = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
@@ -96,7 +104,7 @@ const HeadTools = styled.div`
     width: 100%;
     gap: 12px;
 
-    > button {
+    > * {
       flex: 1 1 0;
       min-width: 0;
       justify-content: center;
@@ -115,363 +123,101 @@ const SortGroup = styled.div`
   }
 `;
 
-const SortBtn = styled.button`
-  display: none;
-
-  @media (max-width: 760px) {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    border: 1px solid ${nocturne.line};
-    border-radius: 10px;
-    background: ${nocturne.surface};
-    color: ${nocturne.cream};
-    font: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-  }
-  &:focus-visible {
-    outline: none;
-    border-color: ${nocturne.accent};
-    box-shadow: 0 0 0 4px ${nocturne.ring};
-  }
-  small {
-    color: ${nocturne.muted};
-    font-size: 13px;
-    font-weight: 500;
-  }
-`;
-
-const SortOption = styled.button<{ $on: boolean }>`
-  display: flex;
+const toolButton = `
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  min-height: 52px;
+  gap: 8px;
+  min-height: 44px;
   padding: 0 16px;
-  border: none;
-  border-radius: 14px;
-  background: ${({ $on }) => ($on ? "#e5ffc3" : "transparent")};
-  color: ${({ $on }) => ($on ? "#12301f" : nocturne.cream)};
-  font: inherit;
-  font-size: 16px;
-  font-weight: ${({ $on }) => ($on ? 700 : 500)};
-  text-align: left;
-  cursor: pointer;
-
-  &:hover {
-    background: #e5ffc3;
-    color: #12301f;
-  }
-  .dot {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 2px solid ${({ $on }) => ($on ? "#12301f" : nocturne.line)};
-    background: ${({ $on }) => ($on ? "#12301f" : "transparent")};
-    box-shadow: ${({ $on }) => ($on ? "inset 0 0 0 3px #e5ffc3" : "none")};
-  }
-`;
-
-const Chip = styled.button<{ $on: boolean }>`
-  padding: 9px 15px;
-  border: 1px solid ${({ $on }) => ($on ? nocturne.accent : nocturne.line)};
-  border-radius: 10px;
-  background: ${({ $on }) => ($on ? nocturne.accent : nocturne.surface)};
-  color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.muted)};
+  border: 1px solid ${nocturne.outline};
+  border-radius: 999px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
   font: inherit;
   font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease;
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover {
-    border-color: ${nocturne.accent};
-    color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.surface2};
+    }
   }
-  &:focus-visible {
-    outline: none;
-    border-color: ${nocturne.accent};
-    box-shadow: 0 0 0 4px ${nocturne.ring};
-  }
-`;
-
-const FilterBtn = styled.button`
-  display: none;
-
-  @media (max-width: 960px) {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    border: 1px solid ${nocturne.line};
-    border-radius: 999px;
-    background: ${nocturne.surface};
-    color: ${nocturne.cream};
-    font: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
+  &:active {
+    transform: scale(0.97);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
-`;
-
-const rise = keyframes`
-  from { opacity: 0; transform: translateY(-14px) scale(0.985); }
-  60%  { opacity: 1; }
-  to   { opacity: 1; transform: none; }
-`;
-
-const List = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-`;
-
-const Card = styled.li<{ $i: number }>`
-  position: relative;
-  animation: ${rise} 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: ${({ $i }) => Math.min($i, 7) * 0.085}s;
-
   @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-const CardBody = styled.article`
-  position: relative;
-  display: grid;
-  grid-template-columns: 1.5fr 1.15fr 0.8fr;
-  align-items: center;
-  gap: 25px;
-  padding: 26px;
-  border-radius: 20px;
-  background: ${nocturne.surface};
-  border: 1px solid ${nocturne.cardBorder};
-  box-shadow: ${nocturne.cardShadow};
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    border-color: ${nocturne.accent};
-  }
-
-  @media (max-width: 960px) {
-    grid-template-columns: 1.4fr 1fr 0.8fr;
-    gap: 16px;
-  }
-  @media (max-width: 700px) {
-    grid-template-columns: 1fr auto;
-    gap: 18px;
-    padding: 22px 18px;
-  }
-`;
-
-const Badge = styled.span`
-  position: absolute;
-  top: -10px;
-  left: 20px;
-  padding: 5px 11px;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-`;
-
-const Route = styled.div`
-  display: flex;
-  gap: 12px;
-
-  @media (max-width: 700px) {
-    grid-column: 1 / -1;
-    padding-bottom: 16px;
-    border-bottom: 1px solid ${nocturne.line};
-  }
-`;
-
-const Timeline = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 12px;
-  padding: 7px 0;
-
-  i {
-    flex: none;
-    width: 10px;
-    height: 10px;
-    border: 2px solid ${nocturne.ctaBg};
-    border-radius: 50%;
-    background: ${nocturne.surface};
-  }
-  i:last-child {
-    border-color: ${nocturne.accent};
-  }
-  span {
-    flex: 1;
-    width: 1px;
-    min-height: 26px;
-    background: ${nocturne.line};
-  }
-`;
-
-const Times = styled.div`
-  flex: 1;
-  min-width: 0;
-
-  .leg {
-    display: grid;
-    grid-template-columns: 64px 1fr;
-    gap: 10px;
-    align-items: baseline;
-  }
-  .clock {
-    font-size: 17px;
-    font-weight: 700;
-    color: ${nocturne.cream};
-    font-variant-numeric: tabular-nums;
-  }
-  .place {
-    font-size: 16px;
-    color: ${nocturne.cream};
-  }
-  .day {
-    display: block;
-    margin: 8px 0 8px 74px;
-    font-size: 14px;
-    color: ${nocturne.muted2};
-  }
-`;
-
-const Driver = styled.div`
-  display: grid;
-  grid-template-columns: 46px 1fr;
-  align-items: center;
-  gap: 11px;
-
-  .who {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-  }
-  .who b {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 16px;
-    color: ${nocturne.cream};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .who b svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-  .meta {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 4px;
-    font-size: 14px;
-    color: ${nocturne.muted2};
-  }
-  .meta svg {
-    color: #e6a42f;
-  }
-  .car {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: 14px;
-    color: ${nocturne.muted2};
-  }
-
-  @media (max-width: 700px) {
-    grid-column: 1;
-    .car {
-      display: none;
+    &:active {
+      transform: none;
     }
   }
 `;
 
-const Avatar = styled.span`
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  overflow: hidden;
-  border-radius: 50%;
-  background: ${nocturne.sage};
-  color: ${nocturne.greenDeep};
-  font-size: 15px;
-  font-weight: 800;
+export const SortBtn = styled.button`
+  display: none;
 
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  @media (max-width: 760px) {
+    display: inline-flex;
+    ${toolButton}
   }
-`;
 
-const Price = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-
-  .amount {
-    font-size: 22px;
-    font-weight: 800;
-    color: ${nocturne.cream};
-  }
-  .per,
-  .seats {
-    font-size: 13px;
+  small {
     color: ${nocturne.muted2};
-  }
-
-  @media (max-width: 700px) {
-    grid-column: 2;
-    grid-row: 2;
+    font-size: 13px;
+    font-weight: 500;
   }
 `;
 
-const View = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 42px;
-  margin-top: 6px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 15px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition: filter 0.2s ease;
+export const FilterBtn = styled.button`
+  display: none;
 
-  &:hover {
-    filter: brightness(0.94);
+  @media (max-width: 960px) {
+    display: inline-flex;
+    ${toolButton}
+  }
+
+  .count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: ${nocturne.green};
+    color: ${nocturne.onGreen};
+    font-size: 12px;
+    font-weight: 700;
+  }
+`;
+
+const Chip = styled.button<{ $on: boolean }>`
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid ${({ $on }) => ($on ? nocturne.green : nocturne.outline)};
+  border-radius: 999px;
+  background: ${({ $on }) => ($on ? nocturne.green : nocturne.surface)};
+  color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    border-color ${dur.state} ${ease.standard};
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: ${nocturne.accent};
+    }
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -479,54 +225,71 @@ const View = styled(Link)`
   }
 `;
 
-const Empty = styled.div`
-  padding: 56px 28px;
+const StateCard = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 24px 40px;
   border-radius: 24px;
-  border: 1px solid ${nocturne.line};
+  border: 1px solid ${nocturne.cardBorder};
   background: ${nocturne.surface};
+  color: ${nocturne.muted2};
   text-align: center;
 
+  svg {
+    max-width: 260px;
+  }
   h2 {
-    margin: 0 0 10px;
-    font-size: clamp(24px, 3vw, 32px);
+    margin: 6px 0 0;
+    font-size: clamp(22px, 3vw, 28px);
+    line-height: 1.2;
     color: ${nocturne.cream};
+    overflow-wrap: anywhere;
   }
   p {
-    max-width: 48ch;
-    margin: 0 auto 22px;
-    font-size: 17px;
-    line-height: 1.6;
+    margin: 0 0 8px;
+    font-size: 16px;
+    line-height: 1.5;
     color: ${nocturne.muted};
   }
 `;
 
-const ctaStyle = css`
+const StateAction = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 50px;
-  padding: 0 26px;
+  min-height: 48px;
+  padding: 0 24px;
   border: none;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
   font: inherit;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.greenDeep};
+    }
+  }
+  &:active {
+    transform: scale(0.97);
+  }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
     outline-offset: 3px;
   }
-`;
-
-const Cta = styled(Link)`
-  ${ctaStyle}
-`;
-
-const CtaButton = styled.button`
-  ${ctaStyle}
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
 `;
 
 const Offers = styled.section`
@@ -547,23 +310,25 @@ const MoreBtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  min-height: 50px;
+  min-height: 48px;
   padding: 0 28px;
   border: 1px solid ${nocturne.accent};
   border-radius: 999px;
-  background: transparent;
+  background: ${nocturne.surface};
   color: ${nocturne.accent};
   font: inherit;
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition:
-    background 0.18s ease,
-    color 0.18s ease;
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
 
-  &:hover {
-    background: ${nocturne.accent};
-    color: ${nocturne.onGreen};
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.accent};
+      color: ${nocturne.onGreen};
+    }
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -576,92 +341,134 @@ const MoreNote = styled.span`
   color: ${nocturne.muted2};
 `;
 
-const PAGE = 6;
+const Half = styled(ButtonEl)`
+  flex: 1;
+  justify-content: center;
+`;
 
-function initials(name: string | null | undefined) {
-  return (name || "K")
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
+const FilterBody = styled(DrawerBody)`
+  padding-bottom: 12px;
+`;
+
+const SortList = styled.div`
+  display: grid;
+  gap: 2px;
+  min-width: 220px;
+`;
+
+const Check = styled.span<{ $on: boolean }>`
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  border-radius: 50%;
+  border: 2px solid ${({ $on }) => ($on ? nocturne.accent : nocturne.outline)};
+  box-shadow: ${({ $on }) => ($on ? `inset 0 0 0 4px ${nocturne.surface}` : "none")};
+  background: ${({ $on }) => ($on ? nocturne.accent : "transparent")};
+`;
+
+function ratingBand(t: HomeTrip) {
+  if (isNewDriver(t)) return 1;
+  return Number(t.person?.rating) >= 4 ? 0 : 2;
 }
 
-function dayLabel(date: string | null) {
-  if (!date) return "Flexible date";
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-KE", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
+function departureKey(t: HomeTrip) {
+  return `${t.departure_date ?? "9999"}${t.departure_time ?? ""}`;
 }
 
-function clock(time: string | null) {
-  return time ? time.slice(0, 5) : "--:--";
+function sortTrips(list: HomeTrip[], sort: Sort) {
+  const sorted = [...list];
+  if (sort === "price") {
+    sorted.sort((a, b) => a.price_per_seat - b.price_per_seat);
+  } else if (sort === "rating") {
+    sorted.sort((a, b) => {
+      const band = ratingBand(a) - ratingBand(b);
+      if (band) return band;
+      if (ratingBand(a) === 1) return departureKey(a).localeCompare(departureKey(b));
+      return Number(b.person?.rating) - Number(a.person?.rating);
+    });
+  } else {
+    sorted.sort((a, b) => departureKey(a).localeCompare(departureKey(b)));
+  }
+  return sorted;
 }
 
-function vehicleLabel(t: HomeTrip) {
-  const v = t.vehicle;
-  const parts = [v?.color, v?.make, v?.model].filter(Boolean);
-  return parts.length ? parts.join(" ") : "Verified ride";
+function StateBlock({
+  art,
+  title,
+  line,
+  action,
+}: {
+  art: ReactNode;
+  title: string;
+  line?: string;
+  action: ReactNode;
+}) {
+  return (
+    <StateCard>
+      {art}
+      <h2>{title}</h2>
+      {line ? <p>{line}</p> : null}
+      {action}
+    </StateCard>
+  );
 }
 
 export function FindRideView({
   profile,
   initialItems,
+  initialFailed = false,
   initialForm,
   offersSlot,
 }: {
   profile: Profile | null;
   initialItems: HomeTrip[];
+  initialFailed?: boolean;
   initialForm: SearchBarValue;
   offersSlot?: ReactNode;
 }) {
   const router = useRouter();
-  const search = useHomeSearch("passenger", initialItems);
+  const search = useHomeSearch("passenger", initialItems, initialFailed ? "error" : "ready");
   const [form, setForm] = useState<SearchBarValue>(initialForm);
   const [filters, setFilters] = useState<RideFilterState>(EMPTY_FILTERS);
   const [sort, setSort] = useState<Sort>("time");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
   const [shown, setShown] = useState(PAGE);
-  const [batchStart, setBatchStart] = useState(0);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [openSignal, setOpenSignal] = useState(0);
+  const [revealing, setRevealing] = useState(false);
+  const sortRef = useRef<HTMLButtonElement>(null);
+  const lastPhase = useRef(search.phase);
 
-  // A request needs a destination to be worth posting.
   const canRequest = form.to.trim().length >= 2;
+  const activeFilters = filters.times.length + filters.prefs.length;
 
   const trips = useMemo(
     () => search.items.filter((i): i is HomeTrip => i.kind === "trip"),
     [search.items],
   );
 
-  const visible = useMemo(() => {
-    const filtered = applyRideFilters(trips, filters);
-    const sorted = [...filtered];
-    if (sort === "price") {
-      sorted.sort((a, b) => a.price_per_seat - b.price_per_seat);
-    } else if (sort === "rating") {
-      sorted.sort(
-        (a, b) => Number(b.person?.rating ?? 0) - Number(a.person?.rating ?? 0),
-      );
-    } else {
-      sorted.sort((a, b) =>
-        `${a.departure_date ?? ""}${a.departure_time ?? ""}`.localeCompare(
-          `${b.departure_date ?? ""}${b.departure_time ?? ""}`,
-        ),
-      );
-    }
-    return sorted;
-  }, [trips, filters, sort]);
+  const visible = useMemo(
+    () => sortTrips(applyRideFilters(trips, filters), sort),
+    [trips, filters, sort],
+  );
 
   const page = useMemo(() => visible.slice(0, shown), [visible, shown]);
   const remaining = visible.length - page.length;
 
   useEffect(() => {
     setShown(PAGE);
-    setBatchStart(0);
   }, [filters, sort, trips]);
+
+  useEffect(() => {
+    const was = lastPhase.current;
+    lastPhase.current = search.phase;
+    if (was !== "searching" || search.phase !== "ready") return;
+    setRevealing(true);
+    const t = window.setTimeout(() => setRevealing(false), 600);
+    return () => window.clearTimeout(t);
+  }, [search.phase]);
 
   function runSearch(next: SearchBarValue) {
     setForm(next);
@@ -685,6 +492,15 @@ export function FindRideView({
     );
   }
 
+  function askDrivers() {
+    if (!profile) {
+      const back = new URLSearchParams({ from: form.from, to: form.to });
+      router.push(`/auth/sign-in?next=${encodeURIComponent(`/home?${back.toString()}`)}`);
+      return;
+    }
+    setRequestOpen(true);
+  }
+
   const heading =
     form.from && form.to
       ? `${form.from} to ${form.to}`
@@ -695,6 +511,86 @@ export function FindRideView({
           : "Every ride going your way";
 
   const busy = search.phase === "searching";
+  const failed = search.phase === "error";
+  const showTools = busy || (!failed && trips.length > 0);
+  const sortLabel = SORTS.find((s) => s.key === sort);
+
+  let results: ReactNode;
+  if (busy) {
+    results = <RideListSkeleton label="Searching rides" />;
+  } else if (failed) {
+    results = (
+      <StateBlock
+        art={<BreakArt />}
+        title="We couldn't load rides"
+        line="Check your connection and try again."
+        action={
+          <StateAction type="button" onClick={() => runSearch(form)}>
+            <ArrowClockwise size={18} aria-hidden /> Try again
+          </StateAction>
+        }
+      />
+    );
+  } else if (visible.length) {
+    results = (
+      <>
+        <RideList aria-label="Available rides">
+          {page.map((t, i) => (
+            <RideCard key={t.id} trip={t} order={revealing && i < STAGGERED ? i : null} />
+          ))}
+        </RideList>
+
+        {remaining > 0 && (
+          <MoreWrap>
+            <MoreBtn type="button" onClick={() => setShown((n) => n + PAGE)}>
+              See more rides
+            </MoreBtn>
+            <MoreNote aria-live="polite">
+              Showing {page.length} of {visible.length}
+            </MoreNote>
+          </MoreWrap>
+        )}
+      </>
+    );
+  } else if (trips.length) {
+    results = (
+      <StateBlock
+        art={<DeadEndArt />}
+        title="No rides match these filters"
+        action={
+          <StateAction type="button" onClick={() => setFilters(EMPTY_FILTERS)}>
+            Clear filters
+          </StateAction>
+        }
+      />
+    );
+  } else if (canRequest) {
+    results = (
+      <StateBlock
+        art={<DeadEndArt />}
+        title={`No rides to ${form.to.trim()} yet`}
+        line="Drivers heading that way will see your request."
+        action={
+          <StateAction type="button" onClick={askDrivers}>
+            Ask drivers for this route <ArrowRight size={18} aria-hidden />
+          </StateAction>
+        }
+      />
+    );
+  } else {
+    results = (
+      <StateBlock
+        art={<DeadEndArt />}
+        title="No rides posted yet"
+        line="Pick where you're going to see who's driving."
+        action={
+          <StateAction type="button" onClick={() => setOpenSignal((n) => n + 1)}>
+            <MagnifyingGlass size={18} aria-hidden /> Choose where you&apos;re going
+          </StateAction>
+        }
+      />
+    );
+  }
 
   return (
     <Page>
@@ -705,6 +601,7 @@ export function FindRideView({
         busy={busy}
         onSubmit={runSearch}
         onClear={() => runSearch({ from: "", to: "", date: "", seats: 1 })}
+        openSignal={openSignal}
       />
 
       <Layout>
@@ -715,182 +612,55 @@ export function FindRideView({
         <Results aria-busy={busy}>
           <Head>
             <span aria-live="polite">
-              <strong>
-                {visible.length} {visible.length === 1 ? "ride" : "rides"}
-              </strong>{" "}
-              available
+              {busy ? (
+                "Searching rides…"
+              ) : !failed && visible.length ? (
+                <>
+                  <strong>
+                    {visible.length} {visible.length === 1 ? "ride" : "rides"}
+                  </strong>{" "}
+                  available
+                </>
+              ) : null}
             </span>
-            <HeadTools>
-              <FilterBtn type="button" onClick={() => setSheetOpen(true)}>
-                <SlidersHorizontal size={18} aria-hidden />
-                Filters
-              </FilterBtn>
-              <SortBtn
-                type="button"
-                aria-haspopup="dialog"
-                onClick={() => setSortOpen(true)}
-              >
-                <small>Sort</small>
-                {SORTS.find((s) => s.key === sort)?.label.replace(" departure", "")}
-              </SortBtn>
-              <SortGroup role="group" aria-label="Sort rides">
-                {SORTS.map((s) => (
-                  <Chip
-                    key={s.key}
-                    type="button"
-                    $on={sort === s.key}
-                    aria-pressed={sort === s.key}
-                    onClick={() => setSort(s.key)}
-                  >
-                    {s.label}
-                  </Chip>
-                ))}
-              </SortGroup>
-            </HeadTools>
+            {showTools && (
+              <HeadTools>
+                <FilterBtn type="button" onClick={() => setSheetOpen(true)} aria-haspopup="dialog">
+                  <SlidersHorizontal size={18} aria-hidden />
+                  Filters
+                  {activeFilters > 0 && <span className="count">{activeFilters}</span>}
+                </FilterBtn>
+                <SortBtn
+                  ref={sortRef}
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={sortOpen}
+                  onClick={() => setSortOpen((v) => !v)}
+                >
+                  <small>Sort</small>
+                  {sortLabel?.short}
+                </SortBtn>
+                <SortGroup role="group" aria-label="Sort rides">
+                  {SORTS.map((s) => (
+                    <Chip
+                      key={s.key}
+                      type="button"
+                      $on={sort === s.key}
+                      aria-pressed={sort === s.key}
+                      onClick={() => setSort(s.key)}
+                    >
+                      {s.label}
+                    </Chip>
+                  ))}
+                </SortGroup>
+              </HeadTools>
+            )}
           </Head>
 
-          {visible.length ? (
-            <>
-            <List aria-label="Available rides">
-              {page.map((t, i) => (
-                <Card key={t.id} $i={Math.max(0, i - batchStart)}>
-                  <CardBody
-                    data-ride-card
-                    aria-label={`${t.from_location} to ${t.to_location}, ${formatKes(t.price_per_seat)} per passenger`}
-                  >
-                  {i === 0 && sort === "time" && <Badge>Best match</Badge>}
-
-                  <Route>
-                    <Timeline aria-hidden>
-                      <i />
-                      <span />
-                      <i />
-                    </Timeline>
-                    <Times>
-                      <div className="leg">
-                        <span className="clock">{clock(t.departure_time)}</span>
-                        <span className="place">{t.from_location}</span>
-                      </div>
-                      <span className="day">{dayLabel(t.departure_date)}</span>
-                      <div className="leg">
-                        <span className="clock" aria-hidden />
-                        <span className="place">{t.to_location}</span>
-                      </div>
-                    </Times>
-                  </Route>
-
-                  <Driver>
-                    <Avatar aria-hidden>
-                      {t.person?.avatar_url ? (
-                        <img src={t.person.avatar_url} alt="" />
-                      ) : (
-                        initials(t.person?.full_name)
-                      )}
-                    </Avatar>
-                    <span className="who">
-                      <b>
-                        {t.person?.full_name || "Kipita driver"}
-                        {t.person?.is_verified && (
-                          <SealCheck size={16} aria-label="Verified driver" />
-                        )}
-                      </b>
-                      <span className="meta">
-                        <Star size={14} weight="fill" aria-hidden />
-                        {Number(t.person?.rating ?? 0).toFixed(1)} ·{" "}
-                        {t.person?.total_trips ?? 0} trips
-                      </span>
-                    </span>
-                    <span className="car">
-                      <Car size={16} aria-hidden />
-                      {vehicleLabel(t)}
-                    </span>
-                  </Driver>
-
-                  <Price>
-                    <span className="amount">{formatKes(t.price_per_seat)}</span>
-                    <span className="per">per passenger</span>
-                    <span className="seats">
-                      {t.seats_available}{" "}
-                      {t.seats_available === 1 ? "seat" : "seats"} left
-                    </span>
-                    <View
-                      href={`/ride/${t.id}`}
-                      aria-label={`View ride from ${t.from_location} to ${t.to_location}`}
-                    >
-                      View ride <ArrowRight size={16} aria-hidden />
-                    </View>
-                  </Price>
-                  </CardBody>
-                </Card>
-              ))}
-
-            </List>
-
-            {remaining > 0 && (
-              <MoreWrap>
-                <MoreBtn
-                  type="button"
-                  onClick={() => {
-                    setBatchStart(shown);
-                    setShown((n) => n + PAGE);
-                  }}
-                >
-                  See more rides
-                </MoreBtn>
-                <MoreNote aria-live="polite">
-                  Showing {page.length} of {visible.length}
-                </MoreNote>
-              </MoreWrap>
-            )}
-            </>
-          ) : (
-            <Empty>
-              <h2>
-                {trips.length
-                  ? "No rides match these filters"
-                  : "No rides on this route yet"}
-              </h2>
-              <p>
-                {trips.length
-                  ? "Try clearing a filter or widening your departure window."
-                  : canRequest
-                    ? "Nobody is driving this route yet. Put in a request and drivers heading that way will see it."
-                    : "Nobody has posted this trip yet. Tell us where you are going and we will ask drivers for you."}
-              </p>
-              {trips.length ? (
-                <CtaButton
-                  type="button"
-                  onClick={() => setFilters(EMPTY_FILTERS)}
-                >
-                  Clear filters
-                </CtaButton>
-              ) : canRequest ? (
-                <CtaButton
-                  type="button"
-                  onClick={() => {
-                    if (!profile) {
-                      router.push(
-                        `/auth/sign-in?next=${encodeURIComponent(
-                          `/home?from=${form.from}&to=${form.to}`,
-                        )}`,
-                      );
-                      return;
-                    }
-                    setRequestOpen(true);
-                  }}
-                >
-                  Request this ride <ArrowRight size={18} aria-hidden />
-                </CtaButton>
-              ) : (
-                <Cta href="/home">
-                  Search a route <ArrowRight size={18} aria-hidden />
-                </Cta>
-              )}
-            </Empty>
-          )}
+          {results}
 
           {offersSlot ? (
-            <Offers aria-label="Offers and coupons" data-offers>
+            <Offers aria-label="Offers" data-offers>
               {offersSlot}
             </Offers>
           ) : null}
@@ -903,52 +673,50 @@ export function FindRideView({
         title="Filter rides"
         footer={
           <DrawerFooter>
-            <ButtonEl
+            <Half
               type="button"
               $variant="light"
-              style={{ flex: 1, justifyContent: "center" }}
-              disabled={!filters.times.length && !filters.prefs.length}
+              disabled={!activeFilters}
               onClick={() => setFilters(EMPTY_FILTERS)}
             >
-              Clear
-            </ButtonEl>
-            <ButtonEl
-              type="button"
-              $variant="primary"
-              style={{ flex: 1, justifyContent: "center" }}
-              onClick={() => setSheetOpen(false)}
-            >
+              Clear filters
+            </Half>
+            <Half type="button" $variant="primary" onClick={() => setSheetOpen(false)}>
               Show {visible.length} {visible.length === 1 ? "ride" : "rides"}
-            </ButtonEl>
+            </Half>
           </DrawerFooter>
         }
       >
-        <DrawerBody style={{ paddingBottom: 12 }}>
+        <FilterBody>
           <RideFilters value={filters} onChange={setFilters} hideReset />
-        </DrawerBody>
+        </FilterBody>
       </Drawer>
 
-      <Drawer
+      <Popover
         open={sortOpen}
         onClose={() => setSortOpen(false)}
-        title="Sort rides"
+        anchorRef={sortRef}
+        label="Sort rides"
+        align="end"
       >
-        {SORTS.map((s) => (
-          <SortOption
-            key={s.key}
-            type="button"
-            $on={sort === s.key}
-            aria-pressed={sort === s.key}
-            onClick={() => {
-              setSort(s.key);
-              setSortOpen(false);
-            }}
-          >
-            {s.label}
-            <span className="dot" aria-hidden="true" />
-          </SortOption>
-        ))}
-      </Drawer>
+        <SortList>
+          {SORTS.map((s) => (
+            <PopoverItem
+              key={s.key}
+              type="button"
+              role="menuitemradio"
+              aria-checked={sort === s.key}
+              onClick={() => {
+                setSort(s.key);
+                setSortOpen(false);
+              }}
+            >
+              {s.label}
+              <Check $on={sort === s.key} aria-hidden />
+            </PopoverItem>
+          ))}
+        </SortList>
+      </Popover>
 
       <RequestRideDrawer
         open={requestOpen}
@@ -958,6 +726,118 @@ export function FindRideView({
         seats={form.seats}
         onClose={() => setRequestOpen(false)}
       />
+    </Page>
+  );
+}
+
+const SkHead = styled(Head)`
+  .count {
+    width: 150px;
+  }
+`;
+
+const SkTool = styled.span`
+  display: none;
+  min-height: 44px;
+  border-radius: 999px;
+  border: 1px solid ${nocturne.line};
+  background: ${nocturne.surface};
+
+  &[data-tool="filter"] {
+    @media (max-width: 960px) {
+      display: block;
+      width: 112px;
+    }
+  }
+  &[data-tool="sort"] {
+    @media (max-width: 760px) {
+      display: block;
+    }
+  }
+  &[data-tool="chips"] {
+    display: block;
+    width: 400px;
+    border: none;
+    background: transparent;
+
+    @media (max-width: 760px) {
+      display: none;
+    }
+  }
+`;
+
+const SkChips = styled.span`
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+`;
+
+const SkFilters = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .legend {
+    margin-bottom: 4px;
+  }
+  .group {
+    height: 20px;
+  }
+`;
+
+const TitleBone = styled(Shimmer)`
+  height: calc(clamp(32px, 5vw, 64px) * 1.05);
+  width: min(620px, 82%);
+
+  @media (max-width: 640px) {
+    height: calc(clamp(32px, 5vw, 64px) * 2.1);
+    width: 78%;
+  }
+`;
+
+export function FindRideSkeleton() {
+  return (
+    <Page aria-busy="true" aria-label="Loading rides">
+      <TitleBone $r="12px" />
+      <SearchBarSkeleton />
+      <Layout>
+        <FilterCol aria-hidden>
+          <SkFilters>
+            <span className="legend">
+              <Shimmer $w="140px" $h="20px" />
+            </span>
+            {[0, 1, 2].map((i) => (
+              <Shimmer key={`t${i}`} $h="48px" $r="12px" />
+            ))}
+            <span className="group" />
+            <span className="legend">
+              <Shimmer $w="120px" $h="20px" />
+            </span>
+            {[0, 1, 2].map((i) => (
+              <Shimmer key={`p${i}`} $h="48px" $r="12px" />
+            ))}
+          </SkFilters>
+        </FilterCol>
+        <Results>
+          <SkHead aria-hidden>
+            <span className="count">
+              <Shimmer $w="150px" $h="16px" />
+            </span>
+            <HeadTools>
+              <SkTool data-tool="filter" />
+              <SkTool data-tool="sort" />
+              <SkTool data-tool="chips">
+                <SkChips>
+                  <Shimmer $w="170px" $h="44px" $r="999px" />
+                  <Shimmer $w="122px" $h="44px" $r="999px" />
+                  <Shimmer $w="106px" $h="44px" $r="999px" />
+                </SkChips>
+              </SkTool>
+            </HeadTools>
+          </SkHead>
+          <RideListSkeleton />
+        </Results>
+      </Layout>
     </Page>
   );
 }

@@ -1,4 +1,4 @@
-﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, PlusCircle, QuestionCircle as LifeBuoy, PlusSquare, SearchSpark, Ticket, Wallet } from "@/components/icons";
+﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, PlusCircle, QuestionCircle as LifeBuoy, SearchSpark, Ticket, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -114,7 +114,7 @@ export const SIGNED_OUT_NAV: NavItem[] = [
     href: "/publish",
     label: "Publish a ride",
     shortLabel: "Publish",
-    icon: PlusSquare,
+    icon: PlusCircle,
     owns: ["/publish"],
   },
   {
@@ -133,7 +133,7 @@ const PUBLISH_ITEM: NavItem = {
   href: "/publish",
   label: "Publish a ride",
   shortLabel: "Publish",
-  icon: PlusSquare,
+  icon: PlusCircle,
   owns: ["/publish"],
 };
 
@@ -256,7 +256,7 @@ export function bottomNavFor(): NavItem[] {
       shortLabel: "Find",
       icon: MagnifyingGlass,
     },
-    { ...PUBLISH_ITEM, shortLabel: "Post", icon: PlusCircle },
+    { ...PUBLISH_ITEM, shortLabel: "Post" },
     {
       key: "alerts",
       href: "/alerts",

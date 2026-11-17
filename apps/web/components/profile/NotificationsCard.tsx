@@ -1,43 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, Megaphone, Path as Route } from "@/components/icons";
+import styled from "styled-components";
+import { Bell, Check, Prohibit } from "@/components/icons";
 import { Switch } from "@/components/ui/Switch";
+import { nocturne } from "@/lib/nocturne";
 import { ControlRow, Panel } from "./SettingsUI";
 
-const KEY = "kipita-notif-prefs";
-type Prefs = { trips: boolean; promos: boolean };
-const DEFAULTS: Prefs = { trips: true, promos: false };
+type Permission = NotificationPermission | "unsupported" | null;
 
-/** Local notification preferences + a real browser-push permission toggle. */
+const State = styled.span<{ $on: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: ${({ $on }) => ($on ? nocturne.surface2 : nocturne.surface3)};
+  color: ${({ $on }) => ($on ? nocturne.accent : nocturne.muted)};
+`;
+
+const DESCRIPTION: Record<NotificationPermission | "unsupported", string> = {
+  default: "Alerts for new rides while Kipita is open",
+  granted: "On while Kipita is open. Turn off in your browser",
+  denied: "Blocked in your browser settings",
+  unsupported: "This browser can't show alerts",
+};
+
 export function NotificationsCard() {
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
-  const [push, setPush] = useState<NotificationPermission | "unsupported">("default");
+  const [push, setPush] = useState<Permission>(null);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(KEY);
-      if (raw) setPrefs({ ...DEFAULTS, ...JSON.parse(raw) });
-    } catch {}
     setPush(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
   }, []);
 
-  function save(next: Prefs) {
-    setPrefs(next);
-    try {
-      localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {}
-  }
-
-  async function togglePush(on: boolean) {
-    if (push === "unsupported") return;
-    if (on && push !== "granted") {
-      const res = await Notification.requestPermission();
-      setPush(res);
-    } else if (!on) {
-      // Browsers can't revoke programmatically — point the user to settings.
-      setPush(Notification.permission);
-    }
+  async function enable(on: boolean) {
+    if (!on || typeof Notification === "undefined") return;
+    setPush(await Notification.requestPermission());
   }
 
   return (
@@ -45,39 +46,25 @@ export function NotificationsCard() {
       <ControlRow
         icon={Bell}
         tone="amber"
-        title="Push notifications"
-        description={
-          push === "unsupported"
-            ? "Not supported on this device"
-            : push === "granted"
-              ? "On. You'll get ride alerts here"
-              : push === "denied"
-                ? "Blocked in your browser settings"
-                : "Get instant ride alerts"
-        }
-      >
-        <Switch
-          checked={push === "granted"}
-          onChange={togglePush}
-          label="Push notifications"
-        />
-      </ControlRow>
-      <ControlRow
-        icon={Route}
-        tone="green"
-        title="Trip updates"
-        description="Bookings, confirmations, and reminders"
-      >
-        <Switch checked={prefs.trips} onChange={(v) => save({ ...prefs, trips: v })} label="Trip updates" />
-      </ControlRow>
-      <ControlRow
-        icon={Megaphone}
-        tone="tan"
-        title="Offers & news"
-        description="Occasional promos. No spam"
+        title="Browser alerts"
+        description={push ? DESCRIPTION[push] : undefined}
         last
       >
-        <Switch checked={prefs.promos} onChange={(v) => save({ ...prefs, promos: v })} label="Offers and news" />
+        {push === "default" && (
+          <Switch checked={false} onChange={enable} label="Browser alerts" />
+        )}
+        {push === "granted" && (
+          <State $on>
+            <Check size={14} weight="bold" />
+            On
+          </State>
+        )}
+        {push === "denied" && (
+          <State $on={false}>
+            <Prohibit size={14} weight="bold" />
+            Blocked
+          </State>
+        )}
       </ControlRow>
     </Panel>
   );

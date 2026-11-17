@@ -1,0 +1,271 @@
+{
+  "apps/web/app/(app)/home/loading.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/app/(site)/help/page.tsx": {
+    "site-dynamic": 1
+  },
+  "apps/web/app/(site)/legal/layout.tsx": {
+    "site-dynamic": 1
+  },
+  "apps/web/app/(site)/page.tsx": {
+    "site-dynamic": 1
+  },
+  "apps/web/app/admin/login/page.tsx": {
+    "inline-style": 4
+  },
+  "apps/web/components/admin/FaqManager.tsx": {
+    "window-confirm": 1,
+    "inline-style": 2
+  },
+  "apps/web/components/admin/PromotionsManager.tsx": {
+    "window-confirm": 1,
+    "inline-style": 2
+  },
+  "apps/web/components/admin/RefundReview.tsx": {
+    "window-confirm": 1,
+    "inline-style": 5
+  },
+  "apps/web/components/admin/SupportInbox.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/admin/console/DisputesView.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/admin/console/DriversView.tsx": {
+    "rgb": 1,
+    "inline-style": 1,
+    "raw-img": 1
+  },
+  "apps/web/components/admin/console/EventsView.tsx": {
+    "hex": 5,
+    "inline-style": 2
+  },
+  "apps/web/components/admin/console/PaymentsView.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/admin/console/PricingView.tsx": {
+    "hex": 1,
+    "inline-style": 8
+  },
+  "apps/web/components/admin/console/Shell.tsx": {
+    "hex": 1,
+    "rgb": 1
+  },
+  "apps/web/components/admin/console/TripsView.tsx": {
+    "hex": 6
+  },
+  "apps/web/components/admin/console/UsersView.tsx": {
+    "inline-style": 2
+  },
+  "apps/web/components/admin/console/ui.tsx": {
+    "hex": 2,
+    "rgb": 4,
+    "inline-style": 1
+  },
+  "apps/web/components/alerts/AlertActions.tsx": {
+    "hex": 3
+  },
+  "apps/web/components/alerts/AlertCard.tsx": {
+    "rgb": 6,
+    "raw-img": 1
+  },
+  "apps/web/components/alerts/AlertComposerInline.tsx": {
+    "inline-style": 2,
+    "raw-img": 1
+  },
+  "apps/web/components/alerts/AlertThread.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/alerts/CommentRow.tsx": {
+    "raw-img": 1
+  },
+  "apps/web/components/anim/AnimatedHeading.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/auth/AuthShell.tsx": {
+    "hex": 5,
+    "rgb": 3
+  },
+  "apps/web/components/auth/ForgotPasswordForm.tsx": {
+    "inline-style": 4
+  },
+  "apps/web/components/auth/NewPasswordForm.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/auth/OAuthButtons.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/auth/SignInForm.tsx": {
+    "inline-style": 4
+  },
+  "apps/web/components/auth/SignUpForm.tsx": {
+    "inline-style": 4
+  },
+  "apps/web/components/driver/CarDialog.tsx": {
+    "hex": 7,
+    "rgb": 3
+  },
+  "apps/web/components/driver/DriverInvite.tsx": {
+    "rgb": 3
+  },
+  "apps/web/components/driver/DriverKycForm.tsx": {
+    "rgb": 14,
+    "hex": 16,
+    "layout-keyframe": 3,
+    "inline-style": 25,
+    "raw-img": 1
+  },
+  "apps/web/components/help/HelpContent.tsx": {
+    "hex": 11,
+    "rgb": 12
+  },
+  "apps/web/components/home/FindRideSearchBar.tsx": {
+    "hex": 3,
+    "inline-style": 1
+  },
+  "apps/web/components/home/FindRideView.tsx": {
+    "hex": 8,
+    "raw-img": 1,
+    "inline-style": 3
+  },
+  "apps/web/components/home/RideFilters.tsx": {
+    "hex": 3
+  },
+  "apps/web/components/home/RouteSearchForm.tsx": {
+    "inline-style": 3
+  },
+  "apps/web/components/icons/index.tsx": {
+    "hex": 8
+  },
+  "apps/web/components/landing/ContactDock.tsx": {
+    "hex": 24,
+    "rgb": 8,
+    "inline-style": 2
+  },
+  "apps/web/components/landing/StepArt.tsx": {
+    "hex": 3,
+    "rgb": 1
+  },
+  "apps/web/components/landing/SupportDock.tsx": {
+    "rgb": 3,
+    "hex": 2
+  },
+  "apps/web/components/landing/TrickleHeading.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/landing/WaitlistForm.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/landing/data.ts": {
+    "hex": 66
+  },
+  "apps/web/components/landing/icons.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/landing/search/HeroSearchBar.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/landing/sections/DownloadCta.tsx": {
+    "rgb": 3,
+    "hex": 1
+  },
+  "apps/web/components/landing/sections/DriverCta.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/landing/sections/Hero.tsx": {
+    "hex": 2,
+    "rgb": 10
+  },
+  "apps/web/components/landing/sections/LandingFooter.tsx": {
+    "rgb": 1
+  },
+  "apps/web/components/landing/sections/LandingNav.tsx": {
+    "rgb": 7
+  },
+  "apps/web/components/landing/sections/PopularRoutes.tsx": {
+    "rgb": 1
+  },
+  "apps/web/components/nav/AppTopBar.tsx": {
+    "hex": 7,
+    "rgb": 9
+  },
+  "apps/web/components/profile/Avatar.tsx": {
+    "raw-img": 1
+  },
+  "apps/web/components/profile/DateOfBirthField.tsx": {
+    "rgb": 2
+  },
+  "apps/web/components/profile/ProfileView.tsx": {
+    "hex": 3,
+    "inline-style": 2
+  },
+  "apps/web/components/providers/GlobalStyle.tsx": {
+    "hex": 3
+  },
+  "apps/web/components/publish/PublishMobile.tsx": {
+    "hex": 9,
+    "rgb": 3,
+    "layout-transition": 1,
+    "inline-style": 4
+  },
+  "apps/web/components/publish/PublishWeb.tsx": {
+    "rgb": 5,
+    "inline-style": 2
+  },
+  "apps/web/components/publish/WhenPicker.tsx": {
+    "rgb": 4
+  },
+  "apps/web/components/referrals/ReferralBanner.tsx": {
+    "hex": 12
+  },
+  "apps/web/components/rides/PaymentDrawer.tsx": {
+    "inline-style": 2
+  },
+  "apps/web/components/support/SupportDock.tsx": {
+    "hex": 2,
+    "rgb": 2,
+    "raw-img": 1
+  },
+  "apps/web/components/trips/RideProgress.tsx": {
+    "layout-keyframe": 2
+  },
+  "apps/web/components/trips/StageArt.tsx": {
+    "inline-style": 5
+  },
+  "apps/web/components/trips/TripMap.tsx": {
+    "hex": 2
+  },
+  "apps/web/components/trips/WhyKipita.tsx": {
+    "hex": 4,
+    "rgb": 1
+  },
+  "apps/web/components/ui/Brand.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/ui/ButtonOrb.tsx": {
+    "hex": 3,
+    "inline-style": 1
+  },
+  "apps/web/components/ui/IconBubble.tsx": {
+    "hex": 1
+  },
+  "apps/web/components/ui/KenyaFlag.tsx": {
+    "inline-style": 1,
+    "rgb": 1,
+    "hex": 9
+  },
+  "apps/web/components/ui/RouteSkeleton.tsx": {
+    "inline-style": 1
+  },
+  "apps/web/components/ui/StatusPage.tsx": {
+    "rgb": 1
+  },
+  "apps/web/components/ui/Switch.tsx": {
+    "hex": 1,
+    "rgb": 1
+  },
+  "apps/web/components/wallet/TopUpDrawer.tsx": {
+    "inline-style": 2
+  }
+}

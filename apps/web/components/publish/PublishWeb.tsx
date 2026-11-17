@@ -215,7 +215,7 @@ function CarGlyph({ size = 24 }: { size?: number }) {
 
 function TrashIcon() {
   return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
     </svg>
   );
@@ -294,20 +294,25 @@ const Discard = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 40px;
   border: 0;
-  background: transparent;
-  color: ${nocturne.muted2};
-  font-size: 13px;
+  background: ${nocturne.surface2};
+  color: ${nocturne.cream};
+  font-size: 15px;
   font-weight: 700;
-  padding: 6px 10px;
-  border-radius: 10px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
   ${ring}
 
   @media (hover: hover) {
     &:hover {
-      background: ${nocturne.surface2};
-      color: ${nocturne.cream};
+      background: color-mix(in oklab, var(--n-surface-2) 80%, var(--n-green));
     }
+  }
+  &:active {
+    background: color-mix(in oklab, var(--n-surface-2) 70%, var(--n-green));
   }
 `;
 
@@ -996,6 +1001,7 @@ export function PublishWeb({
   const sentenceRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
   const moved = useRef(false);
+  const detectedFrom = useRef("");
 
   useEffect(() => {
     const saved = loadDraft();
@@ -1043,6 +1049,7 @@ export function PublishWeb({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
+        detectedFrom.current = origin.town.name;
         setDraft((d) => (d.from ? d : { ...d, from: origin.town.name }));
         setGuessed(true);
       })
@@ -1113,7 +1120,8 @@ export function PublishWeb({
   function reset() {
     clearDraft();
     moved.current = true;
-    setDraft((d) => ({ ...blankDraft(), from: d.from }));
+    setDraft({ ...blankDraft(), from: detectedFrom.current });
+    setGuessed(!!detectedFrom.current);
     setCars(initialCars);
     setCarIndex(initialCars.length > 0 ? 0 : -1);
     setStep(0);

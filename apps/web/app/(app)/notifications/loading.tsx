@@ -1,10 +1,5 @@
-import { RouteSkeleton } from "@/components/ui/RouteSkeleton";
+import { NotificationsSkeleton } from "@/components/notifications/NotificationsSkeleton";
 
 export default function Loading() {
-  return (
-    <RouteSkeleton
-      title="Notifications"
-      sections={[{ cards: 5, cardHeight: "80px" }]}
-    />
-  );
+  return <NotificationsSkeleton />;
 }

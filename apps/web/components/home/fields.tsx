@@ -2,6 +2,7 @@
 
 import styled from "styled-components";
 import { Minus, Plus } from "@/components/icons";
+import { dur, ease } from "@/lib/nocturne";
 
 /**
  * Form atoms shared by the route planner, the post drawer, the KYC form and the
@@ -44,7 +45,7 @@ export const TextInput = styled.input`
   color: ${({ theme }) => theme.color.onSurface};
   font: inherit;
   font-size: ${({ theme }) => theme.type.body};
-  transition: background 0.16s ease, box-shadow 0.16s ease;
+  transition: background ${dur.press} ${ease.standard}, box-shadow ${dur.press} ${ease.standard};
 
   &::placeholder {
     color: ${({ theme }) => theme.color.onSurfaceVariant};
@@ -71,7 +72,7 @@ export const TextArea = styled.textarea`
   font: inherit;
   font-size: ${({ theme }) => theme.type.body};
   line-height: 1.5;
-  transition: background 0.16s ease, box-shadow 0.16s ease;
+  transition: background ${dur.press} ${ease.standard}, box-shadow ${dur.press} ${ease.standard};
 
   &::placeholder {
     color: ${({ theme }) => theme.color.onSurfaceVariant};
@@ -117,7 +118,7 @@ export const SegmentButton = styled.button<{ $active: boolean }>`
   font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background ${dur.press} ${ease.standard}, color ${dur.press} ${ease.standard};
   background: ${({ theme, $active }) =>
     $active ? theme.color.primaryContainer : "transparent"};
   color: ${({ theme, $active }) =>
@@ -147,7 +148,7 @@ export const Chip = styled.button<{ $active?: boolean }>`
   font-size: ${({ theme }) => theme.type.label};
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background ${dur.press} ${ease.standard}, color ${dur.press} ${ease.standard};
   background: ${({ theme, $active }) =>
     $active ? theme.color.primaryContainer : theme.color.surface2};
   color: ${({ theme, $active }) =>

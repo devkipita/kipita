@@ -1,9 +1,11 @@
 ﻿"use client";
 
 import Link from "next/link";
-import styled from "styled-components";
+import { useFormStatus } from "react-dom";
+import styled, { keyframes } from "styled-components";
 import { ContentWidth, useAppMode } from "@/components/nav/AppShell";
-import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Car, Cookie, FileText, Gift, Question as HelpCircle, Info, QuestionCircle, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { SealCheck as BadgeCheck, Bell, CalendarBlank as CalendarDays, Car, CircleNotch, Cookie, FileText, Gift, Question as HelpCircle, Info, QuestionCircle, SignOut as LogOut, Envelope as Mail, MapPin, Moon, Pencil, Phone, Receipt as ReceiptText, Shield, Star, UserCircle as UserRound, Wallet } from "@/components/icons";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { ToneName } from "@/lib/theme";
 import { Switch } from "@/components/ui/Switch";
 import { useThemeMode } from "@/components/providers/ThemeRuntimeProvider";
@@ -25,6 +27,11 @@ const Hero = styled.section`
   align-items: center;
   gap: 20px;
   padding: 8px 0 26px;
+
+  > div:last-child {
+    flex: 1;
+    min-width: 0;
+  }
 `;
 
 const Name = styled.h1`
@@ -32,6 +39,7 @@ const Name = styled.h1`
   font-weight: 800;
   margin: 0 0 6px;
   letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 `;
 
 const Pills = styled.div`
@@ -105,12 +113,13 @@ const EditLink = styled(Link)`
   border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
   background: ${({ theme }) => theme.color.surfaceContainerLow};
   color: ${({ theme }) => theme.color.onSurface};
-  font-size: 0.86rem;
+  min-height: 44px;
+  font-size: 0.875rem;
   font-weight: 700;
   transition:
-    background 0.18s ease,
-    border-color 0.18s ease,
-    color 0.18s ease;
+    background ${dur.state} ${ease.standard},
+    border-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
 
   svg {
     flex: none;
@@ -157,6 +166,7 @@ const Row = styled.div`
   .v {
     font-size: 1rem;
     font-weight: 600;
+    overflow-wrap: anywhere;
     color: ${({ theme }) => theme.color.text};
   }
   .v.empty {
@@ -165,58 +175,72 @@ const Row = styled.div`
   }
 `;
 
-const Actions = styled.div`
+const NotificationsPanel = styled(Panel)`
+  margin-bottom: 12px;
+`;
+
+const SignOutForm = styled.form`
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
   margin-top: 30px;
 `;
 
-const EditBtn = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  flex: 1;
-  min-width: 150px;
-  height: 52px;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: ${({ theme }) => theme.color.primary};
-  color: ${({ theme }) => theme.color.onPrimary};
-  font-weight: 700;
-  text-decoration: none;
-  border: none;
-  transition: background 0.2s ease, transform 0.15s ease;
-  &:hover {
-    background: ${({ theme }) => theme.color.primaryDark};
-    transform: translateY(-1px);
-  }
-`;
+const spin = keyframes`to { transform: rotate(360deg); }`;
 
-/* Deep red field, vivid red ink — an unmistakable danger action. */
 const SignOut = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
   flex: 1;
-  min-width: 150px;
-  height: 52px;
+  min-height: 52px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: none;
-  background: #3d1210;
-  color: #ff5a52;
+  border: 1.5px solid color-mix(in oklab, ${nocturne.danger} 34%, transparent);
+  background: color-mix(in oklab, ${nocturne.danger} 10%, transparent);
+  color: ${nocturne.danger};
+  font: inherit;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.15s ease;
-  &:hover {
-    background: #4d1815;
-    transform: translateY(-1px);
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  .spin {
+    animation: ${spin} 0.9s linear infinite;
   }
-  &:active {
-    transform: translateY(1px);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: color-mix(in oklab, ${nocturne.danger} 16%, transparent);
+    }
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.danger};
+    outline-offset: 3px;
+  }
+  &:disabled {
+    cursor: progress;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .spin {
+      animation: none;
+    }
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
+
+function SignOutButton() {
+  const { pending } = useFormStatus();
+  return (
+    <SignOut type="submit" disabled={pending} aria-busy={pending}>
+      {pending ? <CircleNotch className="spin" size={18} /> : <LogOut size={18} />}
+      {pending ? "Signing out…" : "Sign out"}
+    </SignOut>
+  );
+}
 
 const GENDER_LABEL: Record<string, string> = {
   male: "Male",
@@ -225,7 +249,15 @@ const GENDER_LABEL: Record<string, string> = {
   prefer_not_to_say: "Prefer not to say",
 };
 
-export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageCar[] }) {
+export function ProfileView({
+  profile,
+  cars,
+  carsError,
+}: {
+  profile: Profile;
+  cars: GarageCar[];
+  carsError: boolean;
+}) {
   const { mode, toggle } = useThemeMode();
   const {
     mode: appMode,
@@ -271,7 +303,7 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
           <Stat $tone="tan">
             <b>
               <Star size={20} weight="fill" />
-              {profile.rating?.toFixed(1) ?? "0.0"}
+              {profile.rating && profile.rating > 0 ? profile.rating.toFixed(1) : "New"}
             </b>
             <small>Rating</small>
           </Stat>
@@ -285,7 +317,7 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
           <SectionTitle>Details</SectionTitle>
           <EditLink href="/profile/edit">
             <Pencil size={16} />
-            Edit
+            Edit profile
           </EditLink>
         </SectionBar>
         <List>
@@ -383,7 +415,7 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
           </ControlRow>
         </Panel>
 
-        <DriverSection cars={cars} />
+        <DriverSection cars={cars} carsError={carsError} />
 
         <SectionTitle>Appearance</SectionTitle>
         <Panel>
@@ -393,7 +425,7 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
         </Panel>
 
         <SectionTitle>Notifications</SectionTitle>
-        <Panel style={{ marginBottom: 12 }}>
+        <NotificationsPanel>
           <LinkRow
             icon={Bell}
             title="Your notifications"
@@ -402,7 +434,7 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
             tone="blue"
             last
           />
-        </Panel>
+        </NotificationsPanel>
         <NotificationsCard />
 
         <SectionTitle>Help &amp; support</SectionTitle>
@@ -414,23 +446,16 @@ export function ProfileView({ profile, cars }: { profile: Profile; cars: GarageC
 
         <SectionTitle>Legal</SectionTitle>
         <Panel>
-          <LinkRow icon={Info} title="Privacy & Terms" description="Everything in one place" href="/legal" tone="mint" />
-          <LinkRow icon={Shield} title="Privacy Policy" href="/legal/privacy" tone="blue" />
-          <LinkRow icon={FileText} title="Terms of Service" href="/legal/terms" tone="green" />
-          <LinkRow icon={Cookie} title="Cookie Policy" href="/legal/cookies" tone="tan" />
-          <LinkRow icon={ReceiptText} title="Refund Policy" href="/legal/refunds" tone="amber" last />
+          <LinkRow icon={Info} title="Privacy and terms" description="Everything in one place" href="/legal" tone="mint" />
+          <LinkRow icon={Shield} title="Privacy policy" href="/legal/privacy" tone="blue" />
+          <LinkRow icon={FileText} title="Terms of service" href="/legal/terms" tone="green" />
+          <LinkRow icon={Cookie} title="Cookie policy" href="/legal/cookies" tone="tan" />
+          <LinkRow icon={ReceiptText} title="Refund policy" href="/legal/refunds" tone="amber" last />
         </Panel>
 
-        <Actions>
-          <EditBtn href="/profile/edit">
-            <Pencil size={18} /> Edit profile
-          </EditBtn>
-          <form action={signOutAction} style={{ flex: 1, display: "flex" }}>
-            <SignOut type="submit">
-              <LogOut size={18} /> Sign out
-            </SignOut>
-          </form>
-        </Actions>
+        <SignOutForm action={signOutAction}>
+          <SignOutButton />
+        </SignOutForm>
       </Wrap>
     </>
   );

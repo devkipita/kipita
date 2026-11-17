@@ -4,39 +4,35 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import {
+  CaretDown,
   Clock,
   Crosshair,
   Megaphone,
-  ArrowClockwise as RotateCw,
   SealCheck,
 } from "@/components/icons";
 import { ButtonEl } from "@/components/ui/primitives";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { BreakArt } from "@/components/ui/StatusArt";
+import { Popover, PopoverItem } from "@/components/ui/Popover";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 import { createClient } from "@/lib/supabase/client";
 import { fetchAlerts } from "@/lib/alerts/api";
-import { ALERT_META } from "@/lib/alerts/meta";
 import {
+  ALERT_TABS,
   SORT_LABEL,
   sortAlerts,
+  type AlertTab,
   type SortKey,
 } from "@/lib/alerts/status";
-import {
-  requestPreciseLocation,
-  withDistance,
-} from "@/lib/alerts/location";
+import { requestPreciseLocation, withDistance } from "@/lib/alerts/location";
 import { detectOrigin } from "@/lib/home/geo";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Alert } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { AlertCard } from "./AlertCard";
 import { AlertComposerInline } from "./AlertComposerInline";
 
-type Tab = "nearby" | "route" | "following" | "all";
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "nearby", label: "Nearby" },
-  { key: "route", label: "My route" },
-  { key: "following", label: "Following" },
-  { key: "all", label: "All Kenya" },
-];
+type Tab = AlertTab;
 
 const Wrap = styled.div`
   padding-bottom: 40px;
@@ -47,7 +43,7 @@ const TabBar = styled.div`
   top: var(--sticky-top, 0px);
   z-index: 5;
   display: flex;
-  background: ${({ theme }) => theme.color.bg}f2;
+  background: color-mix(in srgb, ${nocturne.bg} 95%, transparent);
   backdrop-filter: saturate(1.2) blur(10px);
   border-bottom: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
   overflow-x: auto;
@@ -60,34 +56,33 @@ const TabBar = styled.div`
 `;
 
 const TabButton = styled.button<{ $active: boolean }>`
+  position: relative;
   flex: 1 0 auto;
   min-height: 48px;
   padding: 0 18px;
   border: none;
+  border-radius: 12px;
   background: transparent;
   font: inherit;
   font-size: 0.875rem;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
-  color: ${({ theme, $active }) =>
-    $active ? theme.color.text : theme.color.muted};
+  color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
   cursor: pointer;
-  position: relative;
   white-space: nowrap;
+  transition: color ${dur.state} ${ease.standard};
 
-  &::after {
-    content: "";
-    position: absolute;
-    left: 18px;
-    right: 18px;
-    bottom: 0;
-    height: 2px;
-    border-radius: 2px 2px 0 0;
-    background: ${({ theme, $active }) =>
-      $active ? theme.color.primary : "transparent"};
+  .text {
+    position: relative;
+    z-index: 1;
   }
-
-  &:hover {
-    color: ${({ theme }) => theme.color.text};
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
   }
 `;
 
@@ -109,53 +104,72 @@ const Toolbar = styled.div`
   .count {
     margin: 2px 0 0;
     font-size: 0.82rem;
+    font-variant-numeric: tabular-nums;
     color: ${({ theme }) => theme.color.textSoft};
   }
 `;
 
-const Sorts = styled.div`
-  display: flex;
-  gap: 4px;
-`;
-
-const SortButton = styled.button<{ $active: boolean }>`
+const SortTrigger = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: 1px solid
-    ${({ theme, $active }) =>
-      $active ? "transparent" : theme.color.outlineVariant};
-  border-radius: ${({ theme }) => theme.radius.xs};
-  background: ${({ theme, $active }) =>
-    $active ? theme.color.secondaryContainer : "transparent"};
-  color: ${({ theme, $active }) =>
-    $active ? theme.color.onSecondaryContainer : theme.color.onSurfaceVariant};
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px 0 12px;
+  border: 1px solid ${nocturne.outline};
+  border-radius: 999px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
   font: inherit;
-  font-size: 0.85rem;
-  font-weight: ${({ $active }) => ($active ? 600 : 500)};
-  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
   white-space: nowrap;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
   svg {
     flex: none;
-    color: currentColor;
-    opacity: 0.8;
   }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: default;
+  .caret {
+    opacity: 0.72;
+    transition: transform ${dur.state} ${ease.standard};
   }
-  &:hover:not(:disabled) {
-    color: ${({ theme }) => theme.color.onSurface};
-    border-color: ${({ theme }) => theme.color.outline};
+  &[aria-expanded="true"] .caret {
+    transform: rotate(180deg);
   }
-
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.surface2};
+    }
+  }
+  &[aria-expanded="true"] {
+    background: ${nocturne.surface2};
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const SortItem = styled(PopoverItem)`
+  .hint {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 500;
+    color: ${nocturne.muted2};
+  }
+  &:disabled {
+    cursor: default;
+    color: ${nocturne.muted2};
   }
 `;
 
@@ -175,11 +189,13 @@ const ShowNew = styled.button`
   color: ${({ theme }) => theme.color.primary};
   font: inherit;
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 
-  &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainerLow};
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainerLow};
+    }
   }
 `;
 
@@ -208,10 +224,60 @@ const Empty = styled.div`
   }
 `;
 
+const Block = styled.div`
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 28px 16px 40px;
+  text-align: center;
+  color: ${nocturne.cream};
+
+  .art {
+    width: min(220px, 70%);
+    margin-bottom: 4px;
+  }
+  .glyph {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 4px;
+    border-radius: 999px;
+    background: ${nocturne.surface2};
+    color: ${nocturne.accent};
+  }
+  h2 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+    max-width: 40ch;
+    font-size: 15px;
+    line-height: 1.5;
+    color: ${nocturne.muted};
+  }
+  button {
+    margin-top: 8px;
+  }
+`;
+
 const More = styled.div`
-  display: flex;
-  justify-content: center;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
   padding: 20px 0;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${nocturne.danger};
+  }
 `;
 
 const PAGE = 20;
@@ -222,13 +288,18 @@ const SORT_ICON: Record<SortKey, typeof Clock> = {
   closest: Crosshair,
 };
 
+type FeedStatus = "ready" | "error" | "retrying";
+type Locating = "idle" | "asking" | "denied" | "unavailable";
+
 export function AlertsView({
   initialAlerts,
+  initialFailed = false,
   profile,
   followingIds,
   routeTowns,
 }: {
   initialAlerts: Alert[];
+  initialFailed?: boolean;
   profile: Profile | null;
   followingIds: string[];
   routeTowns: string[];
@@ -241,41 +312,46 @@ export function AlertsView({
   const [alerts, setAlerts] = useState<Alert[]>(initialAlerts);
   const [tab, setTab] = useState<Tab>("all");
   const [sort, setSort] = useState<SortKey>("newest");
-  const [status, setStatus] = useState<"ready" | "loading" | "error">("ready");
+  const [sortOpen, setSortOpen] = useState(false);
+  const [status, setStatus] = useState<FeedStatus>(initialFailed ? "error" : "ready");
+  const [paging, setPaging] = useState(false);
+  const [inlineFail, setInlineFail] = useState<{ offset: number } | null>(null);
   const [exhausted, setExhausted] = useState(initialAlerts.length < PAGE);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  // Alerts that arrived while the user was reading. They are held here rather
-  // than spliced into the feed, so nothing they are mid-way through moves.
+  const [locating, setLocating] = useState<Locating>("idle");
   const [pending, setPending] = useState<Alert[]>([]);
   const topRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLButtonElement>(null);
+  const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const alertsRef = useRef<Alert[]>(initialAlerts);
   alertsRef.current = alerts;
 
   const load = useCallback(
     async (offset = 0) => {
-      setStatus("loading");
+      const replacing = offset === 0;
+      const blank = alertsRef.current.length === 0;
+      setInlineFail(null);
+      if (replacing && blank) setStatus((s) => (s === "error" ? "retrying" : s));
+      if (!replacing) setPaging(true);
       try {
         const next = await fetchAlerts(createClient(), {
           offset,
           limit: PAGE,
           viewerId,
         });
-        setAlerts((prev) => (offset === 0 ? next : [...prev, ...next]));
+        setAlerts((prev) => (replacing ? next : [...prev, ...next]));
         setExhausted(next.length < PAGE);
         setStatus("ready");
       } catch {
-        setStatus("error");
+        if (replacing && blank) setStatus("error");
+        else setInlineFail({ offset });
+      } finally {
+        if (!replacing) setPaging(false);
       }
     },
     [viewerId],
   );
 
-  /**
-   * Stale-while-revalidate. Rows already on screen are refreshed in place, so
-   * counts and your own votes stay current. Rows that did not exist at last
-   * render go to `pending` instead of the feed — appending them would shift
-   * whatever the reader is looking at.
-   */
   const revalidate = useCallback(async () => {
     try {
       const fresh = await fetchAlerts(createClient(), { limit: PAGE, viewerId });
@@ -294,11 +370,10 @@ export function AlertsView({
         });
       }
     } catch {
-      // A failed background refresh must never disturb what is on screen.
+      return;
     }
   }, [viewerId]);
 
-  // The server render cannot know the viewer's own votes, so correct them once.
   useEffect(() => {
     if (!viewerId) return;
     void load(0);
@@ -349,9 +424,15 @@ export function AlertsView({
     };
   }, [revalidate]);
 
-  async function useMyLocation() {
+  async function locateMe() {
+    setLocating("asking");
     const outcome = await requestPreciseLocation();
-    if (outcome.ok) setCoords(outcome.coords);
+    if (outcome.ok) {
+      setCoords(outcome.coords);
+      setLocating("idle");
+      return;
+    }
+    setLocating(outcome.reason);
   }
 
   const withDist = useMemo(() => withDistance(alerts, coords), [alerts, coords]);
@@ -366,26 +447,25 @@ export function AlertsView({
     );
   }, [withDist, query]);
 
+  const locationOff = tab === "nearby" && !coords;
+
   const filtered = useMemo(() => {
-    const withDist = searched;
     if (tab === "following") {
       const set = new Set(followingIds);
-      return withDist.filter((a) => set.has(a.user_id));
+      return searched.filter((a) => set.has(a.user_id));
     }
     if (tab === "route") {
       const towns = routeTowns.map((t) => t.toLowerCase());
       if (towns.length === 0) return [];
-      return withDist.filter((a) =>
-        towns.some((t) => a.location.toLowerCase().includes(t)),
-      );
+      return searched.filter((a) => towns.some((t) => a.location.toLowerCase().includes(t)));
     }
     if (tab === "nearby") {
-      if (!coords) return withDist;
-      return withDist.filter(
+      if (!coords) return [];
+      return searched.filter(
         (a) => a.distance_km !== null && a.distance_km !== undefined && a.distance_km <= 60,
       );
     }
-    return withDist;
+    return searched;
   }, [searched, tab, followingIds, routeTowns, coords]);
 
   const shown = useMemo(() => sortAlerts(filtered, sort), [filtered, sort]);
@@ -401,6 +481,28 @@ export function AlertsView({
 
   function requireAuth() {
     router.push("/auth/sign-in?next=/alerts");
+  }
+
+  function selectTab(next: Tab, focus = false) {
+    setTab(next);
+    if (focus) tabRefs.current[next]?.focus();
+  }
+
+  function onTabKey(e: React.KeyboardEvent<HTMLDivElement>) {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!keys.includes(e.key)) return;
+    e.preventDefault();
+    const at = ALERT_TABS.findIndex((t) => t.key === tab);
+    const last = ALERT_TABS.length - 1;
+    const next =
+      e.key === "Home"
+        ? 0
+        : e.key === "End"
+          ? last
+          : e.key === "ArrowRight"
+            ? (at + 1) % ALERT_TABS.length
+            : (at - 1 + ALERT_TABS.length) % ALERT_TABS.length;
+    selectTab(ALERT_TABS[next].key, true);
   }
 
   const emptyCopy: Record<Tab, { title: string; body: string }> = {
@@ -422,26 +524,121 @@ export function AlertsView({
     },
   };
 
+  const SortIcon = SORT_ICON[sort];
+  const failed = status !== "ready";
+
+  let body;
+  if (failed) {
+    body = (
+      <Block role="alert">
+        <div className="art">
+          <BreakArt />
+        </div>
+        <h2>Alerts didn&rsquo;t load</h2>
+        <p>Check your connection and try again.</p>
+        <ButtonEl
+          type="button"
+          disabled={status === "retrying"}
+          aria-busy={status === "retrying"}
+          onClick={() => void load(0)}
+        >
+          {status === "retrying" ? (
+            <>
+              Loading <ButtonOrb job="fetching" />
+            </>
+          ) : (
+            "Reload alerts"
+          )}
+        </ButtonEl>
+      </Block>
+    );
+  } else if (locationOff) {
+    body = (
+      <Block>
+        <span className="glyph" aria-hidden>
+          <Crosshair size={28} />
+        </span>
+        <h2>Turn on location to see nearby alerts</h2>
+        {locating === "denied" && (
+          <p role="alert">Location is blocked for this site. Allow it in your browser settings.</p>
+        )}
+        {locating === "unavailable" && (
+          <p role="alert">Couldn&rsquo;t find you. Try again outdoors or with Wi-Fi on.</p>
+        )}
+        <ButtonEl
+          type="button"
+          disabled={locating === "asking"}
+          aria-busy={locating === "asking"}
+          onClick={() => void locateMe()}
+        >
+          {locating === "asking" ? (
+            <>
+              Finding you <ButtonOrb job="fetching" />
+            </>
+          ) : (
+            <>
+              <Crosshair size={18} aria-hidden /> Turn on location
+            </>
+          )}
+        </ButtonEl>
+      </Block>
+    );
+  } else if (shown.length === 0) {
+    body = (
+      <Empty>
+        <Megaphone size={26} />
+        <span>
+          <b>{emptyCopy[tab].title}</b>
+          <p>{emptyCopy[tab].body}</p>
+        </span>
+      </Empty>
+    );
+  } else {
+    body = (
+      <Feed>
+        {shown.map((alert) => (
+          <AlertCard
+            key={alert.id}
+            alert={alert}
+            viewerId={viewerId}
+            onChange={patch}
+            onDeleted={drop}
+            onRequireAuth={requireAuth}
+          />
+        ))}
+      </Feed>
+    );
+  }
+
+  const canPage = !failed && !exhausted && tab === "all" && shown.length > 0;
+
   return (
     <Wrap>
       <div ref={topRef} />
 
-      <TabBar role="tablist" aria-label="Alert feeds">
-        {TABS.map((t) => (
-          <TabButton
-            key={t.key}
-            role="tab"
-            type="button"
-            aria-selected={tab === t.key}
-            $active={tab === t.key}
-            onClick={() => {
-              setTab(t.key);
-              if (t.key === "nearby" && !coords) void useMyLocation();
-            }}
-          >
-            {t.label}
-          </TabButton>
-        ))}
+      <TabBar role="tablist" aria-label="Alert feeds" onKeyDown={onTabKey}>
+        {ALERT_TABS.map((t) => {
+          const active = tab === t.key;
+          return (
+            <TabButton
+              key={t.key}
+              ref={(el) => {
+                tabRefs.current[t.key] = el;
+              }}
+              id={`alerts-tab-${t.key}`}
+              role="tab"
+              type="button"
+              aria-selected={active}
+              aria-controls="alerts-panel"
+              tabIndex={active ? 0 : -1}
+              $active={active}
+              onClick={() => selectTab(t.key)}
+            >
+              {active && <TabIndicator group="alerts" tone="underline" />}
+              <span className="text">{t.label}</span>
+            </TabButton>
+          );
+        })}
       </TabBar>
 
       {profile && (
@@ -480,100 +677,116 @@ export function AlertsView({
         />
       )}
 
-      <Toolbar>
-        <div>
-          <h1>Road alerts</h1>
-          <p className="count">
-            {shown.length} {shown.length === 1 ? "report" : "reports"}
-          </p>
-        </div>
-        <Sorts role="group" aria-label="Sort alerts">
-          {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => {
-            const Icon = SORT_ICON[key];
-            return (
-              <SortButton
-                key={key}
-                type="button"
-                $active={sort === key}
-                disabled={key === "closest" && !coords}
-                title={
-                  key === "closest" && !coords
-                    ? "Turn on location to sort by distance"
-                    : undefined
-                }
-                onClick={() => setSort(key)}
-              >
-                <Icon size={16} />
-                {SORT_LABEL[key]}
-              </SortButton>
-            );
-          })}
-        </Sorts>
-      </Toolbar>
-
-      {pending.length > 0 && (
-        <ShowNew
-          type="button"
-          onClick={() => {
-            setAlerts((prev) => {
-              const seen = new Set(prev.map((a) => a.id));
-              return [...pending.filter((a) => !seen.has(a.id)), ...prev];
-            });
-            setPending([]);
-            topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }}
-        >
-          Show {pending.length} {pending.length === 1 ? "alert" : "alerts"}
-        </ShowNew>
-      )}
-
-      {status === "error" ? (
-        <Empty>
-          <RotateCw size={26} />
-          <span>
-            <b>We couldn&rsquo;t load alerts</b>
-            <p>Check your connection and try again.</p>
-            <ButtonEl type="button" $compact $variant="ghost" onClick={() => void load(0)}>
-              Try again
-            </ButtonEl>
-          </span>
-        </Empty>
-      ) : shown.length === 0 ? (
-        <Empty>
-          <Megaphone size={26} />
-          <span>
-            <b>{emptyCopy[tab].title}</b>
-            <p>{emptyCopy[tab].body}</p>
-          </span>
-        </Empty>
-      ) : (
-        <Feed>
-          {shown.map((alert) => (
-            <AlertCard
-              key={alert.id}
-              alert={alert}
-              viewerId={viewerId}
-              onChange={patch}
-              onDeleted={drop}
-              onRequireAuth={requireAuth}
-            />
-          ))}
-        </Feed>
-      )}
-
-      {!exhausted && tab === "all" && shown.length > 0 && (
-        <More>
-          <ButtonEl
+      <div id="alerts-panel" role="tabpanel" aria-labelledby={`alerts-tab-${tab}`}>
+        <Toolbar>
+          <div>
+            <h1>Road alerts</h1>
+            {!failed && !locationOff && (
+              <p className="count">
+                {shown.length} {shown.length === 1 ? "report" : "reports"}
+              </p>
+            )}
+          </div>
+          <SortTrigger
+            ref={sortRef}
             type="button"
-            $compact
-            $variant="ghost"
-            disabled={status === "loading"}
-            onClick={() => void load(alerts.length)}
+            aria-haspopup="menu"
+            aria-expanded={sortOpen}
+            aria-label={`Sort alerts: ${SORT_LABEL[sort]}`}
+            onClick={() => setSortOpen((v) => !v)}
           >
-            {status === "loading" ? "Loading…" : "Load more"}
-          </ButtonEl>
-        </More>
-      )}
+            <SortIcon size={18} aria-hidden />
+            {SORT_LABEL[sort]}
+            <CaretDown size={16} className="caret" aria-hidden />
+          </SortTrigger>
+        </Toolbar>
+
+        {pending.length > 0 && (
+          <ShowNew
+            type="button"
+            onClick={() => {
+              setAlerts((prev) => {
+                const seen = new Set(prev.map((a) => a.id));
+                return [...pending.filter((a) => !seen.has(a.id)), ...prev];
+              });
+              setPending([]);
+              topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          >
+            Show {pending.length} new {pending.length === 1 ? "alert" : "alerts"}
+          </ShowNew>
+        )}
+
+        {body}
+
+        {inlineFail ? (
+          <More role="alert">
+            <p>
+              {inlineFail.offset > 0
+                ? "Couldn’t load more alerts."
+                : "Couldn’t refresh alerts."}
+            </p>
+            <ButtonEl
+              type="button"
+              $compact
+              $variant="light"
+              onClick={() => void load(inlineFail.offset)}
+            >
+              {inlineFail.offset > 0 ? "Try loading more" : "Refresh alerts"}
+            </ButtonEl>
+          </More>
+        ) : canPage ? (
+          <More>
+            <ButtonEl
+              type="button"
+              $compact
+              $variant="light"
+              disabled={paging}
+              aria-busy={paging}
+              onClick={() => void load(alerts.length)}
+            >
+              {paging ? (
+                <>
+                  Loading <ButtonOrb job="fetching" on="surface" />
+                </>
+              ) : (
+                "Load more alerts"
+              )}
+            </ButtonEl>
+          </More>
+        ) : null}
+      </div>
+
+      <Popover
+        open={sortOpen}
+        onClose={() => setSortOpen(false)}
+        anchorRef={sortRef}
+        label="Sort alerts"
+        align="end"
+      >
+        {(Object.keys(SORT_LABEL) as SortKey[]).map((key) => {
+          const Icon = SORT_ICON[key];
+          const needsLocation = key === "closest" && !coords;
+          return (
+            <SortItem
+              key={key}
+              type="button"
+              role="menuitemradio"
+              aria-checked={sort === key}
+              disabled={needsLocation}
+              onClick={() => {
+                setSort(key);
+                setSortOpen(false);
+                sortRef.current?.focus({ preventScroll: true });
+              }}
+            >
+              <Icon size={18} aria-hidden />
+              {SORT_LABEL[key]}
+              {needsLocation && <span className="hint">Needs location</span>}
+            </SortItem>
+          );
+        })}
+      </Popover>
     </Wrap>
   );
 }

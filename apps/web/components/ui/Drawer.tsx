@@ -4,65 +4,45 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
+import { AnimatePresence, m, useDragControls, type PanInfo } from "motion/react";
 import { X } from "@/components/icons";
 import { lockScroll, unlockScroll } from "@/lib/ui/useScrollLock";
+import { spring, tween } from "@/lib/motion";
 
-/**
- * The app's modal primitive — a bottom sheet on phones, a centred dialog on
- * desktop. This is the web stand-in for mobile's `@gorhom/bottom-sheet`, and is
- * shared by the post form, the driver-KYC form and the alert composer.
- *
- * Nothing renders on the server: the portal is guarded by a `mounted` flag so
- * `StyledRegistry` never has to flush portal CSS during SSR and hydration can't
- * mismatch.
- */
-
-/* ── Escape handling ──────────────────────────────────────────────────────
-   Drawers nest (the composer opens over the alerts panel; KYC over the mode
-   toggle). A module-level stack means Escape only ever closes the topmost. */
 const stack: string[] = [];
 
 const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-/* ── Styles ── */
+const SHEET_QUERY = "(max-width: 859px)";
+const DISMISS_DISTANCE = 120;
+const DISMISS_VELOCITY = 600;
 
-const fade = keyframes`from { opacity: 0 } to { opacity: 1 }`;
-const riseUp = keyframes`
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-`;
-
-const Overlay = styled.div`
+const Overlay = styled(m.div)`
   position: fixed;
   inset: 0;
-  /* Clears every other layer: AppHeader 40, NotificationToast 60,
-     SupportDock 96, ScrollProgress 100. */
   z-index: 200;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: ${({ theme }) => theme.color.bg}b8;
+  background: color-mix(in oklab, ${({ theme }) => theme.color.bg} 72%, transparent);
   backdrop-filter: blur(6px);
-  animation: ${fade} 0.2s ease both;
 
   @media (min-width: 860px) {
     align-items: center;
     padding: 24px;
   }
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
 `;
 
-const Panel = styled.div<{ $size: "sm" | "md" | "lg" }>`
+const Panel = styled(m.div)<{ $size: "sm" | "md" | "lg" }>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -71,16 +51,28 @@ const Panel = styled.div<{ $size: "sm" | "md" | "lg" }>`
   background: ${({ theme }) => theme.color.surface};
   box-shadow: ${({ theme }) => theme.shadow.card};
   border-radius: ${({ theme }) => theme.radius.xl} ${({ theme }) => theme.radius.xl} 0 0;
-  animation: ${riseUp} 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
   outline: none;
+  will-change: transform;
 
   @media (min-width: 860px) {
     border-radius: ${({ theme }) => theme.radius.lg};
     max-width: ${({ $size }) =>
       $size === "sm" ? "420px" : $size === "lg" ? "760px" : "560px"};
   }
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+`;
+
+const Handle = styled.div`
+  flex: none;
+  touch-action: none;
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  @media (min-width: 860px) {
+    touch-action: auto;
+    cursor: auto;
   }
 `;
 
@@ -89,8 +81,7 @@ const Grip = styled.div`
   height: 4px;
   margin: 10px auto 0;
   border-radius: 999px;
-  flex: none;
-  background: ${({ theme }) => theme.color.outlineVariant};
+  background: ${({ theme }) => theme.color.outline};
 
   @media (min-width: 860px) {
     display: none;
@@ -103,7 +94,6 @@ const Head = styled.header`
   gap: ${({ theme }) => theme.space.md};
   padding: ${({ theme }) => theme.space.lg}
     ${({ theme }) => theme.space.xl} ${({ theme }) => theme.space.md};
-  flex: none;
 
   .copy {
     flex: 1;
@@ -138,7 +128,10 @@ const Close = styled.button`
   background: ${({ theme }) => theme.color.surfaceContainerHigh};
   color: ${({ theme }) => theme.color.onSurfaceVariant};
   cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.15s ease;
 
   @media (hover: hover) {
     &:hover {
@@ -148,13 +141,15 @@ const Close = styled.button`
   }
   &:active {
     background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    transform: scale(0.94);
   }
   &:disabled {
     opacity: 0.4;
     cursor: default;
   }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  &:focus-visible {
+    outline: 3px solid ${({ theme }) => theme.color.primary};
+    outline-offset: 2px;
   }
 `;
 
@@ -208,12 +203,23 @@ export type DrawerProps = {
   title: string;
   description?: string;
   size?: "sm" | "md" | "lg";
-  /** False while a submit is in flight — suppresses Escape, overlay and the X. */
   dismissible?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
   footer?: ReactNode;
   children: ReactNode;
 };
+
+export function useIsSheet(): boolean {
+  const [sheet, setSheet] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia(SHEET_QUERY);
+    const sync = () => setSheet(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return sheet;
+}
 
 export function Drawer({
   open,
@@ -230,12 +236,9 @@ export function Drawer({
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
   const id = useId();
+  const sheet = useIsSheet();
+  const drag = useDragControls();
 
-  // Callers pass `onClose` as an inline arrow and `dismissible` flips while a
-  // submit is in flight. Reading both through refs keeps the effect below
-  // dependent on `open` alone — otherwise it would tear down and re-run on
-  // every parent render, stealing focus mid-keystroke and thrashing the
-  // scroll lock.
   const onCloseRef = useRef(onClose);
   const dismissibleRef = useRef(dismissible);
   const initialFocusRefRef = useRef(initialFocusRef);
@@ -245,21 +248,32 @@ export function Drawer({
 
   useEffect(() => setMounted(true), []);
 
-  // Own the Escape stack, the scroll lock, and focus restoration together —
-  // they share exactly the same lifetime.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && !panel?.contains(active)) restoreRef.current = active;
+    const trigger = restoreRef.current;
+    if (!panel || sheet) return;
+    const from = trigger && trigger !== document.body ? trigger.getBoundingClientRect() : null;
+    const box = panel.getBoundingClientRect();
+    panel.style.transformOrigin = from
+      ? `${from.left + from.width / 2 - box.left}px ${from.top + from.height / 2 - box.top}px`
+      : "50% 50%";
+  }, [open, sheet, mounted]);
+
   useEffect(() => {
     if (!open) return;
 
     stack.push(id);
     lockScroll();
-    restoreRef.current = document.activeElement as HTMLElement | null;
 
     const focusTarget = initialFocusRefRef.current?.current ?? panelRef.current;
-    focusTarget?.focus();
+    focusTarget?.focus({ preventScroll: true });
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (stack[stack.length - 1] !== id) return; // not the topmost drawer
+      if (stack[stack.length - 1] !== id) return;
       if (!dismissibleRef.current) return;
       event.stopPropagation();
       onCloseRef.current();
@@ -271,7 +285,7 @@ export function Drawer({
       const at = stack.indexOf(id);
       if (at !== -1) stack.splice(at, 1);
       unlockScroll();
-      restoreRef.current?.focus();
+      restoreRef.current?.focus({ preventScroll: true });
     };
   }, [open, id]);
 
@@ -298,45 +312,73 @@ export function Drawer({
     }
   }, []);
 
-  if (!mounted || !open) return null;
+  const startDrag = (event: React.PointerEvent) => {
+    if (!sheet || !dismissible) return;
+    if ((event.target as HTMLElement).closest("button")) return;
+    drag.start(event);
+  };
+
+  const endDrag = (_: unknown, info: PanInfo) => {
+    if (!dismissibleRef.current) return;
+    if (info.offset.y > DISMISS_DISTANCE || info.velocity.y > DISMISS_VELOCITY) onCloseRef.current();
+  };
+
+  if (!mounted) return null;
 
   return createPortal(
-    <Overlay
-      // mousedown, not click: a text selection that starts inside the panel and
-      // releases on the scrim should not close the drawer.
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && dismissible) onClose();
-      }}
-    >
-      <Panel
-        ref={panelRef}
-        $size={size}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-title`}
-        aria-describedby={description ? `${id}-desc` : undefined}
-        tabIndex={-1}
-        onKeyDown={trapTab}
-      >
-        <Grip />
-        <Head>
-          <div className="copy">
-            <h2 id={`${id}-title`}>{title}</h2>
-            {description && <p id={`${id}-desc`}>{description}</p>}
-          </div>
-          <Close
-            type="button"
-            onClick={onClose}
-            disabled={!dismissible}
-            aria-label="Close"
+    <AnimatePresence>
+      {open && (
+        <Overlay
+          key="drawer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: tween.enter }}
+          exit={{ opacity: 0, transition: tween.exit }}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && dismissible) onClose();
+          }}
+        >
+          <Panel
+            ref={panelRef}
+            $size={size}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={`${id}-title`}
+            aria-describedby={description ? `${id}-desc` : undefined}
+            tabIndex={-1}
+            onKeyDown={trapTab}
+            drag={sheet ? "y" : false}
+            dragControls={drag}
+            dragListener={false}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0.04, bottom: 1 }}
+            onDragEnd={endDrag}
+            initial={sheet ? { y: "100%" } : { opacity: 0, scale: 0.9 }}
+            animate={sheet ? { y: 0, transition: spring.sheet } : { opacity: 1, scale: 1, transition: spring.morph }}
+            exit={sheet ? { y: "100%", transition: tween.exit } : { opacity: 0, scale: 0.94, transition: tween.exit }}
           >
-            <X size={20} weight="bold" />
-          </Close>
-        </Head>
-        {children}
-        {footer}
-      </Panel>
-    </Overlay>,
+            <Handle onPointerDown={startDrag}>
+              <Grip />
+              <Head>
+                <div className="copy">
+                  <h2 id={`${id}-title`}>{title}</h2>
+                  {description && <p id={`${id}-desc`}>{description}</p>}
+                </div>
+                <Close
+                  type="button"
+                  onClick={onClose}
+                  disabled={!dismissible}
+                  aria-label={`Close ${title}`}
+                >
+                  <X size={20} weight="bold" />
+                </Close>
+              </Head>
+            </Handle>
+            {children}
+            {footer}
+          </Panel>
+        </Overlay>
+      )}
+    </AnimatePresence>,
     document.body,
   );
 }

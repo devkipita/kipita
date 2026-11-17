@@ -13,8 +13,6 @@ type PageProps = {
 
 export const metadata: Metadata = {
   title: "Ride",
-  // Ride rows churn constantly and often name real people — keep them out of
-  // search results even though the tables themselves are world-readable.
   robots: { index: false, follow: false },
 };
 
@@ -28,11 +26,14 @@ export default async function RidePage({ params, searchParams }: PageProps) {
   ]);
 
   if (!ride) notFound();
+
+  const settingsLoaded = Object.keys(platform.settings).length > 0;
+
   return (
     <RideDetailView
       ride={ride}
       profile={profile}
-      fareConfig={fareConfigFromSettings(platform.settings)}
+      fareConfig={settingsLoaded ? fareConfigFromSettings(platform.settings) : null}
     />
   );
 }

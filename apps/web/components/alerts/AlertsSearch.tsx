@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { MagnifyingGlass as Search, X } from "@/components/icons";
+import { nocturne } from "@/lib/nocturne";
 
 const Shell = styled.div`
   position: relative;
@@ -14,7 +15,7 @@ const Shell = styled.div`
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${nocturne.muted};
     pointer-events: none;
   }
 `;
@@ -22,19 +23,19 @@ const Shell = styled.div`
 const Input = styled.input`
   width: 100%;
   min-height: 46px;
-  padding: 0 42px;
+  padding: 0 48px 0 42px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.text};
+  border: 1px solid ${nocturne.outline};
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
   font: inherit;
-  font-size: 0.95rem;
+  font-size: 16px;
 
   &::placeholder {
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${nocturne.muted};
   }
   &:focus {
-    border-color: ${({ theme }) => theme.color.primary};
+    border-color: ${nocturne.accent};
   }
   &:focus:not(:focus-visible) {
     outline: none;
@@ -43,22 +44,22 @@ const Input = styled.input`
 
 const Clear = styled.button`
   position: absolute;
-  right: 6px;
+  right: 1px;
   top: 50%;
   transform: translateY(-50%);
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: ${({ theme }) => theme.color.textSoft};
+  color: ${nocturne.muted};
   cursor: pointer;
 
   &:hover {
-    background: ${({ theme }) => theme.color.surface2};
-    color: ${({ theme }) => theme.color.text};
+    background: ${nocturne.surface2};
+    color: ${nocturne.cream};
   }
 `;
 

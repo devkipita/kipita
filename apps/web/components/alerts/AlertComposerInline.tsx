@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import {
   CaretDown,
   CheckSmall as Check,
@@ -12,12 +12,15 @@ import {
 } from "@/components/icons";
 import { findNearestTown } from "@kipita/shared";
 import { Avatar } from "@/components/profile/Avatar";
+import { Collapse } from "@/components/anim/Collapse";
 import { Notice } from "@/components/ui/primitives";
+import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { createClient } from "@/lib/supabase/client";
 import { createAlertAction } from "@/lib/alerts/actions";
 import { ALERT_CATEGORIES, ALERT_META } from "@/lib/alerts/meta";
 import { removeAlertImage, uploadAlertImage } from "@/lib/alerts/upload";
 import { requestPreciseLocation } from "@/lib/alerts/location";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { AlertCategory } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
@@ -58,11 +61,21 @@ const Input = styled.textarea`
     color: ${({ theme }) => theme.color.muted};
     font-weight: 400;
   }
-  &:focus {
-    outline: none;
-  }
+  &:focus,
   &:focus-visible {
     outline: none;
+  }
+`;
+
+const WhereBody = styled.div`
+  display: grid;
+  gap: 8px;
+  width: min(320px, calc(100vw - 48px));
+  padding: 6px;
+
+  @media (max-width: 859px) {
+    width: auto;
+    padding: 0;
   }
 `;
 
@@ -70,16 +83,16 @@ const Where = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid ${nocturne.outline};
   border-radius: 12px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  font-size: 16px;
-  color: ${({ theme }) => theme.color.text};
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
 
   > svg {
     flex: none;
-    color: ${({ theme }) => theme.color.primary};
+    color: ${nocturne.accent};
   }
   input {
     flex: 1 1 140px;
@@ -89,51 +102,62 @@ const Where = styled.div`
     font: inherit;
     font-size: 16px;
     font-weight: 600;
-    color: ${({ theme }) => theme.color.text};
+    color: ${nocturne.cream};
     padding: 6px 0;
   }
   input::placeholder {
-    color: ${({ theme }) => theme.color.muted};
+    color: ${nocturne.muted2};
     font-weight: 400;
   }
   input:focus {
     outline: none;
   }
   &:focus-within {
-    border-color: ${({ theme }) => theme.color.primary};
-  }
-  @media (max-width: 599px) {
-    padding-right: 8px;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 3px ${nocturne.ring};
   }
 `;
 
 const Locate = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  flex: none;
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  border-radius: 10px;
-  background: ${({ theme }) => theme.color.secondaryContainer};
-  color: ${({ theme }) => theme.color.primary};
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid ${nocturne.accent};
+  border-radius: 999px;
+  background: ${nocturne.surface};
+  color: ${nocturne.accent};
   font: inherit;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${nocturne.surface2};
+    }
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
   }
   &:disabled {
     opacity: 0.6;
     cursor: default;
   }
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
 
@@ -150,16 +174,16 @@ const Preview = styled.div`
   }
   button {
     position: absolute;
-    top: 8px;
-    right: 8px;
+    top: 6px;
+    right: 6px;
     display: grid;
     place-items: center;
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border: none;
     border-radius: 999px;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fff;
+    background: ${nocturne.surface};
+    color: ${nocturne.cream};
     cursor: pointer;
   }
 `;
@@ -189,29 +213,32 @@ const Foot = styled.div`
 const Tool = styled.button<{ $on?: boolean }>`
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 999px;
-  background: transparent;
+  background: ${({ theme, $on }) => ($on ? theme.color.primaryContainer : "transparent")};
   color: ${({ theme }) => theme.color.primary};
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition:
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  svg {
-    filter: ${({ $on }) =>
-      $on ? "drop-shadow(0 1px 4px rgba(47, 108, 79, 0.45))" : "none"};
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ theme }) => theme.color.primaryContainer};
+    }
   }
-
-  &:hover:not(:disabled) {
+  &[aria-expanded="true"] {
     background: ${({ theme }) => theme.color.primaryContainer};
   }
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
   &:active:not(:disabled) {
-    transform: scale(0.94);
+    transform: scale(0.97);
   }
   &:disabled {
     color: ${({ theme }) => theme.color.outline};
@@ -219,7 +246,9 @@ const Tool = styled.button<{ $on?: boolean }>`
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
 
@@ -239,32 +268,35 @@ const ComposerButton = styled.button<{ $variant?: "primary" | "ghost" }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  gap: 6px;
+  min-height: 44px;
   min-width: ${({ $variant }) => ($variant === "ghost" ? "78px" : "72px")};
-  padding: 0 16px;
+  padding: 0 18px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1px solid
-    ${({ theme, $variant }) =>
-      $variant === "ghost" ? theme.color.outlineVariant : "transparent"};
+  border: 1.5px solid
+    ${({ theme, $variant }) => ($variant === "ghost" ? theme.color.primary : "transparent")};
   background: ${({ theme, $variant }) =>
     $variant === "ghost" ? theme.color.surfaceContainerLowest : theme.color.primary};
   color: ${({ theme, $variant }) =>
-    $variant === "ghost" ? theme.color.onSurfaceVariant : theme.color.onPrimary};
+    $variant === "ghost" ? theme.color.primary : theme.color.onPrimary};
   font: inherit;
   font-size: 0.95rem;
   font-weight: 800;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease,
-    transform 0.15s ease;
+  transition:
+    background ${dur.state} ${ease.standard},
+    border-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover:not(:disabled) {
-    background: ${({ theme, $variant }) =>
-      $variant === "ghost" ? theme.color.surfaceContainerHigh : theme.color.primaryDark};
-    color: ${({ theme, $variant }) =>
-      $variant === "ghost" ? theme.color.onSurface : theme.color.onPrimary};
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ theme, $variant }) =>
+        $variant === "ghost" ? theme.color.primaryContainer : theme.color.primaryDark};
+    }
   }
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: scale(0.97);
   }
   &:disabled {
     background: ${({ theme }) => theme.color.surfaceContainerHigh};
@@ -273,28 +305,25 @@ const ComposerButton = styled.button<{ $variant?: "primary" | "ghost" }>`
     cursor: default;
   }
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
+    outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
 
 const ToolCluster = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 
   @media (max-width: 420px) {
     flex: 1 1 auto;
   }
-`;
-
-const pillsIn = keyframes`
-  from { opacity: 0; transform: translateY(-6px); }
-  to   { opacity: 1; transform: none; }
 `;
 
 const PillRow = styled.div`
@@ -302,34 +331,16 @@ const PillRow = styled.div`
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  animation: ${pillsIn} 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  padding: 12px 4px 4px;
+  margin-left: 48px;
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-  /* line up with the text column, past the 40px avatar + 12px gap */
-  margin-left: 52px;
-  padding: 0;
-  position: relative;
-
-  /* On phones the location panel spans the text column instead of hanging
-     off the second pill, which pushed it past the screen edge. */
   @media (max-width: 599px) {
-    margin-left: 48px;
-
-    > div:nth-child(2) {
-      position: static;
-    }
+    margin-left: 44px;
   }
 
   @media (max-width: 360px) {
-    margin-left: 0;
+    margin-left: -4px;
   }
-`;
-
-const PillWrap = styled.div`
-  position: relative;
-  min-width: 0;
 `;
 
 const Pill = styled.button<{ $active?: boolean }>`
@@ -337,11 +348,10 @@ const Pill = styled.button<{ $active?: boolean }>`
   align-items: center;
   gap: 8px;
   max-width: 100%;
-  min-height: 36px;
-  padding: 0 12px 0 10px;
+  min-height: 44px;
+  padding: 0 14px 0 12px;
   border: 1px solid
-    ${({ theme, $active }) =>
-      $active ? "transparent" : theme.color.outlineVariant};
+    ${({ theme, $active }) => ($active ? "transparent" : theme.color.outlineVariant)};
   border-radius: 999px;
   background: ${({ theme, $active }) =>
     $active ? theme.color.primaryContainer : theme.color.surfaceContainerLowest};
@@ -351,7 +361,10 @@ const Pill = styled.button<{ $active?: boolean }>`
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  transition:
+    background ${dur.state} ${ease.standard},
+    border-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
 
   .label {
     min-width: 0;
@@ -366,9 +379,14 @@ const Pill = styled.button<{ $active?: boolean }>`
   .caret {
     color: currentColor;
     opacity: 0.72;
-    transition: transform 0.2s ease;
+    transition: transform ${dur.state} ${ease.standard};
   }
-  &:hover,
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.secondaryContainer};
+      color: ${({ theme }) => theme.color.onSecondaryContainer};
+    }
+  }
   &[aria-expanded="true"] {
     background: ${({ theme }) => theme.color.secondaryContainer};
     color: ${({ theme }) => theme.color.onSecondaryContainer};
@@ -377,87 +395,27 @@ const Pill = styled.button<{ $active?: boolean }>`
     transform: rotate(180deg);
   }
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 2px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    .caret {
-      transition: none;
-    }
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 1px;
   }
 `;
 
-const popIn = keyframes`
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to   { opacity: 1; transform: none; }
-`;
-
-const Menu = styled.div`
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 6px);
-  left: 0;
-  min-width: 220px;
-  padding: 6px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  border-radius: 16px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  box-shadow:
-    0 2px 6px rgba(18, 48, 31, 0.1),
-    0 14px 32px rgba(18, 48, 31, 0.18);
-  animation: ${popIn} 0.16s ease-out;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-const MenuItem = styled.button<{ $on: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 44px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 10px;
-  background: ${({ theme, $on }) =>
-    $on ? theme.color.secondaryContainer : "transparent"};
-  color: ${({ theme, $on }) =>
-    $on ? theme.color.onSecondaryContainer : theme.color.onSurface};
-  font: inherit;
-  font-size: 15px;
-  font-weight: ${({ $on }) => ($on ? 700 : 500)};
-  text-align: left;
-  cursor: pointer;
-
+const TypeOption = styled(PopoverItem)`
   .tick {
     margin-left: auto;
-    color: ${({ theme }) => theme.color.primary};
+    color: ${nocturne.accent};
   }
-  &:hover,
-  &:focus-visible {
-    background: ${({ theme, $on }) =>
-      $on ? theme.color.secondaryContainer : theme.color.surfaceContainerLow};
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -2px;
+  &[aria-selected="true"] {
+    font-weight: 800;
+    background: ${nocturne.surface2};
   }
 `;
 
-const WherePanel = styled(Menu)`
-  min-width: min(320px, calc(100vw - 48px));
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-
-  @media (max-width: 599px) {
-    left: 0;
-    right: 0;
-    min-width: 0;
-  }
+const Counter = styled.span<{ $over: boolean }>`
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: ${({ $over }) => ($over ? nocturne.danger : nocturne.muted2)};
 `;
 
 const PreviewWrap = styled.div`
@@ -471,11 +429,8 @@ const PreviewWrap = styled.div`
     margin-left: 0;
   }
 `;
-const Counter = styled.span<{ $over: boolean }>`
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: ${({ theme, $over }) => ($over ? theme.color.dangerText : theme.color.muted)};
-`;
+
+type MenuKind = "type" | "where" | null;
 
 export function AlertComposerInline({
   profile,
@@ -493,8 +448,7 @@ export function AlertComposerInline({
   }) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [menu, setMenu] = useState<"type" | "where" | null>(null);
-  const pillsRef = useRef<HTMLDivElement>(null);
+  const [menu, setMenu] = useState<MenuKind>(null);
   const [category, setCategory] = useState<AlertCategory>("traffic");
   const [location, setLocation] = useState("");
   const [content, setContent] = useState("");
@@ -508,6 +462,10 @@ export function AlertComposerInline({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const whereRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const typePillRef = useRef<HTMLButtonElement>(null);
+  const wherePillRef = useRef<HTMLButtonElement>(null);
+  const whereToolRef = useRef<HTMLButtonElement>(null);
+  const whereAnchorRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const el = inputRef.current;
@@ -515,22 +473,6 @@ export function AlertComposerInline({
     el.style.height = "auto";
     el.style.height = `${Math.max(el.scrollHeight, open ? 56 : 32)}px`;
   }, [content, open]);
-
-  useEffect(() => {
-    if (!menu) return;
-    const onDown = (e: PointerEvent) => {
-      if (!pillsRef.current?.contains(e.target as Node)) setMenu(null);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMenu(null);
-    };
-    document.addEventListener("pointerdown", onDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menu]);
 
   function reset() {
     setOpen(false);
@@ -544,20 +486,17 @@ export function AlertComposerInline({
     setError(null);
   }
 
-  // The type and location pills appear the moment there is something to post.
   const composing = content.trim().length > 0;
 
-  // Offer a location as soon as they start writing, so the common case is one
-  // less thing to fill in. Failure is silent — the field stays typeable.
   const locateTried = useRef(false);
   useEffect(() => {
     if (!composing || locateTried.current) return;
     locateTried.current = true;
-    void useMyLocation({ silent: true });
+    void locateMe({ silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [composing]);
 
-  async function useMyLocation(opts: { silent?: boolean } = {}) {
+  async function locateMe(opts: { silent?: boolean } = {}) {
     setOpen(true);
     setLocating(true);
     setError(null);
@@ -565,7 +504,6 @@ export function AlertComposerInline({
     setLocating(false);
 
     if (!outcome.ok) {
-      // The automatic attempt must not shout at someone who is mid-sentence.
       if (opts.silent) return;
       setError(
         outcome.reason === "denied"
@@ -586,11 +524,27 @@ export function AlertComposerInline({
     setPreviewUrl(next ? URL.createObjectURL(next) : null);
   }
 
+  function toggleWhere(anchor: HTMLElement | null) {
+    setOpen(true);
+    if (menu === "where" && whereAnchorRef.current === anchor) {
+      setMenu(null);
+      return;
+    }
+    whereAnchorRef.current = anchor;
+    setMenu("where");
+  }
+
+  function closeWhere() {
+    setMenu(null);
+    whereAnchorRef.current?.focus({ preventScroll: true });
+  }
+
   const canPost = content.trim().length >= 3 && location.trim().length >= 2;
   const dirty = Boolean(content.trim() || location.trim() || file);
   const remaining = MAX - content.length;
   const meta = ALERT_META[category];
   const ChosenIcon = meta.icon;
+  const located = Boolean(location.trim() || coords);
 
   function submit() {
     if (!canPost || pending) return;
@@ -633,144 +587,68 @@ export function AlertComposerInline({
 
   return (
     <Shell>
-      {composing && (
-      <PillRow ref={pillsRef}>
-            <PillWrap>
-              <Pill
-                type="button"
-                aria-haspopup="listbox"
-                aria-expanded={menu === "type"}
-                aria-label={`Alert type: ${meta.label}`}
-                onClick={() => {
-                  setOpen(true);
-                  setMenu(menu === "type" ? null : "type");
-                }}
-              >
-                <ChosenIcon size={20} style={{ color: meta.color }} aria-hidden />
-                <span className="label">{meta.label}</span>
-                <CaretDown size={16} className="caret" aria-hidden />
-              </Pill>
-              {menu === "type" && (
-                <Menu role="listbox" aria-label="What kind of alert?">
-                  {ALERT_CATEGORIES.map((key) => {
-                    const m = ALERT_META[key];
-                    const Icon = m.icon;
-                    return (
-                      <MenuItem
-                        key={key}
-                        type="button"
-                        role="option"
-                        aria-selected={category === key}
-                        $on={category === key}
-                        onClick={() => {
-                          setCategory(key);
-                          setMenu(null);
-                        }}
-                      >
-                        <Icon size={20} style={{ color: m.color }} aria-hidden />
-                        {m.label}
-                        {category === key && (
-                          <Check size={18} className="tick" aria-hidden />
-                        )}
-                      </MenuItem>
-                    );
-                  })}
-                </Menu>
-              )}
-            </PillWrap>
+      <div>
+        <TopRow>
+          <Avatar name={profile.full_name || "You"} src={profile.avatar_url} size={40} />
+          <Input
+            ref={inputRef}
+            rows={1}
+            value={content}
+            onFocus={() => setOpen(true)}
+            onChange={(e) => setContent(e.target.value.slice(0, MAX))}
+            placeholder="What's happening on the road?"
+            aria-label="What is happening on the road?"
+          />
+        </TopRow>
 
-            <PillWrap>
-              <Pill
-                type="button"
-                $active={Boolean(location.trim())}
-                aria-haspopup="dialog"
-                aria-expanded={menu === "where"}
-                onClick={() => {
-                  setOpen(true);
-                  const next = menu === "where" ? null : "where";
-                  setMenu(next);
-                  if (next) setTimeout(() => whereRef.current?.focus(), 0);
-                }}
-              >
-                <MapPin size={20} aria-hidden />
-                <span className="label">
-                  {location.trim() || "Add location"}
-                </span>
-                <CaretDown size={16} className="caret" aria-hidden />
-              </Pill>
-              {menu === "where" && (
-                <WherePanel role="dialog" aria-label="Where is this?">
-                  <Where>
-                    <MapPin size={20} aria-hidden />
-                    <input
-                      ref={whereRef}
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          setMenu(null);
-                        }
-                      }}
-                      placeholder={
-                        locating ? "Finding you..." : "Road, town or landmark"
-                      }
-                      maxLength={120}
-                      aria-label="Where is this?"
-                    />
-                  </Where>
-                  <Locate
-                    type="button"
-                    disabled={locating}
-                    onClick={() => void useMyLocation()}
-                  >
-                    <Crosshair size={16} aria-hidden />
-                    {locating
-                      ? "Locating..."
-                      : coords
-                        ? "Update my location"
-                        : "Use my location"}
-                  </Locate>
-                </WherePanel>
-              )}
-            </PillWrap>
-      </PillRow>
-      )}
+        <Collapse open={composing}>
+          <PillRow>
+            <Pill
+              ref={typePillRef}
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={menu === "type"}
+              aria-label={`Alert type: ${meta.label}`}
+              onClick={() => {
+                setOpen(true);
+                setMenu(menu === "type" ? null : "type");
+              }}
+            >
+              <ChosenIcon size={20} style={{ color: meta.color }} aria-hidden />
+              <span className="label">{meta.label}</span>
+              <CaretDown size={16} className="caret" aria-hidden />
+            </Pill>
 
-      <TopRow>
-        <Avatar
-          name={profile.full_name || "You"}
-          src={profile.avatar_url}
-          size={40}
-        />
-        <Input
-          ref={inputRef}
-          rows={1}
-          value={content}
-          onFocus={() => setOpen(true)}
-          onChange={(e) => setContent(e.target.value.slice(0, MAX))}
-          placeholder="What's happening on the road?"
-          aria-label="What is happening on the road?"
-        />
-      </TopRow>
+            <Pill
+              ref={wherePillRef}
+              type="button"
+              $active={Boolean(location.trim())}
+              aria-haspopup="dialog"
+              aria-expanded={menu === "where" && whereAnchorRef.current === wherePillRef.current}
+              onClick={() => toggleWhere(wherePillRef.current)}
+            >
+              <MapPin size={20} aria-hidden />
+              <span className="label">{location.trim() || "Add location"}</span>
+              <CaretDown size={16} className="caret" aria-hidden />
+            </Pill>
+          </PillRow>
+        </Collapse>
+      </div>
 
-      {error && <Notice $variant="error">{error}</Notice>}
+      {error && <Notice role="alert">{error}</Notice>}
 
       {previewUrl && (
         <PreviewWrap>
           <Preview>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={previewUrl} alt="" />
-            <button
-              type="button"
-              onClick={() => pickFile(null)}
-              aria-label="Remove photo"
-            >
-              <X size={24} weight="bold" />
+            <button type="button" onClick={() => pickFile(null)} aria-label="Remove photo">
+              <X size={22} weight="bold" />
             </button>
           </Preview>
         </PreviewWrap>
       )}
+
       <Foot>
         <ToolCluster>
           <Tool
@@ -786,48 +664,117 @@ export function AlertComposerInline({
             <ImageSquare size={24} weight={file ? "fill" : "bold"} />
           </Tool>
           <Tool
+            ref={whereToolRef}
             type="button"
-            $on={Boolean(location.trim() || coords)}
-            onClick={() => {
-              setOpen(true);
-              setMenu("where");
-              setTimeout(() => whereRef.current?.focus(), 0);
-            }}
+            $on={located}
+            aria-haspopup="dialog"
+            aria-expanded={menu === "where" && whereAnchorRef.current === whereToolRef.current}
+            onClick={() => toggleWhere(whereToolRef.current)}
             aria-label="Add location"
             title="Add location"
           >
-            <MapPin
-              size={24}
-              weight={location.trim() || coords ? "fill" : "bold"}
-            />
+            <MapPin size={24} weight={located ? "fill" : "bold"} />
           </Tool>
         </ToolCluster>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            hidden
-            onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
-          />
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          hidden
+          onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
+        />
 
-          <span className="spacer" />
+        <span className="spacer" />
 
-          {open && remaining <= 100 && (
-            <Counter $over={remaining < 0}>{remaining}</Counter>
-          )}
+        {open && remaining <= 100 && <Counter $over={remaining < 0}>{remaining}</Counter>}
 
-          <ActionGroup>
+        <ActionGroup>
           {dirty && (
             <ComposerButton type="button" $variant="ghost" onClick={reset}>
-              Clear
+              Clear alert
             </ComposerButton>
           )}
 
-          <ComposerButton type="button" onClick={submit} disabled={!canPost || pending} aria-busy={pending}>
-            {pending ? <><ButtonOrb job="committing" /> Posting</> : "Post"}
+          <ComposerButton
+            type="button"
+            onClick={submit}
+            disabled={!canPost || pending}
+            aria-busy={pending}
+          >
+            {pending ? (
+              <>
+                <ButtonOrb job="committing" /> Posting
+              </>
+            ) : (
+              "Post alert"
+            )}
           </ComposerButton>
-          </ActionGroup>
-        </Foot>
+        </ActionGroup>
+      </Foot>
+
+      <Popover
+        open={menu === "type"}
+        onClose={() => setMenu(null)}
+        anchorRef={typePillRef}
+        label="What kind of alert?"
+        align="start"
+        role="listbox"
+      >
+        {ALERT_CATEGORIES.map((key) => {
+          const item = ALERT_META[key];
+          const Icon = item.icon;
+          return (
+            <TypeOption
+              key={key}
+              type="button"
+              role="option"
+              aria-selected={category === key}
+              onClick={() => {
+                setCategory(key);
+                setMenu(null);
+                typePillRef.current?.focus({ preventScroll: true });
+              }}
+            >
+              <Icon size={20} style={{ color: item.color }} aria-hidden />
+              {item.label}
+              {category === key && <Check size={18} className="tick" aria-hidden />}
+            </TypeOption>
+          );
+        })}
+      </Popover>
+
+      <Popover
+        open={menu === "where"}
+        onClose={() => setMenu(null)}
+        anchorRef={whereAnchorRef}
+        label="Where is this?"
+        align="start"
+        role="dialog"
+      >
+        <WhereBody>
+          <Where>
+            <MapPin size={20} aria-hidden />
+            <input
+              ref={whereRef}
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  closeWhere();
+                }
+              }}
+              placeholder={locating ? "Finding you..." : "Road, town or landmark"}
+              maxLength={120}
+              aria-label="Where is this?"
+            />
+          </Where>
+          <Locate type="button" disabled={locating} onClick={() => void locateMe()}>
+            {locating ? <ButtonOrb job="fetching" on="surface" /> : <Crosshair size={18} aria-hidden />}
+            {locating ? "Locating" : coords ? "Update my location" : "Use my location"}
+          </Locate>
+        </WhereBody>
+      </Popover>
     </Shell>
   );
 }

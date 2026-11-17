@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "node \"$env:CLAUDE_PROJECT_DIR/tools/design-check/index.mjs\" --hook",
+            "timeout": 20
+          }
+        ]
+      }
+    ]
+  }
+}

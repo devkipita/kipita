@@ -18,13 +18,12 @@ const UUID =
 
 export async function fetchAlertsServer(
   opts: { limit?: number; category?: AlertCategory | null } = {},
-): Promise<Alert[]> {
+): Promise<Alert[] | null> {
   try {
     const supabase = await createClient();
     return await fetchAlerts(supabase, opts);
   } catch {
-    // The feed is one band of a larger page — never fail the whole render.
-    return [];
+    return null;
   }
 }
 

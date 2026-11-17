@@ -11,6 +11,7 @@ import {
   MagnifyingGlass,
   MapPin,
   Plus,
+  Trash,
   Warning,
   X,
 } from "@/components/icons";
@@ -364,6 +365,28 @@ const Ghost = styled.button`
   font-weight: 700;
   cursor: pointer;
   ${ring}
+`;
+
+const Discard = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: -8px 0 16px auto;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: ${nocturne.surface2};
+  color: ${nocturne.cream};
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  ${ring}
+
+  &:active {
+    background: color-mix(in oklab, var(--n-surface-2) 80%, var(--n-green));
+  }
 `;
 
 const FieldLabel = styled.label`
@@ -942,6 +965,7 @@ export function PublishMobile({
   const [pending, startTransition] = useTransition();
   const panelRef = useRef<HTMLElement>(null);
   const moved = useRef(false);
+  const detectedFrom = useRef("");
 
   useEffect(() => {
     const saved = loadDraft();
@@ -994,6 +1018,7 @@ export function PublishMobile({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
+        detectedFrom.current = origin.town.name;
         setDraft((d) => (d.from ? d : { ...d, from: origin.town.name }));
         setGuessed(true);
       })
@@ -1060,6 +1085,22 @@ export function PublishMobile({
     go(step - 1);
   }
 
+  function reset() {
+    clearDraft();
+    moved.current = true;
+    setDraft({ ...blankDraft(savedCars), from: detectedFrom.current });
+    setGuessed(!!detectedFrom.current);
+    setStep(0);
+    setMaxStep(0);
+    window.history.replaceState({ ...window.history.state, publishStep: 0 }, "");
+    setError(null);
+    setBlock(null);
+    setQuery("");
+    setEditFrom(false);
+    setOtherTime(false);
+  }
+
+  const dirty = maxStep > 0 || !!draft.to || draft.from !== detectedFrom.current;
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
   const fare = Number(draft.price) || 0;
@@ -1299,6 +1340,12 @@ export function PublishMobile({
       </Header>
 
       <Scroll>
+        {dirty && (
+          <Discard type="button" onClick={reset}>
+            <Trash size={18} />
+            Discard draft
+          </Discard>
+        )}
         <Sentence>{sentence.map((part, i) => (typeof part === "string" ? part : <span key={i}>{part}</span>))}</Sentence>
 
         {(

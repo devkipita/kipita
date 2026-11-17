@@ -26,18 +26,14 @@ export async function pollTopupStatus(
 
   while (Date.now() < deadline) {
     if (opts.signal?.aborted) return "timeout";
-    try {
-      const { data } = await supabase
-        .from("wallet_topups")
-        .select("status")
-        .eq("id", topupId)
-        .single();
+    const { data } = await supabase
+      .from("wallet_topups")
+      .select("status")
+      .eq("id", topupId)
+      .maybeSingle();
 
-      if (data?.status === "completed") return "completed";
-      if (data?.status === "failed") return "failed";
-    } catch {
-      /* empty */
-    }
+    if (data?.status === "completed") return "completed";
+    if (data?.status === "failed") return "failed";
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
   return "timeout";
@@ -45,7 +41,6 @@ export async function pollTopupStatus(
 
 export async function requestWithdrawal(params: {
   amount: number;
-  phone: string;
 }): Promise<{ withdrawal_id: string; status: string; message?: string }> {
   const supabase = createClient();
   const { data, error } = await supabase.functions.invoke("withdraw-wallet", {
@@ -75,12 +70,8 @@ export async function refreshSummary(): Promise<WalletSummary | null> {
 async function readFunctionError(error: unknown): Promise<string> {
   const context = (error as { context?: Response }).context;
   if (context && typeof context.json === "function") {
-    try {
-      const body = await context.json();
-      if (body?.error) return String(body.error);
-    } catch {
-      /* empty */
-    }
+    const body = await context.json().catch(() => null);
+    if (body?.error) return String(body.error);
   }
   const message = (error as { message?: string }).message;
   return message || "Something went wrong. Please try again.";

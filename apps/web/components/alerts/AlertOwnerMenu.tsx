@@ -1,74 +1,58 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import styled from "styled-components";
 import { DotsThree, Pencil, Trash } from "@/components/icons";
 import { deleteAlertAction } from "@/lib/alerts/actions";
 import { canEditAlert, editWindowRemaining } from "@/lib/alerts/meta";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-
-const Wrap = styled.div`
-  position: relative;
-  flex: none;
-`;
+import { Popover, PopoverItem } from "@/components/ui/Popover";
+import { useConfirm } from "@/components/ui/ConfirmPop";
 
 const Trigger = styled.button`
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 999px;
   background: transparent;
   color: ${({ theme }) => theme.color.onSurfaceVariant};
   cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover {
+  @media (hover: hover) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainerHigh};
+      color: ${({ theme }) => theme.color.onSurface};
+    }
+  }
+  &[aria-expanded="true"] {
     background: ${({ theme }) => theme.color.surfaceContainerHigh};
     color: ${({ theme }) => theme.color.onSurface};
   }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  &:disabled {
+    cursor: default;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
 `;
 
-const Menu = styled.div`
-  position: absolute;
-  top: 36px;
-  right: 0;
-  z-index: 20;
-  min-width: 176px;
-  padding: 6px;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-`;
-
-const Item = styled.button<{ $danger?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 40px;
-  padding: 0 10px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.xs};
-  background: transparent;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-  color: ${({ theme, $danger }) =>
-    $danger ? theme.accent.red.bold.bg : theme.color.onSurface};
-
-  svg {
-    flex: none;
-  }
-
-  &:hover:not(:disabled) {
-    background: ${({ theme, $danger }) =>
-      $danger ? theme.accent.red.soft.bg : theme.color.surfaceContainerHigh};
-    color: ${({ theme, $danger }) =>
-      $danger ? theme.accent.red.soft.on : theme.color.onSurface};
-  }
+const Item = styled(PopoverItem)`
   &:disabled {
     opacity: 0.45;
     cursor: default;
@@ -76,10 +60,15 @@ const Item = styled.button<{ $danger?: boolean }>`
 `;
 
 const Note = styled.p`
-  margin: 4px 6px 2px;
-  font-size: 0.74rem;
-  line-height: 1.35;
-  color: ${({ theme }) => theme.color.onSurfaceVariant};
+  max-width: 220px;
+  margin: 6px 14px 8px;
+
+  @media (max-width: 859px) {
+    max-width: none;
+  }
+  font-size: 13px;
+  line-height: 1.4;
+  color: ${nocturne.muted2};
 `;
 
 function minutesLeft(createdAt: string): number {
@@ -101,38 +90,27 @@ export function AlertOwnerMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    function onPointer(event: MouseEvent) {
-      if (!wrapRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("mousedown", onPointer);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const { ask, confirmNode } = useConfirm();
 
   const editable = canEditAlert(createdAt);
+  const left = minutesLeft(createdAt);
 
-  function remove() {
+  async function remove() {
     if (pending) return;
-    if (!window.confirm("Delete this alert? Drivers relying on it will lose it.")) {
-      return;
-    }
+    setOpen(false);
+    const ok = await ask(triggerRef.current, {
+      title: "Delete this alert?",
+      yes: "Delete alert",
+      no: "Keep alert",
+      danger: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       const result = await deleteAlertAction(alertId);
-      setOpen(false);
       if (!result.ok) {
         onError?.(result.error);
+        triggerRef.current?.focus();
         return;
       }
       onDeleted();
@@ -140,9 +118,11 @@ export function AlertOwnerMenu({
   }
 
   return (
-    <Wrap ref={wrapRef}>
+    <>
       <Trigger
+        ref={triggerRef}
         type="button"
+        disabled={pending}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -150,49 +130,48 @@ export function AlertOwnerMenu({
         }}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Alert options"
+        aria-busy={pending}
+        aria-label={pending ? "Deleting alert" : "Alert options"}
       >
-        <DotsThree size={20} />
+        {pending ? <ButtonOrb job="committing" on="surface" /> : <DotsThree size={22} />}
       </Trigger>
 
-      {open && (
-        <Menu role="menu">
-          <Item
-            type="button"
-            role="menuitem"
-            disabled={!editable}
-            onClick={(e) => {
-              e.preventDefault();
-              setOpen(false);
-              onEdit();
-            }}
-          >
-            <Pencil size={17} />
-            Edit alert
-          </Item>
-          <Item
-            type="button"
-            role="menuitem"
-            $danger
-            disabled={pending || !editable}
-            aria-busy={pending}
-            onClick={(e) => {
-              e.preventDefault();
-              remove();
-            }}
-          >
-            <Trash size={17} />
-            {pending ? <><ButtonOrb job="committing" /> Deleting…</> : "Delete alert"}
-          </Item>
-          <Note>
-            {editable
-              ? `You can change this for ${minutesLeft(createdAt)} more ${
-                  minutesLeft(createdAt) === 1 ? "minute" : "minutes"
-                }.`
-              : "The five-minute window for changes has closed."}
-          </Note>
-        </Menu>
-      )}
-    </Wrap>
+      <Popover
+        open={open}
+        onClose={() => setOpen(false)}
+        anchorRef={triggerRef}
+        label="Alert options"
+        align="end"
+      >
+        <Item
+          type="button"
+          role="menuitem"
+          disabled={!editable}
+          onClick={() => {
+            setOpen(false);
+            onEdit();
+          }}
+        >
+          <Pencil size={18} />
+          Edit alert
+        </Item>
+        <Item
+          type="button"
+          role="menuitem"
+          data-tone="danger"
+          disabled={!editable}
+          onClick={() => void remove()}
+        >
+          <Trash size={18} />
+          Delete alert
+        </Item>
+        <Note>
+          {editable
+            ? `You can change this for ${left} more ${left === 1 ? "minute" : "minutes"}.`
+            : "The five-minute window for changes has closed."}
+        </Note>
+      </Popover>
+      {confirmNode}
+    </>
   );
 }

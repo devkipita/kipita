@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import styled from "styled-components";
 import { ArrowRight, Info, Envelope as Mail, EnvelopeSimple as MailCheck, User } from "@/components/icons";
 import { sendSignUpLinkAction } from "@/lib/auth/auth-actions";
@@ -49,7 +50,9 @@ const Strong = styled.strong`
   color: ${({ theme }) => theme.color.text};
 `;
 
-export function SignUpForm() {
+export function SignUpForm({ next = "/home" }: { next?: string }) {
+  const signInHref =
+    next && next !== "/home" ? `/auth/sign-in?next=${encodeURIComponent(next)}` : "/auth/sign-in";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [errs, setErrs] = useState<{ fullName?: string; email?: string }>({});
@@ -122,9 +125,9 @@ export function SignUpForm() {
         </PrimaryButton>
         <FootNote>
           Wrong email?{" "}
-          <a href="#" onClick={(e) => { e.preventDefault(); setSent(false); }}>
-            Go back
-          </a>
+          <button type="button" onClick={() => setSent(false)}>
+            Change email
+          </button>
         </FootNote>
       </Sent>
     );
@@ -172,7 +175,7 @@ export function SignUpForm() {
       <OAuthButtons next="/profile/edit?welcome=1" />
 
       <FootNote>
-        Already have an account? <a href="/auth/sign-in">Sign in</a>
+        Already have an account? <Link href={signInHref}>Sign in</Link>
       </FootNote>
     </>
   );

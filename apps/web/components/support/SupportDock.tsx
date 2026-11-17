@@ -2,72 +2,63 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { m } from "motion/react";
 import { Check, ImageSquare, PaperPlaneTilt, QuestionCircle, X } from "@/components/icons";
-import { palette } from "@/lib/theme";
+import { spring, tween } from "@/lib/motion";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { Z } from "@/lib/z";
 import { useSupport } from "./SupportProvider";
 
-/**
- * The button *is* the panel: one element that morphs from a pill into a chat
- * window, so nothing appears from nowhere. Present on every screen for as long
- * as a case is open, and gone the moment the last one is closed.
- *
- * White rather than an accent — an always-on control should read as a tool, not
- * as a warning. The unread count is the only colour it carries.
- */
-
 const PILL_H = 52;
+const PILL_STYLE = { borderRadius: PILL_H / 2 };
+const PANEL_STYLE = { borderRadius: 24 };
+const MORPH_ID = "support-dock";
+const CONTENT_IN = {
+  opacity: 1,
+  transition: { ...tween.enter, delay: tween.exit.duration / 2 },
+};
 
-const Shell = styled.div<{ $open: boolean }>`
+const dock = `
   position: fixed;
   right: clamp(12px, 2vw, 24px);
-  /* Clears the floating tab bar on phones, where this used to sit on top of
-     the last tab and clip it. The variable is 0 wherever there is no bar. */
   bottom: calc(var(--bottom-bar-space, 0px) + clamp(12px, 2vw, 24px));
   z-index: ${Z.notificationToast};
-
-  width: ${({ $open }) => ($open ? "min(380px, calc(100vw - 24px))" : "auto")};
-  height: ${({ $open }) =>
-    $open ? "min(560px, calc(100dvh - 120px))" : `${PILL_H}px`};
-  border-radius: ${({ $open, theme }) => ($open ? theme.radius.lg : "999px")};
-  background: ${({ $open, theme }) =>
-    $open ? theme.color.surfaceContainerLowest : "#ffffff"};
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transform-origin: bottom right;
-  transition:
-    width 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    height 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-radius 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 220ms ease;
+  background: ${nocturne.surface};
+  box-shadow: ${nocturne.panelShadow};
+  border: 1px solid ${nocturne.line};
 
-  /* Clear the floating mobile tab bar rather than sitting on top of it. */
   @media (max-width: 899px) {
     bottom: calc(76px + max(10px, env(safe-area-inset-bottom)));
     right: 10px;
-    left: ${({ $open }) => ($open ? "10px" : "auto")};
-    width: ${({ $open }) => ($open ? "auto" : "auto")};
-    height: ${({ $open }) => ($open ? "min(70dvh, 520px)" : `${PILL_H}px`)};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
   }
 `;
 
-const Collapsed = styled.div<{ $open: boolean }>`
+const PillShell = styled(m.div)`
+  ${dock}
   display: flex;
   align-items: center;
   height: ${PILL_H}px;
-  opacity: ${({ $open }) => ($open ? 0 : 1)};
-  pointer-events: ${({ $open }) => ($open ? "none" : "auto")};
-  transition: opacity 160ms ease;
+`;
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+const PanelShell = styled(m.div)`
+  ${dock}
+  display: flex;
+  flex-direction: column;
+  width: min(380px, calc(100vw - 24px));
+  height: min(560px, calc(100dvh - 120px));
+
+  @media (max-width: 899px) {
+    left: 10px;
+    width: auto;
+    height: min(70dvh, 520px);
   }
+`;
+
+const PillContent = styled(m.div)`
+  display: flex;
+  align-items: center;
+  height: 100%;
 `;
 
 const Launcher = styled.button`
@@ -75,10 +66,10 @@ const Launcher = styled.button`
   align-items: center;
   gap: 10px;
   height: ${PILL_H}px;
-  padding: 0 10px 0 20px;
+  padding: 0 6px 0 20px;
   border: none;
   background: transparent;
-  color: ${palette.blackMid};
+  color: ${nocturne.cream};
   font: inherit;
   font-size: 0.95rem;
   font-weight: 700;
@@ -89,42 +80,39 @@ const Launcher = styled.button`
   svg {
     flex: none;
   }
-  --icon-knockout: #ffffff;
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
+    border-radius: 999px;
+  }
+  --icon-knockout: ${nocturne.surface};
 `;
 
 const Dismiss = styled.button`
-  position: relative;
   flex: none;
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 26px;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: -9px;
-  }
-  margin-right: 12px;
+  width: 44px;
+  height: 44px;
+  margin-right: 4px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: ${palette.blackMid};
+  color: ${nocturne.muted};
   cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 140ms ease, background 140ms ease;
+  transition:
+    color ${dur.state} ${ease.standard},
+    background ${dur.state} ${ease.standard};
 
-  &:hover {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.08);
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+      background: ${nocturne.surface2};
+    }
   }
   &:focus-visible {
-    opacity: 1;
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 1px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
   }
 `;
 
@@ -135,22 +123,18 @@ const Count = styled.span`
   height: 22px;
   padding: 0 7px;
   border-radius: 999px;
-  background: ${palette.lime};
-  color: ${palette.limeDark};
-  font-size: 0.74rem;
+  background: ${nocturne.lime};
+  color: ${nocturne.greenDeep};
+  font-size: 0.75rem;
   font-weight: 800;
   line-height: 1;
 `;
 
-const Panel = styled.div<{ $open: boolean }>`
-  position: absolute;
-  inset: 0;
+const Panel = styled(m.div)`
   display: flex;
   flex-direction: column;
+  flex: 1;
   min-height: 0;
-  opacity: ${({ $open }) => ($open ? 1 : 0)};
-  pointer-events: ${({ $open }) => ($open ? "auto" : "none")};
-  transition: opacity 200ms ease ${({ $open }) => ($open ? "120ms" : "0ms")};
 `;
 
 const Head = styled.header`
@@ -177,7 +161,7 @@ const Head = styled.header`
   }
   small {
     display: block;
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     color: ${({ theme }) => theme.color.onSurfaceVariant};
   }
 `;
@@ -185,8 +169,8 @@ const Head = styled.header`
 const HeadButton = styled.button`
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   flex: none;
   border: none;
   border-radius: 999px;
@@ -240,7 +224,7 @@ const Shot = styled.img`
 `;
 
 const Stamp = styled.span`
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   color: ${({ theme }) => theme.color.onSurfaceVariant};
 `;
 
@@ -285,8 +269,8 @@ const Composer = styled.form`
 const Tool = styled.button`
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
   border: none;
   border-radius: 999px;
@@ -380,6 +364,8 @@ export function SupportDock() {
   const threadRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const wasOpen = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -406,6 +392,16 @@ export function SupportDock() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  useEffect(() => {
+    if (open) {
+      textRef.current?.focus({ preventScroll: true });
+      wasOpen.current = true;
+      return;
+    }
+    if (wasOpen.current) launcherRef.current?.focus({ preventScroll: true });
+    wasOpen.current = false;
+  }, [open]);
+
   if (openCases.length === 0) return null;
   if (dismissed && !open) return null;
 
@@ -420,33 +416,59 @@ export function SupportDock() {
     }
   }
 
-  return (
-    <Shell $open={open}>
-      <Collapsed $open={open}>
-        <Launcher
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label={`Support · ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}`}
+  if (!open) {
+    return (
+      <PillShell
+        key="pill"
+        layoutId={MORPH_ID}
+        style={PILL_STYLE}
+        transition={spring.morph}
+      >
+        <PillContent
+          initial={{ opacity: 0 }}
+          animate={CONTENT_IN}
         >
-          <QuestionCircle size={20} />
-          Support
-          {unread > 0 ? (
-            <Count>{unread > 9 ? "9+" : unread}</Count>
-          ) : (
-            <Count>{openCases.length}</Count>
-          )}
-        </Launcher>
-        <Dismiss
-          type="button"
-          onClick={dismiss}
-          title="Hide until the next reply"
-          aria-label="Hide support until the next reply"
-        >
-          <X size={15} weight="bold" />
-        </Dismiss>
-      </Collapsed>
+          <Launcher
+            ref={launcherRef}
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-expanded={false}
+            aria-label={`Open support, ${openCases.length} open ${openCases.length === 1 ? "case" : "cases"}${unread > 0 ? `, ${unread} unread` : ""}`}
+          >
+            <QuestionCircle size={20} />
+            Support
+            {unread > 0 ? (
+              <Count>{unread > 9 ? "9+" : unread}</Count>
+            ) : (
+              <Count>{openCases.length}</Count>
+            )}
+          </Launcher>
+          <Dismiss
+            type="button"
+            onClick={dismiss}
+            title="Hide until the next reply"
+            aria-label="Hide support until the next reply"
+          >
+            <X size={16} weight="bold" />
+          </Dismiss>
+        </PillContent>
+      </PillShell>
+    );
+  }
 
-      <Panel $open={open} role="dialog" aria-label="Support conversation">
+  return (
+    <PanelShell
+      key="panel"
+      layoutId={MORPH_ID}
+      style={PANEL_STYLE}
+      transition={spring.morph}
+    >
+      <Panel
+        role="dialog"
+        aria-label="Support conversation"
+        initial={{ opacity: 0 }}
+        animate={CONTENT_IN}
+      >
         <Head>
           <div className="who">
             <b>{active?.subject ?? "Support"}</b>
@@ -562,6 +584,6 @@ export function SupportDock() {
           </Send>
         </Composer>
       </Panel>
-    </Shell>
+    </PanelShell>
   );
 }

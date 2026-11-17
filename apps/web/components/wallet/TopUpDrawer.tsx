@@ -24,6 +24,7 @@ import {
 import { PhoneField } from "@/components/ui/PhoneField";
 import { FieldBlock, FieldError, FieldHead } from "@/components/home/fields";
 import { isValidKeLocal, normalizeKeLocal, toDaraja } from "@/lib/phone";
+import { dur, ease } from "@/lib/nocturne";
 import { pollTopupStatus, startTopup } from "@/lib/wallet/api";
 
 type Stage = "form" | "pushing" | "waiting" | "done" | "failed" | "timeout";
@@ -52,8 +53,12 @@ const Presets = styled.div`
   gap: 8px;
 `;
 
+const Grow = styled(ButtonEl)`
+  flex: 1;
+`;
+
 const Preset = styled.button<{ $active: boolean }>`
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 6px;
   border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
@@ -62,7 +67,9 @@ const Preset = styled.button<{ $active: boolean }>`
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
   background: ${({ theme, $active }) =>
     $active ? theme.color.primaryContainer : theme.color.surfaceContainerLow};
   color: ${({ theme, $active }) =>
@@ -208,70 +215,61 @@ export function TopUpDrawer({
   function body() {
     if (stage === "done") {
       return (
-        <Status $tone="ok">
+        <Status $tone="ok" role="status">
           <WalletFilledArt />
           <b>{formatKes(value)} added</b>
-          <p>
-            Your wallet balance is up to date. Use it for fares, or withdraw it
-            back to M-Pesa any time.
-          </p>
         </Status>
       );
     }
 
     if (stage === "failed") {
       return (
-        <Status $tone="bad">
+        <Status $tone="bad" role="alert">
           <PaymentFailedArt />
           <b>Top-up didn&apos;t go through</b>
-          <p>
-            M-Pesa declined or the request was cancelled. Nothing was charged.
-          </p>
+          <p>Nothing was charged.</p>
         </Status>
       );
     }
 
     if (stage === "timeout") {
       return (
-        <Status $tone="wait">
+        <Status $tone="wait" role="status">
           <PaymentWaitingArt />
           <b>Still waiting on M-Pesa</b>
-          <p>
-            We stopped watching, but the prompt may still be on your phone. If
-            you complete it, your balance updates on its own.
-          </p>
+          <p>If you confirm the prompt, your balance updates on its own.</p>
         </Status>
       );
     }
 
     if (stage === "pushing") {
       return (
-        <Status $tone="wait">
+        <Status $tone="wait" role="status">
           <span className="badge">
             <Spinner size={32} />
           </span>
           <b>Sending the request…</b>
-          <p>Asking M-Pesa to prompt +254 {phone}.</p>
         </Status>
       );
     }
 
     if (stage === "waiting") {
       return (
-        <Status $tone="wait">
+        <Status $tone="wait" role="status">
           <PinPromptArt />
           <b>Check your phone</b>
-          <p>
-            Enter your M-Pesa PIN to add {formatKes(value)}. Keep this page
-            open.
-          </p>
+          <p>Enter your M-Pesa PIN to add {formatKes(value)}.</p>
         </Status>
       );
     }
 
     return (
       <DrawerBody>
-        {error && <Notice $variant="error">{error}</Notice>}
+        {error && (
+          <Notice $variant="error" role="alert">
+            {error}
+          </Notice>
+        )}
 
         <FieldBlock>
           <FieldHead>
@@ -327,51 +325,42 @@ export function TopUpDrawer({
           />
 
           {phoneBad ? (
-            <FieldError>
-              That isn&apos;t a Kenyan mobile number. It should be nine digits
-              starting with 7 or 1.
+            <FieldError role="alert">
+              Nine digits, starting with 7 or 1.
             </FieldError>
           ) : (
-            <Hint id="topup-phone-hint">
-              We&apos;ll send a prompt to this number. Your balance updates the
-              moment you confirm it.
-            </Hint>
+            <Hint id="topup-phone-hint">M-Pesa sends the prompt here.</Hint>
           )}
         </FieldBlock>
       </DrawerBody>
     );
   }
 
+  const settled = stage === "done" || stage === "timeout";
+
   return (
     <Drawer
       open={open}
-      onClose={onClose}
+      onClose={settled ? onToppedUp : onClose}
       dismissible={!busy}
       initialFocusRef={amountRef}
       size="sm"
       title="Top up your wallet"
-      description="Add money with M-Pesa to pay for fares faster."
       footer={
-        stage === "done" ? (
+        settled ? (
           <DrawerFooter>
-            <ButtonEl
-              type="button"
-              $compact
-              style={{ flex: 1 }}
-              onClick={onToppedUp}
-            >
-              Done
-            </ButtonEl>
+            <Grow type="button" $compact onClick={onToppedUp}>
+              Back to wallet
+            </Grow>
           </DrawerFooter>
         ) : busy ? undefined : (
           <DrawerFooter>
             <ButtonEl type="button" $variant="ghost" $compact onClick={onClose}>
-              Cancel
+              Cancel top-up
             </ButtonEl>
-            <ButtonEl
+            <Grow
               type="button"
               $compact
-              style={{ flex: 1 }}
               onClick={submit}
               disabled={!valid}
             >
@@ -379,7 +368,7 @@ export function TopUpDrawer({
               {stage === "form"
                 ? `Add ${amountOk ? formatKes(value) : "money"}`
                 : "Try again"}
-            </ButtonEl>
+            </Grow>
           </DrawerFooter>
         )
       }

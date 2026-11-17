@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { after } from "next/server";
 import { AppShell } from "@/components/nav/AppShell";
+import { MotionProvider } from "@/components/anim/MotionProvider";
 import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
@@ -25,14 +26,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const driverHasApplied = kyc?.hasApplied ?? false;
 
   return (
-    <AppShell
-      profile={profile}
-      mode={mode}
-      driverHasApplied={driverHasApplied}
-      kycStatus={kyc?.status ?? "not_submitted"}
-      supportCases={supportCases}
-    >
-      {children}
-    </AppShell>
+    <MotionProvider>
+      <AppShell
+        profile={profile}
+        mode={mode}
+        driverHasApplied={driverHasApplied}
+        kycStatus={kyc?.status ?? "not_submitted"}
+        supportCases={supportCases}
+      >
+        {children}
+      </AppShell>
+    </MotionProvider>
   );
 }

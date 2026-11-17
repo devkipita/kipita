@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import styled, { css, keyframes } from "styled-components";
-
-/**
- * Auth form vocabulary — minimal, no cards, no gradients. Generous space,
- * soft filled inputs that light up green on focus, one loud primary action.
- */
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export const Heading = styled.h1`
   font-size: clamp(1.9rem, 4vw, 2.5rem);
@@ -40,7 +36,6 @@ export const Label = styled.label`
   margin-bottom: 8px;
 `;
 
-/** Input surface with a leading-icon slot; lights up on focus-within. */
 export const ControlShell = styled.div<{ $error?: boolean; $focused?: boolean }>`
   display: flex;
   align-items: center;
@@ -48,29 +43,29 @@ export const ControlShell = styled.div<{ $error?: boolean; $focused?: boolean }>
   padding: 0 14px;
   height: 56px;
   border-radius: ${({ theme }) => theme.radius.sm};
-  background: ${({ theme }) => theme.color.surface2};
-  --autofill-bg: ${({ theme }) => theme.color.surface2};
-  --autofill-fg: ${({ theme }) => theme.color.text};
-  border: 1.5px solid transparent;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-  color: ${({ theme }) => theme.color.muted};
+  background: ${nocturne.surface};
+  --autofill-bg: ${nocturne.surface};
+  --autofill-fg: ${nocturne.cream};
+  border: 1.5px solid ${nocturne.outline};
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
+  color: ${nocturne.muted};
 
-  ${({ theme, $focused }) =>
+  ${({ $focused }) =>
     $focused &&
     css`
-      background: ${theme.color.surface};
-      --autofill-bg: ${theme.color.surface};
-      border-color: ${theme.color.primary};
-      box-shadow: 0 0 0 4px ${theme.color.primary}22;
-      color: ${theme.color.primary};
+      border-color: ${nocturne.accent};
+      box-shadow: 0 0 0 4px ${nocturne.ring};
+      color: ${nocturne.accent};
     `}
 
-  ${({ theme, $error }) =>
+  ${({ $error }) =>
     $error &&
     css`
-      border-color: ${theme.color.dangerText};
-      box-shadow: 0 0 0 4px ${theme.color.dangerText}1f;
-      color: ${theme.color.dangerText};
+      border-color: ${nocturne.danger};
+      box-shadow: 0 0 0 4px color-mix(in srgb, ${nocturne.danger} 14%, transparent);
+      color: ${nocturne.danger};
     `}
 
   input {
@@ -81,10 +76,10 @@ export const ControlShell = styled.div<{ $error?: boolean; $focused?: boolean }>
     background: transparent;
     font: inherit;
     font-size: 1rem;
-    color: ${({ theme }) => theme.color.text};
+    color: ${nocturne.cream};
 
     &::placeholder {
-      color: ${({ theme }) => theme.color.muted};
+      color: ${nocturne.muted2};
     }
   }
 `;
@@ -93,7 +88,7 @@ export const FieldError = styled.p`
   margin: 8px 2px 0;
   font-size: 0.85rem;
   font-weight: 600;
-  color: ${({ theme }) => theme.color.dangerText};
+  color: ${nocturne.danger};
 `;
 
 const shake = keyframes`
@@ -104,7 +99,9 @@ const shake = keyframes`
   80% { transform: translateX(4px); }
 `;
 
-export const AlertBox = styled.div<{ $tone?: "error" | "info" }>`
+export const AlertBox = styled.div.attrs<{ $tone?: "error" | "info" }>(({ $tone = "error" }) => ({
+  role: $tone === "error" ? "alert" : "status",
+}))<{ $tone?: "error" | "info" }>`
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -118,7 +115,11 @@ export const AlertBox = styled.div<{ $tone?: "error" | "info" }>`
       ? css`
           background: ${theme.color.dangerBg};
           color: ${theme.color.dangerText};
-          animation: ${shake} 0.4s ease;
+          animation: ${shake} ${dur.enter} ${ease.standard};
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
         `
       : css`
           background: ${theme.color.primaryContainer};
@@ -131,7 +132,6 @@ export const AlertBox = styled.div<{ $tone?: "error" | "info" }>`
   }
 `;
 
-/** The one loud action. Full width, lifts on hover, spinner-ready. */
 export const PrimaryButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -139,7 +139,6 @@ export const PrimaryButton = styled.button`
   gap: 10px;
   width: 100%;
   height: 56px;
-  border: none;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.color.primary};
   color: ${({ theme }) => theme.color.onPrimary};
@@ -148,20 +147,31 @@ export const PrimaryButton = styled.button`
   font-family: inherit;
   cursor: pointer;
   border: 1px solid ${({ theme }) => theme.color.line};
-  transition: transform 0.15s ease, background 0.2s ease, box-shadow 0.2s ease,
-    opacity 0.2s ease;
+  transition:
+    transform ${dur.press} ${ease.standard},
+    background ${dur.state} ${ease.standard},
+    opacity ${dur.state} ${ease.standard};
 
-  &:hover:not(:disabled) {
-    background: ${({ theme }) => theme.color.primaryDark};
-    transform: translateY(-1px);
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: ${({ theme }) => theme.color.primaryDark};
+    }
   }
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
   }
   &:disabled {
     opacity: 0.55;
     cursor: default;
-    box-shadow: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 
   svg {
@@ -169,7 +179,6 @@ export const PrimaryButton = styled.button`
   }
 `;
 
-/** Neutral bordered button — OAuth + secondary paths. */
 export const GhostButton = styled.button`
   display: inline-flex;
   align-items: center;
@@ -178,24 +187,38 @@ export const GhostButton = styled.button`
   width: 100%;
   height: 54px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  border: 1.5px solid ${({ theme }) => theme.color.line};
-  background: ${({ theme }) => theme.color.surface};
-  color: ${({ theme }) => theme.color.text};
+  border: 1.5px solid ${nocturne.outline};
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
   font-weight: 600;
   font-size: 1rem;
   cursor: pointer;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.15s ease;
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  &:hover:not(:disabled) {
-    border-color: ${({ theme }) => theme.color.primary};
-    background: ${({ theme }) => theme.color.surface2};
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      border-color: ${nocturne.accent};
+      background: ${nocturne.surface2};
+    }
   }
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 3px;
   }
   &:disabled {
     opacity: 0.55;
     cursor: default;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 `;
 
@@ -214,7 +237,7 @@ export const Divider = styled.div`
   align-items: center;
   gap: 14px;
   margin: 22px 0;
-  color: ${({ theme }) => theme.color.muted};
+  color: ${nocturne.muted2};
   font-size: 0.85rem;
   font-weight: 600;
 
@@ -222,7 +245,7 @@ export const Divider = styled.div`
   &::after {
     content: "";
     flex: 1;
-    border-top: 1px solid ${({ theme }) => theme.color.line};
+    border-top: 1px solid ${nocturne.line};
   }
 `;
 
@@ -232,24 +255,70 @@ export const FootNote = styled.p`
   font-size: 0.95rem;
   color: ${({ theme }) => theme.color.textSoft};
 
-  a {
-    color: ${({ theme }) => theme.color.primaryDark};
+  a,
+  button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 4px;
+    border: none;
+    background: none;
+    font: inherit;
+    color: ${nocturne.accent};
     font-weight: 700;
     text-decoration: none;
-    &:hover {
-      text-decoration: underline;
+    cursor: pointer;
+
+    @media (hover: hover) {
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    &:focus-visible {
+      outline: 3px solid ${nocturne.accent};
+      outline-offset: 2px;
+      border-radius: 6px;
     }
   }
 `;
 
-export const TextLink = styled(Link)`
-  color: ${({ theme }) => theme.color.primaryDark};
+const textAction = css`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: ${nocturne.accent};
   font-weight: 700;
   text-decoration: none;
   font-size: 0.92rem;
-  &:hover {
-    text-decoration: underline;
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
   }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  &:disabled {
+    color: ${nocturne.muted2};
+    cursor: default;
+  }
+`;
+
+export const TextLink = styled(Link)`
+  ${textAction}
+`;
+
+export const TextButton = styled.button`
+  ${textAction}
 `;
 
 const spin = keyframes`
