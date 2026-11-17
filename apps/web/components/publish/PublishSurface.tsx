@@ -18,10 +18,12 @@ export function PublishSurface({
   savedCars,
   publishBeforeApproval,
   driverName,
+  userId,
 }: {
   savedCars: SavedCar[];
   publishBeforeApproval: boolean;
   driverName: string;
+  userId: string;
 }) {
   const phone = useSyncExternalStore<boolean | null>(
     subscribe,
@@ -31,8 +33,8 @@ export function PublishSurface({
 
   if (phone === null) return <PublishSkeleton />;
   return phone ? (
-    <PublishMobile savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} />
+    <PublishMobile userId={userId} savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} />
   ) : (
-    <PublishWeb savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} driverName={driverName} />
+    <PublishWeb userId={userId} savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} driverName={driverName} />
   );
 }

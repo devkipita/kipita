@@ -89,9 +89,10 @@ export default function LegalFaqPage() {
         </Faq>
         <Faq question={`What does ${SITE.name} charge?`}>
           <p>
-            A {KIPITA_FEE_PERCENT}% platform fee, taken from the driver&apos;s
-            release when a trip completes. Safaricom&apos;s own mobile money
-            charges are separate and set by Safaricom.
+            A {KIPITA_FEE_PERCENT}% service fee, added to the seat price when
+            you book. You see the total before you pay, and the driver receives
+            the full seat price. Safaricom&apos;s own mobile money charges are
+            separate and set by Safaricom.
           </p>
         </Faq>
         <Faq question="The driver never showed up. What now?">

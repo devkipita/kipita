@@ -213,8 +213,9 @@ export default function TermsPage() {
             <tr>
               <th scope="row">Trip completed</th>
               <td>
-                We release the fare to the driver&apos;s wallet, minus a{" "}
-                {KIPITA_FEE_PERCENT}% platform fee.
+                We release the seat price to the driver&apos;s wallet. The{" "}
+                {KIPITA_FEE_PERCENT}% service fee you paid on top of the seat
+                price is kept by {SITE.name}.
               </td>
             </tr>
             <tr>

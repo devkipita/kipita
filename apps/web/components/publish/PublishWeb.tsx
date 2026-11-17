@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, searchTowns } from "@kipita/shared";
+import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
 import {
   ArrowRight,
   CalendarBlank,
@@ -12,8 +12,6 @@ import {
   MagnifyingGlass,
   Minus,
   Plus,
-  SealCheck,
-  Warning,
   X,
 } from "@/components/icons";
 import { useAppMode } from "@/components/nav/AppShell";
@@ -27,6 +25,9 @@ import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime } from "./WhenPicker";
 import type { SavedCar } from "./draft";
 import { clearDraft, loadDraft, saveDraft } from "./draft";
+import { DiscardDialog } from "./DiscardDialog";
+import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
+import { VerifyStatusCard } from "./VerifyStatus";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -48,7 +49,7 @@ const DAYS_AHEAD = 21;
 const FARES = [1000, 1500, 2000, 2500];
 const SEATS = [1, 2, 3, 4, 5, 6, 7, 8];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const MAJOR = ["Nanyuki", "Thika", "Nakuru", "Nyeri", "Naivasha", "Eldoret", "Kisumu", "Mombasa", "Meru", "Machakos", "Nairobi"];
+const MAJOR = ["Nairobi", "Nakuru", "Nyeri", "Nanyuki", "Naivasha", "Thika", "Eldoret", "Kisumu", "Mombasa", "Meru", "Machakos"];
 
 /** The four quick times offered before anyone opens the time dialog. */
 const QUICK_TIMES = ["06:00", "09:00", "13:00", "17:00"];
@@ -303,8 +304,15 @@ const Discard = styled.button`
   border-radius: 10px;
   ${ring}
 
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       background: ${nocturne.surface2};
       color: ${nocturne.cream};
     }
@@ -457,6 +465,13 @@ const SeatChip = styled(Chip)`
   min-width: 56px;
   font-size: 16px;
   font-weight: 800;
+`;
+
+/** A small word inside a chip: "Near you", "Change". */
+const ChipNote = styled.span`
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.8;
 `;
 
 const CarChip = styled.button<{ $on: boolean }>`
@@ -960,35 +975,13 @@ const PublishBtn = styled.button`
 `;
 
 
-/** One short line each, mark first: the terms of publishing, scanned not read. */
-const Terms = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.35;
-    color: ${nocturne.cream};
-  }
-  li > svg {
-    flex: none;
-    color: ${nocturne.green};
-  }
-`;
-
 export function PublishWeb({
+  userId,
   savedCars = [],
   publishBeforeApproval = false,
   driverName = "",
 }: {
+  userId: string;
   savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
   driverName?: string;
@@ -1008,21 +1001,25 @@ export function PublishWeb({
   const [maxStep, setMaxStep] = useState(0);
   const [ready, setReady] = useState(false);
   const [editFrom, setEditFrom] = useState(false);
-  const [guessed, setGuessed] = useState(false);
+  const [near, setNear] = useState<string | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("morning");
   const [adding, setAdding] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
   const [fareOpen, setFareOpen] = useState(false);
-  const [error, setError] = useState<{ text: string; fix?: "kyc" } | null>(null);
+  const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
   const sentenceRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
   const moved = useRef(false);
+  // The furthest step reached, readable from the history listener below.
+  const maxStepRef = useRef(0);
+  maxStepRef.current = maxStep;
 
   useEffect(() => {
-    const saved = loadDraft();
+    const saved = loadDraft(userId);
     let start = 0;
     if (saved) {
       const base = blankDraft();
@@ -1057,7 +1054,9 @@ export function PublishWeb({
       const target = (e.state as { publishStep?: unknown } | null)?.publishStep;
       if (typeof target !== "number") return;
       moved.current = true;
-      setStep(target);
+      // History entries left over from a discarded draft must not reopen steps
+      // the new draft has not reached.
+      setStep(Math.min(target, maxStepRef.current));
       setEditFrom(false);
       setQuery("");
     };
@@ -1067,8 +1066,8 @@ export function PublishWeb({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
-        setDraft((d) => (d.from ? d : { ...d, from: origin.town.name }));
-        setGuessed(true);
+        // Only a suggestion: nothing is selected until the driver taps it.
+        setNear(origin.town.name);
       })
       .catch(() => undefined);
     return () => {
@@ -1082,7 +1081,7 @@ export function PublishWeb({
 
   useEffect(() => {
     if (!ready) return;
-    saveDraft({
+    saveDraft(userId, {
       ...draft,
       carMode: !car ? "none" : savedPlates.split(",").includes(car.plate) ? "saved" : "new",
       make: car?.make ?? "",
@@ -1092,7 +1091,7 @@ export function PublishWeb({
       step,
       maxStep,
     });
-  }, [ready, draft, car, savedPlates, step, maxStep]);
+  }, [ready, userId, draft, car, savedPlates, step, maxStep]);
 
   useEffect(() => {
     if (!moved.current) return;
@@ -1114,7 +1113,7 @@ export function PublishWeb({
 
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
-    setError(null);
+    setBlock(null);
   }
 
   function go(next: number) {
@@ -1134,19 +1133,33 @@ export function PublishWeb({
     else go(step - 1);
   }
 
-  function reset() {
+  const hasDraft = !isEmptyDraft(draft, { step, maxStep });
+
+  function askDiscard() {
+    if (hasDraft) setDiscardOpen(true);
+  }
+
+  /** Throws away the whole unpublished draft, including what is saved in the browser. */
+  function discard() {
     clearDraft();
     moved.current = true;
-    setDraft((d) => ({ ...blankDraft(), from: d.from }));
+    setDraft(blankDraft());
     setCars(initialCars);
     setCarIndex(initialCars.length > 0 ? 0 : -1);
+    setPeriod("morning");
     setStep(0);
     setMaxStep(0);
     window.history.replaceState({ ...window.history.state, publishStep: 0 }, "");
-    setError(null);
+    setBlock(null);
     setQuery("");
     setEditFrom(false);
     setAdding(false);
+    setCalOpen(false);
+    setTimeOpen(false);
+    setFareOpen(false);
+    setDiscardOpen(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => sentenceRef.current?.focus({ preventScroll: true }), 0);
   }
 
   const choosingFrom = editFrom || !draft.from;
@@ -1164,17 +1177,34 @@ export function PublishWeb({
     true,
   ][step];
 
-  function problem(): string | null {
-    if (draft.from.toLowerCase() === draft.to.toLowerCase()) return "Pick two different towns.";
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now())
-      return "That departure time has already passed. Pick a later one.";
+  function problem(): Block | null {
+    if (draft.from.toLowerCase() === draft.to.toLowerCase())
+      return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
+    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now()) {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      return draft.date < today
+        ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
+        : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
+    }
     return null;
+  }
+
+  function fixBlock() {
+    const kind = block?.kind;
+    setBlock(null);
+    if (kind === "towns") go(0);
+    else if (kind === "day") go(1);
+    else if (kind === "time") go(2);
+    else if (kind === "car") go(5);
+    else if (kind === "kyc") requireKyc(sendTrip);
+    else publish();
   }
 
   function publish() {
     const wrong = problem();
     if (wrong) {
-      setError({ text: wrong });
+      setBlock(wrong);
       return;
     }
     if (!submitted) {
@@ -1200,7 +1230,7 @@ export function PublishWeb({
         vehicle_color: car?.color.trim() || undefined,
       });
       if (!result.ok) {
-        setError({ text: result.error, fix: result.fix });
+        setBlock(blockOf(result.error, result.fix));
         return;
       }
       clearDraft();
@@ -1289,31 +1319,49 @@ export function PublishWeb({
       : [];
 
   const searching = query.trim().length > 0;
+  const nearTown = useMemo(() => (near ? (KENYAN_TOWNS.find((t) => t.name === near) ?? null) : null), [near]);
   const towns = useMemo(() => {
     const other = choosingFrom ? draft.to : draft.from;
-    if (searching) return searchTowns(query, 6).filter((t) => t.name !== other);
+    if (searching) return searchTowns(query, 6).filter((t) => !sameTown(t.name, other));
     const here = KENYAN_TOWNS.find((t) => t.name === draft.from);
     const runs = !choosingFrom && draft.from ? POPULAR_ROUTES.filter((r) => r.from === draft.from).map((r) => r.to) : [];
-    return [...new Set([...runs, ...MAJOR])]
+    const list = [...new Set([...runs, ...MAJOR])]
       .flatMap((name) => KENYAN_TOWNS.filter((t) => t.name === name))
-      .filter((t) => t.name !== other && (choosingFrom || t.county !== here?.county))
-      .slice(0, 6);
-  }, [query, searching, choosingFrom, draft.from, draft.to]);
+      .filter((t) => !sameTown(t.name, other) && (choosingFrom || t.county !== here?.county));
+    return choosingFrom ? putNearTownFirst(list, nearTown, other, 6) : list.slice(0, 6);
+  }, [query, searching, choosingFrom, draft.from, draft.to, nearTown]);
 
   const typed = query.trim().replace(/\s+/g, " ");
   const exactMatch = towns.some((t) => t.name.toLowerCase() === typed.toLowerCase());
+  const titled = typed.replace(/\b\w/g, (c) => c.toUpperCase());
 
+  /** One way to choose a town, whether it was tapped, searched or typed. A new choice replaces the old one. */
   function pickTown(name: string) {
     if (choosingFrom) {
+      if (sameTown(draft.to, name)) {
+        setBlock({ kind: "towns", text: "That is where you are going. Pick a different town to leave from." });
+        return;
+      }
       patch({ from: name });
-      setGuessed(false);
       setEditFrom(false);
       setQuery("");
       return;
     }
+    if (sameTown(draft.from, name)) {
+      setBlock({ kind: "towns", text: "That is where you are leaving from. Pick a different destination." });
+      return;
+    }
     patch({ to: name });
     setQuery("");
-    if (draft.from && draft.from.toLowerCase() !== name.toLowerCase()) go(1);
+    go(1);
+  }
+
+  /** Enter in the search box does what tapping the best match would. */
+  function pickFromSearch() {
+    if (!searching) return;
+    const match = towns.find((t) => sameTown(t.name, typed)) ?? towns[0];
+    if (match) pickTown(match.name);
+    else if (typed.length > 1) pickTown(titled);
   }
 
   const calendar = useMemo(() => {
@@ -1380,7 +1428,7 @@ export function PublishWeb({
             <StepPill>{reviewing ? `${STEPS.length}/${STEPS.length}` : `${step + 1}/${STEPS.length}`}</StepPill>
             <span className="what">{reviewing ? "Check and publish" : "Publish a ride"}</span>
           </HeadLeft>
-          <Discard type="button" onClick={reset}>
+          <Discard type="button" onClick={askDiscard} disabled={!hasDraft}>
             <TrashIcon />
             Discard draft
           </Discard>
@@ -1410,26 +1458,14 @@ export function PublishWeb({
             </Row>
 
             {kycStatus !== "approved" && (
-              <Terms>
-                <li>
-                  <SealCheck size={22} />
-                  {submitted
-                    ? "Verification in review. It goes live once this clears"
-                    : "Drivers are verified before publishing"}
-                </li>
-              </Terms>
-            )}
-
-            {error && (
-              <Alert role="alert">
-                <Warning size={16} weight="bold" />
-                {error.text}
-                {error.fix === "kyc" && (
-                  <Hollow type="button" onClick={() => requireKyc(sendTrip)} style={{ height: 36 }}>
-                    Verify to publish
-                  </Hollow>
-                )}
-              </Alert>
+              <div style={{ marginTop: 28 }}>
+                <VerifyStatusCard
+                  stage={kycStatus === "pending" ? "pending" : kycStatus === "rejected" ? "rejected" : "none"}
+                  liveNow={publishBeforeApproval}
+                  action={kycStatus === "pending" ? undefined : kycStatus === "rejected" ? "Resubmit documents" : "Verify now"}
+                  onAction={kycStatus === "pending" ? undefined : publish}
+                />
+              </div>
             )}
 
             <Acts>
@@ -1450,6 +1486,25 @@ export function PublishWeb({
           <Step key={step}>
             {step === 0 && (
               <>
+                {draft.from && !editFrom && (
+                  <Field>
+                    <Eyebrow>Leaving from</Eyebrow>
+                    <Row>
+                      <Chip
+                        type="button"
+                        $on
+                        aria-label={`Leaving from ${draft.from}. Change it.`}
+                        onClick={() => {
+                          setEditFrom(true);
+                          setQuery("");
+                        }}
+                      >
+                        {draft.from}
+                        <ChipNote>Change</ChipNote>
+                      </Chip>
+                    </Row>
+                  </Field>
+                )}
                 <Field>
                   <FieldHead>
                     <label htmlFor="town">{choosingFrom ? "Where are you leaving from?" : "Where are you going?"}</label>
@@ -1466,7 +1521,14 @@ export function PublishWeb({
                       value={query}
                       autoComplete="off"
                       placeholder="Search a town or city"
+                      enterKeyHint="go"
                       onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          pickFromSearch();
+                        }
+                      }}
                     />
                   </Search>
                 </Field>
@@ -1476,24 +1538,21 @@ export function PublishWeb({
                   </Eyebrow>
                   <Row>
                     {searching && typed.length > 1 && !exactMatch && (
-                      <Chip type="button" onClick={() => pickTown(typed.replace(/\b\w/g, (c) => c.toUpperCase()))}>
+                      <Chip type="button" onClick={() => pickTown(titled)}>
                         Use “{typed}”
                       </Chip>
                     )}
-                    {towns.map((t) => (
-                      <Chip
-                        key={t.name}
-                        type="button"
-                        $on={!choosingFrom && draft.to === t.name}
-                        onClick={() => pickTown(t.name)}
-                      >
-                        {t.name}
-                      </Chip>
-                    ))}
+                    {towns.map((t) => {
+                      const on = sameTown(choosingFrom ? draft.from : draft.to, t.name);
+                      const isNear = choosingFrom && !searching && nearTown?.name === t.name;
+                      return (
+                        <Chip key={t.name} type="button" $on={on} aria-pressed={on} onClick={() => pickTown(t.name)}>
+                          {t.name}
+                          {isNear && <ChipNote>Near you</ChipNote>}
+                        </Chip>
+                      );
+                    })}
                   </Row>
-                  {guessed && !editFrom && draft.from && (
-                    <Alert $tone="warn">Starting from {draft.from}. Tap it in the sentence to change.</Alert>
-                  )}
                 </Field>
               </>
             )}
@@ -1647,13 +1706,6 @@ export function PublishWeb({
               </Field>
             )}
 
-            {error && (
-              <Alert role="alert">
-                <Warning size={16} weight="bold" />
-                {error.text}
-              </Alert>
-            )}
-
             <Actions>
               {step > 0 && (
                 <BackBtn type="button" onClick={back}>
@@ -1672,6 +1724,8 @@ export function PublishWeb({
         )}
 
       </Layout>
+
+      {block && <PublishBlocker block={block} busy={pending} onFix={fixBlock} onClose={() => setBlock(null)} />}
 
       {calOpen && (
         <Backdrop onClick={() => setCalOpen(false)}>
@@ -1797,6 +1851,8 @@ export function PublishWeb({
           </Dialog>
         </Backdrop>
       )}
+
+      <DiscardDialog open={discardOpen} onCancel={() => setDiscardOpen(false)} onConfirm={discard} />
 
       <CarDialog open={adding} onClose={() => setAdding(false)} onSaved={onCarSaved} />
     </Page>

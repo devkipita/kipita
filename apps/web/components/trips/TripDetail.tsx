@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import styled, { css, useTheme } from "styled-components";
+import styled, { css } from "styled-components";
 import {
-  ArrowLeft,
-  ArrowRight,
   CalendarBlank,
   Clock,
   MapPin,
@@ -26,16 +24,18 @@ import type { Booking } from "@/lib/trips/types";
 import { PaymentDrawer } from "@/components/rides/PaymentDrawer";
 import { PushBanner } from "@/components/notifications/PushBanner";
 import { ScrollProgress } from "@/components/ui/ScrollProgress";
+import { EscrowHeldArt } from "@/components/ui/MoneyArt";
 import { Reveal } from "@/components/anim/Reveal";
 import { RideProgress } from "./RideProgress";
 import { TripStage } from "./TripStage";
-import { STATUS_ICON, STATUS_LABEL, statusTone } from "./statusTone";
+import { STATUS_LABEL } from "./statusTone";
+import { GreenHero } from "@/components/ui/GreenHero";
 import { TripHelp } from "./TripHelp";
 
 const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
 const Page = styled(ContentWidth)`
-  padding-block: 18px 64px;
+  padding-block: 0 64px;
   display: flex;
   flex-direction: column;
   background: ${nocturne.bg};
@@ -47,106 +47,6 @@ const Page = styled(ContentWidth)`
 
   @media (max-width: 960px) {
     padding-bottom: calc(48px + var(--bottom-bar-space, 0px));
-  }
-`;
-
-const Back = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  min-height: 44px;
-  padding: 8px 2px;
-  font-size: 15px;
-  font-weight: 700;
-  color: ${nocturne.muted};
-  text-decoration: none;
-  box-shadow: inset 0 -2px 0 transparent;
-  transition:
-    color 0.16s ease,
-    box-shadow 0.16s ease;
-
-  svg {
-    flex: none;
-    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: ${nocturne.cream};
-      box-shadow: inset 0 -2px 0 ${RULE};
-    }
-    &:hover svg {
-      transform: translateX(-3px);
-    }
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    svg {
-      transition: none;
-    }
-    &:hover svg {
-      transform: none;
-    }
-  }
-`;
-
-const Status = styled.p<{ $on: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin: clamp(14px, 2vh, 22px) 0 0;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  color: ${({ $on }) => $on};
-
-  svg {
-    flex: none;
-  }
-`;
-
-const Headline = styled.h1`
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin: 10px 0 0;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: clamp(32px, 5.2vw, 60px);
-  font-weight: 800;
-  line-height: 1.04;
-  letter-spacing: -0.038em;
-  color: ${nocturne.cream};
-
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-`;
-
-const Facts = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px 30px;
-  margin: clamp(20px, 2.8vh, 28px) 0 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-    font-size: 16px;
-    font-weight: 600;
-    color: ${nocturne.cream};
-  }
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
   }
 `;
 
@@ -182,7 +82,7 @@ const Band = styled.div`
 `;
 
 const Stage = styled.div`
-  margin-top: clamp(22px, 3vh, 32px);
+  margin-top: clamp(28px, 4vh, 44px);
 `;
 
 const Landed = styled.p`
@@ -308,7 +208,6 @@ const Person = styled.div`
     align-items: center;
     gap: 5px;
     font-weight: 800;
-    font-variant-numeric: tabular-nums;
     color: ${nocturne.cream};
   }
   .meta svg {
@@ -338,6 +237,7 @@ const Reference = styled.p`
     font-weight: 700;
     letter-spacing: 0.1em;
     color: ${nocturne.cream};
+    user-select: all;
   }
 `;
 
@@ -376,7 +276,6 @@ const Amount = styled.p`
     font-weight: 800;
     line-height: 1;
     letter-spacing: -0.035em;
-    font-variant-numeric: tabular-nums;
     color: ${nocturne.cream};
   }
 `;
@@ -545,6 +444,40 @@ const Note = styled.p`
   color: ${nocturne.muted};
 `;
 
+const Escrow = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+
+  .art {
+    width: 124px;
+  }
+  p {
+    margin: 0;
+    max-width: 34ch;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    text-wrap: pretty;
+    color: ${nocturne.muted};
+  }
+  b {
+    color: ${nocturne.cream};
+    font-weight: 700;
+  }
+`;
+
+const Sr = styled.span`
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+`;
+
 const Helping = styled.div`
   margin-top: clamp(34px, 5vh, 56px);
   padding-top: clamp(26px, 3.4vh, 36px);
@@ -559,7 +492,7 @@ function LongArrow({ size = 26 }: { size?: number }) {
       viewBox="0 0 18 14"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.15"
+      strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -597,7 +530,6 @@ export function TripDetail({
 }) {
   const router = useRouter();
   const params = useSearchParams();
-  const theme = useTheme();
   const [justBooked, setJustBooked] = useState(
     () => params?.get("new") === "1",
   );
@@ -608,8 +540,6 @@ export function TripDetail({
     const timer = setTimeout(() => setJustBooked(false), 9000);
     return () => clearTimeout(timer);
   }, [justBooked, booking.id]);
-  const tone = statusTone(theme, booking.status);
-  const Icon = STATUS_ICON[booking.status];
 
   const isDriver = booking.driver_id === viewerId;
   const person = isDriver ? booking.passenger : booking.driver;
@@ -686,39 +616,21 @@ export function TripDetail({
   return (
     <Page $max={1060}>
       <ScrollProgress />
-      <Back href="/trips">
-        <ArrowLeft size={17} /> All trips
-      </Back>
-
-      <Status $on={tone.bg}>
-        <Icon size={17} weight="fill" />
-        {STATUS_LABEL[booking.status]}
-      </Status>
-
-      <Headline>
-        {origin && (
-          <>
-            <span>{origin}</span>
-            <ArrowRight size={34} aria-hidden />
-          </>
-        )}
-        <span>{destination}</span>
-      </Headline>
-
-      <Facts>
-        <li>
-          <CalendarBlank size={19} />
-          {date || "Date to confirm"}
-        </li>
-        <li>
-          <Clock size={19} />
-          {time || "Time to confirm"}
-        </li>
-        <li>
-          <Users size={19} />
-          {booking.seats_booked} {booking.seats_booked === 1 ? "seat" : "seats"}
-        </li>
-      </Facts>
+      <GreenHero
+        back={{ href: "/trips", label: "All trips" }}
+        status={STATUS_LABEL[booking.status]}
+        route={origin ? { from: origin, to: destination } : undefined}
+        title={origin ? undefined : destination}
+        moving={booking.status === "in_progress"}
+        meta={[
+          { icon: <CalendarBlank size={20} />, label: date || "Date to confirm" },
+          { icon: <Clock size={20} />, label: time || "Time to confirm" },
+          {
+            icon: <Users size={20} />,
+            label: `${booking.seats_booked} ${booking.seats_booked === 1 ? "seat" : "seats"}`,
+          },
+        ]}
+      />
 
       {justBooked && (
         <Landed role="status">
@@ -763,11 +675,6 @@ export function TripDetail({
               Pay {formatCurrency(booking.total_price)} with M-Pesa
             </StageAct>
           )}
-          {booking.status === "completed" && (
-            <StageAct as={Link} href={`/ride/${booking.trip_id}`}>
-              <Star size={17} weight="fill" /> Rate this trip
-            </StageAct>
-          )}
           {error && <StageError role="alert">{error}</StageError>}
         </TripStage>
       </Stage>
@@ -791,6 +698,7 @@ export function TripDetail({
                     <SealCheck
                       size={19}
                       weight="fill"
+                      role="img"
                       aria-label="Verified"
                     />
                   )}
@@ -800,6 +708,7 @@ export function TripDetail({
                     <>
                       <b>
                         <Star size={16} weight="fill" />
+                        <Sr>Rated </Sr>
                         {rating}
                       </b>
                       {person?.total_trips
@@ -836,7 +745,7 @@ export function TripDetail({
 
 
         <SideCol>
-          <Money>
+          <Money aria-label="Your fare">
             <Amount>
               <small>
                 {due
@@ -862,6 +771,11 @@ export function TripDetail({
                   <MapPin size={17} /> View the ride
                 </Secondary>
               )}
+              {finished && !isDriver && (
+                <Secondary href="/home">
+                  <MapPin size={17} /> Find another ride
+                </Secondary>
+              )}
               {canCancel && !isDriver && (
                 <Drop
                   type="button"
@@ -879,6 +793,24 @@ export function TripDetail({
                   ? "Cancelling is free during the pilot. The full fare returns to your wallet."
                   : "Cancelling is free. Nothing has been charged yet."}
               </Note>
+            )}
+            {(due || paid || booking.status === "in_progress") && (
+              <Escrow>
+                <span className="art">
+                  <EscrowHeldArt />
+                </span>
+                <p>
+                  {isDriver ? (
+                    <>
+                      <b>Kipita holds this fare.</b> It is released to you, minus the Kipita fee, once the trip is done.
+                    </>
+                  ) : (
+                    <>
+                      <b>Kipita holds your fare.</b> It is only released to the driver once the trip is done.
+                    </>
+                  )}
+                </p>
+              </Escrow>
             )}
           </Money>
         </SideCol>

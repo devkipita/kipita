@@ -57,6 +57,8 @@ export const NotificationCard = memo(function NotificationCard({
         {
           // Unread reads as a filled chip; read blends flat into the list.
           backgroundColor: unread ? colors.card : "transparent",
+          borderWidth: 1,
+          borderColor: unread ? colors.borderLight : "transparent",
           opacity: pressed ? 0.85 : 1,
         },
       ]}

@@ -1,23 +1,36 @@
 import { supabase } from '@/lib/supabase';
-import type { Payment, PaymentMethod } from '@/types';
+import { bookingAmounts, DEFAULT_FARE_CONFIG, splitPaidTotal } from '@kipita/shared';
+import type { Booking, Payment, PaymentMethod } from '@/types';
 
 /**
- * Kipita's platform commission, as a percentage of the fare. Kept in sync with
- * the `KIPITA_FEE_PERCENT` env used by the confirm-payment / release-escrow
- * edge functions. Client-side it's only used to preview the split — the backend
- * is the source of truth when funds are actually released.
+ * What a booking's total is made of. Since migration 052 the Kipita fee is added on top of the seat
+ * price when the booking is created (bookings.service_fee) and the driver keeps the full seat price.
+ * Bookings without a stored fee (older ones) have the fee deducted from the driver at 12% instead.
+ * Client-side this only drives what is shown: the edge functions use the database values when money moves.
  */
-export const KIPITA_FEE_PERCENT = 12;
+export function paymentBreakdown(
+  booking: Pick<Booking, 'total_price' | 'service_fee'>,
+): { fee: number; driverEarning: number; onTop: boolean } {
+  return splitPaidTotal(booking.total_price, booking.service_fee);
+}
 
-const round2 = (n: number) => Math.round(n * 100) / 100;
-
-/** Split a fare into Kipita's fee and the driver's take-home earning. */
-export function computeEscrowSplit(amount: number): {
-  fee: number;
-  driverEarning: number;
-} {
-  const fee = round2((amount * KIPITA_FEE_PERCENT) / 100);
-  return { fee, driverEarning: round2(amount - fee) };
+/**
+ * A preview of the amounts for a seat booking, for bookings the app builds locally before a row exists.
+ * Uses the default 12% fee on top. A real booking row always carries the database's own figures.
+ */
+export function previewBooking(
+  seatPriceKes: number,
+  seats = 1,
+): { total_price: number; service_fee: number } {
+  try {
+    const a = bookingAmounts(seatPriceKes, seats, DEFAULT_FARE_CONFIG);
+    return { total_price: a.totalKes, service_fee: a.serviceFeeKes };
+  } catch {
+    // A seat price that is not a whole number of shillings.
+    const subtotal = seatPriceKes * seats;
+    const fee = Math.round((subtotal * DEFAULT_FARE_CONFIG.feeBps) / 10000);
+    return { total_price: subtotal + fee, service_fee: fee };
+  }
 }
 
 /** Initiate payment via Edge Function (secure backend) */

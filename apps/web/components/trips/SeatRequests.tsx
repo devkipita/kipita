@@ -14,13 +14,12 @@ import {
 import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { Count, fs } from "./RideRow";
 
 const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
 const Section = styled.section`
-  margin: clamp(26px, 4vh, 38px) 0 clamp(30px, 4.5vh, 46px);
-  padding-bottom: clamp(26px, 4vh, 36px);
-  border-bottom: 1.5px solid ${RULE};
+  margin: clamp(40px, 6vh, 64px) 0 0;
 
   > h2 {
     display: flex;
@@ -28,33 +27,19 @@ const Section = styled.section`
     gap: 12px;
     margin: 0 0 6px;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(24px, 3vw, 34px);
+    font-size: ${fs.head};
     font-weight: 800;
-    letter-spacing: -0.033em;
-    line-height: 1.08;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
     color: ${nocturne.cream};
   }
   > p {
-    margin: 0 0 20px;
-    max-width: 58ch;
-    font-size: 16px;
-    line-height: 1.55;
+    margin: 0 0 18px;
+    max-width: 60ch;
+    font-size: ${fs.body};
+    line-height: 1.5;
     color: ${nocturne.muted};
   }
-`;
-
-const Count = styled.span`
-  display: inline-grid;
-  place-items: center;
-  min-width: 30px;
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 16px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
 `;
 
 const arrive = keyframes`
@@ -91,16 +76,16 @@ const Row = styled.div<{ $fresh?: boolean }>`
 const New = styled.span`
   display: inline-flex;
   align-items: center;
-  height: 22px;
+  height: 24px;
   margin-left: 10px;
-  padding: 0 9px;
+  padding: 0 10px;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 12px;
+  background: ${nocturne.lime};
+  color: ${nocturne.greenDeep};
+  font-family: ${({ theme }) => theme.font};
+  font-size: ${fs.small};
   font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0;
   vertical-align: middle;
 `;
 
@@ -112,9 +97,9 @@ const Who = styled.div`
 
   .name {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(19px, 2vw, 23px);
+    font-size: ${fs.route};
     font-weight: 800;
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
     color: ${nocturne.cream};
   }
   .route {
@@ -123,8 +108,8 @@ const Who = styled.div`
     flex-wrap: wrap;
     gap: 4px 8px;
     margin-top: 4px;
-    font-size: 16px;
-    font-weight: 700;
+    font-size: ${fs.meta};
+    font-weight: 800;
     color: ${nocturne.cream};
   }
   .route svg {
@@ -145,7 +130,7 @@ const Facts = styled.ul`
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    font-size: 15px;
+    font-size: ${fs.meta};
     color: ${nocturne.muted};
   }
   svg {
@@ -182,12 +167,12 @@ const Act = styled.button<{ $primary?: boolean }>`
     ${({ $primary }) => ($primary ? "transparent" : RULE)};
   border-radius: 999px;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 16px;
-  font-weight: 700;
+  font-size: ${fs.meta};
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  background: ${({ $primary }) => ($primary ? nocturne.ctaBg : "transparent")};
-  color: ${({ $primary }) => ($primary ? nocturne.ctaFg : nocturne.cream)};
+  background: ${({ $primary }) => ($primary ? nocturne.green : "transparent")};
+  color: ${({ $primary }) => ($primary ? nocturne.onGreen : nocturne.cream)};
   transition:
     background-color 0.18s ease,
     color 0.18s ease,
@@ -197,7 +182,7 @@ const Act = styled.button<{ $primary?: boolean }>`
   @media (hover: hover) {
     &:hover:not(:disabled) {
       background: ${({ $primary }) =>
-        $primary ? nocturne.green : nocturne.surface2};
+        $primary ? nocturne.greenDeep : nocturne.surface2};
       color: ${({ $primary }) =>
         $primary ? nocturne.onGreen : nocturne.accent};
       border-color: ${({ $primary }) =>
@@ -226,7 +211,7 @@ const Err = styled.p`
   align-items: flex-start;
   gap: 10px;
   margin: 0 0 18px;
-  font-size: 16px;
+  font-size: ${fs.meta};
   font-weight: 600;
   color: ${nocturne.cream};
 

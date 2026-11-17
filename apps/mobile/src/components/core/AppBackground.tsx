@@ -25,9 +25,7 @@ export const AppBackground = memo(function AppBackground({ children }: AppBackgr
         style={[
           styles.overlay,
           {
-            backgroundColor: isDark
-              ? 'rgba(17,17,20,0.72)'
-              : 'rgba(219,232,214,0.72)',
+            backgroundColor: colors.background + 'B8',
           },
         ]}
       />

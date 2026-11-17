@@ -17,6 +17,10 @@ import {
   DMSans_700Bold,
   DMSans_800ExtraBold,
 } from "@expo-google-fonts/dm-sans";
+import {
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from "@expo-google-fonts/manrope";
 import { useTheme, usePushNotifications } from "@/hooks";
 import { useAuthStore } from "@/store";
 import { supabase } from "@/lib/supabase";
@@ -43,6 +47,8 @@ function RootLayoutInner() {
     "DM Sans SemiBold": DMSans_600SemiBold,
     "DM Sans Bold": DMSans_700Bold,
     "DM Sans ExtraBold": DMSans_800ExtraBold,
+    "Manrope Bold": Manrope_700Bold,
+    "Manrope ExtraBold": Manrope_800ExtraBold,
   });
 
   useEffect(() => {

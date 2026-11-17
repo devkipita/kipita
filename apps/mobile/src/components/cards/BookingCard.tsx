@@ -6,6 +6,8 @@ import { Text } from "../core/Text";
 import { Icon } from "../core/Icon";
 import { Avatar } from "../core/Avatar";
 import { useTheme, useAppMode, useLocale, useCityPhoto } from "@/hooks";
+import { useAuthStore } from "@/store";
+import { isRealBookingId } from "@/lib/api/bookings";
 import { spacing, radius } from "@/theme";
 import { statusTone, STATUS_ICON, STATUS_LABEL_KEY } from "@/theme/statusTone";
 import { formatDate, formatTime, formatCurrency } from "@/lib/formatters";
@@ -28,7 +30,12 @@ export const BookingCard = memo(function BookingCard({
 }: BookingCardProps) {
   const { colors } = useTheme();
   const { t } = useLocale();
-  const { isDriver } = useAppMode();
+  const { isDriver: driverMode } = useAppMode();
+  const user = useAuthStore((s) => s.user);
+  // On a real booking the booking itself says which side you are on; the app
+  // mode only decides for seeded demo bookings.
+  const isDriver =
+    user && isRealBookingId(booking.id) ? booking.driver_id === user.id : driverMode;
 
   const tone = statusTone(colors, booking.status);
   const icon = STATUS_ICON[booking.status];
@@ -62,7 +69,12 @@ export const BookingCard = memo(function BookingCard({
       <Animated.View
         style={[
           styles.card,
-          { backgroundColor: colors.surfaceContainerLow, transform: [{ scale }] },
+          {
+            backgroundColor: colors.surfaceContainerLow,
+            borderWidth: 1,
+            borderColor: colors.borderLight,
+            transform: [{ scale }],
+          },
         ]}
       >
         <View style={styles.hero}>

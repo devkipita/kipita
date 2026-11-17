@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/auth/session";
 import { fetchRideDetail } from "@/lib/ride-detail.server";
 import { fetchPlatform } from "@/lib/platform.server";
-import { settingOf } from "@/lib/platform";
+import { fareConfigFromSettings } from "@kipita/shared";
 import { RideDetailView } from "@/components/rides/RideDetailView";
 
 type PageProps = {
@@ -32,7 +32,7 @@ export default async function RidePage({ params, searchParams }: PageProps) {
     <RideDetailView
       ride={ride}
       profile={profile}
-      feePercent={settingOf(platform, "platform_fee_percent")}
+      fareConfig={fareConfigFromSettings(platform.settings)}
     />
   );
 }

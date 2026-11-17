@@ -59,9 +59,9 @@ export default function RefundsPage() {
         href="/legal/terms"
         action="Read the Terms of Service"
       >
-        We take the fare when a driver accepts your booking and hold it. The
-        driver is paid after the ride ends, minus a {KIPITA_FEE_PERCENT}%
-        platform fee. If the ride does not happen as agreed, the money is still
+        We take the seat price plus a {KIPITA_FEE_PERCENT}% service fee when a
+        driver accepts your booking and hold it. The driver is paid the seat
+        price after the ride ends. If the ride does not happen as agreed, the money is still
         with us and can be returned.
       </Callout>
 
@@ -110,8 +110,8 @@ export default function RefundsPage() {
             <tr>
               <th scope="row">Trip completes</th>
               <td>
-                Released to the driver&apos;s wallet, minus {KIPITA_FEE_PERCENT}
-                %.
+                The seat price is released to the driver&apos;s wallet. The{" "}
+                {KIPITA_FEE_PERCENT}% service fee you paid is kept by us.
               </td>
             </tr>
             <tr>
@@ -252,12 +252,12 @@ export default function RefundsPage() {
       <Section id="fees" title="Fees and charges">
         <ul>
           <li>
-            A full refund returns the full fare you paid. We do not keep the
-            platform fee on a refunded trip.
+            A full refund returns everything you paid, service fee included.
+            We do not keep the service fee on a refunded trip.
           </li>
           <li>
-            The {KIPITA_FEE_PERCENT}% platform fee applies only to completed
-            trips and is taken from the driver&apos;s release.
+            The {KIPITA_FEE_PERCENT}% service fee is added to the seat price
+            and is kept by us only on completed trips.
           </li>
           <li>
             Safaricom&apos;s own mobile money charges are set by Safaricom and
