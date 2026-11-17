@@ -15,5 +15,10 @@
     "web:build": "yarn workspace @kipita/web build",
     "web:start": "yarn workspace @kipita/web start",
     "typecheck": "yarn workspace @kipita/mobile typecheck && yarn workspace @kipita/web typecheck"
+  },
+  "dependencies": {
+    "expo": "~57.0.24",
+    "react": "19.2.3",
+    "react-native": "0.86.3"
   }
 }

@@ -69,7 +69,12 @@ export const BookingCard = memo(function BookingCard({
       <Animated.View
         style={[
           styles.card,
-          { backgroundColor: colors.surfaceContainerLow, transform: [{ scale }] },
+          {
+            backgroundColor: colors.surfaceContainerLow,
+            borderWidth: 1,
+            borderColor: colors.borderLight,
+            transform: [{ scale }],
+          },
         ]}
       >
         <View style={styles.hero}>

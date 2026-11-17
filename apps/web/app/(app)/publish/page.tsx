@@ -22,6 +22,7 @@ export default async function PublishPage() {
 
   return (
     <PublishSurface
+      userId={profile.id}
       publishBeforeApproval={platform.flags.publish_before_approval === true}
       driverName={profile.full_name ?? ""}
       savedCars={cars}
