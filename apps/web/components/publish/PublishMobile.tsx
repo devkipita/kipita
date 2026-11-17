@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, searchTowns } from "@kipita/shared";
+import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
 import {
   CaretLeft,
   CaretRight,
@@ -28,6 +28,7 @@ import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime, todayISO } from "./WhenPicker";
 import type { SavedCar } from "./draft";
 import { clearDraft, loadDraft, saveDraft } from "./draft";
+import { DiscardDialog } from "./DiscardDialog";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -365,6 +366,22 @@ const Ghost = styled.button`
   ${ring}
 `;
 
+/** A low-key action that must not compete with the step's own buttons. */
+const Quiet = styled(Ghost)`
+  color: ${nocturne.muted2};
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+`;
+
+const TopRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin: -14px -8px 4px 0;
+`;
+
 const FieldLabel = styled.label`
   display: flex;
   flex-direction: column;
@@ -445,8 +462,15 @@ const TownRow = styled.button<{ $on: boolean }>`
     font-size: 13px;
     color: ${nocturne.muted2};
   }
+  .near {
+    font-weight: 700;
+    color: ${nocturne.green};
+  }
   > svg {
     color: ${nocturne.muted3};
+  }
+  &[aria-pressed="true"] > svg {
+    color: ${nocturne.green};
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -954,9 +978,11 @@ const Cta = styled.button<{ $tone: "go" | "publish" | "off" }>`
 `;
 
 export function PublishMobile({
+  userId,
   savedCars: initialCars = [],
   publishBeforeApproval = false,
 }: {
+  userId: string;
   savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
 }) {
@@ -972,16 +998,21 @@ export function PublishMobile({
   const [maxStep, setMaxStep] = useState(0);
   const [ready, setReady] = useState(false);
   const [editFrom, setEditFrom] = useState(false);
-  const [guessed, setGuessed] = useState(false);
+  const [near, setNear] = useState<string | null>(null);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [otherTime, setOtherTime] = useState(false);
   const [error, setError] = useState<{ text: string; fix?: "kyc" } | null>(null);
   const [pending, startTransition] = useTransition();
   const panelRef = useRef<HTMLElement>(null);
   const moved = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // The furthest step reached, readable from the history listener below.
+  const maxStepRef = useRef(0);
+  maxStepRef.current = maxStep;
 
   useEffect(() => {
-    const saved = loadDraft();
+    const saved = loadDraft(userId);
     let start = 0;
     if (saved) {
       const known = initialCars.find((c) => c.plate === saved.plate);
@@ -1020,7 +1051,9 @@ export function PublishMobile({
       const target = (e.state as { publishStep?: unknown } | null)?.publishStep;
       if (typeof target !== "number") return;
       moved.current = true;
-      setStep(target);
+      // History entries left over from a discarded draft must not reopen steps
+      // the new draft has not reached.
+      setStep(Math.min(target, maxStepRef.current));
       setEditFrom(false);
       setQuery("");
       setOtherTime(false);
@@ -1031,8 +1064,8 @@ export function PublishMobile({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
-        setDraft((d) => (d.from ? d : { ...d, from: origin.town.name }));
-        setGuessed(true);
+        // Only a suggestion: nothing is selected until the driver taps it.
+        setNear(origin.town.name);
       })
       .catch(() => undefined);
     return () => {
@@ -1045,7 +1078,7 @@ export function PublishMobile({
   useEffect(() => {
     if (!ready) return;
     const car = pickedCar(draft, savedCars);
-    saveDraft({
+    saveDraft(userId, {
       from: draft.from,
       to: draft.to,
       date: draft.date,
@@ -1061,7 +1094,7 @@ export function PublishMobile({
       step,
       maxStep,
     });
-  }, [draft, step, maxStep, savedCars, ready]);
+  }, [draft, step, maxStep, savedCars, ready, userId]);
 
   useEffect(() => {
     if (!moved.current) return;
@@ -1097,6 +1130,29 @@ export function PublishMobile({
   }
 
   const choosingFrom = editFrom || !draft.from;
+  const hasDraft = !isEmptyDraft(draft, { step, maxStep });
+
+  function askDiscard() {
+    if (hasDraft) setDiscardOpen(true);
+  }
+
+  /** Throws away the whole unpublished draft, including what is saved in the browser. */
+  function discard() {
+    clearDraft();
+    moved.current = true;
+    setDraft(blankDraft(savedCars));
+    setStep(0);
+    setMaxStep(0);
+    window.history.replaceState({ ...window.history.state, publishStep: 0 }, "");
+    setError(null);
+    setQuery("");
+    setEditFrom(false);
+    setOtherTime(false);
+    setDiscardOpen(false);
+    scrollRef.current?.scrollTo({ top: 0 });
+    window.setTimeout(() => panelRef.current?.focus({ preventScroll: true }), 0);
+  }
+
   const seats = draft.seats ?? 1;
   const fare = Number(draft.price) || 0;
   const car = carLine(draft, savedCars);
@@ -1231,28 +1287,45 @@ export function PublishMobile({
   }
 
   const searching = query.trim().length > 0;
+  const nearTown = useMemo(() => (near ? (KENYAN_TOWNS.find((t) => t.name === near) ?? null) : null), [near]);
   const towns = useMemo(() => {
     const other = choosingFrom ? draft.to : draft.from;
-    if (searching) return searchTowns(query, 8).filter((t) => t.name !== other);
+    if (searching) return searchTowns(query, 8).filter((t) => !sameTown(t.name, other));
     const here = KENYAN_TOWNS.find((t) => t.name === draft.from);
     const runs = !choosingFrom && draft.from ? POPULAR_ROUTES.filter((r) => r.from === draft.from).map((r) => r.to) : [];
-    return [...new Set([...runs, ...MAJOR])]
+    const list = [...new Set([...runs, ...MAJOR])]
       .flatMap((name) => KENYAN_TOWNS.filter((t) => t.name === name))
-      .filter((t) => t.name !== other && (choosingFrom || t.county !== here?.county))
-      .slice(0, 6);
-  }, [query, searching, choosingFrom, draft.from, draft.to]);
+      .filter((t) => !sameTown(t.name, other) && (choosingFrom || t.county !== here?.county));
+    return choosingFrom ? putNearTownFirst(list, nearTown, other, 6) : list.slice(0, 6);
+  }, [query, searching, choosingFrom, draft.from, draft.to, nearTown]);
 
+  /** One way to choose a town, whether it was tapped or searched. A new choice replaces the old one. */
   function pickTown(name: string) {
     if (choosingFrom) {
+      if (sameTown(draft.to, name)) {
+        setError({ text: "That is where you are going. Pick a different town to leave from." });
+        return;
+      }
       patch({ from: name });
-      setGuessed(false);
       setEditFrom(false);
       setQuery("");
       return;
     }
+    if (sameTown(draft.from, name)) {
+      setError({ text: "That is where you are leaving from. Pick a different destination." });
+      return;
+    }
     patch({ to: name });
     setQuery("");
-    if (draft.from && draft.from.toLowerCase() !== name.toLowerCase()) go(1);
+    go(1);
+  }
+
+  /** The keyboard's Go key does what tapping the best match would. */
+  function pickFromSearch() {
+    const typed = query.trim().replace(/\s+/g, " ");
+    if (!typed) return;
+    const match = towns.find((t) => sameTown(t.name, typed)) ?? towns[0];
+    if (match) pickTown(match.name);
   }
 
   const calendar = useMemo(() => {
@@ -1319,7 +1392,12 @@ export function PublishMobile({
         </SrOnlyStep>
       </Header>
 
-      <Scroll>
+      <Scroll ref={scrollRef}>
+        <TopRow>
+          <Quiet type="button" onClick={askDiscard} disabled={!hasDraft}>
+            Discard draft
+          </Quiet>
+        </TopRow>
         <Sentence>{sentence.map((part, i) => (typeof part === "string" ? part : <span key={i}>{part}</span>))}</Sentence>
 
         {(
@@ -1329,7 +1407,7 @@ export function PublishMobile({
                 <Card>
                   <MapPin size={20} />
                   <div className="text">
-                    <span className="kicker">{guessed ? "Leaving from · based on your location" : "Leaving from"}</span>
+                    <span className="kicker">Leaving from</span>
                     <span className="value">{draft.from || "Choose a town below"}</span>
                   </div>
                   {draft.from && (
@@ -1342,18 +1420,42 @@ export function PublishMobile({
                   <span>{choosingFrom ? "Where are you leaving from?" : "Where are you going?"}</span>
                   <Box $on>
                     <MagnifyingGlass size={20} />
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search a town or city" autoComplete="off" spellCheck={false} />
+                    <input
+                      value={query}
+                      onChange={(e) => {
+                        setQuery(e.target.value);
+                        setError(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          pickFromSearch();
+                        }
+                      }}
+                      enterKeyHint="go"
+                      placeholder="Search a town or city"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
                   </Box>
                 </FieldLabel>
                 <div>
                   <Overline>{searching ? "Matches" : choosingFrom ? "Towns" : `Popular from ${draft.from.replace(" CBD", "")}`}</Overline>
-                  {towns.map((t) => (
-                    <TownRow key={t.name} type="button" $on={!choosingFrom && draft.to === t.name} onClick={() => pickTown(t.name)}>
-                      <span className="name">{t.name}</span>
-                      {t.county !== t.name && <span className="meta">{t.county}</span>}
-                      <CaretRight size={18} />
-                    </TownRow>
-                  ))}
+                  {towns.map((t) => {
+                    const on = sameTown(choosingFrom ? draft.from : draft.to, t.name);
+                    const isNear = choosingFrom && !searching && nearTown?.name === t.name;
+                    return (
+                      <TownRow key={t.name} type="button" $on={on} aria-pressed={on} onClick={() => pickTown(t.name)}>
+                        <span className="name">{t.name}</span>
+                        {isNear ? (
+                          <span className="meta near">Near you</span>
+                        ) : (
+                          t.county !== t.name && <span className="meta">{t.county}</span>
+                        )}
+                        {on ? <Check size={18} weight="bold" /> : <CaretRight size={18} />}
+                      </TownRow>
+                    );
+                  })}
                   {towns.length === 0 && <Note>No town matches “{query.trim()}”.</Note>}
                 </div>
               </>
@@ -1704,6 +1806,8 @@ export function PublishMobile({
           </Cta>
         )}
       </Bar>
+
+      <DiscardDialog open={discardOpen} onCancel={() => setDiscardOpen(false)} onConfirm={discard} />
     </Page>
   );
 }
