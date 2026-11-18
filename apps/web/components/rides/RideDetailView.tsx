@@ -6,13 +6,21 @@ import { useRouter } from "next/navigation";
 import styled, { css } from "styled-components";
 import {
   ArrowClockwise,
+  ArrowLeft,
   CalendarBlank,
   SealCheck as BadgeCheck,
   Briefcase,
   CarProfile,
   CheckCircle as CheckCircle2,
   Clock,
+  Copy,
+  FacebookLogo,
+  ShareNetwork,
+  Ticket as TicketIcon,
+  WhatsappLogo,
+  XLogo,
   Lightning,
+  Lock,
   MapPin,
   Minus,
   MusicNote as Music,
@@ -24,7 +32,6 @@ import {
   Warning,
 } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
-import { EscrowHeldArt } from "@/components/ui/MoneyArt";
 import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
@@ -38,9 +45,12 @@ import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
-import { GreenHero, HeroTicket } from "@/components/ui/GreenHero";
 import { useMorphNavigate } from "@/lib/ui/viewTransition";
-import { Band, BookPanel, HeroFrame, Layout, MainCol, RULE, SideCol, Wrap } from "./RideLayout";
+import { Chip } from "@/components/ui/Chip";
+import { MapSheet } from "@/components/trips/MapSheet";
+import { RouteMap } from "@/components/trips/RouteMap";
+import type { TripRoute } from "@/lib/maps/types";
+import { BookPanel, RULE } from "./RideLayout";
 
 const Facts = styled.ul`
   display: flex;
@@ -170,7 +180,7 @@ const Plate = styled.span`
 `;
 
 const Note = styled.p`
-  margin: 16px 0 0;
+  margin: 0;
   max-width: 60ch;
   font-size: 16px;
   line-height: 1.55;
@@ -293,26 +303,63 @@ const Split = styled.dl`
 
 const Escrow = styled.div`
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  padding-top: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: ${nocturne.surface};
 
-  .art {
-    width: 124px;
+  > svg {
+    flex: none;
+    margin-top: 1px;
+    color: ${nocturne.accent};
   }
   p {
     margin: 0;
-    max-width: 34ch;
     font-size: 14px;
     line-height: 1.5;
-    text-align: center;
     text-wrap: pretty;
     color: ${nocturne.muted};
   }
   b {
     color: ${nocturne.cream};
     font-weight: 700;
+  }
+`;
+
+const Next = styled.ol`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: ${nocturne.cream};
+  }
+  span {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: ${nocturne.surface};
+    color: ${nocturne.accent};
+    font-size: 12.5px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  li:first-child span {
+    background: ${nocturne.green};
+    color: ${nocturne.onGreen};
   }
 `;
 
@@ -504,6 +551,264 @@ const Banner = styled.div<{ $tone: "ok" | "bad" | "info" }>`
   }
 `;
 
+const Top = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: clamp(20px, 4vh, 36px);
+
+  .desk {
+    display: contents;
+  }
+
+  @media (max-width: 899px) {
+    padding-top: 0;
+
+    .desk {
+      display: none;
+    }
+  }
+`;
+
+const BackLink = styled(Link)`
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1.5px solid ${nocturne.muted2};
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: ${nocturne.accent};
+    }
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+`;
+
+type StatusTone = "live" | "wait" | "off";
+
+const Status = styled.span<{ $tone: StatusTone }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 14px 0 12px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  ${({ $tone }) =>
+    $tone === "live"
+      ? `background: color-mix(in oklab, ${nocturne.lime} 55%, ${nocturne.surface}); color: ${nocturne.greenDeep};`
+      : $tone === "wait"
+        ? `background: color-mix(in oklab, ${nocturne.star} 18%, ${nocturne.surface}); color: ${nocturne.cream};`
+        : `background: ${nocturne.surface3}; color: ${nocturne.muted};`}
+
+  i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${({ $tone }) => ($tone === "live" ? nocturne.green : $tone === "wait" ? nocturne.star : nocturne.muted2)};
+  }
+`;
+
+const Head = styled.header`
+  view-transition-name: morph-hero;
+  margin-top: 18px;
+
+  h1 {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 14px;
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(30px, 4.4vw, 42px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    color: ${nocturne.cream};
+    overflow-wrap: anywhere;
+  }
+  .leg {
+    position: relative;
+    flex: none;
+    width: 46px;
+    height: 2px;
+    background: repeating-linear-gradient(90deg, ${nocturne.accent} 0 6px, transparent 6px 11px);
+
+    &::before,
+    &::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+    }
+    &::before {
+      left: -4px;
+      background: ${nocturne.surface};
+      box-shadow: inset 0 0 0 2.5px ${nocturne.accent};
+    }
+    &::after {
+      right: -4px;
+      background: ${nocturne.accent};
+    }
+  }
+  p {
+    margin: 10px 0 0;
+    font-size: 15.5px;
+    line-height: 1.5;
+    color: ${nocturne.muted};
+  }
+`;
+
+const Meta = styled.ul`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 0 14px;
+    border-radius: 12px;
+    background: ${nocturne.surface};
+    font-size: 14.5px;
+    font-weight: 700;
+    color: ${nocturne.cream};
+  }
+  svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+`;
+
+const Stack = styled.div`
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+`;
+
+const Card = styled.section`
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  background: ${nocturne.surface};
+
+  h2.label {
+    margin: 0;
+    font-size: 12.5px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: ${nocturne.muted2};
+  }
+`;
+
+const Ticket = styled(Card)`
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+
+  small {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: ${nocturne.muted};
+  }
+  b {
+    display: block;
+    margin-top: 4px;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(30px, 3.6vw, 38px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
+  }
+  .seats {
+    text-align: right;
+    font-size: 14.5px;
+    color: ${nocturne.muted};
+
+    strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: ${nocturne.cream};
+    }
+  }
+`;
+
+const ShareHead = styled.div`
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+
+  .well {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: ${nocturne.lime};
+    color: ${nocturne.greenDeep};
+  }
+  h2 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: ${nocturne.cream};
+  }
+  p {
+    margin: 4px 0 0;
+    font-size: 14.5px;
+    line-height: 1.5;
+    color: ${nocturne.muted};
+  }
+`;
+
+const Channels = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  a,
+  button {
+    text-decoration: none;
+  }
+`;
+
+const ManageLink = styled(Chip)`
+  justify-self: start;
+  text-decoration: none;
+`;
+
 type NavigationLike = {
   currentEntry?: { index: number } | null;
   entries?: () => { url: string | null }[];
@@ -554,10 +859,12 @@ function seatWord(n: number): string {
 export function RideDetailView({
   ride,
   profile,
+  route,
   fareConfig,
 }: {
   ride: RideDetail;
   profile: Profile | null;
+  route: Promise<TripRoute | null>;
   fareConfig: FareConfig | null;
 }) {
   const router = useRouter();
@@ -598,20 +905,18 @@ export function RideDetailView({
 
   const lead = ownerView
     ? awaiting
-      ? "Saved and waiting on your verification. This is how passengers will see it."
-      : "This is how passengers see your ride."
+      ? "Your ride is saved. It goes live for passengers as soon as your verification clears."
+      : `Your ride is posted. Anyone heading to ${ride.to_location} can find it and book a seat now.`
     : isTrip
-      ? "Check the driver and the car, then request your seat."
+      ? "Request a seat. Once the driver accepts, you pay to lock it in."
       : isOwn
         ? "This is how drivers see your request."
         : "Driving this route? Post your ride and they can request a seat.";
 
   const backHref = ownerView ? "/trips" : "/home";
 
-  function goBack(event: MouseEvent<HTMLDivElement>) {
+  function goBack(event: MouseEvent<HTMLAnchorElement>) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const link = (event.target as Element).closest("a");
-    if (!link || link.getAttribute("href") !== backHref) return;
     if (!hasInAppHistory()) return;
     event.preventDefault();
     router.back();
@@ -638,75 +943,125 @@ export function RideDetailView({
     });
   }
 
+  const status = ownerView
+    ? awaiting
+      ? "Saved · waiting on verification"
+      : "Posted · open for booking"
+    : closed
+      ? "Closed"
+      : isTrip
+        ? soldOut
+          ? "Full"
+          : scarce
+            ? `Only ${ride.seats_available} ${seatWord(ride.seats_available)} left`
+            : "Seats available"
+        : "Passenger looking for a ride";
+  const statusTone: StatusTone = ownerView ? (awaiting ? "wait" : "live") : closed || soldOut ? "off" : "live";
+  const meta = [
+    ...(date || time
+      ? [{ icon: <CalendarBlank size={19} />, label: [date, time].filter(Boolean).join(" at ") }]
+      : []),
+    ...(isTrip && ride.pickup_point ? [{ icon: <MapPin size={19} />, label: `Pickup: ${ride.pickup_point}` }] : []),
+    ...(isTrip && ride.dropoff_point ? [{ icon: <MapPin size={19} />, label: `Drop-off: ${ride.dropoff_point}` }] : []),
+    ...(!isTrip ? [{ icon: <Users size={19} />, label: `${ride.seats_needed} ${seatWord(ride.seats_needed)} needed` }] : []),
+  ];
+  const back = (
+    <BackLink href={backHref} aria-label="Back" onClick={goBack}>
+      <ArrowLeft size={20} />
+    </BackLink>
+  );
+
   return (
-    <Wrap $max={1120}>
-      <HeroFrame onClickCapture={goBack}>
-        <GreenHero
-          back={{ href: backHref, label: "Back" }}
-          status={
-            ownerView
-              ? awaiting
-                ? "Your ride · waiting on verification"
-                : "Your ride · live"
-              : closed
-                ? "Closed"
-                : isTrip
-                  ? soldOut
-                    ? "Full"
-                    : "Taking seat requests"
-                  : "Passenger looking for a ride"
-          }
-          route={{ from: ride.from_location, to: ride.to_location }}
-          lead={lead}
-          meta={[
-            ...(date || time
-              ? [{ icon: <CalendarBlank size={20} />, label: [date, time].filter(Boolean).join(" at ") }]
-              : []),
-            ...(isTrip && ride.pickup_point ? [{ icon: <MapPin size={20} />, label: `Pickup: ${ride.pickup_point}` }] : []),
-            ...(isTrip && ride.dropoff_point ? [{ icon: <MapPin size={20} />, label: `Drop-off: ${ride.dropoff_point}` }] : []),
-            ...(!isTrip ? [{ icon: <Users size={20} />, label: `${ride.seats_needed} ${seatWord(ride.seats_needed)} needed` }] : []),
-          ]}
-          aside={
-            isTrip && !bookable ? (
-              <HeroTicket>
-                <small>Per seat</small>
-                <b>{formatKes(ride.price_per_seat)}</b>
-                <p>
-                  <strong>
-                    {ride.seats_available} of {ride.seats_total}
-                  </strong>{" "}
-                  seats left
-                </p>
-              </HeroTicket>
-            ) : undefined
-          }
-        />
-      </HeroFrame>
+    <MapSheet
+      map={(padding) => (
+        <RouteMap route={route} fromLabel={ride.from_location} toLabel={ride.to_location} padding={padding} />
+      )}
+      mapTop={back}
+      expandLabel="Show all ride details"
+    >
+      <Top>
+        <span className="desk">{back}</span>
+        <Status $tone={statusTone}>
+          <i aria-hidden />
+          {status}
+        </Status>
+      </Top>
 
-      <Layout>
-        <MainCol>
-          {prefs.length > 0 && (
-            <Band>
-              <Facts>
-                {prefs.map(({ icon: Icon, label }) => (
-                  <li key={label}>
-                    <Icon size={19} /> {label}
-                  </li>
-                ))}
-              </Facts>
-            </Band>
-          )}
+      <Head>
+        <h1>
+          <span>{ride.from_location}</span>
+          <i className="leg" aria-hidden />
+          <span>{ride.to_location}</span>
+        </h1>
+        <p>{lead}</p>
+      </Head>
 
-          {isTrip && note && <Note>{note}</Note>}
+      {meta.length > 0 && (
+        <Meta>
+          {meta.map(({ icon, label }) => (
+            <li key={label}>
+              {icon}
+              {label}
+            </li>
+          ))}
+        </Meta>
+      )}
+
+      <Stack>
+        {ownerView && !awaiting && (
+          <ShareRide
+            rideId={ride.id}
+            from={ride.from_location}
+            to={ride.to_location}
+            when={[date, time].filter(Boolean).join(" at ")}
+          />
+        )}
+
+        {ownerView && awaiting && <VerifyStatusCard compact context="ride" stage="pending" />}
+
+        {isTrip && !bookable && (
+          <Ticket aria-label="Price and seats">
+            <div>
+              <small>Per seat</small>
+              <b>{formatKes(ride.price_per_seat)}</b>
+            </div>
+            {ownerView ? (
+              <p className="seats">
+                <strong>
+                  {Math.max(0, ride.seats_total - ride.seats_available)} of {ride.seats_total}
+                </strong>
+                seats booked
+              </p>
+            ) : (
+              <p className="seats">
+                <strong>
+                  {ride.seats_available} of {ride.seats_total}
+                </strong>
+                seats left
+              </p>
+            )}
+          </Ticket>
+        )}
+
+        {ownerView && (
+          <ManageLink as={Link} href="/trips">
+            <TicketIcon size={18} /> Manage in your trips
+          </ManageLink>
+        )}
+
+        {bookable && renderBookPanel()}
+
+        {!bookable && !ownerView && renderSideAction()}
 
           {person && (
-            <Band>
+            <Card aria-label={isTrip ? "Driver" : "Passenger"}>
+              <h2 className="label">{isTrip ? (ownerView ? "You, driving" : "Your driver") : "Passenger"}</h2>
               <Person>
                 <Avatar
                   className="avatar"
                   name={person.full_name ?? "Kipita user"}
                   src={person.avatar_url}
-                  size={88}
+                  size={64}
                 />
                 <div className="who">
                   <h2>
@@ -739,11 +1094,12 @@ export function RideDetailView({
                   </Creds>
                 </div>
               </Person>
-            </Band>
+            </Card>
           )}
 
           {isTrip && ride.vehicle && vehicleName && (
-            <Band>
+            <Card aria-label="Car">
+              <h2 className="label">Car</h2>
               <Vehicle>
                 <CarProfile size={22} aria-hidden />
                 <b>{vehicleName}</b>
@@ -752,24 +1108,30 @@ export function RideDetailView({
                 )}
                 {plate && <Plate>{plate.toUpperCase()}</Plate>}
               </Vehicle>
-            </Band>
-          )}
-        </MainCol>
-
-        <SideCol>
-          {ownerView && (
-            <>
-              <VerifyStatusCard compact context="ride" stage={awaiting ? "pending" : "live"} />
-              <GreenLink href="/trips">Manage in your trips</GreenLink>
-            </>
+            </Card>
           )}
 
-          {bookable && renderBookPanel()}
+          {prefs.length > 0 && (
+            <Card aria-label="On this ride">
+              <h2 className="label">On this ride</h2>
+              <Facts>
+                {prefs.map(({ icon: Icon, label }) => (
+                  <li key={label}>
+                    <Icon size={19} /> {label}
+                  </li>
+                ))}
+              </Facts>
+            </Card>
+          )}
 
-          {!bookable && !ownerView && renderSideAction()}
-        </SideCol>
-      </Layout>
-    </Wrap>
+          {isTrip && note && (
+            <Card aria-label="Driver's note">
+              <h2 className="label">Note from the driver</h2>
+              <Note>{note}</Note>
+            </Card>
+          )}
+      </Stack>
+    </MapSheet>
   );
 
   function renderBookPanel() {
@@ -818,22 +1180,27 @@ export function RideDetailView({
                 <>
                   <dt>Kipita service fee ({breakdown.feePercent}%)</dt>
                   <dd>{formatKes(breakdown.fee)}</dd>
-                  <dt className="total">You pay</dt>
-                  <dd className="total">{formatKes(breakdown.total)}</dd>
-                  <dt>Your driver receives</dt>
-                  <dd>{formatKes(breakdown.driverEarning)}</dd>
                 </>
               ) : (
                 <>
-                  <dt>Goes to your driver</dt>
-                  <dd>{formatKes(breakdown.driverEarning)}</dd>
-                  <dt>Kipita fee ({breakdown.feePercent}%)</dt>
+                  <dt>Includes Kipita fee ({breakdown.feePercent}%)</dt>
                   <dd>{formatKes(breakdown.subtotal - breakdown.driverEarning)}</dd>
-                  <dt className="total">You pay</dt>
-                  <dd className="total">{formatKes(breakdown.total)}</dd>
                 </>
               )}
+              <dt className="total">You pay</dt>
+              <dd className="total">{formatKes(breakdown.total)}</dd>
             </Split>
+            <Next aria-label="What happens next">
+              <li>
+                <span>1</span>Request
+              </li>
+              <li>
+                <span>2</span>Driver accepts
+              </li>
+              <li>
+                <span>3</span>You pay
+              </li>
+            </Next>
           </>
         ) : (
           <>
@@ -851,12 +1218,9 @@ export function RideDetailView({
         )}
 
         <Escrow>
-          <span className="art">
-            <EscrowHeldArt />
-          </span>
+          <Lock size={18} aria-hidden />
           <p>
-            <b>Kipita holds your fare.</b> It is only released to the
-            driver once the trip is done.
+            <b>Your fare is safe.</b> Kipita holds it and only pays the driver after the trip.
           </p>
         </Escrow>
       </BookPanel>
@@ -1013,4 +1377,87 @@ export function RideDetailView({
       </Bar>
     );
   }
+}
+
+function ShareRide({ rideId, from, to, when }: { rideId: string; from: string; to: string; when: string }) {
+  const [origin, setOrigin] = useState("");
+  const [native, setNative] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setNative(typeof navigator.share === "function");
+  }, []);
+
+  const url = `${origin}/ride/${rideId}`;
+  const text = `I'm driving ${from} to ${to}${when ? `, ${when}` : ""}. Book a seat on Kipita:`;
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function share() {
+    if (!native) {
+      await copy();
+      return;
+    }
+    try {
+      await navigator.share({ title: `${from} to ${to} on Kipita`, text, url });
+    } catch {
+      return;
+    }
+  }
+
+  const channels = origin
+    ? [
+        { key: "whatsapp", label: "WhatsApp", icon: WhatsappLogo, href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}` },
+        { key: "facebook", label: "Facebook", icon: FacebookLogo, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+        { key: "x", label: "X", icon: XLogo, href: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+      ]
+    : [];
+
+  return (
+    <Card aria-label="Share your ride">
+      <ShareHead>
+        <span className="well" aria-hidden>
+          <ShareNetwork size={24} />
+        </span>
+        <div>
+          <h2>Fill your seats faster</h2>
+          <p>Post the link where your passengers already are: family chats, work groups, your page.</p>
+        </div>
+      </ShareHead>
+      <Primary type="button" onClick={() => void share()}>
+        <Swap id={copied ? "copied" : "idle"}>
+          {copied ? (
+            <>
+              <CheckCircle2 size={20} weight="bold" /> Link copied
+            </>
+          ) : (
+            <>
+              <ShareNetwork size={20} /> {native ? "Share your ride" : "Copy ride link"}
+            </>
+          )}
+        </Swap>
+      </Primary>
+      <Channels>
+        {channels.map(({ key, label, icon: Icon, href }) => (
+          <Chip key={key} as="a" href={href} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${label}`}>
+            <Icon size={18} /> {label}
+          </Chip>
+        ))}
+        {native && origin ? (
+          <Chip type="button" onClick={() => void copy()}>
+            <Copy size={18} /> {copied ? "Copied" : "Copy link"}
+          </Chip>
+        ) : null}
+      </Channels>
+    </Card>
+  );
 }

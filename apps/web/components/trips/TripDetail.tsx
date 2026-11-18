@@ -774,7 +774,6 @@ export function TripDetail({
   const origin = booking.trip?.from_location ?? "Pickup to confirm";
   const destination = booking.trip?.to_location ?? "Drop-off to confirm";
   const status = STATUS[booking.status];
-  const Icon = status.icon;
   const live = booking.status === "in_progress";
   const due = booking.status === "pending_payment";
   const paid = booking.status === "confirmed";
@@ -796,6 +795,12 @@ export function TripDetail({
   const [hold, setHold] = useState<string | null>(() => holdLeft(booking.expires_at));
   const [, startTransition] = useTransition();
   const { ask, confirmNode } = useConfirm();
+  const lapsed = due && !hold;
+  const chip = lapsed ? { label: "Payment missed", tone: "off" as const, icon: X } : status;
+  const ChipIcon = chip.icon;
+  const earned = paid || live;
+  const receiveTitle = booking.status === "completed" ? "What you received" : earned ? "What you receive" : "What you'll receive";
+  const receiveTotal = booking.status === "completed" ? "You received" : earned ? "You receive" : "You'll receive";
 
   const refresh = useCallback(() => router.refresh(), [router]);
   useBookingStream(`booking:${booking.id}`, `id=eq.${booking.id}`, refresh);
@@ -1201,8 +1206,8 @@ export function TripDetail({
         ? `Waiting for ${firstName} to pay · ${hold} left`
         : `Pay within ${hold} to keep your ${seatWord}`
       : isDriver
-        ? `${firstName} didn't pay in time`
-        : "The hold has run out"
+        ? `${firstName} didn't pay in time, so the seat isn't held for them`
+        : "Your hold ran out. Request the seat again if it's still free"
     : booking.status === "requested"
       ? isDriver
         ? `${firstName} pays once you accept`
@@ -1325,9 +1330,9 @@ export function TripDetail({
           )}
           <Card $order={1} aria-label="Route">
             <Top>
-              <Chip $tone={status.tone}>
-                {live ? <i aria-hidden /> : <Icon size={15} weight="bold" />}
-                {status.label}
+              <Chip $tone={chip.tone}>
+                {live ? <i aria-hidden /> : <ChipIcon size={15} weight="bold" />}
+                {chip.label}
               </Chip>
               {booking.booking_reference && <span>{booking.booking_reference}</span>}
             </Top>
@@ -1386,7 +1391,7 @@ export function TripDetail({
 
         <Col $single={hasMap}>
           <Card $order={2} aria-label="Fare">
-            <h2>{isDriver ? "What you receive" : "What you pay"}</h2>
+            <h2>{isDriver ? receiveTitle : "What you pay"}</h2>
             <Lines>
               <div>
                 <dt>
@@ -1403,8 +1408,8 @@ export function TripDetail({
                 </div>
               )}
               <div className="total">
-                <dt>{isDriver ? "You receive" : "Total"}</dt>
-                <dd style={stopped ? { textDecoration: "line-through", color: "var(--n-muted)" } : undefined}>
+                <dt>{isDriver ? receiveTotal : "Total"}</dt>
+                <dd style={stopped || lapsed ? { textDecoration: "line-through", color: "var(--n-muted)" } : undefined}>
                   {formatCurrency(isDriver ? subtotal : booking.total_price)}
                 </dd>
               </div>

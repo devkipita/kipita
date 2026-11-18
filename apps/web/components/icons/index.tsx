@@ -1002,6 +1002,27 @@ export const ShareNetwork = createIcon("ShareNetwork", () => (
   </>
 ));
 
+export const WhatsappLogo = createIcon("WhatsappLogo", () => (
+  <>
+    <path d="M12 3.2a8.8 8.8 0 0 0-7.55 13.3L3.2 20.8l4.4-1.2A8.8 8.8 0 1 0 12 3.2Z" />
+    <path d="M9.3 8.1c.3 0 .5.1.6.4l.7 1.6c.1.2 0 .5-.1.6l-.6.7a6.4 6.4 0 0 0 2.6 2.6l.7-.6c.2-.2.4-.2.6-.1l1.6.7c.3.1.4.4.4.6 0 1-.8 1.8-1.8 1.8A5.8 5.8 0 0 1 7.5 9.9c0-1 .8-1.8 1.8-1.8Z" />
+  </>
+));
+
+export const FacebookLogo = createIcon("FacebookLogo", () => (
+  <>
+    <circle cx="12" cy="12" r="8.8" />
+    <path d="M15.2 8.2h-1.6a2 2 0 0 0-2 2v10.6M9 13.4h5.6" />
+  </>
+));
+
+export const XLogo = createIcon("XLogo", () => (
+  <>
+    <path d="M4.4 4h4.4l10.8 16h-4.4Z" />
+    <path d="M19.2 4l-6.1 7M10.9 13 4.8 20" />
+  </>
+));
+
 export const Copy = createIcon("Copy", () => (
   <>
     <path d="M9.6 8h8.8a1.8 1.8 0 0 1 1.8 1.8v9.8a1.8 1.8 0 0 1-1.8 1.8H9.6a1.8 1.8 0 0 1-1.8-1.8V9.8A1.8 1.8 0 0 1 9.6 8Z" />

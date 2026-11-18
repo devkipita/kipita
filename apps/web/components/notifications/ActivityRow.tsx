@@ -12,7 +12,7 @@ import { shortRelativeTime } from "@/lib/notifications/meta";
 import { markRead } from "@/lib/notifications/store";
 import type { AppNotification } from "@/lib/notifications/types";
 
-const TONE: Record<ActivityTone, string> = {
+export const TONE: Record<ActivityTone, string> = {
   urgent: `background: ${nocturne.ctaBg}; color: ${nocturne.ctaFg};`,
   celebrate: `background: ${nocturne.lime}; color: ${nocturne.greenDeep};`,
   opportunity: `background: color-mix(in oklab, ${nocturne.lime} 55%, ${nocturne.surface}); color: ${nocturne.greenDeep};`,

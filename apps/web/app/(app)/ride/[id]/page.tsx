@@ -5,6 +5,8 @@ import { fetchRideDetail } from "@/lib/ride-detail.server";
 import { fetchPlatform } from "@/lib/platform.server";
 import { fareConfigFromSettings } from "@kipita/shared";
 import { RideDetailView } from "@/components/rides/RideDetailView";
+import { routeBetween } from "@/lib/maps/routes.server";
+import { placeKey, type TripRoute } from "@/lib/maps/types";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -28,11 +30,16 @@ export default async function RidePage({ params, searchParams }: PageProps) {
   if (!ride) notFound();
 
   const settingsLoaded = Object.keys(platform.settings).length > 0;
+  const destination = placeKey(ride.to_location);
+  const route: Promise<TripRoute | null> = routeBetween(placeKey(ride.from_location), destination).then((r) =>
+    r?.polyline ? { polyline: r.polyline, seconds: r.seconds, destination } : null,
+  );
 
   return (
     <RideDetailView
       ride={ride}
       profile={profile}
+      route={route}
       fareConfig={settingsLoaded ? fareConfigFromSettings(platform.settings) : null}
     />
   );

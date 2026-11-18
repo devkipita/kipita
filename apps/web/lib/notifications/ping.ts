@@ -4,8 +4,13 @@ const SOUND_KEY = "kipita-sound";
 const ICON = "/favicons/favicon-32x32.png";
 const QUIET_MS = 1500;
 const NOTES = [
-  { hz: 1318.5, at: 0 },
-  { hz: 1760, at: 0.12 },
+  { hz: 783.99, at: 0, level: 0.85 },
+  { hz: 1046.5, at: 0.095, level: 1 },
+];
+const PARTIALS = [
+  { ratio: 1, gain: 1, decay: 0.55 },
+  { ratio: 3.99, gain: 0.16, decay: 0.12 },
+  { ratio: 10.1, gain: 0.04, decay: 0.05 },
 ];
 
 let audio: AudioContext | null = null;
@@ -51,34 +56,30 @@ export function unlockSound(): void {
 
 function ring(ctx: AudioContext): void {
   const start = ctx.currentTime + 0.01;
+  const soften = ctx.createBiquadFilter();
+  soften.type = "lowpass";
+  soften.frequency.value = 3400;
+  soften.Q.value = 0.5;
   const master = ctx.createGain();
-  master.gain.value = 0.16;
+  master.gain.value = 0.13;
+  soften.connect(master);
   master.connect(ctx.destination);
 
-  for (const { hz, at } of NOTES) {
+  for (const { hz, at, level } of NOTES) {
     const t = start + at;
-    const envelope = ctx.createGain();
-    envelope.gain.setValueAtTime(0.0001, t);
-    envelope.gain.exponentialRampToValueAtTime(1, t + 0.012);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
-    envelope.connect(master);
+    for (const { ratio, gain, decay } of PARTIALS) {
+      const envelope = ctx.createGain();
+      envelope.gain.setValueAtTime(0.0001, t);
+      envelope.gain.exponentialRampToValueAtTime(gain * level, t + 0.006);
+      envelope.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+      envelope.connect(soften);
 
-    const tone = ctx.createOscillator();
-    tone.type = "sine";
-    tone.frequency.value = hz;
-    tone.connect(envelope);
-
-    const shimmer = ctx.createOscillator();
-    const shimmerLevel = ctx.createGain();
-    shimmer.type = "sine";
-    shimmer.frequency.value = hz * 2.01;
-    shimmerLevel.gain.value = 0.22;
-    shimmer.connect(shimmerLevel);
-    shimmerLevel.connect(envelope);
-
-    for (const osc of [tone, shimmer]) {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = hz * ratio;
+      osc.connect(envelope);
       osc.start(t);
-      osc.stop(t + 0.9);
+      osc.stop(t + decay + 0.05);
     }
   }
 }
