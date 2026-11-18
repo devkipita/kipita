@@ -300,6 +300,36 @@ const TXN_GLYPH: Record<WalletTxnType, KipitaIcon> = {
   referral: Gift,
 };
 
+const Figure = styled.span`
+  display: inline-grid;
+  min-width: 0;
+
+  > * {
+    grid-area: 1 / 1;
+    align-self: center;
+  }
+  > [data-hidden="true"] {
+    visibility: hidden;
+  }
+`;
+
+function BalanceFigure({ value }: { value: number }) {
+  const [initial] = useState(value);
+  const [changed, setChanged] = useState(false);
+  if (!changed && value !== initial) setChanged(true);
+
+  return (
+    <Figure>
+      <span data-hidden={changed} aria-hidden={changed}>
+        {initial.toLocaleString("en-KE")}
+      </span>
+      <span data-hidden={!changed} aria-hidden={!changed}>
+        <RollingNumber value={value} duration={ROLL_MS} ariaLabel={formatKes(value)} />
+      </span>
+    </Figure>
+  );
+}
+
 function formatWhen(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
@@ -361,11 +391,7 @@ export function WalletView({
             </span>
             <div className="value">
               <span aria-hidden="true">KES</span>
-              <RollingNumber
-                value={balance}
-                duration={ROLL_MS}
-                ariaLabel={formatKes(balance)}
-              />
+              <BalanceFigure value={balance} />
             </div>
           </div>
           <Actions>

@@ -96,7 +96,11 @@ export function MorphMenu({
 
   useEffect(() => {
     if (!open) return;
-    panelRef.current?.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true });
+    const frame = requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        panelRef.current?.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true }),
+      ),
+    );
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.stopPropagation();
@@ -108,6 +112,7 @@ export function MorphMenu({
     document.addEventListener("keydown", onKey, true);
     document.addEventListener("pointerdown", onDown, true);
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("keydown", onKey, true);
       document.removeEventListener("pointerdown", onDown, true);
     };

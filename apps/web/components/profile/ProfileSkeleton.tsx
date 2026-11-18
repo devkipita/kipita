@@ -7,6 +7,10 @@ import { ContentWidth } from "@/components/nav/AppShell";
 import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
 import { nocturne } from "@/lib/nocturne";
 
+const Bone = styled(Shimmer)`
+  background: ${nocturne.line};
+`;
+
 const ProfileWrap = styled(ContentWidth)`
   padding-block: 24px 40px;
 `;
@@ -94,12 +98,12 @@ export function ProfileSkeleton() {
         <SrOnly>Loading your profile</SrOnly>
         <div aria-hidden>
           <Hero>
-            <Shimmer $w="84px" $h="84px" $r="50%" />
+            <Bone $w="84px" $h="84px" $r="50%" />
             <div className="copy">
-              <Shimmer $w="min(260px, 70%)" $h="28px" $r="10px" />
+              <Bone $w="min(260px, 70%)" $h="28px" $r="10px" />
               <div className="pills">
-                <Shimmer $w="86px" $h="26px" $r="999px" />
-                <Shimmer $w="70px" $h="26px" $r="999px" />
+                <Bone $w="86px" $h="26px" $r="999px" />
+                <Bone $w="70px" $h="26px" $r="999px" />
               </div>
             </div>
           </Hero>
@@ -114,11 +118,11 @@ export function ProfileSkeleton() {
             </Stat>
           </Stats>
           <Title>
-            <Shimmer $w="72px" $h="14px" />
+            <Bone $w="72px" $h="14px" />
           </Title>
           <SkeletonPanel rows={5} />
           <Title>
-            <Shimmer $w="84px" $h="14px" />
+            <Bone $w="84px" $h="14px" />
           </Title>
           <SkeletonPanel rows={1} />
         </div>
@@ -205,8 +209,8 @@ export function EditProfileSkeleton() {
           <div>
             <Display>Edit profile</Display>
             <Lede aria-hidden>
-              <Shimmer $w="92%" $h="16px" />
-              <Shimmer $w="64%" $h="16px" />
+              <Bone $w="92%" $h="16px" />
+              <Bone $w="64%" $h="16px" />
             </Lede>
             <Art aria-hidden>
               <Image src={people} alt="" sizes="300px" placeholder="blur" />
@@ -215,28 +219,28 @@ export function EditProfileSkeleton() {
           <Fields aria-hidden>
             {["38%", "26%"].map((w) => (
               <FieldBlock key={w}>
-                <Shimmer $w={w} $h="15px" />
-                <Shimmer $h="44px" $r="10px" />
+                <Bone $w={w} $h="15px" />
+                <Bone $h="44px" $r="10px" />
               </FieldBlock>
             ))}
             <FieldBlock>
-              <Shimmer $w="32%" $h="15px" />
+              <Bone $w="32%" $h="15px" />
               <Chips>
-                <Shimmer $w="96px" $h="48px" $r="999px" />
-                <Shimmer $w="120px" $h="48px" $r="999px" />
-                <Shimmer $w="84px" $h="48px" $r="999px" />
+                <Bone $w="96px" $h="48px" $r="999px" />
+                <Bone $w="120px" $h="48px" $r="999px" />
+                <Bone $w="84px" $h="48px" $r="999px" />
               </Chips>
             </FieldBlock>
             <FieldBlock>
-              <Shimmer $w="22%" $h="15px" />
+              <Bone $w="22%" $h="15px" />
               <Chips>
-                <Shimmer $w="80px" $h="48px" $r="999px" />
-                <Shimmer $w="96px" $h="48px" $r="999px" />
-                <Shimmer $w="76px" $h="48px" $r="999px" />
-                <Shimmer $w="150px" $h="48px" $r="999px" />
+                <Bone $w="80px" $h="48px" $r="999px" />
+                <Bone $w="96px" $h="48px" $r="999px" />
+                <Bone $w="76px" $h="48px" $r="999px" />
+                <Bone $w="150px" $h="48px" $r="999px" />
               </Chips>
             </FieldBlock>
-            <Shimmer $w="190px" $h="56px" $r="999px" />
+            <Bone $w="190px" $h="56px" $r="999px" />
           </Fields>
         </Split>
       </EditWrap>

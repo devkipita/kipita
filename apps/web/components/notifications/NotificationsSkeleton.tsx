@@ -3,6 +3,7 @@
 import styled from "styled-components";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
+import { nocturne } from "@/lib/nocturne";
 
 export const INBOX_MAX = 760;
 
@@ -33,6 +34,10 @@ const Tabs = styled.div`
   display: flex;
   gap: 8px;
   margin-bottom: 18px;
+`;
+
+const Bone = styled(Shimmer)`
+  background: ${nocturne.line};
 `;
 
 const Rows = styled.div`
@@ -82,12 +87,12 @@ export function NotificationsSkeleton() {
     <Wrap $max={INBOX_MAX}>
       <Head>
         <h1>Notifications</h1>
-        <Shimmer $w="140px" $h="44px" $r="999px" aria-hidden />
+        <Bone $w="140px" $h="44px" $r="999px" aria-hidden />
       </Head>
       <Tabs aria-hidden>
-        <Shimmer $w="92px" $h="44px" $r="999px" />
-        <Shimmer $w="104px" $h="44px" $r="999px" />
-        <Shimmer $w="92px" $h="44px" $r="999px" />
+        <Bone $w="92px" $h="44px" $r="999px" />
+        <Bone $w="104px" $h="44px" $r="999px" />
+        <Bone $w="92px" $h="44px" $r="999px" />
       </Tabs>
       <NotificationRowsSkeleton />
     </Wrap>

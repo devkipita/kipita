@@ -37,6 +37,8 @@ Open findings from the 17 Nov browser check:
   - The API is unchanged.
 - [x] Phone chrome collapses on scroll down and returns on scroll up (`nav/useScrollChrome.ts`). Sticky sub-headers follow it.
 - [x] Bottom tab indicator slides between tabs (`layoutId`)
+- [x] The account menu is the avatar pill growing into the card (`ui/MorphMenu` clip-path container transform), with the avatar turning into an X. Verified in a browser at 1280 and 390 with frames at 40, 90 and 400 ms, focus moving to the first item, and Escape folding it back and returning focus.
+- [x] The publish icon is the same `PlusCircle` in the top bar and the bottom bar (one shared `PUBLISH_ITEM`)
 - [ ] Popover primitive anchored to its trigger, with an exit. It replaces the account menu, sort, the alert owner menu, the composer menus and the date-of-birth menu.
 - [ ] Shared tab indicator for the in-page tabs: notifications, alerts, the place picker, 🔒 trips
 - [ ] Accordion helper using `grid-template-rows`: the composer pill row, the push banner, 🔒 the help rows
