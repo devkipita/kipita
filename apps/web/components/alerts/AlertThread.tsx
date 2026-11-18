@@ -15,6 +15,7 @@ import {
   fetchAlertComments,
   fetchMyReactions,
   recordAlertView,
+  ALERT_VIEWED_EVENT,
 } from "@/lib/alerts/api";
 import { addCommentAction } from "@/lib/alerts/actions";
 import type { Alert, AlertComment } from "@/lib/alerts/types";
@@ -254,6 +255,7 @@ export function AlertThread({
     let alive = true;
     void (async () => {
       const total = await recordAlertView(createClient(), initialAlert.id);
+      window.dispatchEvent(new CustomEvent(ALERT_VIEWED_EVENT, { detail: initialAlert.id }));
       if (alive && total != null) {
         setAlert((a) => ({ ...a, views_count: total }));
       }

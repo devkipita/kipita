@@ -257,27 +257,19 @@ export function fetchPreviousBookings(userId: string): Promise<Booking[]> {
 
 export async function fetchBooking(id: string, viewerId?: string): Promise<Booking | null> {
   if (!UUID.test(id)) return null;
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("bookings")
-      .select(BOOKING_SELECT)
-      .eq("id", id)
-      .maybeSingle();
+  const supabase = await createClient();
+  const [bookingRes, ratingRes] = await Promise.all([
+    supabase.from("bookings").select(BOOKING_SELECT).eq("id", id).maybeSingle(),
+    viewerId
+      ? supabase.from("ratings").select("score").eq("booking_id", id).eq("from_user_id", viewerId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-    if (error || !data) return null;
-    const booking = toBooking(data);
-    if (booking.status === "completed" && viewerId) {
-      const { data: rated } = await supabase
-        .from("ratings")
-        .select("score")
-        .eq("booking_id", booking.id)
-        .eq("from_user_id", viewerId)
-        .maybeSingle();
-      booking.my_rating = rated ? Number(rated.score) : null;
-    }
-    return booking;
-  } catch {
-    return null;
+  if (bookingRes.error) throw new Error(`booking ${id}: ${bookingRes.error.code} ${bookingRes.error.message}`);
+  if (!bookingRes.data) return null;
+  const booking = toBooking(bookingRes.data);
+  if (booking.status === "completed") {
+    booking.my_rating = ratingRes.data ? Number((ratingRes.data as { score: number }).score) : null;
   }
+  return booking;
 }

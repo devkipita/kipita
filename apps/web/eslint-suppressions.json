@@ -19,26 +19,13 @@
       "count": 1
     }
   },
-  "components/alerts/AlertsView.tsx": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
   "components/auth/SignUpForm.tsx": {
     "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    },
-    "jsx-a11y/anchor-is-valid": {
       "count": 1
     }
   },
   "components/driver/CarDialog.tsx": {
     "jsx-a11y/no-autofocus": {
-      "count": 1
-    }
-  },
-  "components/home/FindRideView.tsx": {
-    "@next/next/no-img-element": {
       "count": 1
     }
   },
@@ -96,11 +83,6 @@
   "components/publish/WhenPicker.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 2
-    }
-  },
-  "components/rides/PaymentDrawer.tsx": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
     }
   },
   "components/trips/TripHelp.tsx": {

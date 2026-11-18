@@ -11,8 +11,16 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import styled from "styled-components";
-import { AnimatePresence, m, useDragControls, type PanInfo } from "motion/react";
+import styled, { css } from "styled-components";
+import {
+  AnimatePresence,
+  m,
+  useDragControls,
+  useMotionValue,
+  useTransform,
+  type MotionValue,
+  type PanInfo,
+} from "motion/react";
 import { X } from "@/components/icons";
 import { lockScroll, unlockScroll } from "@/lib/ui/useScrollLock";
 import { spring, tween } from "@/lib/motion";
@@ -33,8 +41,6 @@ const Overlay = styled(m.div)`
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: color-mix(in oklab, ${({ theme }) => theme.color.bg} 72%, transparent);
-  backdrop-filter: blur(6px);
 
   @media (min-width: 860px) {
     align-items: center;
@@ -42,12 +48,34 @@ const Overlay = styled(m.div)`
   }
 `;
 
-const Panel = styled(m.div)<{ $size: "sm" | "md" | "lg" }>`
+const Scrim = styled(m.div).attrs<{ $opacity: MotionValue<number> }>(({ $opacity }) => ({
+  style: { opacity: $opacity },
+}))`
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, ${({ theme }) => theme.color.bg} 72%, transparent);
+  backdrop-filter: blur(6px);
+`;
+
+const Panel = styled(m.div).attrs<{
+  $size: "sm" | "md" | "lg";
+  $fill: boolean;
+  $y: MotionValue<number>;
+}>(({ $y }) => ({ style: { y: $y } }))`
   position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
   max-height: min(88dvh, 780px);
+
+  ${({ $fill }) =>
+    $fill &&
+    css`
+      @media (max-width: 859px) {
+        height: calc(100dvh - 10px - env(safe-area-inset-top));
+        max-height: none;
+      }
+    `}
   background: ${({ theme }) => theme.color.surface};
   box-shadow: ${({ theme }) => theme.shadow.card};
   border-radius: ${({ theme }) => theme.radius.xl} ${({ theme }) => theme.radius.xl} 0 0;
@@ -203,6 +231,7 @@ export type DrawerProps = {
   title: string;
   description?: string;
   size?: "sm" | "md" | "lg";
+  fill?: boolean;
   dismissible?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
   footer?: ReactNode;
@@ -227,6 +256,7 @@ export function Drawer({
   title,
   description,
   size = "md",
+  fill = false,
   dismissible = true,
   initialFocusRef,
   footer,
@@ -238,6 +268,12 @@ export function Drawer({
   const id = useId();
   const sheet = useIsSheet();
   const drag = useDragControls();
+  const y = useMotionValue(0);
+  const scrim = useTransform(y, (offset) => {
+    const height = panelRef.current?.offsetHeight;
+    if (!height) return 1;
+    return 1 - Math.min(Math.max(offset / height, 0), 1);
+  });
 
   const onCloseRef = useRef(onClose);
   const dismissibleRef = useRef(dismissible);
@@ -325,6 +361,8 @@ export function Drawer({
 
   if (!mounted) return null;
 
+  const offscreen = window.innerHeight;
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -333,13 +371,18 @@ export function Drawer({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, transition: tween.enter }}
           exit={{ opacity: 0, transition: tween.exit }}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && dismissible) onClose();
-          }}
         >
+          <Scrim
+            $opacity={scrim}
+            onMouseDown={() => {
+              if (dismissible) onClose();
+            }}
+          />
           <Panel
             ref={panelRef}
             $size={size}
+            $fill={fill}
+            $y={y}
             role="dialog"
             aria-modal="true"
             aria-labelledby={`${id}-title`}
@@ -352,9 +395,9 @@ export function Drawer({
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0.04, bottom: 1 }}
             onDragEnd={endDrag}
-            initial={sheet ? { y: "100%" } : { opacity: 0, scale: 0.9 }}
+            initial={sheet ? { y: offscreen } : { opacity: 0, scale: 0.9 }}
             animate={sheet ? { y: 0, transition: spring.sheet } : { opacity: 1, scale: 1, transition: spring.morph }}
-            exit={sheet ? { y: "100%", transition: tween.exit } : { opacity: 0, scale: 0.94, transition: tween.exit }}
+            exit={sheet ? { y: offscreen, transition: tween.exit } : { opacity: 0, scale: 0.94, transition: tween.exit }}
           >
             <Handle onPointerDown={startDrag}>
               <Grip />

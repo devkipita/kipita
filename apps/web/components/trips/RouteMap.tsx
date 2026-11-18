@@ -27,7 +27,7 @@ function short(secs: number) {
   if (m < 60) return `${m} min`;
   const h = Math.floor(m / 60);
   const r = m % 60;
-  return r ? `${h} h ${r}` : `${h} h`;
+  return r ? `${h}h ${r}m` : `${h}h`;
 }
 
 function Resolved({ route, etaSeconds, car, ...rest }: Props) {

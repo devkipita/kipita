@@ -60,7 +60,7 @@ export async function answerSeatRequestAction(
 export async function seatRequestAction(
   bookingId: string,
 ): Promise<Booking | null> {
-  const booking = await fetchBooking(bookingId);
+  const booking = await fetchBooking(bookingId).catch(() => null);
   if (!booking || booking.status !== "requested") return null;
   return booking;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
 import { ArrowLeft, ChatCircle, Check, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareNetwork, Star, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
@@ -26,6 +26,7 @@ import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
 import { CancelPanel } from "./CancelPanel";
 import { FinishScene } from "./FinishScene";
+import { RateRide } from "./RateRide";
 import { PayPanel } from "./PayPanel";
 import { PANEL_IN, PANEL_IN_MS, PANEL_OUT, SidePanel, type PanelMode } from "./SidePanel";
 import { PushBanner } from "@/components/notifications/PushBanner";
@@ -561,6 +562,11 @@ const Pay = styled.button<{ $quiet?: boolean }>`
   font-size: 16px;
 `;
 
+const beacon = keyframes`
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.1); opacity: 0; }
+`;
+
 const Steps = styled.ol`
   display: grid;
   margin: 0;
@@ -618,8 +624,31 @@ const Steps = styled.ol`
     font-weight: 800;
   }
   li[data-state="now"] .dot {
+    position: relative;
     border-color: ${nocturne.green};
     box-shadow: 0 0 0 4px color-mix(in oklab, var(--n-green) 18%, transparent);
+
+    &::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: ${nocturne.green};
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -2px;
+      border-radius: 50%;
+      border: 2px solid ${nocturne.green};
+      animation: ${beacon} 1.8s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    li[data-state="now"] .dot::after {
+      animation: none;
+      opacity: 0;
+    }
   }
   li[data-state="stop"] {
     color: ${nocturne.cream};
@@ -1221,9 +1250,6 @@ export function TripDetail({
               amount={isDriver ? subtotal : booking.total_price}
               seats={booking.seats_booked}
               isDriver={isDriver}
-              bookingId={booking.id}
-              otherName={name}
-              rating={booking.my_rating}
             />
           ) : (
             <RouteMap
@@ -1286,6 +1312,17 @@ export function TripDetail({
 
       <Grid $single={hasMap}>
         <Col $single={hasMap}>
+          {booking.status === "completed" && (
+            <Card $order={-1} aria-label={`Rate ${name}`}>
+              <RateRide
+                bookingId={booking.id}
+                name={name}
+                avatarUrl={person?.avatar_url ?? null}
+                isDriver={isDriver}
+                initial={booking.my_rating}
+              />
+            </Card>
+          )}
           <Card $order={1} aria-label="Route">
             <Top>
               <Chip $tone={status.tone}>
@@ -1400,7 +1437,7 @@ export function TripDetail({
             )}
           </Card>
 
-          <Card $order={3} aria-label={isDriver ? "Passenger" : "Driver"}>
+          <Card $order={!isDriver && (live || paid) ? 0 : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
             <Who>
               <Avatar name={name} src={person?.avatar_url} size={48} />
               <span>

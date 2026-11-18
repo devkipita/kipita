@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 import { BottomTabBar } from "./BottomTabBar";
-import { bottomNavFor, type NavItem } from "./nav-items";
+import type { AppMode } from "@/lib/home/mode";
+import { bottomNavFor, type NavCounts } from "./nav-items";
 
 /**
  * The app's only bottom bar. It computes its own items rather than taking them
@@ -11,9 +12,11 @@ import { bottomNavFor, type NavItem } from "./nav-items";
  */
 export function AppBottomNav({
   counts,
+  mode,
 }: {
-  counts?: Partial<Record<NonNullable<NavItem["badge"]>, number>>;
+  counts?: NavCounts;
+  mode?: AppMode;
 }) {
-  const items = useMemo(() => bottomNavFor(), []);
+  const items = useMemo(() => bottomNavFor(mode), [mode]);
   return <BottomTabBar items={items} counts={counts} />;
 }

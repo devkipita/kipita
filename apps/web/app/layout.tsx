@@ -5,6 +5,8 @@ import { landingFonts } from "@/components/landing/fonts";
 import { StyledRegistry } from "@/components/providers/StyledRegistry";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
+import { ConsentBanner } from "@/components/legal/ConsentBanner";
+import { NetworkStatus } from "@/components/ui/NetworkStatus";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.websiteUrl),
@@ -87,7 +89,11 @@ export default function RootLayout({
       <body>
         <ChunkReloadScript />
         <StyledRegistry>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            {children}
+            <NetworkStatus />
+            <ConsentBanner />
+          </ThemeProvider>
         </StyledRegistry>
       </body>
     </html>

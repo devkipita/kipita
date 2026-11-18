@@ -276,6 +276,8 @@ export async function setAlertSaved(
  * grant on someone else's alert, and it is idempotent per person — a second
  * visit returns the running total without adding to it.
  */
+export const ALERT_VIEWED_EVENT = "kipita:alert-viewed";
+
 export async function recordAlertView(
   supabase: SupabaseClient,
   alertId: string,

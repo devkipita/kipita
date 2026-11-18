@@ -7,7 +7,7 @@ import { ArrowClockwise, ArrowRight, MagnifyingGlass, SlidersHorizontal } from "
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { ButtonEl } from "@/components/ui/primitives";
-import { BreakArt, DeadEndArt } from "@/components/ui/StatusArt";
+import { BreakArt, DeadEndArt, NoRidesArt } from "@/components/ui/StatusArt";
 import { Shimmer } from "@/components/ui/Shimmer";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { HomeTrip } from "@/lib/home/search";
@@ -580,7 +580,7 @@ export function FindRideView({
   } else {
     results = (
       <StateBlock
-        art={<DeadEndArt />}
+        art={<NoRidesArt />}
         title="No rides posted yet"
         line="Pick where you're going to see who's driving."
         action={

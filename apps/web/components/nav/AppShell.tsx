@@ -179,12 +179,7 @@ export function AppShell({
     [mode, setMode, driverReady, kycStatus, requireKyc],
   );
 
-  const navCounts = useNavCounts(profile?.id ?? null, mode);
-  const counts = {
-    notifications: navCounts.notifications,
-    alerts: navCounts.alerts,
-    trips: navCounts.trips,
-  };
+  const counts = useNavCounts(profile?.id ?? null, mode);
 
   const signInHref = `/auth/sign-in?next=${encodeURIComponent(pathname)}`;
 
@@ -214,12 +209,13 @@ export function AppShell({
             items={barItems}
             profile={profile}
             signInHref={signInHref}
+            counts={counts}
           />
         )}
         <Main id="main" tabIndex={-1}>
           {children}
         </Main>
-        <AppBottomNav counts={counts} />
+        <AppBottomNav counts={counts} mode={profile ? mode : undefined} />
 
         <VisuallyHidden role="status" aria-live="polite">
           {pathname}

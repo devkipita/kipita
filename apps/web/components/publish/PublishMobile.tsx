@@ -26,8 +26,8 @@ import { detectOrigin } from "@/lib/home/geo";
 import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime, todayISO } from "./WhenPicker";
-import type { SavedCar } from "./draft";
-import { clearDraft, loadDraft, saveDraft } from "./draft";
+import type { Prefill, SavedCar } from "./draft";
+import { clearDraft, loadDraft, saveDraft, withPrefill } from "./draft";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 
@@ -941,9 +941,11 @@ const Cta = styled.button<{ $tone: "go" | "publish" | "off" }>`
 export function PublishMobile({
   savedCars: initialCars = [],
   publishBeforeApproval = false,
+  prefill = null,
 }: {
   savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
+  prefill?: Prefill | null;
 }) {
   const { kycStatus, requireKyc } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
@@ -999,6 +1001,11 @@ export function PublishMobile({
       start = Math.min(Math.max(saved.step ?? 0, 0), STEPS.length - 1);
       setStep(start);
       setMaxStep(Math.min(Math.max(saved.maxStep ?? start, start), STEPS.length - 1));
+    }
+    if (prefill) {
+      setDraft((d) => withPrefill(d, prefill));
+      start = 0;
+      setStep(0);
     }
     window.history.replaceState({ ...window.history.state, publishStep: start }, "");
     setReady(true);

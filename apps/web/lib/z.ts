@@ -9,6 +9,7 @@ export const Z = {
   landingNav: 80,
   supportDock: 96,
   scrollProgress: 100,
+  consent: 150,
   drawerOverlay: 200,
   skipLink: 300,
 } as const;

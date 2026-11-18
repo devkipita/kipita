@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { readConsent } from "@/lib/consent";
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
@@ -7,7 +8,7 @@ Sentry.init({
   enabled: Boolean(dsn) && process.env.NODE_ENV === "production",
   environment: process.env.NEXT_PUBLIC_SENTRY_ENV ?? "production",
   sendDefaultPii: false,
-  tracesSampleRate: 0.1,
+  tracesSampleRate: readConsent() === "all" ? 0.1 : 0,
   integrations: [Sentry.browserTracingIntegration()],
 });
 

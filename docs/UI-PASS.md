@@ -39,6 +39,12 @@ Open findings from the 17 Nov browser check:
 - [x] Bottom tab indicator slides between tabs (`layoutId`)
 - [x] The account menu is the avatar pill growing into the card (`ui/MorphMenu` clip-path container transform), with the avatar turning into an X. Verified in a browser at 1280 and 390 with frames at 40, 90 and 400 ms, focus moving to the first item, and Escape folding it back and returning focus.
 - [x] The publish icon is the same `PlusCircle` in the top bar and the bottom bar (one shared `PUBLISH_ITEM`)
+- [x] Activity (18 Nov), browser-verified with mocked rows at 1280 and 390:
+  - Bell plus unread count in the top bar. Desktop is a MorphMenu that grows from the button; phones get a full-height sheet (kipita-c8).
+  - `/notifications` is redesigned as Activity: a "Needs you" section, rows grouped by day, action chips, chip tabs with counts, keyset "Show earlier", and designed skeleton, empty and error states.
+  - Every kind routes to where you act. A seat request goes to `/trips/{booking}`; a ride wanted goes to `/publish?from&to`; the prefill itself was requested from kipita-fe.
+- [x] Top bar actions: 34px icon wells with 21px glyphs and a colour-only lime hover. Road alerts uses `TrafficCone` with a new-alerts count. Logo and actions sit on the left; Activity and the account menu on the right.
+- [ ] Reminders (pay due in 10 minutes or less, departure in 2 hours or less) need a pg_cron job. Specced to kipita-fe; the UI already renders them.
 - [ ] Popover primitive anchored to its trigger, with an exit. It replaces the account menu, sort, the alert owner menu, the composer menus and the date-of-birth menu.
 - [ ] Shared tab indicator for the in-page tabs: notifications, alerts, the place picker, 🔒 trips
 - [ ] Accordion helper using `grid-template-rows`: the composer pill row, the push banner, 🔒 the help rows

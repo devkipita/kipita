@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled, { css } from "styled-components";
@@ -621,6 +621,10 @@ export function RideDetailView({
     setSeats(next);
     if (result && !result.ok) setOutcomeOpen(false);
   }
+
+  useEffect(() => {
+    if (isTrip && !ownerView) router.prefetch("/trips/00000000-0000-4000-8000-000000000000");
+  }, [isTrip, ownerView, router]);
 
   function reserve() {
     if (!isTrip || !breakdown) return;

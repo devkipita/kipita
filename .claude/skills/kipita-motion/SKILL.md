@@ -39,10 +39,10 @@ Every element enters from something already on screen and leaves back into it. T
 | A button opens a panel (search pill to search panel, plus to composer) | shared-element morph | the trigger and the panel share one `layoutId`; the panel grows out of the trigger's box and shrinks back into it |
 | A card opens its detail (ride card to ride sheet or page) | container transform | the card's container shares a `layoutId` with the detail container; content inside crossfades |
 | A menu or popover | phones: bottom sheet; desktop: grows from its trigger | `components/ui/Popover.tsx`, which switches automatically |
-| The navbar account menu | grows from the avatar button on every screen size | `Popover` with `sheetOnPhone={false}` |
+| The top-bar Activity and Account menus | desktop: grow from their button; phones: full-height bottom sheet, drag down or close button to dismiss | `MorphMenu` on desktop, `Drawer` with `fill` on phones |
 | A sheet or drawer | phones: rises from the bottom edge, drag down to dismiss; desktop: grows from its trigger | `components/ui/Drawer.tsx` |
 
-On phones every overlay is a bottom sheet. The only exception is a menu that belongs to the top bar, which grows from its button.
+On phones every overlay is a bottom sheet, top-bar menus included. A sheet's backdrop fades with the sheet's drag position, never on its own timer.
 | A list fills | stagger from the list's top, 30-40 ms apart, first 6 rows only | `choreograph` skill |
 | Header or nav on scroll | scroll-linked collapse: shrinks while scrolling down, grows back on scroll up | transform only, never height |
 | Route change between related screens | the shared element morphs; everything else crossfades | `layoutId` across the route, or View Transitions for full pages |

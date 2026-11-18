@@ -13,19 +13,22 @@ import { NOTIFICATION_COLUMNS, type AppNotification } from "./types";
  * empty state.
  */
 
-const PAGE_SIZE = 50;
+export const PAGE_SIZE = 30;
 
 export async function fetchNotifications(
   supabase: SupabaseClient,
   userId: string,
   limit = PAGE_SIZE,
+  before?: string,
 ): Promise<AppNotification[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("notifications")
     .select(NOTIFICATION_COLUMNS)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (before) query = query.lt("created_at", before);
+  const { data, error } = await query;
 
   if (error) throw error;
   return (data ?? []) as AppNotification[];

@@ -32,6 +32,8 @@ export const nocturne = {
   ring: "var(--n-ring)",
   star: "var(--n-star)",
   danger: "var(--n-danger)",
+  signal: "var(--n-signal)",
+  onSignal: "var(--n-on-signal)",
 } as const;
 
 export const nocturneDark = {
@@ -65,6 +67,8 @@ export const nocturneDark = {
   "--n-ring": "rgba(158, 197, 162, 0.26)",
   "--n-star": "#e8b951",
   "--n-danger": "#f0a080",
+  "--n-signal": "#ff5a1f",
+  "--n-on-signal": "#2b1103",
 } as const;
 
 export const nocturneLight = {
@@ -98,6 +102,8 @@ export const nocturneLight = {
   "--n-ring": "rgba(23, 77, 59, 0.16)",
   "--n-star": "#9a6b12",
   "--n-danger": "#9a4524",
+  "--n-signal": "#ff5a1f",
+  "--n-on-signal": "#2b1103",
 } as const;
 
 export const ease = {

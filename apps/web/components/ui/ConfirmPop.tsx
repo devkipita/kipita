@@ -14,6 +14,7 @@ export type ConfirmAsk = {
 
 type Open = ConfirmAsk & {
   rect: DOMRect;
+  anchor: HTMLElement | null;
   resolve: (ok: boolean) => void;
 };
 
@@ -102,7 +103,7 @@ function ConfirmLayer({ open, onDone }: { open: Open; onDone: (ok: boolean) => v
   }, [open]);
 
   useEffect(() => {
-    keepRef.current?.focus();
+    keepRef.current?.focus({ preventScroll: true });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -112,7 +113,13 @@ function ConfirmLayer({ open, onDone }: { open: Open; onDone: (ok: boolean) => v
     const onDown = (e: PointerEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onDone(false);
     };
-    const onMove = () => onDone(false);
+    const start = open.anchor?.getBoundingClientRect() ?? open.rect;
+    const onMove = (e: Event) => {
+      if (e.target instanceof Node && ref.current?.contains(e.target)) return;
+      const now = open.anchor?.getBoundingClientRect();
+      if (!now) return onDone(false);
+      if (Math.abs(now.top - start.top) > 24 || Math.abs(now.left - start.left) > 24) onDone(false);
+    };
     document.addEventListener("keydown", onKey, true);
     document.addEventListener("pointerdown", onDown, true);
     window.addEventListener("resize", onMove);
@@ -123,7 +130,7 @@ function ConfirmLayer({ open, onDone }: { open: Open; onDone: (ok: boolean) => v
       window.removeEventListener("resize", onMove);
       window.removeEventListener("scroll", onMove, true);
     };
-  }, [onDone]);
+  }, [onDone, open]);
 
   return createPortal(
     <Pop
@@ -166,7 +173,7 @@ export function useConfirm(): {
       anchor?.getBoundingClientRect() ??
       new DOMRect(window.innerWidth / 2, window.innerHeight / 2, 0, 0);
     return new Promise<boolean>((resolve) => {
-      const next = { ...q, rect, resolve };
+      const next = { ...q, rect, anchor: anchor instanceof HTMLElement ? anchor : null, resolve };
       openRef.current = next;
       setOpen(next);
     });
@@ -177,7 +184,7 @@ export function useConfirm(): {
     openRef.current = null;
     setOpen(null);
     cur?.resolve(ok);
-    if (!ok) anchorRef.current?.focus();
+    if (!ok) anchorRef.current?.focus({ preventScroll: true });
   }, []);
 
   return { ask, confirmNode: open ? <ConfirmLayer open={open} onDone={onDone} /> : null };

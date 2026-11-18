@@ -1,15 +1,9 @@
 "use client";
 
 import styled, { keyframes } from "styled-components";
-import { RollingNumber } from "@/components/ui/Counter";
+import { formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
-import { ArrivedArt } from "./StageArt";
-import { RateStars } from "./RateStars";
-
-const rise = keyframes`
-  from { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.94); }
-  to { opacity: 1; transform: none; }
-`;
+import { FinishArt } from "./FinishArt";
 
 const fade = keyframes`
   from { opacity: 0; transform: translate3d(0, 8px, 0); }
@@ -19,38 +13,40 @@ const fade = keyframes`
 const Wrap = styled.section`
   position: relative;
   display: grid;
-  align-content: center;
+  align-content: start;
   justify-items: center;
-  gap: 18px;
+  gap: 6px;
   height: 100%;
-  padding: 72px 24px 32px;
-  background: ${nocturne.surface};
+  padding: 44px 20px 16px;
+  background:
+    radial-gradient(120% 70% at 50% 0%, color-mix(in oklab, ${nocturne.lime} 38%, ${nocturne.surface}) 0%, ${nocturne.surface} 70%);
   text-align: center;
   overflow-y: auto;
 
-  @media (max-width: 899px) {
-    padding-top: 64px;
+  @media (min-width: 900px) {
+    align-content: center;
+    gap: 16px;
+    padding: 72px 28px 32px;
   }
 `;
 
 const Art = styled.div`
-  width: min(320px, 80%);
-  animation: ${rise} ${dur.max} ${ease.spring} both;
+  width: min(216px, 56%);
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  @media (min-width: 900px) {
+    width: min(340px, 70%);
   }
 `;
 
 const Copy = styled.div`
   display: grid;
-  gap: 6px;
-  animation: ${fade} ${dur.enter} ${ease.enter} 120ms both;
+  gap: 4px;
+  animation: ${fade} ${dur.enter} ${ease.enter} 160ms both;
 
   h2 {
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(24px, 3vw, 32px);
+    font-size: clamp(22px, 3vw, 32px);
     font-weight: 800;
     letter-spacing: -0.03em;
     line-height: 1.15;
@@ -68,19 +64,20 @@ const Copy = styled.div`
 `;
 
 const Stats = styled.dl`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  display: flex;
+  justify-content: center;
   gap: 8px;
-  width: min(420px, 100%);
   margin: 0;
-  animation: ${fade} ${dur.enter} ${ease.enter} 200ms both;
+  animation: ${fade} ${dur.enter} ${ease.enter} 240ms both;
 
   div {
     display: grid;
-    gap: 2px;
-    padding: 12px 8px;
-    border-radius: 16px;
-    background: ${nocturne.surface2};
+    gap: 1px;
+    min-width: 92px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: ${nocturne.surface};
+    box-shadow: ${nocturne.cardShadow};
   }
   dt {
     order: 2;
@@ -92,10 +89,12 @@ const Stats = styled.dl`
     order: 1;
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: ${nocturne.cream};
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -103,23 +102,14 @@ const Stats = styled.dl`
   }
 `;
 
-const Rate = styled.div`
-  width: min(420px, 100%);
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: ${nocturne.surface2};
-  text-align: left;
-  animation: ${fade} ${dur.enter} ${ease.enter} 280ms both;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-`;
-
-function minutesBetween(a: string | null, b: string | null) {
+function duration(a: string | null, b: string | null): string | null {
   if (!a || !b) return null;
   const m = Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000);
-  return m > 0 ? m : null;
+  if (m <= 0) return null;
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return r ? `${h}h ${r}m` : `${h}h`;
 }
 
 export function FinishScene({
@@ -129,9 +119,6 @@ export function FinishScene({
   amount,
   seats,
   isDriver,
-  bookingId,
-  otherName,
-  rating,
 }: {
   destination: string;
   startedAt: string | null;
@@ -139,46 +126,34 @@ export function FinishScene({
   amount: number;
   seats: number;
   isDriver: boolean;
-  bookingId: string;
-  otherName: string;
-  rating: number | null | undefined;
 }) {
-  const mins = minutesBetween(startedAt, completedAt);
+  const time = duration(startedAt, completedAt);
 
   return (
     <Wrap aria-label="Trip complete">
       <Art>
-        <ArrivedArt />
+        <FinishArt />
       </Art>
       <Copy>
-        <h2>{isDriver ? "Trip complete" : `You made it to ${destination}`}</h2>
-        <p>{isDriver ? "The fare is on its way to you" : "Kipita released your fare to the driver"}</p>
+        <h2>{isDriver ? `You delivered your passenger to ${destination}` : `You made it to ${destination}`}</h2>
+        <p>{isDriver ? "The fare is on its way to your wallet" : "Kipita released your fare to the driver"}</p>
       </Copy>
       <Stats>
-        {mins != null && (
-          <div>
-            <dt>{mins >= 60 ? "hours on the road" : "minutes on the road"}</dt>
-            <dd>
-              <RollingNumber value={mins >= 60 ? Math.round((mins / 60) * 10) / 10 : mins} decimals={mins >= 60 ? 1 : 0} />
-            </dd>
-          </div>
-        )}
         <div>
-          <dt>{isDriver ? "KES to you" : "KES paid"}</dt>
-          <dd>
-            <RollingNumber value={amount} />
-          </dd>
+          <dt>{isDriver ? "to you" : "paid"}</dt>
+          <dd>{formatCurrency(amount)}</dd>
         </div>
+        {time ? (
+          <div>
+            <dt>on the road</dt>
+            <dd>{time}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>{seats === 1 ? "seat" : "seats"}</dt>
-          <dd>
-            <RollingNumber value={seats} />
-          </dd>
+          <dd>{seats}</dd>
         </div>
       </Stats>
-      <Rate>
-        <RateStars bookingId={bookingId} name={otherName} initial={rating} />
-      </Rate>
     </Wrap>
   );
 }

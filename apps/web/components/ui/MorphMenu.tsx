@@ -5,37 +5,47 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
   type ReactNode,
   type RefObject,
 } from "react";
 import styled from "styled-components";
-import { m, useReducedMotion } from "motion/react";
-import { nocturne } from "@/lib/nocturne";
-import { spring, tween } from "@/lib/motion";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const RADIUS = 20;
-const ITEM = '[role="menuitem"]';
+const ITEM = '[role="menuitem"]:not(:disabled)';
 
-const Panel = styled(m.div)<{ $align: "start" | "end" }>`
+const Panel = styled.div<{ $width: number }>`
   position: absolute;
   top: 0;
-  ${({ $align }) => ($align === "end" ? "right: 0;" : "left: 0;")}
+  right: var(--morph-right, 0px);
   z-index: 2;
   display: flex;
   flex-direction: column;
-  width: min(288px, calc(100vw - 24px));
+  width: min(${({ $width }) => $width}px, calc(100vw - 16px));
   border-radius: ${RADIUS}px;
   background: ${nocturne.surface};
   box-shadow: ${nocturne.panelShadow};
   color: ${nocturne.cream};
   outline: none;
+  clip-path: var(--morph-closed, inset(0px 0px 100% 100% round ${RADIUS}px));
   visibility: hidden;
+  transition:
+    clip-path ${dur.exit} ${ease.exit},
+    visibility 0s linear ${dur.exit};
+
+  &[data-open="true"] {
+    clip-path: inset(0px 0px 0px 0px round ${RADIUS}px);
+    visibility: visible;
+    transition:
+      clip-path ${dur.enter} ${ease.enter},
+      visibility 0s linear 0s;
+  }
 `;
 
-const Head = styled.div<{ $align: "start" | "end" }>`
+const Head = styled.div`
+  position: absolute;
+  z-index: 1;
   display: flex;
-  justify-content: ${({ $align }) => ($align === "end" ? "flex-end" : "flex-start")};
 `;
 
 const Items = styled.div`
@@ -44,25 +54,13 @@ const Items = styled.div`
   padding: 8px;
 `;
 
-type Geom = { w: number; h: number; W: number; H: number };
-
-function clipFor(g: Geom | null, open: boolean, align: "start" | "end"): string {
-  if (!g) return `inset(0px 0px 100% 100% round ${RADIUS}px)`;
-  if (open) return `inset(0px 0px 0px 0px round ${RADIUS}px)`;
-  const side = Math.max(g.W - g.w, 0);
-  const bottom = Math.max(g.H - g.h, 0);
-  return align === "end"
-    ? `inset(0px 0px ${bottom}px ${side}px round ${g.h / 2}px)`
-    : `inset(0px ${side}px ${bottom}px 0px round ${g.h / 2}px)`;
-}
-
 export function MorphMenu({
   open,
   onClose,
   triggerRef,
   label,
   head,
-  align = "end",
+  width = 288,
   children,
 }: {
   open: boolean;
@@ -70,21 +68,44 @@ export function MorphMenu({
   triggerRef: RefObject<HTMLElement | null>;
   label: string;
   head: (close: () => void, open: boolean) => ReactNode;
-  align?: "start" | "end";
+  width?: number;
   children: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const reduce = useReducedMotion();
-  const [geom, setGeom] = useState<Geom | null>(null);
+  const headRef = useRef<HTMLDivElement>(null);
+  const itemsRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     const t = triggerRef.current;
     const p = panelRef.current;
     if (!t || !p) return;
-    setGeom({ w: t.offsetWidth, h: t.offsetHeight, W: p.offsetWidth, H: p.offsetHeight });
-  }, [open, triggerRef]);
+    const tr = t.getBoundingClientRect();
+    const pr = p.getBoundingClientRect();
+    const top = tr.top - pr.top;
+    const left = tr.left - pr.left;
+    const right = Math.max(pr.width - left - tr.width, 0);
+    const bottom = Math.max(pr.height - top - tr.height, 0);
+    p.style.setProperty(
+      "--morph-closed",
+      `inset(${top}px ${right}px ${bottom}px ${left}px round ${tr.height / 2}px)`,
+    );
+    if (headRef.current) {
+      headRef.current.style.top = `${top}px`;
+      headRef.current.style.left = `${left}px`;
+    }
+    if (itemsRef.current) itemsRef.current.style.paddingTop = `${top + tr.height + 6}px`;
+  }, [triggerRef]);
+
+  useLayoutEffect(() => {
+    measure();
+  });
+
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
 
   const close = useCallback(
     (refocus: boolean) => {
@@ -97,9 +118,7 @@ export function MorphMenu({
   useEffect(() => {
     if (!open) return;
     const frame = requestAnimationFrame(() =>
-      requestAnimationFrame(() =>
-        panelRef.current?.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true }),
-      ),
+      panelRef.current?.querySelector<HTMLElement>(ITEM)?.focus({ preventScroll: true }),
     );
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
@@ -138,23 +157,17 @@ export function MorphMenu({
   return (
     <Panel
       ref={panelRef}
-      $align={align}
+      $width={width}
+      data-open={open ? "true" : "false"}
       role="menu"
       aria-label={label}
       aria-hidden={!open}
       inert={!open}
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      initial={false}
-      animate={
-        open
-          ? { clipPath: clipFor(geom, true, align), visibility: "visible" }
-          : { clipPath: clipFor(geom, false, align), transitionEnd: { visibility: "hidden" } }
-      }
-      transition={reduce ? { duration: 0 } : open ? spring.morph : tween.exit}
     >
-      <Head $align={align}>{head(() => close(true), open)}</Head>
-      <Items>{children}</Items>
+      <Head ref={headRef}>{head(() => close(true), open)}</Head>
+      <Items ref={itemsRef}>{children}</Items>
     </Panel>
   );
 }

@@ -5,6 +5,7 @@ import styled from "styled-components";
 import { BellRinging as BellRing, X } from "@/components/icons";
 import { Collapse } from "@/components/anim/Collapse";
 import { dur, ease, nocturne } from "@/lib/nocturne";
+import { chime, setSound, unlockSound } from "@/lib/notifications/ping";
 
 const DISMISS_KEY = "kipita-push-banner-dismissed";
 
@@ -131,8 +132,14 @@ export function PushBanner() {
   const open = permission === "default" && !dismissed;
 
   async function enable() {
+    unlockSound();
     try {
-      setPermission(await Notification.requestPermission());
+      const answer = await Notification.requestPermission();
+      setPermission(answer);
+      if (answer === "granted") {
+        setSound(true);
+        chime(true);
+      }
     } catch {
       setPermission("denied");
     }
@@ -156,8 +163,8 @@ export function PushBanner() {
           <BellRing size={19} />
         </Lead>
         <div className="copy">
-          <b>Get a browser alert for new rides</b>
-          <span className="sub">Only while Kipita is open in a tab.</span>
+          <b>Hear new requests and road alerts</b>
+          <span className="sub">A chime and a browser alert while Kipita is open.</span>
         </div>
         <Actions>
           <Enable type="button" onClick={enable}>

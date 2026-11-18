@@ -7,7 +7,9 @@ import { m } from "motion/react";
 import { Z } from "@/lib/z";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { spring } from "@/lib/motion";
-import { isNavItemActive, isNavItemCurrent, type NavItem } from "./nav-items";
+import { NewDot } from "@/components/ui/NewDot";
+import { CountBadge } from "@/components/ui/CountBadge";
+import { isNavItemActive, isNavItemCurrent, type NavCounts, type NavItem } from "./nav-items";
 
 const Bar = styled.nav`
   position: fixed;
@@ -125,31 +127,12 @@ const WellFill = styled(m.span)`
   background: ${nocturne.lime};
 `;
 
-const Count = styled.span`
-  position: absolute;
-  top: 0;
-  left: calc(50% + 10px);
-  display: grid;
-  place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-  box-shadow: 0 0 0 2px ${nocturne.surface};
-`;
-
 export function BottomTabBar({
   items,
   counts,
 }: {
   items: NavItem[];
-  counts?: Partial<Record<NonNullable<NavItem["badge"]>, number>>;
+  counts?: NavCounts;
 }) {
   const pathname = usePathname() ?? "/";
 
@@ -159,26 +142,31 @@ export function BottomTabBar({
         const Icon = item.icon;
         const active = isNavItemActive(item, pathname);
         const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
+        const fresh = !active && item.dot ? (counts?.[item.dot] ?? 0) > 0 : false;
         return (
           <Item
             key={item.key}
             href={item.href}
             data-active={active ? "true" : "false"}
             aria-current={isNavItemCurrent(item, pathname) ? "page" : undefined}
-            aria-label={count ? `${item.label}, ${count} new` : item.label}
+            aria-label={count ? `${item.label}, ${count} new` : fresh ? `${item.label}, new since your last visit` : item.label}
           >
             <span className="well" aria-hidden="true">
               {active ? <WellFill layoutId="bottom-tab-well" transition={spring.morph} /> : null}
               <span className="glyph">
                 <Icon
-                  size={23}
+                  size={25}
                   weight={active ? "bold" : "regular"}
                   {...(active ? {} : { strokeWidth: 1.7 })}
                 />
+                {count ? (
+                  <CountBadge count={count} ring={nocturne.surface} max={9} />
+                ) : fresh ? (
+                  <NewDot ring={nocturne.surface} label="" />
+                ) : null}
               </span>
             </span>
             <span className="label">{item.shortLabel}</span>
-            {count ? <Count aria-hidden="true">{count > 9 ? "9+" : count}</Count> : null}
           </Item>
         );
       })}
