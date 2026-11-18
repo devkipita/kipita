@@ -424,7 +424,7 @@ export default function RideProfileScreen() {
               styles.actionBtn,
               styles.bookBtn,
               shadows.md,
-              { backgroundColor: colors.primary, opacity: pressed || requesting ? 0.7 : 1 },
+              { backgroundColor: colors.cta, opacity: pressed || requesting ? 0.7 : 1 },
             ]}
             accessibilityRole="button"
             accessibilityState={{ disabled: requesting, busy: requesting }}
@@ -433,9 +433,9 @@ export default function RideProfileScreen() {
             <Icon
               name={isRide ? "checkmark-circle" : "hand-right"}
               size={20}
-              color={colors.onPrimary}
+              color={colors.onCta}
             />
-            <Text variant="labelLarge" style={styles.semibold} color={colors.onPrimary}>
+            <Text variant="labelLarge" style={styles.semibold} color={colors.onCta}>
               {primaryLabel}
             </Text>
           </Pressable>

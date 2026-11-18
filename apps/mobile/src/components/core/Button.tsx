@@ -12,7 +12,7 @@ import { Icon, IconName } from './Icon';
 import { useTheme } from '@/hooks';
 import { spacing, radius } from '@/theme';
 
-type ButtonVariant = 'filled' | 'outlined' | 'ghost';
+type ButtonVariant = 'filled' | 'outlined' | 'ghost' | 'cta';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -56,15 +56,19 @@ export const Button = memo(function Button({
 
   const isFilled = variant === 'filled';
   const isOutlined = variant === 'outlined';
+  const isCta = variant === 'cta';
 
-  const bg = isFilled ? colors.primary : 'transparent';
+  const bg = isCta ? colors.cta : isFilled ? colors.primary : 'transparent';
   const borderColor = isOutlined ? colors.primary : 'transparent';
-  const textColor = isFilled ? colors.onPrimary : colors.primary;
+  const textColor = isCta ? colors.onCta : isFilled ? colors.onPrimary : colors.primary;
+  // Visual height can be 36-44, but the touch target is always at least 48dp.
+  const slop = Math.max(0, (48 - s.h) / 2);
 
   return (
     <Pressable
       onPress={handlePress}
       disabled={disabled || loading}
+      hitSlop={{ top: slop, bottom: slop }}
       style={({ pressed }) => [
         styles.base,
         {

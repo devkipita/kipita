@@ -800,13 +800,13 @@ function PrimaryBtn({
       style={({ pressed }) => [
         styles.actionBtn,
         styles.actionPrimary,
-        { backgroundColor: colors.primary, opacity: disabled ? 0.5 : pressed ? 0.9 : 1 },
+        { backgroundColor: colors.cta, opacity: disabled ? 0.5 : pressed ? 0.9 : 1 },
       ]}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      <Icon name={icon} size={20} color={colors.onPrimary} />
-      <Text variant="labelLarge" color={colors.onPrimary} style={styles.bold}>
+      <Icon name={icon} size={20} color={colors.onCta} />
+      <Text variant="labelLarge" color={colors.onCta} style={styles.bold}>
         {label}
       </Text>
     </Pressable>

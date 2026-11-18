@@ -1,4 +1,5 @@
 import type { RidePreferences } from "@/lib/ride-detail";
+import { isEmptyDraft, isOwnDraft } from "@kipita/shared";
 import { todayISO } from "./WhenPicker";
 
 const KEY = "kipita:publish-draft:v1";
@@ -18,6 +19,8 @@ export type StoredDraft = {
   prefs: Partial<Record<keyof RidePreferences, boolean>>;
   step?: number;
   maxStep?: number;
+  /** The account that made the draft. A draft is only restored for its owner. */
+  uid?: string;
 };
 
 export type Prefill = { from: string; to: string; date: string };
@@ -40,11 +43,17 @@ export function withPrefill<T extends { from: string; to: string; date: string; 
   };
 }
 
-export function loadDraft(): StoredDraft | null {
+export function loadDraft(userId: string): StoredDraft | null {
   try {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return null;
     const saved = JSON.parse(raw) as StoredDraft;
+    // Another account's draft (or one from before owners were recorded) is not
+    // this driver's to see, and is removed rather than left for later.
+    if (!isOwnDraft(saved.uid, userId)) {
+      clearDraft();
+      return null;
+    }
     if (saved.date && saved.date < todayISO()) {
       saved.date = "";
       saved.time = "";
@@ -55,9 +64,17 @@ export function loadDraft(): StoredDraft | null {
   }
 }
 
-export function saveDraft(draft: StoredDraft) {
+/**
+ * Saves the draft for this account. A draft with nothing in it is not saved and
+ * clears the stored one, so a discard is not undone by the next autosave.
+ */
+export function saveDraft(userId: string, draft: StoredDraft) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(draft));
+    if (isEmptyDraft(draft, draft)) {
+      window.localStorage.removeItem(KEY);
+      return;
+    }
+    window.localStorage.setItem(KEY, JSON.stringify({ ...draft, uid: userId }));
   } catch {}
 }
 
