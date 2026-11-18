@@ -85,6 +85,11 @@ export interface FareConfig {
   capMultiplierBps: number;
   /** lowest seat price Kipita will list */
   minSeatPriceKes: number;
+  /**
+   * lowest price a driver may ask for a trip, as a share of the suggested price.
+   * 7000 = 70%. Never below minSeatPriceKes, never above the suggested price.
+   */
+  floorBps: number;
   /** prices snap to this step. 10 = nearest KES 10 */
   roundingStepKes: number;
   /** true: the driver counts as one of the people sharing the cost (seatsOffered + 1 shares) */
@@ -178,6 +183,7 @@ export const DEFAULT_FARE_CONFIG: FareConfig = {
   wearPerKmKes: 3,
   capMultiplierBps: 11500,
   minSeatPriceKes: 100,
+  floorBps: 7000,
   roundingStepKes: 10,
   driverSharesCost: true,
 };
@@ -258,6 +264,7 @@ export function mulBps(amountKes: number, bps: number): number {
 
 const roundToStep = (n: number, step: number) => Math.round(n / step) * step;
 const floorToStep = (n: number, step: number) => Math.floor(n / step) * step;
+const ceilToStep = (n: number, step: number) => Math.ceil(n / step) * step;
 
 function assertPositive(name: string, v: number) {
   if (!Number.isFinite(v) || v <= 0) throw new FareError('BAD_INPUT', `${name} must be a positive number, got ${v}`);
@@ -267,7 +274,7 @@ function validateConfig(c: FareConfig) {
   const ints: Array<[string, number]> = [
     ['feeBps', c.feeBps], ['vatBps', c.vatBps], ['minFeeKes', c.minFeeKes],
     ['capMultiplierBps', c.capMultiplierBps], ['minSeatPriceKes', c.minSeatPriceKes],
-    ['roundingStepKes', c.roundingStepKes],
+    ['floorBps', c.floorBps], ['roundingStepKes', c.roundingStepKes],
   ];
   for (const [name, v] of ints) {
     if (!Number.isInteger(v) || v < 0) throw new FareError('BAD_INPUT', `${name} must be a non-negative integer`);
@@ -275,6 +282,7 @@ function validateConfig(c: FareConfig) {
   if (c.roundingStepKes < 1) throw new FareError('BAD_INPUT', 'roundingStepKes must be at least 1');
   if (c.feeBps > 5000) throw new FareError('BAD_INPUT', 'feeBps above 50% looks like a typo');
   if (c.capMultiplierBps < 10000) throw new FareError('BAD_INPUT', 'capMultiplierBps must be at least 10000 (100%)');
+  if (c.floorBps > 10000) throw new FareError('BAD_INPUT', 'floorBps must be 10000 (100%) or less');
   if (!Number.isFinite(c.wearPerKmKes) || c.wearPerKmKes < 0) throw new FareError('BAD_INPUT', 'wearPerKmKes must be zero or more');
 }
 
@@ -288,8 +296,9 @@ export function costShare(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now'>)
   assertPositive('distanceKm', distanceKm);
   assertPositive('kmPerLitre', vehicle.kmPerLitre);
   assertPositive('fuel price', fuel.priceKes);
-  if (!Number.isInteger(seatsOffered) || seatsOffered < 1 || seatsOffered > 6) {
-    throw new FareError('BAD_INPUT', 'seatsOffered must be a whole number from 1 to 6');
+  // 8 is the most seats a trip can list (the database allows 1 to 8).
+  if (!Number.isInteger(seatsOffered) || seatsOffered < 1 || seatsOffered > 8) {
+    throw new FareError('BAD_INPUT', 'seatsOffered must be a whole number from 1 to 8');
   }
   if (!Number.isFinite(tollsKes) || tollsKes < 0) throw new FareError('BAD_INPUT', 'tollsKes must be zero or more');
   validateConfig(config);
@@ -301,8 +310,14 @@ export function costShare(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now'>)
   const shares = config.driverSharesCost ? seatsOffered + 1 : seatsOffered;
   const perSeatRawKes = tripCostKes / shares;
 
-  const floorKes = roundToStep(config.minSeatPriceKes, step) || step;
-  const suggestedKes = Math.max(floorKes, roundToStep(perSeatRawKes, step));
+  const minKes = roundToStep(config.minSeatPriceKes, step) || step;
+  const suggestedKes = Math.max(minKes, roundToStep(perSeatRawKes, step));
+  // The lowest a driver may ask: a share of the suggested price, rounded up so it
+  // is never below that share, and never above the suggested price itself.
+  const floorKes = Math.min(
+    suggestedKes,
+    Math.max(minKes, ceilToStep((suggestedKes * config.floorBps) / 10000, step)),
+  );
   const capKes = Math.max(
     suggestedKes,
     floorToStep((perSeatRawKes * config.capMultiplierBps) / 10000, step),
@@ -405,6 +420,7 @@ const num = (v: number | undefined, fallback: number) => (typeof v === 'number' 
  *   platform_fee_percent  12     -> feeBps 1200
  *   fare_margin_percent   15     -> capMultiplierBps 11500 (headroom above the cost share)
  *   fee_on_top            1 or 0 -> feeMode 'on_top' | 'deducted'
+ *   fare_floor_percent    70     -> floorBps 7000 (lowest price as a share of the suggested price)
  *   fee_min_kes, fee_vat_percent, fare_wear_per_km, fare_min_seat_price, fare_round_step
  */
 export function fareConfigFromSettings(s: PlatformSettings): FareConfig {
@@ -417,6 +433,7 @@ export function fareConfigFromSettings(s: PlatformSettings): FareConfig {
     wearPerKmKes: num(s.fare_wear_per_km, d.wearPerKmKes),
     capMultiplierBps: Math.round((100 + num(s.fare_margin_percent, (d.capMultiplierBps - 10000) / 100)) * 100),
     minSeatPriceKes: Math.round(num(s.fare_min_seat_price, d.minSeatPriceKes)),
+    floorBps: Math.min(10000, Math.max(0, Math.round(num(s.fare_floor_percent, d.floorBps / 100) * 100))),
     roundingStepKes: Math.max(1, Math.round(num(s.fare_round_step, d.roundingStepKes))),
     driverSharesCost: d.driverSharesCost,
   };
@@ -472,4 +489,115 @@ export function bookingAmounts(seatPriceKes: number, seats: number, config: Fare
     driverEarningKes: subtotalKes - fee,
     platformFeeKes: fee,
   };
+}
+
+// ───────────────────────── price range for the publish screen ─────────────────────────
+
+export type PriceChoiceKey = 'lower' | 'recommended' | 'higher' | 'highest';
+
+export interface SeatPriceRange {
+  seatsOffered: number;
+  /** fuel, wear and tolls for the whole trip */
+  tripCostKes: number;
+  /** the even split of the trip cost, the driver counting as one share */
+  recommendedKes: number;
+  floorKes: number;
+  capKes: number;
+  /** quick picks, lowest first, never two at the same price (the recommended one wins a tie) */
+  choices: Array<{ key: PriceChoiceKey; kes: number }>;
+}
+
+/**
+ * What the publish screen shows for a trip: the recommended seat price, the range the driver
+ * may choose from, and a few quick picks inside it.
+ */
+export function seatPriceRange(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now'>): SeatPriceRange {
+  const cs = costShare(input);
+  const step = input.config.roundingStepKes;
+  const midway = (a: number, b: number) => roundToStep((a + b) / 2, step);
+
+  const wanted: Array<{ key: PriceChoiceKey; kes: number }> = [
+    { key: 'recommended', kes: cs.suggestedKes },
+    { key: 'lower', kes: midway(cs.floorKes, cs.suggestedKes) },
+    { key: 'higher', kes: midway(cs.suggestedKes, cs.capKes) },
+    { key: 'highest', kes: cs.capKes },
+  ];
+  const seen = new Set<number>();
+  const choices: Array<{ key: PriceChoiceKey; kes: number }> = [];
+  for (const c of wanted) {
+    if (c.kes < cs.floorKes || c.kes > cs.capKes || seen.has(c.kes)) continue;
+    seen.add(c.kes);
+    choices.push(c);
+  }
+  choices.sort((a, b) => a.kes - b.kes);
+
+  return {
+    seatsOffered: input.seatsOffered,
+    tripCostKes: cs.tripCostKes,
+    recommendedKes: cs.suggestedKes,
+    floorKes: cs.floorKes,
+    capKes: cs.capKes,
+    choices,
+  };
+}
+
+/**
+ * The recommended seat price for each number of seats offered, from 1 up to `upTo`.
+ * Offering fewer seats raises the price per seat, because the same trip cost is shared by fewer people.
+ */
+export function priceBySeatCount(
+  input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now' | 'seatsOffered'>,
+  upTo: number,
+): Array<{ seats: number; recommendedKes: number }> {
+  const out: Array<{ seats: number; recommendedKes: number }> = [];
+  for (let seats = 1; seats <= upTo; seats++) {
+    out.push({ seats, recommendedKes: costShare({ ...input, seatsOffered: seats }).suggestedKes });
+  }
+  return out;
+}
+
+export type PriceVerdict = 'invalid' | 'below_floor' | 'lower' | 'recommended' | 'higher' | 'above_cap';
+
+/** How a price the driver typed sits against the range. Only below_floor and above_cap block publishing. */
+export function judgePrice(
+  priceKes: number,
+  range: Pick<SeatPriceRange, 'floorKes' | 'recommendedKes' | 'capKes'>,
+): PriceVerdict {
+  if (!Number.isFinite(priceKes) || priceKes <= 0) return 'invalid';
+  if (priceKes < range.floorKes) return 'below_floor';
+  if (priceKes > range.capKes) return 'above_cap';
+  if (priceKes < range.recommendedKes) return 'lower';
+  if (priceKes > range.recommendedKes) return 'higher';
+  return 'recommended';
+}
+
+export interface FillOutcome {
+  passengers: number;
+  /** what the driver receives if this many seats are booked */
+  recoveredKes: number;
+  /** that amount as a whole-number percentage of the trip cost */
+  shareOfCostPct: number;
+  /** what each passenger pays for a seat, fee included when it is charged on top */
+  passengerPaysKes: number;
+}
+
+/** What the driver recovers, and what each passenger pays, if 1, 2 ... seatsOffered seats are booked. */
+export function fillOutcomes(
+  seatPriceKes: number,
+  seatsOffered: number,
+  tripCostKes: number,
+  config: FareConfig,
+): FillOutcome[] {
+  const split = splitFee(seatPriceKes, config);
+  const out: FillOutcome[] = [];
+  for (let passengers = 1; passengers <= seatsOffered; passengers++) {
+    const recoveredKes = passengers * split.driverPayoutKes;
+    out.push({
+      passengers,
+      recoveredKes,
+      shareOfCostPct: tripCostKes > 0 ? Math.round((recoveredKes / tripCostKes) * 100) : 0,
+      passengerPaysKes: split.passengerTotalKes,
+    });
+  }
+  return out;
 }

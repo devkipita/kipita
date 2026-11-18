@@ -34,6 +34,7 @@ export type PricingSettings = {
   fare_margin_percent: number;
   fare_wear_per_km: number;
   fare_min_seat_price: number;
+  fare_floor_percent: number;
   fare_round_step: number;
 };
 
@@ -343,6 +344,7 @@ const FIELDS: { key: keyof PricingSettings; hint: string; step: number; unit: st
   { key: "fare_margin_percent", hint: "How far above the cost share a driver may price", step: 1, unit: "%" },
   { key: "fare_wear_per_km", hint: "Wear and tear added to fuel, per km", step: 0.5, unit: "KES" },
   { key: "fare_min_seat_price", hint: "Lowest seat price a driver can list", step: 10, unit: "KES" },
+  { key: "fare_floor_percent", hint: "Lowest price a driver may ask, as a share of the recommended price", step: 5, unit: "%" },
   { key: "fare_round_step", hint: "Seat prices snap to this step", step: 5, unit: "KES" },
   { key: "hold_minutes", hint: "Time a passenger has to pay", step: 5, unit: "min" },
 ];

@@ -199,7 +199,7 @@ test('driver cannot go above the cap or below the floor', () => {
 });
 
 test('bad input is rejected', () => {
-  for (const over of [{ distanceKm: 0 }, { distanceKm: NaN }, { seatsOffered: 0 }, { seatsOffered: 7 }, { seatsOffered: 2.5 }, { tollsKes: -1 }]) {
+  for (const over of [{ distanceKm: 0 }, { distanceKm: NaN }, { seatsOffered: 0 }, { seatsOffered: 9 }, { seatsOffered: 2.5 }, { tollsKes: -1 }]) {
     assert.throws(() => quoteSeat(nakuru(over)), (e: any) => e instanceof FareError && e.code === 'BAD_INPUT');
   }
   assert.throws(() => quoteSeat(nakuru({ config: cfg({ feeBps: 12 * 100 + 0.5 }) })), FareError);

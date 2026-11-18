@@ -6,6 +6,7 @@ import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { postRequestSchema, postTripSchema } from "@/lib/validators/home";
 import type { PostRequestInput, PostTripInput } from "@/lib/validators/home";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
+import { checkTripPrice } from "@/lib/fare/quote.server";
 
 /**
  * Posting a trip or a ride request — the write half of the core Kipita loop.
@@ -164,6 +165,15 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (!Number.isFinite(leaves) || leaves <= Date.now()) {
     return { ok: false, error: "That departure time has already passed. Pick a later one." };
   }
+
+  const priceCheck = await checkTripPrice(supabase, {
+    from: trip.from_location,
+    to: trip.to_location,
+    seats: trip.seats_total,
+    priceKes: trip.price_per_seat,
+    vehicleClass: trip.vehicle_class,
+  });
+  if (!priceCheck.ok) return { ok: false, error: priceCheck.error };
 
   const vehicleId = await resolveVehicle(supabase, session.userId, trip);
 
