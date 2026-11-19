@@ -237,23 +237,6 @@ const Outcomes = styled.ul`
   }
 `;
 
-const TextButton = styled.button`
-  min-height: 44px;
-  margin: -6px 0 -6px -4px;
-  padding: 0 4px;
-  border: 0;
-  background: transparent;
-  color: ${nocturne.ink};
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-  align-self: flex-start;
-  ${ring}
-`;
-
 function splitLabel(label: string): { name: string; examples: string } {
   const at = label.indexOf(" (");
   if (at < 0) return { name: label, examples: "" };
@@ -276,7 +259,7 @@ type Props = {
  * The Price step of Publish a ride, shared by the desktop and phone layouts. It suggests an even split
  * of the trip cost, lets the driver pick within a range, and shows what they would receive.
  */
-export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicleClass, onChangeSeats }: Props) {
+export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicleClass }: Props) {
   const fare = Number(price) || 0;
   // What is in the amount box while typing. Null means it shows the chosen price when that is not a quick pick.
   const [typed, setTyped] = useState<string | null>(null);
@@ -361,10 +344,9 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
   const choiceHit = quickPicks.some((c) => c.kes === fare);
   const boxValue = typed !== null ? typedValue(typed) : fare > 0 && !choiceHit ? typedValue(String(fare)) : "";
   const outcomes = inRange ? fillOutcomes(fare, seats, range.tripCostKes, quote.config) : [];
-  const one = outcomes[0];
   const full = outcomes[outcomes.length - 1];
-  const feePercent = quote.config.feeBps / 100;
-  const fewer = seats > 1 ? rangeFor(quote, seats - 1) : null;
+  // One plain sentence about a full car. The fee is not mentioned here: it is shown to passengers.
+  const fullCar = seats === 1 ? "If your seat is booked" : seats === 2 ? "If both seats are booked" : `If all ${seats} seats are booked`;
   const dashed = (kes: number) => formatKes(kes);
 
   // The range is shown only once the driver moves away from the recommended price. At the recommended price
@@ -382,12 +364,10 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
 
   const verdictNote =
     verdict === "recommended"
-      ? "This is an even split of the trip cost, with your own share included."
-      : verdict === "lower"
-        ? "That’s under an even split. Passengers will like it, and you’ll cover less of the trip cost."
-        : verdict === "higher"
-          ? "That’s over an even split, so cheaper rides may fill first."
-          : "";
+      ? "An even split of the trip cost, with your own share included."
+      : verdict === "higher"
+        ? "Above the recommended price, so lower-priced rides may be booked first."
+        : "";
 
   return (
     <Wrap>
@@ -449,38 +429,14 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
         {verdictNote && <Note>{verdictNote}</Note>}
       </Section>
 
-      {one && full && (
+      {full && (
         <Section>
-          <Label>What you’d receive</Label>
           <Outcomes>
             <li>
-              If 1 passenger books: <strong>{formatKes(one.recoveredKes)}</strong>{" "}
-              <span className="soft">· covers about {one.shareOfCostPct}% of your trip cost</span>
-            </li>
-            {outcomes.length > 1 && (
-              <li>
-                If all {seats} seats fill: <strong>{formatKes(full.recoveredKes)}</strong>{" "}
-                <span className="soft">· covers about {full.shareOfCostPct}% of your trip cost</span>
-              </li>
-            )}
-            <li className="soft">
-              {quote.config.feeMode === "on_top"
-                ? `Passengers pay ${formatKes(one.passengerPaysKes)} a seat: your price plus Kipita’s ${feePercent}% service fee. You keep your full price.`
-                : `Passengers pay ${formatKes(fare)} a seat. Kipita’s ${feePercent}% fee comes out of what you receive.`}
+              {fullCar}, you’d receive <strong>{formatKes(full.recoveredKes)}</strong>, covering about{" "}
+              {full.shareOfCostPct}% of your trip cost.
             </li>
           </Outcomes>
-        </Section>
-      )}
-
-      {fewer && fewer.recommendedKes !== range.recommendedKes && (
-        <Section>
-          <Note>
-            Offering {seats - 1} {seats - 1 === 1 ? "seat" : "seats"} instead? The recommended price would be{" "}
-            {formatKes(fewer.recommendedKes)} each.
-          </Note>
-          <TextButton type="button" onClick={onChangeSeats}>
-            Change seats
-          </TextButton>
         </Section>
       )}
     </Wrap>
