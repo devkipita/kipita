@@ -69,8 +69,11 @@ export function usePriceQuote(args: {
     : { status: "unavailable", reason: fetched.quote.reason };
 }
 
-/** The lowest, recommended and highest price for this many seats, or null if it cannot be worked out. */
-export function rangeFor(quote: AvailableQuote, seats: number): SeatPriceRange | null {
+/**
+ * The lowest, recommended and highest price for this many seats, or null if it cannot be worked out.
+ * `others` is the number of people riding along who are not booking a seat; they share the cost.
+ */
+export function rangeFor(quote: AvailableQuote, seats: number, others = 0): SeatPriceRange | null {
   try {
     return seatPriceRange({
       distanceKm: quote.distanceKm,
@@ -78,6 +81,7 @@ export function rangeFor(quote: AvailableQuote, seats: number): SeatPriceRange |
       fuel: quote.fuel,
       config: quote.config,
       seatsOffered: seats,
+      othersAboard: others,
     });
   } catch {
     return null;
@@ -88,9 +92,9 @@ export function rangeFor(quote: AvailableQuote, seats: number): SeatPriceRange |
  * Why a price is outside the range, in words for the driver, or null if it is fine or the range
  * is not known. Only a price too low or too high is a problem; anything between is the driver's choice.
  */
-export function priceBlockText(state: QuoteState, seats: number, fare: number): string | null {
+export function priceBlockText(state: QuoteState, seats: number, fare: number, others = 0): string | null {
   if (state.status !== "ready" || !(fare > 0)) return null;
-  const range = rangeFor(state.quote, seats);
+  const range = rangeFor(state.quote, seats, others);
   if (!range) return null;
   const verdict = judgePrice(fare, range);
   if (verdict === "below_floor") {
@@ -117,8 +121,8 @@ export function carTypeBlockText(state: QuoteState, make: string, model: string)
 }
 
 /** Whether the Price step can be continued from. */
-export function priceReady(state: QuoteState, seats: number, fare: number): boolean {
+export function priceReady(state: QuoteState, seats: number, fare: number, others = 0): boolean {
   if (!(fare > 0)) return false;
   if (state.status === "unavailable") return true;
-  return state.status === "ready" && priceBlockText(state, seats, fare) === null;
+  return state.status === "ready" && priceBlockText(state, seats, fare, others) === null;
 }

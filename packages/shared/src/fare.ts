@@ -16,7 +16,8 @@
  *   tripCost  = (distanceKm / kmPerLitre) * fuelPricePerLitre   fuel
  *             + distanceKm * wearPerKm                           tyres, servicing
  *             + tolls                                            optional
- *   perSeat   = tripCost / (seatsOffered + 1)                    the driver carries one share
+ *   perSeat   = tripCost / (seatsOffered + 1 + othersAboard)     the driver carries one share, and so does
+ *                                                                anyone riding along who is not booking a seat
  *   suggested = perSeat rounded to the nearest rounding step
  *   cap       = perSeat * capMultiplier, rounded DOWN to the step   (driver cannot profit)
  *   the driver may choose any price between the floor and the cap.
@@ -101,6 +102,11 @@ export interface SeatQuoteInput {
   distanceKm: number;
   vehicle: VehicleClass;
   seatsOffered: number;
+  /**
+   * People riding with the driver who are not booking a seat (family, friends). They count in the cost
+   * split exactly as the driver does, so a passenger is never charged for their share. Default 0.
+   */
+  othersAboard?: number;
   /** total tolls for the leg, in KES */
   tollsKes?: number;
   fuel: ResolvedFuelPrice;
@@ -147,6 +153,7 @@ export interface FareQuote extends FeeSplit {
     calculatedAt: string;
     distanceKm: number;
     seatsOffered: number;
+    othersAboard: number;
     vehicleCode: string;
     kmPerLitre: number;
     fuelType: FuelType;
@@ -292,6 +299,7 @@ function validateConfig(c: FareConfig) {
 export function costShare(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now'>): CostShare {
   const { distanceKm, vehicle, seatsOffered, fuel, config } = input;
   const tollsKes = input.tollsKes ?? 0;
+  const othersAboard = input.othersAboard ?? 0;
 
   assertPositive('distanceKm', distanceKm);
   assertPositive('kmPerLitre', vehicle.kmPerLitre);
@@ -301,13 +309,17 @@ export function costShare(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'now'>)
     throw new FareError('BAD_INPUT', 'seatsOffered must be a whole number from 1 to 8');
   }
   if (!Number.isFinite(tollsKes) || tollsKes < 0) throw new FareError('BAD_INPUT', 'tollsKes must be zero or more');
+  // Seats offered plus the people riding along fill the car, so together they cannot pass 8.
+  if (!Number.isInteger(othersAboard) || othersAboard < 0 || seatsOffered + othersAboard > 8) {
+    throw new FareError('BAD_INPUT', 'othersAboard must be a whole number, and seats offered plus others aboard must be 8 or fewer');
+  }
   validateConfig(config);
 
   const step = config.roundingStepKes;
   const fuelCostKes = (distanceKm / vehicle.kmPerLitre) * fuel.priceKes;
   const wearCostKes = distanceKm * config.wearPerKmKes;
   const tripCostKes = fuelCostKes + wearCostKes + tollsKes;
-  const shares = config.driverSharesCost ? seatsOffered + 1 : seatsOffered;
+  const shares = (config.driverSharesCost ? seatsOffered + 1 : seatsOffered) + othersAboard;
   const perSeatRawKes = tripCostKes / shares;
 
   const minKes = roundToStep(config.minSeatPriceKes, step) || step;
@@ -382,6 +394,7 @@ export function quoteSeat(input: SeatQuoteInput): FareQuote {
       calculatedAt: (input.now ?? new Date()).toISOString(),
       distanceKm: input.distanceKm,
       seatsOffered: input.seatsOffered,
+      othersAboard: input.othersAboard ?? 0,
       vehicleCode: vehicle.code,
       kmPerLitre: vehicle.kmPerLitre,
       fuelType: fuel.fuelType,
@@ -497,9 +510,11 @@ export type PriceChoiceKey = 'lower' | 'recommended' | 'higher' | 'highest';
 
 export interface SeatPriceRange {
   seatsOffered: number;
+  /** people riding with the driver who are not booking a seat; they share the cost like the driver */
+  othersAboard: number;
   /** fuel, wear and tolls for the whole trip */
   tripCostKes: number;
-  /** the even split of the trip cost, the driver counting as one share */
+  /** the even split of the trip cost, the driver and anyone riding along counting as one share each */
   recommendedKes: number;
   floorKes: number;
   capKes: number;
@@ -533,6 +548,7 @@ export function seatPriceRange(input: Omit<SeatQuoteInput, 'driverPriceKes' | 'n
 
   return {
     seatsOffered: input.seatsOffered,
+    othersAboard: input.othersAboard ?? 0,
     tripCostKes: cs.tripCostKes,
     recommendedKes: cs.suggestedKes,
     floorKes: cs.floorKes,

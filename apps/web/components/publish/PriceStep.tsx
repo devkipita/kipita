@@ -144,6 +144,40 @@ const Why = styled.details`
   }
 `;
 
+const Counter = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+
+  .count {
+    min-width: 92px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
+  }
+`;
+
+const CountButton = styled.button`
+  width: 44px;
+  height: 44px;
+  border: 1.5px solid ${nocturne.line};
+  border-radius: 50%;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  ${ring}
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+`;
+
 const PickChip = styled.button<{ $on: boolean }>`
   min-width: 104px;
   min-height: 56px;
@@ -253,13 +287,16 @@ type Props = {
   onPrice: (price: string) => void;
   onVehicleClass: (code: string) => void;
   onChangeSeats: () => void;
+  /** people riding with the driver who are not booking a seat */
+  others: number;
+  onOthers: (count: number) => void;
 };
 
 /**
  * The Price step of Publish a ride, shared by the desktop and phone layouts. It suggests an even split
  * of the trip cost, lets the driver pick within a range, and shows what they would receive.
  */
-export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicleClass }: Props) {
+export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, onVehicleClass, onOthers }: Props) {
   const fare = Number(price) || 0;
   // What is in the amount box while typing. Null means it shows the chosen price when that is not a quick pick.
   const [typed, setTyped] = useState<string | null>(null);
@@ -267,7 +304,9 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
   const quote = state.status === "ready" ? state.quote : null;
   const classes = quote?.classes ?? (state.status === "loading" ? state.classes : undefined);
   const activeClass = quote?.vehicleClass ?? (state.status === "loading" ? state.vehicleClass : undefined) ?? vehicleClass;
-  const range = quote ? rangeFor(quote, seats) : null;
+  const range = quote ? rangeFor(quote, seats, others) : null;
+  // The car holds eight in all, so the people riding along and the seats offered share that room.
+  const maxOthers = Math.max(0, 8 - seats);
 
   const typedValue = (digits: string) => (digits ? Number(digits).toLocaleString("en-US") : "");
   // Set once a decimal point has been typed. Prices are whole shillings, so the point ends the amount and
@@ -336,6 +375,43 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
     );
   }
 
+  // Changing who is in the car moves the recommended price. A driver who was on the recommended price stays on it.
+  const changeOthers = (count: number) => {
+    const next = rangeFor(quote, seats, count);
+    if (next && fare === range.recommendedKes) {
+      setTyped(null);
+      onPrice(String(next.recommendedKes));
+    }
+    onOthers(count);
+  };
+  const othersControl = (
+    <Section>
+      <Label id="price-others-label">Anyone else travelling with you?</Label>
+      <Counter role="group" aria-labelledby="price-others-label">
+        <CountButton
+          type="button"
+          aria-label="One fewer person travelling with you"
+          disabled={others <= 0}
+          onClick={() => changeOthers(others - 1)}
+        >
+          −
+        </CountButton>
+        <span className="count" aria-live="polite">
+          {others === 0 ? "Just me" : `${others} ${others === 1 ? "other" : "others"}`}
+        </span>
+        <CountButton
+          type="button"
+          aria-label="One more person travelling with you"
+          disabled={others >= maxOthers}
+          onClick={() => changeOthers(others + 1)}
+        >
+          +
+        </CountButton>
+      </Counter>
+      <Note>People riding with you who aren’t booking a seat. They share the cost, so passengers don’t pay for them.</Note>
+    </Section>
+  );
+
   const verdict = fare > 0 ? judgePrice(fare, range) : "invalid";
   const inRange = verdict !== "invalid" && verdict !== "below_floor" && verdict !== "above_cap";
   // Only the recommended price is offered as a quick pick. The floor and the cap stay unannounced until the
@@ -364,7 +440,9 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
 
   const verdictNote =
     verdict === "recommended"
-      ? "An even split of the trip cost, with your own share included."
+      ? others > 0
+        ? "An even split of the trip cost across everyone in the car."
+        : "An even split of the trip cost, with your own share included."
       : verdict === "higher"
         ? "Above the recommended price, so lower-priced rides may be booked first."
         : "";
@@ -372,6 +450,8 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
   return (
     <Wrap>
       {classChips}
+
+      {othersControl}
 
       <Card>
         <div className="kicker">Recommended</div>
@@ -382,7 +462,8 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
         <Why>
           <summary>How is this worked out?</summary>
           <p>
-            Fuel and wear for about {Math.round(quote.distanceKm)} km, shared evenly between you and {seats}{" "}
+            Fuel and wear for about {Math.round(quote.distanceKm)} km, shared evenly between you
+            {others > 0 ? `, ${others} ${others === 1 ? "other" : "others"} travelling with you` : ""} and {seats}{" "}
             {seats === 1 ? "passenger" : "passengers"}. Fuel at about {formatKes(quote.fuel.priceKes)} a litre.
           </p>
         </Why>

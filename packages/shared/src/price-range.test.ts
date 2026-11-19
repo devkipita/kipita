@@ -137,3 +137,30 @@ test("the floor percentage comes from the platform setting, and stays within 0 t
   assert.equal(fareConfigFromSettings({ fare_floor_percent: 150 }).floorBps, 10000);
   assert.equal(fareConfigFromSettings({ fare_floor_percent: -5 }).floorBps, 0);
 });
+
+test("people riding with the driver count in the split, so passengers do not pay their share", () => {
+  // One seat offered with two others aboard is four people sharing: the same price as three seats offered alone.
+  const family = seatPriceRange(trip({ seatsOffered: 1, othersAboard: 2 }));
+  assert.equal(family.othersAboard, 2);
+  assert.equal(family.recommendedKes, 800);
+  assert.equal(family.recommendedKes, seatPriceRange(trip()).recommendedKes);
+  assert.equal(Math.round(family.tripCostKes), 3212);
+  // Without them one seat is half the trip cost.
+  assert.equal(seatPriceRange(trip({ seatsOffered: 1 })).recommendedKes, 1610);
+  assert.equal(seatPriceRange(trip({ seatsOffered: 1, othersAboard: 3 })).recommendedKes, 640);
+});
+
+test("the floor and the cap follow the lower recommended price", () => {
+  const r = seatPriceRange(trip({ seatsOffered: 3, othersAboard: 2 }));
+  assert.equal(r.recommendedKes, 540);
+  assert.ok(r.floorKes < r.recommendedKes && r.recommendedKes < r.capKes);
+});
+
+test("others aboard default to none, and the car cannot hold more than eight in all", () => {
+  assert.equal(seatPriceRange(trip()).othersAboard, 0);
+  assert.equal(seatPriceRange(trip({ othersAboard: 0 })).recommendedKes, seatPriceRange(trip()).recommendedKes);
+  assert.equal(seatPriceRange(trip({ seatsOffered: 5, othersAboard: 3 })).othersAboard, 3);
+  assert.throws(() => seatPriceRange(trip({ seatsOffered: 5, othersAboard: 4 })), FareError);
+  assert.throws(() => seatPriceRange(trip({ othersAboard: -1 })), FareError);
+  assert.throws(() => seatPriceRange(trip({ othersAboard: 1.5 })), FareError);
+});

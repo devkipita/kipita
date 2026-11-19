@@ -10,6 +10,8 @@ export type StoredDraft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others?: number;
   price: string;
   make: string;
   model: string;
