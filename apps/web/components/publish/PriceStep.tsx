@@ -126,6 +126,24 @@ const Card = styled.div`
   }
 `;
 
+const Why = styled.details`
+  margin-top: 8px;
+
+  summary {
+    display: inline-block;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: ${nocturne.muted2};
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    ${ring}
+  }
+  p {
+    margin: 6px 0 0;
+  }
+`;
+
 const PickChip = styled.button<{ $on: boolean }>`
   min-width: 104px;
   min-height: 56px;
@@ -337,7 +355,10 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
 
   const verdict = fare > 0 ? judgePrice(fare, range) : "invalid";
   const inRange = verdict !== "invalid" && verdict !== "below_floor" && verdict !== "above_cap";
-  const choiceHit = range.choices.some((c) => c.kes === fare);
+  // Only the recommended price is offered as a quick pick. The floor and the cap stay unannounced until the
+  // driver goes near them, so a price that matches another choice is shown in the amount box.
+  const quickPicks = range.choices.filter((c) => c.key === "recommended");
+  const choiceHit = quickPicks.some((c) => c.kes === fare);
   const boxValue = typed !== null ? typedValue(typed) : fare > 0 && !choiceHit ? typedValue(String(fare)) : "";
   const outcomes = inRange ? fillOutcomes(fare, seats, range.tripCostKes, quote.config) : [];
   const one = outcomes[0];
@@ -346,6 +367,9 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
   const fewer = seats > 1 ? rangeFor(quote, seats - 1) : null;
   const dashed = (kes: number) => formatKes(kes);
 
+  // The range is shown only once the driver moves away from the recommended price. At the recommended price
+  // there is nothing to explain.
+  const showRange = verdict === "lower" || verdict === "higher" || verdict === "below_floor" || verdict === "above_cap";
   let rangeNote = `Between ${dashed(range.floorKes)} and ${dashed(range.capKes)} a seat.`;
   let tone: "danger" | undefined;
   if (verdict === "below_floor") {
@@ -375,16 +399,19 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
           {formatKes(range.recommendedKes)}
           <span className="unit">per seat</span>
         </div>
-        <p>
-          Fuel and wear for about {Math.round(quote.distanceKm)} km, shared evenly between you and {seats}{" "}
-          {seats === 1 ? "passenger" : "passengers"}. Fuel at about {formatKes(quote.fuel.priceKes)} a litre.
-        </p>
+        <Why>
+          <summary>How is this worked out?</summary>
+          <p>
+            Fuel and wear for about {Math.round(quote.distanceKm)} km, shared evenly between you and {seats}{" "}
+            {seats === 1 ? "passenger" : "passengers"}. Fuel at about {formatKes(quote.fuel.priceKes)} a litre.
+          </p>
+        </Why>
       </Card>
 
       <Section>
         <Label id="price-pick-label">Your price per seat</Label>
         <Chips role="group" aria-labelledby="price-pick-label">
-          {range.choices.map((c) => (
+          {quickPicks.map((c) => (
             <PickChip
               key={c.key}
               type="button"
@@ -408,15 +435,17 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
             placeholder="Or enter your own price"
             aria-label="Your own price per seat in Kenyan shillings"
             aria-invalid={tone === "danger"}
-            aria-describedby="price-range-note"
+            aria-describedby={showRange ? "price-range-note" : undefined}
             value={boxValue}
             onChange={(e) => onType(e.target.value)}
             onBlur={onBlur}
           />
         </AmountBox>
-        <Note id="price-range-note" $tone={tone} role={tone ? "alert" : undefined}>
-          {rangeNote}
-        </Note>
+        {showRange && (
+          <Note id="price-range-note" $tone={tone} role={tone ? "alert" : undefined}>
+            {rangeNote}
+          </Note>
+        )}
         {verdictNote && <Note>{verdictNote}</Note>}
       </Section>
 
@@ -426,12 +455,12 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
           <Outcomes>
             <li>
               If 1 passenger books: <strong>{formatKes(one.recoveredKes)}</strong>{" "}
-              <span className="soft">· about {one.shareOfCostPct}% of the trip cost</span>
+              <span className="soft">· covers about {one.shareOfCostPct}% of your trip cost</span>
             </li>
             {outcomes.length > 1 && (
               <li>
                 If all {seats} seats fill: <strong>{formatKes(full.recoveredKes)}</strong>{" "}
-                <span className="soft">· about {full.shareOfCostPct}% of the trip cost</span>
+                <span className="soft">· covers about {full.shareOfCostPct}% of your trip cost</span>
               </li>
             )}
             <li className="soft">
