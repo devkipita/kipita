@@ -15,6 +15,7 @@ const SETTING_RANGES: Record<string, { min: number; max: number; integer?: boole
   fare_margin_percent: { min: 0, max: 100 },
   fare_wear_per_km: { min: 0, max: 50 },
   fare_min_seat_price: { min: 0, max: 5000 },
+  fare_floor_percent: { min: 0, max: 100, integer: true },
   fare_round_step: { min: 1, max: 100, integer: true },
 };
 

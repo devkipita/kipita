@@ -19,6 +19,7 @@ export type SettingKey =
   | "fee_vat_percent"
   | "fare_wear_per_km"
   | "fare_min_seat_price"
+  | "fare_floor_percent"
   | "fare_round_step";
 
 export const SETTING_FALLBACKS: Record<SettingKey, number> = {
@@ -31,6 +32,7 @@ export const SETTING_FALLBACKS: Record<SettingKey, number> = {
   fee_vat_percent: 16,
   fare_wear_per_km: 3,
   fare_min_seat_price: 100,
+  fare_floor_percent: 70,
   fare_round_step: 10,
 };
 

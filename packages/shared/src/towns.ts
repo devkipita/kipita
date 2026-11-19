@@ -284,3 +284,48 @@ export const POPULAR_ROUTES: readonly PopularRoute[] = [
   { from: "Mombasa", to: "Malindi", blurb: "Along the shore" },
   { from: "Nakuru", to: "Naivasha", blurb: "Lake to lake" },
 ];
+
+/**
+ * Roads are longer than the straight line between two towns, by a different amount on every route. 1.2 is
+ * a middling guess, used when a route is not in the table below.
+ */
+const ROAD_FACTOR = 1.2;
+
+/**
+ * Road distances in km for the routes drivers post most, rounded to the nearest 5. Each is the middle of
+ * the figures published for the route (the UN logistics road matrix for Kenya, a Kenya distance chart on
+ * Voyage Forum, and driving distances from Rome2rio), which agree to within about 3%. The straight-line
+ * guess is badly off on these: it gives about 118 km for Nairobi to Nyeri, which is 150 by road, and
+ * about 528 km for Nairobi to Mombasa, which is 485.
+ *
+ * Keys are the two town names in lower case, in alphabetical order, joined with "|".
+ */
+const KNOWN_ROAD_KM: Record<string, number> = {
+  "eldoret|nairobi": 325,
+  "kisumu|nairobi": 340,
+  "meru|nairobi": 225,
+  "mombasa|nairobi": 485,
+  "nairobi|nakuru": 160,
+  "nairobi|nanyuki": 190,
+  "nairobi|nyeri": 150,
+};
+
+// Nairobi CBD is the centre of Nairobi, so it shares Nairobi's long-distance figures.
+const corridorName = (name: string) => {
+  const n = name.toLowerCase();
+  return n === "nairobi cbd" ? "nairobi" : n;
+};
+
+/**
+ * Estimated road distance between two towns in km, or null if either is unknown or they are the same.
+ * Uses the table of known routes where there is one, and an estimate from the straight line otherwise.
+ */
+export function roadDistanceKm(from: string, to: string): number | null {
+  const a = resolveTown(from);
+  const b = resolveTown(to);
+  if (!a || !b || a.name === b.name) return null;
+  const known = KNOWN_ROAD_KM[[corridorName(a.name), corridorName(b.name)].sort().join("|")];
+  if (known) return known;
+  const km = Math.round(haversineKm(a, b) * ROAD_FACTOR * 10) / 10;
+  return km > 0 ? km : null;
+}
