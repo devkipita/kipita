@@ -1,9 +1,9 @@
 import type { ImageProps } from "next/image";
 import mpesa from "../../public/landing/mpesa.png";
 import driver from "../../public/landing/driver.jpg";
-import appSearch from "../../public/landing/app-search.png";
-import appHome from "../../public/landing/app-home.png";
-import appRides from "../../public/landing/app-rides.png";
+import appPost from "../../public/landing/app-post.jpg";
+import appFind from "../../public/landing/app-find.jpg";
+import appAlerts from "../../public/landing/app-alerts.jpg";
 
 export const ROUTE_BLUR =
   "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCA4IDUnPjxyZWN0IHdpZHRoPSc4JyBoZWlnaHQ9JzUnIGZpbGw9JyMyMjMwMjknLz48L3N2Zz4=";
@@ -26,20 +26,20 @@ export const driverImage = {
 
 export const phoneImages = {
   left: {
-    src: appSearch,
-    alt: "Kipita search screen",
+    src: appPost,
+    alt: "Kipita Post a ride screen with a recommended seat price",
     sizes: "(max-width: 640px) 27vw, 210px",
     placeholder: "blur",
   },
   center: {
-    src: appHome,
-    alt: "Kipita home screen",
+    src: appFind,
+    alt: "Kipita Find a ride screen",
     sizes: "(max-width: 640px) 34vw, 250px",
     placeholder: "blur",
   },
   right: {
-    src: appRides,
-    alt: "Kipita rides screen",
+    src: appAlerts,
+    alt: "Kipita Road alerts screen",
     sizes: "(max-width: 640px) 27vw, 210px",
     placeholder: "blur",
   },
