@@ -198,6 +198,25 @@ const Err = styled.p`
   color: ${nocturne.danger};
 `;
 
+const Terms = styled.div`
+  margin-top: ${({ theme }) => theme.space.md};
+  font-size: ${({ theme }) => theme.type.label};
+  color: ${nocturne.muted};
+
+  b {
+    display: block;
+    margin-bottom: 4px;
+    font-weight: 800;
+    color: ${nocturne.cream};
+  }
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 2px;
+  }
+`;
+
 /* Status screens */
 
 const spin = keyframes`to { transform: rotate(360deg); }`;
@@ -393,6 +412,7 @@ export function PayPanel({
   seatsLine,
   defaultPhone,
   walletBalance,
+  ruleLines,
   onBusy,
   onClose,
   onPaid,
@@ -406,6 +426,8 @@ export function PayPanel({
   seatsLine: string;
   defaultPhone?: string | null;
   walletBalance: number | null;
+  /** The cancellation rule in plain words, shown before the passenger pays. */
+  ruleLines?: string[];
   onBusy: (busy: boolean) => void;
   onClose: () => void;
   onPaid: () => void;
@@ -677,6 +699,16 @@ export function PayPanel({
                 <ShieldCheck size={18} /> Held in escrow by Kipita until you
                 arrive
               </Safe>
+              {ruleLines && ruleLines.length > 0 && (
+                <Terms aria-label="Cancellation rules">
+                  <b>If plans change</b>
+                  <ul>
+                    {ruleLines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </Terms>
+              )}
             </section>
 
             {error && <Err role="alert">{error}</Err>}

@@ -4,8 +4,11 @@ import { TripDetail } from "@/components/trips/TripDetail";
 import { getProfile } from "@/lib/auth/session";
 import { routeBetween } from "@/lib/maps/routes.server";
 import { placeKey, type TripRoute } from "@/lib/maps/types";
+import { cancellationConfigFromSettings } from "@kipita/shared";
+import { fetchPlatform } from "@/lib/platform.server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchBooking } from "@/lib/trips/server";
+import type { NoShowState } from "@/lib/trips/types";
 
 export const metadata: Metadata = {
   title: "Trip",
@@ -21,11 +24,30 @@ export default async function TripPage({
   const profile = await getProfile();
   if (!profile) redirect(`/auth/sign-in?next=/trips/${id}`);
 
-  const [booking, walletBalance] = await Promise.all([
+  const [booking, walletBalance, platform, noShow] = await Promise.all([
     fetchBooking(id, profile.id),
     createClient()
       .then((supabase) => supabase.from("wallets").select("balance").eq("user_id", profile.id).maybeSingle())
       .then(({ data, error }) => (error ? null : Number(data?.balance ?? 0))),
+    fetchPlatform(),
+    // Columns from migration 063. If it has not run, the query errors and this is null.
+    createClient()
+      .then((supabase) =>
+        supabase
+          .from("bookings")
+          .select("cancel_tier, no_show_marked_at, no_show_disputed_at")
+          .eq("id", id)
+          .maybeSingle(),
+      )
+      .then(({ data, error }): NoShowState | null =>
+        error || !data
+          ? null
+          : {
+              tier: (data.cancel_tier as string | null) ?? null,
+              markedAt: (data.no_show_marked_at as string | null) ?? null,
+              disputedAt: (data.no_show_disputed_at as string | null) ?? null,
+            },
+      ),
   ]);
   if (!booking) notFound();
 
@@ -44,6 +66,8 @@ export default async function TripPage({
       viewerId={profile.id}
       viewerPhone={profile.phone}
       walletBalance={walletBalance}
+      cancelConfig={cancellationConfigFromSettings(platform.settings)}
+      noShow={noShow}
       route={route}
     />
   );

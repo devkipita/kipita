@@ -44,6 +44,11 @@ export default async function AdminPricingPage() {
     fare_min_seat_price: SETTING_FALLBACKS.fare_min_seat_price,
     fare_floor_percent: SETTING_FALLBACKS.fare_floor_percent,
     fare_round_step: SETTING_FALLBACKS.fare_round_step,
+    cancel_free_hours: SETTING_FALLBACKS.cancel_free_hours,
+    cancel_grace_minutes: SETTING_FALLBACKS.cancel_grace_minutes,
+    cancel_late_refund_percent: SETTING_FALLBACKS.cancel_late_refund_percent,
+    no_show_wait_minutes: SETTING_FALLBACKS.no_show_wait_minutes,
+    no_show_dispute_hours: SETTING_FALLBACKS.no_show_dispute_hours,
   };
   for (const row of rows ?? []) {
     const value = Number(row.value);

@@ -118,3 +118,14 @@ export const BOOKING_SELECT = `
   passenger:users!passenger_id ( ${PERSON} ),
   driver:users!driver_id ( ${PERSON} )
 `;
+
+/**
+ * Cancellation facts that live in columns added by migration 063. They are read in a separate,
+ * forgiving query (see app/(app)/trips/[id]/page.tsx) so a database that has not run 063 yet
+ * still loads the booking.
+ */
+export type NoShowState = {
+  tier: string | null;
+  markedAt: string | null;
+  disputedAt: string | null;
+};
