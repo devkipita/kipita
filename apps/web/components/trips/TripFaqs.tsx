@@ -1,118 +1,60 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import styled from "styled-components";
-import { ArrowOut } from "@/components/icons";
+import { ArrowOut, Plus } from "@/components/icons";
+import { nocturne } from "@/lib/nocturne";
 import { TRIP_FAQS } from "@/lib/trips/copy";
+import { HelpPanel, Unfold, rowLook } from "./helpRows";
 
-const Panel = styled.div`
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
-  overflow: hidden;
+const Row = styled.button<{ $open: boolean }>`
+  ${rowLook}
+
+  svg {
+    transform: rotate(${({ $open }) => ($open ? 45 : 0)}deg);
+  }
 `;
 
-const Question = styled.details`
-  & + & {
-    border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-  }
+const More = styled(Link)`
+  ${rowLook}
+  color: ${nocturne.green};
+`;
 
-  /* Title: display face, full-strength ink. */
-  summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    min-height: 60px;
-    padding: 14px 20px;
-    font-family: ${({ theme }) => theme.font};
-    font-size: 1.0625rem;
-    font-weight: 600;
-    letter-spacing: -0.005em;
-    color: ${({ theme }) => theme.color.onSurface};
-  }
-  summary::-webkit-details-marker {
-    display: none;
-  }
-  summary:hover {
-    background: ${({ theme }) => theme.color.surfaceContainer};
-  }
-  summary:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -2px;
-  }
-
-  summary svg {
-    flex: none;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
-    transition: transform 0.22s ease, color 0.22s ease;
-  }
-  summary:hover svg {
-    color: ${({ theme }) => theme.color.primary};
-  }
-  /* The same arrow, turned a quarter — the state changes without swapping mark. */
-  &[open] summary svg {
-    transform: rotate(90deg);
-    color: ${({ theme }) => theme.color.primary};
-  }
-
-  /* Body: text face, lighter weight, one tonal step down. */
+const Answer = styled(Unfold)`
   p {
     margin: 0;
-    padding: 0 20px 20px;
-    font-family: ${({ theme }) => theme.font};
-    font-size: 1rem;
-    font-weight: 400;
-    letter-spacing: 0;
-    line-height: 1.7;
-    max-width: 64ch;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    summary svg {
-      transition: none;
-    }
-  }
-`;
-
-/* The one place the outward arrow belongs: this genuinely leaves the page. */
-const More = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 15px 18px;
-  border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: ${({ theme }) => theme.color.primary};
-  border-radius: ${({ theme }) => theme.radius.xs};
-
-  &:hover {
-    text-decoration: underline;
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: -2px;
+    font-size: 16px;
+    line-height: 1.6;
+    color: ${nocturne.muted};
   }
 `;
 
 export function TripFaqs() {
+  const [open, setOpen] = useState<string | null>(null);
+
   return (
-    <Panel>
-      {TRIP_FAQS.map((f) => (
-        <Question key={f.q}>
-          <summary>
-            {f.q}
-            <ArrowOut size={20} />
-          </summary>
-          <p>{f.a}</p>
-        </Question>
-      ))}
+    <HelpPanel>
+      {TRIP_FAQS.map((f) => {
+        const on = open === f.q;
+        return (
+          <div key={f.q}>
+            <Row type="button" $open={on} aria-expanded={on} onClick={() => setOpen(on ? null : f.q)}>
+              {f.q}
+              <Plus size={28} />
+            </Row>
+            {on && (
+              <Answer>
+                <p>{f.a}</p>
+              </Answer>
+            )}
+          </div>
+        );
+      })}
       <More href="/help#faq">
-        All help articles <ArrowOut size={16} />
+        All help articles
+        <ArrowOut size={18} />
       </More>
-    </Panel>
+    </HelpPanel>
   );
 }

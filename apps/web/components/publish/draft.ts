@@ -25,6 +25,26 @@ export type StoredDraft = {
   uid?: string;
 };
 
+export type Prefill = { from: string; to: string; date: string };
+
+export function readPrefill(params: URLSearchParams | null): Prefill | null {
+  const from = params?.get("from")?.trim().slice(0, 80) ?? "";
+  const to = params?.get("to")?.trim().slice(0, 80) ?? "";
+  const rawDate = params?.get("date") ?? "";
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate) && rawDate >= todayISO() ? rawDate : "";
+  return from || to ? { from, to, date } : null;
+}
+
+export function withPrefill<T extends { from: string; to: string; date: string; time: string }>(draft: T, prefill: Prefill): T {
+  return {
+    ...draft,
+    from: prefill.from || draft.from,
+    to: prefill.to || draft.to,
+    date: prefill.date || draft.date,
+    time: prefill.date ? "" : draft.time,
+  };
+}
+
 export function loadDraft(userId: string): StoredDraft | null {
   try {
     const raw = window.localStorage.getItem(KEY);

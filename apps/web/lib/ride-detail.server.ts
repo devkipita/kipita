@@ -8,19 +8,6 @@ import type {
   TripDetail,
 } from "./ride-detail";
 
-/**
- * Resolve the id a ride notification carries.
- *
- * Both `ride_match` and `request_match` land on `/ride/[id]`, so an id is tried
- * against `trips` first and falls back to `ride_requests` (the `?kind=request`
- * hint just reverses the order). Both tables are world-readable under RLS, so a
- * shared link works for signed-out visitors too.
- */
-
-// No `phone`: migration 004 revoked it, and asking for an ungranted column
-// makes Postgres deny the whole `users` table (42501), not just that field.
-// The call row degrades to hidden — exposing it needs a server-side route that
-// checks the caller actually has a booking, not a column grant.
 const PERSON_COLUMNS =
   "id, full_name, avatar_url, is_verified, rating, total_trips";
 
@@ -38,13 +25,20 @@ const REQUEST_SELECT = `
   passenger:users!passenger_id ( ${PERSON_COLUMNS} )
 `;
 
-/** Supabase types an embedded one-to-one join as an array in some shapes. */
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+export class RideLoadError extends Error {
+  constructor(kind: "trip" | "request", code: string | undefined, message: string) {
+    super(`Couldn't load ${kind}: ${code ?? "unknown"} ${message}`);
+    this.name = "RideLoadError";
+  }
+}
+
 function one<T>(value: T | T[] | null | undefined): T | null {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
 }
 
-/** Postgres UUIDs only — anything else can't be a row, so skip the round trip. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function fetchRideDetail(
@@ -53,23 +47,22 @@ export async function fetchRideDetail(
 ): Promise<RideDetail | null> {
   if (!UUID.test(id)) return null;
 
-  const order: ("trip" | "request")[] =
-    hint === "request" ? ["request", "trip"] : ["trip", "request"];
+  const supabase = await createClient();
+  const [trip, request] = await Promise.all([
+    fetchTrip(supabase, id),
+    fetchRequest(supabase, id),
+  ]);
 
-  for (const kind of order) {
-    const found = kind === "trip" ? await fetchTrip(id) : await fetchRequest(id);
-    if (found) return found;
-  }
-  return null;
+  return hint === "request" ? (request ?? trip) : (trip ?? request);
 }
 
-async function fetchTrip(id: string): Promise<TripDetail | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+async function fetchTrip(supabase: Supabase, id: string): Promise<TripDetail | null> {
+  const { data, error } = await supabase
     .from("trips")
     .select(TRIP_SELECT)
     .eq("id", id)
     .maybeSingle();
+  if (error) throw new RideLoadError("trip", error.code, error.message);
   if (!data) return null;
 
   const row = data as Record<string, unknown>;
@@ -93,13 +86,13 @@ async function fetchTrip(id: string): Promise<TripDetail | null> {
   };
 }
 
-async function fetchRequest(id: string): Promise<RequestDetail | null> {
-  const supabase = await createClient();
-  const { data } = await supabase
+async function fetchRequest(supabase: Supabase, id: string): Promise<RequestDetail | null> {
+  const { data, error } = await supabase
     .from("ride_requests")
     .select(REQUEST_SELECT)
     .eq("id", id)
     .maybeSingle();
+  if (error) throw new RideLoadError("request", error.code, error.message);
   if (!data) return null;
 
   const row = data as Record<string, unknown>;

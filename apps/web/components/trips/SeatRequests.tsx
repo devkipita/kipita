@@ -2,193 +2,178 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import styled, { css, keyframes } from "styled-components";
-import { ArrowRight, CalendarBlank, Clock, Users, Warning } from "@/components/icons";
+import styled, { keyframes } from "styled-components";
+import { Clock, Star, Warning } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
-import {
-  answerSeatRequestAction,
-  seatRequestAction,
-} from "@/lib/trips/request-actions";
+import { answerSeatRequestAction, seatRequestAction } from "@/lib/trips/request-actions";
 import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-import { Count, fs } from "./RideRow";
-
-const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
-
-const Section = styled.section`
-  margin: clamp(40px, 6vh, 64px) 0 0;
-
-  > h2 {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 0 0 6px;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: ${fs.head};
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    color: ${nocturne.cream};
-  }
-  > p {
-    margin: 0 0 18px;
-    max-width: 60ch;
-    font-size: ${fs.body};
-    line-height: 1.5;
-    color: ${nocturne.muted};
-  }
-`;
+import { useConfirm } from "@/components/ui/ConfirmPop";
+import { Chip } from "./BookingCard";
 
 const arrive = keyframes`
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
 `;
 
-const Row = styled.div<{ $fresh?: boolean }>`
+const List = styled.div`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 18px 32px;
-  padding: clamp(18px, 2.4vh, 24px) 0;
+  gap: 14px;
+  padding-top: 18px;
+`;
 
-  & + & {
-    border-top: 1.5px solid ${RULE};
+const Card = styled.article<{ $fresh: boolean }>`
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+  background: ${nocturne.surface};
+  animation: ${({ $fresh }) => ($fresh ? arrive : "none")} ${dur.enter} ${ease.enter};
+
+  @media (min-width: 861px) {
+    padding: 22px 26px;
   }
-
-  ${({ $fresh }) =>
-    $fresh &&
-    css`
-      animation: ${arrive} 0.34s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-
-      @media (prefers-reduced-motion: reduce) {
-        animation: none;
-      }
-    `}
-
-  @media (max-width: 760px) {
-    grid-template-columns: minmax(0, 1fr);
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
-const New = styled.span`
-  display: inline-flex;
+const Top = styled.div`
+  display: flex;
   align-items: center;
-  height: 24px;
-  margin-left: 10px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
-  font-family: ${({ theme }) => theme.font};
-  font-size: ${fs.small};
-  font-weight: 800;
-  letter-spacing: 0;
-  vertical-align: middle;
+  justify-content: space-between;
+  gap: 12px;
 `;
 
 const Who = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   min-width: 0;
 
-  .name {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: ${fs.route};
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: ${nocturne.cream};
+  > span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
   }
-  .route {
-    display: flex;
+  b {
+    font-size: 16px;
+    font-weight: 800;
+    color: ${nocturne.cream};
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  small {
+    display: inline-flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    margin-top: 4px;
-    font-size: ${fs.meta};
-    font-weight: 800;
-    color: ${nocturne.cream};
+    gap: 5px;
+    font-size: 13px;
+    color: ${nocturne.muted};
   }
-  .route svg {
-    flex: none;
-    color: ${nocturne.accent};
+  small svg {
+    color: ${nocturne.star};
   }
 `;
 
-const Facts = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 18px;
-  margin: 8px 0 0;
+const Route = styled.ol`
+  display: grid;
+  gap: 14px;
+  margin: 0;
   padding: 0;
   list-style: none;
 
   li {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-size: ${fs.meta};
-    color: ${nocturne.muted};
+    position: relative;
+    display: grid;
+    gap: 2px;
+    padding-left: 26px;
   }
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
+  li::before {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 8px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 2.5px ${nocturne.green};
+    background: ${nocturne.surface};
+  }
+  li + li::before {
+    background: ${nocturne.green};
+  }
+  li:first-child::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 22px;
+    bottom: -12px;
+    border-left: 2px dashed ${nocturne.line2};
   }
   b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     color: ${nocturne.cream};
-    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  small {
+    font-size: 14px;
+    color: ${nocturne.muted};
   }
 `;
 
-const Acts = styled.div`
+const Fare = styled.div`
   display: flex;
-  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid ${nocturne.line};
+  font-size: 15px;
+  color: ${nocturne.muted};
+
+  b {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.cream};
+  }
+`;
+
+const Btns = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
 
-  @media (max-width: 760px) {
+  @media (min-width: 861px) {
+    max-width: 420px;
+    margin-left: auto;
     width: 100%;
-    > * {
-      flex: 1;
-    }
   }
 `;
 
-const Act = styled.button<{ $primary?: boolean }>`
+const Btn = styled.button<{ $main?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 20px;
-  border: 1.5px solid
-    ${({ $primary }) => ($primary ? "transparent" : RULE)};
+  min-height: 50px;
   border-radius: 999px;
+  border: 2px solid ${({ $main }) => ($main ? "transparent" : nocturne.green)};
+  background: ${({ $main }) => ($main ? nocturne.green : nocturne.surface)};
+  color: ${({ $main }) => ($main ? nocturne.onGreen : nocturne.green)};
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: ${fs.meta};
+  font-size: 15px;
   font-weight: 800;
   cursor: pointer;
-  white-space: nowrap;
-  background: ${({ $primary }) => ($primary ? nocturne.green : "transparent")};
-  color: ${({ $primary }) => ($primary ? nocturne.onGreen : nocturne.cream)};
-  transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.16s ease;
+  transition: transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: ${({ $primary }) =>
-        $primary ? nocturne.greenDeep : nocturne.surface2};
-      color: ${({ $primary }) =>
-        $primary ? nocturne.onGreen : nocturne.accent};
-      border-color: ${({ $primary }) =>
-        $primary ? "transparent" : nocturne.accent};
-      transform: translateY(-1px);
-    }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
   }
   &:disabled {
     opacity: 0.6;
@@ -196,11 +181,11 @@ const Act = styled.button<{ $primary?: boolean }>`
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
     transition: none;
-    &:hover:not(:disabled) {
+    &:active:not(:disabled) {
       transform: none;
     }
   }
@@ -208,73 +193,77 @@ const Act = styled.button<{ $primary?: boolean }>`
 
 const Err = styled.p`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
-  margin: 0 0 18px;
-  font-size: ${fs.meta};
-  font-weight: 600;
-  color: ${nocturne.cream};
+  margin: 18px 0 0;
+  font-weight: 700;
+  color: ${nocturne.danger};
+`;
 
-  svg {
-    flex: none;
-    margin-top: 2px;
-    color: ${nocturne.ctaBg};
-  }
+const Empty = styled.p`
+  margin: 0;
+  padding: clamp(40px, 7vh, 72px) 0;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: ${nocturne.cream};
 `;
 
 export function SeatRequests({
   initial,
   viewerId,
+  onCount,
 }: {
   initial: Booking[];
   viewerId: string;
+  onCount?: (n: number) => void;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(initial);
   const [fresh, setFresh] = useState<string[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<{ id: string; job: "accept" | "decline" } | null>(null);
   const [error, setError] = useState("");
   const [, startTransition] = useTransition();
+  const { ask, confirmNode } = useConfirm();
 
   useEffect(() => {
     setItems(initial);
   }, [initial]);
 
-  const receive = useCallback(
-    (row: { id: string; status: string }, event: "INSERT" | "UPDATE") => {
-      if (row.status !== "requested") {
-        setItems((prev) => prev.filter((b) => b.id !== row.id));
-        setFresh((prev) => prev.filter((id) => id !== row.id));
-        return;
-      }
-      if (event === "UPDATE") return;
+  useEffect(() => {
+    onCount?.(items.length);
+  }, [items.length, onCount]);
 
-      void seatRequestAction(row.id).then((booking) => {
-        if (!booking) return;
-        setItems((prev) =>
-          prev.some((b) => b.id === booking.id) ? prev : [booking, ...prev],
-        );
-        setFresh((prev) => (prev.includes(booking.id) ? prev : [booking.id, ...prev]));
-      });
-    },
-    [],
-  );
+  const receive = useCallback((row: { id: string; status: string }, event: "INSERT" | "UPDATE") => {
+    if (row.status !== "requested") {
+      setItems((prev) => prev.filter((b) => b.id !== row.id));
+      setFresh((prev) => prev.filter((id) => id !== row.id));
+      return;
+    }
+    if (event === "UPDATE") return;
 
-  useBookingStream(
-    `seat-requests:${viewerId}`,
-    viewerId ? `driver_id=eq.${viewerId}` : null,
-    receive,
-  );
+    void seatRequestAction(row.id).then((booking) => {
+      if (!booking) return;
+      setItems((prev) => (prev.some((b) => b.id === booking.id) ? prev : [booking, ...prev]));
+      setFresh((prev) => (prev.includes(booking.id) ? prev : [booking.id, ...prev]));
+    });
+  }, []);
 
-  if (items.length === 0) return null;
+  useBookingStream(`seat-requests:${viewerId}`, viewerId ? `driver_id=eq.${viewerId}` : null, receive);
 
-  function answer(booking: Booking, decision: "accept" | "decline") {
+  async function answer(booking: Booking, decision: "accept" | "decline", anchor: Element) {
     if (decision === "decline") {
-      const name = booking.passenger?.full_name ?? "this passenger";
-      if (!window.confirm(`Decline ${name}'s request? They will be told.`)) return;
+      const ok = await ask(anchor, {
+        title: "Decline request?",
+        yes: "Decline request",
+        no: "Keep request",
+        danger: true,
+      });
+      if (!ok) return;
     }
 
-    setBusy(booking.id);
+    setBusy({ id: booking.id, job: decision });
     setError("");
     startTransition(async () => {
       const result = await answerSeatRequestAction(booking.id, decision);
@@ -290,90 +279,97 @@ export function SeatRequests({
     });
   }
 
-  return (
-    <Section>
-      <h2>
-        Seat requests <Count>{items.length}</Count>
-      </h2>
-      <p>
-        Passengers waiting on you, live as they arrive. Accepting holds the seat
-        for 30 minutes and asks them to pay; nothing is charged until they do.
-      </p>
+  if (items.length === 0) return <Empty>No requests right now</Empty>;
 
+  return (
+    <>
+      {confirmNode}
       {error && (
         <Err role="alert">
           <Warning size={20} aria-hidden />
           {error}
         </Err>
       )}
+      <List>
+        {items.map((booking) => {
+          const p = booking.passenger;
+          const name = p?.full_name || "Kipita passenger";
+          const seats = booking.seats_booked;
+          const seatWord = seats === 1 ? "seat" : "seats";
+          const perSeat = booking.trip?.price_per_seat ?? 0;
+          const working = busy?.id === booking.id;
 
-      {items.map((booking) => (
-        <Row key={booking.id} $fresh={fresh.includes(booking.id)}>
-          <Who>
-            <Avatar
-              name={booking.passenger?.full_name || "Kipita passenger"}
-              src={booking.passenger?.avatar_url}
-              size={56}
-            />
-            <div>
-              <div className="name">
-                {booking.passenger?.full_name || "Kipita passenger"}
-                {fresh.includes(booking.id) && <New>New</New>}
-              </div>
-              <div className="route">
-                <span>{booking.trip?.from_location ?? "—"}</span>
-                <ArrowRight size={17} aria-hidden />
-                <span>{booking.trip?.to_location ?? "—"}</span>
-              </div>
-              <Facts>
-                <li>
-                  <CalendarBlank size={16} />
-                  {formatTripDate(booking.trip?.departure_date ?? null) ||
-                    "Date to confirm"}
-                </li>
-                <li>
-                  <Clock size={16} />
-                  {formatTripTime(booking.trip?.departure_time ?? null) ||
-                    "Time to confirm"}
-                </li>
-                <li>
-                  <Users size={16} />
-                  {booking.seats_booked}{" "}
-                  {booking.seats_booked === 1 ? "seat" : "seats"}
-                </li>
-                <li>
-                  <b>{formatCurrency(booking.total_price)}</b>
-                </li>
-              </Facts>
-            </div>
-          </Who>
+          return (
+            <Card key={booking.id} $fresh={fresh.includes(booking.id)}>
+              <Top>
+                <Who>
+                  <Avatar name={name} src={p?.avatar_url} size={44} />
+                  <span>
+                    <b>{name}</b>
+                    <small>
+                      {p?.rating ? (
+                        <>
+                          <Star size={13} weight="fill" /> {p.rating.toFixed(1)}
+                          {p.total_trips ? ` · ${p.total_trips} trips` : ""}
+                        </>
+                      ) : (
+                        "New to Kipita"
+                      )}
+                    </small>
+                  </span>
+                </Who>
+                <Chip $tone="pay">
+                  <Clock size={15} weight="bold" />
+                  Needs reply
+                </Chip>
+              </Top>
 
-          <Acts>
-            <Act
-              type="button"
-              onClick={() => answer(booking, "decline")}
-              disabled={busy === booking.id}
-            >
-              Decline
-            </Act>
-            <Act
-              $primary
-              type="button"
-              onClick={() => answer(booking, "accept")}
-              disabled={busy === booking.id}
-              aria-busy={busy === booking.id}
-            >
-              {busy === booking.id ? (
-                <>
-                  <ButtonOrb job="committing" /> Saving…
-                </>
-              ) : (
-                "Accept"
-              )}
-            </Act>
-          </Acts>
-        </Row>
-      ))}
-    </Section>
+              <Route>
+                <li>
+                  <b>{booking.trip?.from_location ?? "Pickup to confirm"}</b>
+                  <small>
+                    {formatTripDate(booking.trip?.departure_date ?? null) || "Date to confirm"} ·{" "}
+                    {formatTripTime(booking.trip?.departure_time ?? null) || "time to confirm"}
+                  </small>
+                </li>
+                <li>
+                  <b>{booking.trip?.to_location ?? "Drop-off to confirm"}</b>
+                  <small>
+                    {seats} {seatWord} requested
+                  </small>
+                </li>
+              </Route>
+
+              <Fare>
+                <span>{perSeat > 0 ? `${seats} ${seatWord} at ${formatCurrency(perSeat)}` : `${seats} ${seatWord}`}</span>
+                <b>
+                  You receive{" "}
+                  {formatCurrency(
+                    booking.service_fee != null ? booking.total_price - booking.service_fee : booking.total_price,
+                  )}
+                </b>
+              </Fare>
+
+              <Btns>
+                <Btn type="button" onClick={(e) => answer(booking, "decline", e.currentTarget)} disabled={working}>
+                  {working && busy?.job === "decline" && <ButtonOrb job="committing" />}
+                  Decline request
+                </Btn>
+                <Btn
+                  type="button"
+                  $main
+                  onClick={(e) => answer(booking, "accept", e.currentTarget)}
+                  disabled={working}
+                  aria-busy={working}
+                >
+                  {working && busy?.job === "accept" && <ButtonOrb job="committing" />}
+                  Accept request
+                </Btn>
+              </Btns>
+            </Card>
+          );
+        })}
+      </List>
+    </>
   );
 }

@@ -23,8 +23,8 @@ import { detectOrigin } from "@/lib/home/geo";
 import { CarDialog } from "@/components/driver/CarDialog";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime } from "./WhenPicker";
-import type { SavedCar } from "./draft";
-import { clearDraft, loadDraft, saveDraft } from "./draft";
+import type { Prefill, SavedCar } from "./draft";
+import { clearDraft, loadDraft, saveDraft, withPrefill } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
@@ -220,7 +220,7 @@ function CarGlyph({ size = 24 }: { size?: number }) {
 
 function TrashIcon() {
   return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"strokeLinecap="round" strokeLinejoin="round">
       <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
     </svg>
   );
@@ -299,13 +299,16 @@ const Discard = styled.button`
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 40px;
   border: 0;
-  background: transparent;
-  color: ${nocturne.muted2};
-  font-size: 13px;
+  background: ${nocturne.surface2};
+  color: ${nocturne.cream};
+  font-size: 15px;
   font-weight: 700;
-  padding: 6px 10px;
-  border-radius: 10px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.16s ease;
   ${ring}
 
   cursor: pointer;
@@ -317,9 +320,12 @@ const Discard = styled.button`
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      background: ${nocturne.surface2};
+      background: color-mix(in oklab, ${nocturne.surface2} 80%, ${nocturne.green});
       color: ${nocturne.cream};
     }
+  }
+  &:active {
+    background: color-mix(in oklab, var(--n-surface-2) 70%, var(--n-green));
   }
 `;
 
@@ -954,11 +960,13 @@ export function PublishWeb({
   savedCars = [],
   publishBeforeApproval = false,
   driverName = "",
+  prefill = null,
 }: {
   userId: string;
   savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
   driverName?: string;
+  prefill?: Prefill | null;
 }) {
   const { kycStatus, requireKyc } = useAppMode();
   const verified = kycStatus === "approved";
@@ -987,7 +995,6 @@ export function PublishWeb({
   const sentenceRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
   const moved = useRef(false);
-  // The furthest step reached, readable from the history listener below.
   const maxStepRef = useRef(0);
   maxStepRef.current = maxStep;
 
@@ -1021,6 +1028,11 @@ export function PublishWeb({
       setStep(start);
       setMaxStep(Math.min(Math.max(saved.maxStep ?? start, start), STEPS.length - 1));
     }
+    if (prefill) {
+      setDraft((d) => withPrefill(d, prefill));
+      start = 0;
+      setStep(0);
+    }
     window.history.replaceState({ ...window.history.state, publishStep: start }, "");
     setReady(true);
 
@@ -1040,7 +1052,6 @@ export function PublishWeb({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
-        // Only a suggestion: nothing is selected until the driver taps it.
         setNear(origin.town.name);
       })
       .catch(() => undefined);

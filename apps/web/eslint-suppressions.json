@@ -1,0 +1,98 @@
+{
+  "components/admin/FaqManager.tsx": {
+    "jsx-a11y/label-has-associated-control": {
+      "count": 2
+    }
+  },
+  "components/admin/PromotionsManager.tsx": {
+    "jsx-a11y/label-has-associated-control": {
+      "count": 8
+    }
+  },
+  "components/admin/console/DriversView.tsx": {
+    "@next/next/no-img-element": {
+      "count": 1
+    }
+  },
+  "components/alerts/AlertThread.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/auth/SignUpForm.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/driver/CarDialog.tsx": {
+    "jsx-a11y/no-autofocus": {
+      "count": 1
+    }
+  },
+  "components/home/PlaceModal.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 3
+    }
+  },
+  "components/home/RouteSearchForm.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/icons/index.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 3
+    }
+  },
+  "components/nav/AppShell.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  },
+  "components/nav/nav-items.ts": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/profile/SettingsUI.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  },
+  "components/providers/ChunkReloadScript.tsx": {
+    "@next/next/no-sync-scripts": {
+      "count": 1
+    }
+  },
+  "components/publish/PublishMobile.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    },
+    "jsx-a11y/no-autofocus": {
+      "count": 1
+    }
+  },
+  "components/publish/PublishWeb.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 4
+    },
+    "jsx-a11y/no-autofocus": {
+      "count": 1
+    }
+  },
+  "components/publish/WhenPicker.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  },
+  "components/trips/TripHelp.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/ui/StatusPage.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  }
+}

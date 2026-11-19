@@ -1,4 +1,4 @@
-﻿import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, PlusCircle, QuestionCircle as LifeBuoy, PlusSquare, SearchSpark, Ticket, Wallet } from "@/components/icons";
+import { Bell, Crowd, Document, Gift, House, MagnifyingGlass, Person, Plus, PlusCircle, QuestionCircle as LifeBuoy, SearchSpark, Ticket, Wallet } from "@/components/icons";
 import type { KipitaIcon as LucideIcon } from "@/components/icons";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -9,9 +9,13 @@ export type NavItem = {
   shortLabel: string;
   icon: LucideIcon;
   requiresAuth?: boolean;
-  badge?: "notifications" | "alerts" | "trips";
+  badge?: "notifications" | "alerts";
+  dot?: "rides" | "requests";
   owns?: string[];
 };
+
+export type NavCountKey = NonNullable<NavItem["badge"]> | NonNullable<NavItem["dot"]>;
+export type NavCounts = Partial<Record<NavCountKey, number>>;
 
 export function isNavItemCurrent(item: NavItem, pathname: string): boolean {
   return pathname === item.href;
@@ -34,7 +38,6 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       shortLabel: "Trips",
       icon: Ticket,
       requiresAuth: true,
-      badge: "trips",
       owns: ["/trips", "/ride"],
     },
     {
@@ -49,7 +52,7 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
     {
       key: "notifications",
       href: "/notifications",
-      label: "Notifications",
+      label: "Activity",
       shortLabel: "Inbox",
       icon: Bell,
       requiresAuth: true,
@@ -74,7 +77,6 @@ export const PRIMARY_NAV: Record<AppMode, NavItem[]> = {
       shortLabel: "Rides",
       icon: Ticket,
       requiresAuth: true,
-      badge: "trips",
       owns: ["/trips", "/ride"],
     },
     {
@@ -114,7 +116,7 @@ export const SIGNED_OUT_NAV: NavItem[] = [
     href: "/publish",
     label: "Publish a ride",
     shortLabel: "Publish",
-    icon: PlusSquare,
+    icon: PlusCircle,
     owns: ["/publish"],
   },
   {
@@ -124,6 +126,7 @@ export const SIGNED_OUT_NAV: NavItem[] = [
     shortLabel: "Alerts",
     icon: Crowd,
     owns: ["/alerts"],
+    badge: "alerts",
   },
   { key: "help", href: "/help", label: "Help", shortLabel: "Help", icon: LifeBuoy },
 ];
@@ -133,9 +136,15 @@ const PUBLISH_ITEM: NavItem = {
   href: "/publish",
   label: "Publish a ride",
   shortLabel: "Publish",
-  icon: PlusSquare,
+  icon: PlusCircle,
   owns: ["/publish"],
 };
+
+export const SHEET_LEAD_NAV: NavItem[] = [
+  { key: "landing", href: "/", label: "Home", shortLabel: "Home", icon: House },
+  { key: "home", href: "/home", label: "Find a ride", shortLabel: "Find", icon: MagnifyingGlass },
+  PUBLISH_ITEM,
+];
 
 export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   const find = signedIn
@@ -148,8 +157,13 @@ export function barNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
     shortLabel: "Alerts",
     icon: Crowd,
     owns: ["/alerts"],
+    badge: "alerts",
   } satisfies NavItem;
-  return [find, PUBLISH_ITEM, alerts];
+  return [
+    signedIn ? { ...find, dot: "rides" } : find,
+    signedIn && mode === "driver" ? { ...PUBLISH_ITEM, dot: "requests" } : PUBLISH_ITEM,
+    alerts,
+  ];
 }
 
 export const ACCOUNT_NAV: NavItem[] = [
@@ -160,7 +174,6 @@ export const ACCOUNT_NAV: NavItem[] = [
     shortLabel: "Trips",
     icon: Ticket,
     requiresAuth: true,
-    badge: "trips",
     owns: ["/trips", "/ride"],
   },
   {
@@ -171,15 +184,6 @@ export const ACCOUNT_NAV: NavItem[] = [
     icon: Crowd,
     badge: "alerts",
     owns: ["/alerts"],
-  },
-  {
-    key: "notifications",
-    href: "/notifications",
-    label: "Notifications",
-    shortLabel: "Inbox",
-    icon: Bell,
-    requiresAuth: true,
-    badge: "notifications",
   },
   {
     key: "wallet",
@@ -240,13 +244,7 @@ export function primaryNavFor(mode: AppMode, signedIn: boolean): NavItem[] {
   return PRIMARY_NAV[mode];
 }
 
-/**
- * The four tabs, with the icons the published design draws: a plain house, a
- * plain magnifier, a circled plus and a bell. The sparkled magnifier, the
- * squared plus and the crowd glyph belong to richer surfaces — at 22px in a
- * bar they read as noise.
- */
-export function bottomNavFor(): NavItem[] {
+export function bottomNavFor(mode?: AppMode): NavItem[] {
   return [
     { key: "landing", href: "/", label: "Home", shortLabel: "Home", icon: House },
     {
@@ -255,14 +253,15 @@ export function bottomNavFor(): NavItem[] {
       label: "Find a ride",
       shortLabel: "Find",
       icon: MagnifyingGlass,
+      ...(mode ? { dot: "rides" as const } : {}),
     },
-    { ...PUBLISH_ITEM, shortLabel: "Post", icon: PlusCircle },
+    { ...PUBLISH_ITEM, shortLabel: "Post", ...(mode === "driver" ? { dot: "requests" as const } : {}) },
     {
       key: "alerts",
       href: "/alerts",
       label: "Road alerts",
       shortLabel: "Alerts",
-      icon: Bell,
+      icon: Crowd,
       badge: "alerts",
       owns: ["/alerts"],
     },

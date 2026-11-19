@@ -1,4 +1,5 @@
 import { keyframes } from "styled-components";
+import { dur as m3Dur, ease as m3Ease } from "./motion";
 
 export const nocturne = {
   bg: "var(--n-bg)",
@@ -15,6 +16,7 @@ export const nocturne = {
   surface2: "var(--n-surface-2)",
   surface3: "var(--n-surface-3)",
   line: "var(--n-line)",
+  outline: "var(--n-outline)",
   line2: "var(--n-line-2)",
   accent: "var(--n-accent)",
   ink: "var(--n-ink)",
@@ -30,6 +32,8 @@ export const nocturne = {
   ring: "var(--n-ring)",
   star: "var(--n-star)",
   danger: "var(--n-danger)",
+  signal: "var(--n-signal)",
+  onSignal: "var(--n-on-signal)",
 } as const;
 
 export const nocturneDark = {
@@ -47,6 +51,7 @@ export const nocturneDark = {
   "--n-surface-2": "#191C1A",
   "--n-surface-3": "#272B28",
   "--n-line": "#404943",
+  "--n-outline": "#878D88",
   "--n-line-2": "#323633",
   "--n-accent": "#9ec5a2",
   "--n-ink": "#9ec5a2",
@@ -62,6 +67,8 @@ export const nocturneDark = {
   "--n-ring": "rgba(158, 197, 162, 0.26)",
   "--n-star": "#e8b951",
   "--n-danger": "#f0a080",
+  "--n-signal": "#ff5a1f",
+  "--n-on-signal": "#2b1103",
 } as const;
 
 export const nocturneLight = {
@@ -79,6 +86,7 @@ export const nocturneLight = {
   "--n-surface-2": "#eaf3e7",
   "--n-surface-3": "#f1f5ee",
   "--n-line": "#dce4dc",
+  "--n-outline": "#718078",
   "--n-line-2": "#e4ebe3",
   "--n-accent": "#174d3b",
   "--n-ink": "#0d1110",
@@ -94,6 +102,23 @@ export const nocturneLight = {
   "--n-ring": "rgba(23, 77, 59, 0.16)",
   "--n-star": "#9a6b12",
   "--n-danger": "#9a4524",
+  "--n-signal": "#ff5a1f",
+  "--n-on-signal": "#2b1103",
+} as const;
+
+export const ease = {
+  standard: m3Ease.standard,
+  enter: m3Ease.emphasizedDecelerate,
+  exit: m3Ease.emphasizedAccelerate,
+  spring: m3Ease.spring,
+} as const;
+
+export const dur = {
+  press: `${m3Dur.short3}ms`,
+  state: `${m3Dur.short4}ms`,
+  enter: `${m3Dur.medium2}ms`,
+  exit: `${m3Dur.short4}ms`,
+  max: `${m3Dur.long2}ms`,
 } as const;
 
 export function nocturneVars(set: Record<string, string>): string {

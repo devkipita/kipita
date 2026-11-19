@@ -5,6 +5,7 @@ import {
   PREVIOUS_STATES,
   type Booking,
   type PublishedTrip,
+  type TripCar,
   type TripLeg,
   type TripPerson,
 } from "./types";
@@ -35,7 +36,15 @@ function toBooking(raw: unknown): Booking {
     driver_id: row.driver_id as string,
     seats_booked: Number(row.seats_booked ?? 1),
     total_price: Number(row.total_price ?? 0),
+    service_fee: row.service_fee == null ? null : Number(row.service_fee),
     status: row.status as Booking["status"],
+    accepted_at: (row.accepted_at as string | null) ?? null,
+    paid_at: (row.paid_at as string | null) ?? null,
+    started_at: (row.started_at as string | null) ?? null,
+    completed_at: (row.completed_at as string | null) ?? null,
+    cancelled_at: (row.cancelled_at as string | null) ?? null,
+    refunded_amount: row.refunded_amount == null ? null : Number(row.refunded_amount),
+    refund_to: (row.refund_to as Booking["refund_to"]) ?? null,
     booking_reference: (row.booking_reference as string | null) ?? null,
     created_at: row.created_at as string,
     expires_at: (row.expires_at as string | null) ?? null,
@@ -49,7 +58,12 @@ function toBooking(raw: unknown): Booking {
           departure_time: (trip.departure_time as string | null) ?? null,
           price_per_seat: Number(trip.price_per_seat ?? 0),
           status: (trip.status as string) ?? "",
-          driver: one(trip.driver as TripPerson | TripPerson[] | null),
+          driver: null,
+          vehicle: one(trip.vehicle as TripCar | TripCar[] | null),
+          from_lat: trip.from_lat == null ? null : Number(trip.from_lat),
+          from_lng: trip.from_lng == null ? null : Number(trip.from_lng),
+          to_lat: trip.to_lat == null ? null : Number(trip.to_lat),
+          to_lng: trip.to_lng == null ? null : Number(trip.to_lng),
         } satisfies TripLeg)
       : null,
     passenger: one(row.passenger as TripPerson | TripPerson[] | null),
@@ -75,7 +89,18 @@ async function fetchBookingsIn(
       .limit(limit);
 
     if (error || !data) return [];
-    return byDeparture(data.map(toBooking));
+    const bookings = data.map(toBooking);
+    const done = bookings.filter((b) => b.status === "completed").map((b) => b.id);
+    if (done.length > 0) {
+      const { data: rated } = await supabase
+        .from("ratings")
+        .select("booking_id, score")
+        .eq("from_user_id", userId)
+        .in("booking_id", done);
+      const scores = new Map((rated ?? []).map((r) => [r.booking_id as string, Number(r.score)]));
+      for (const b of bookings) if (b.status === "completed") b.my_rating = scores.get(b.id) ?? null;
+    }
+    return byDeparture(bookings);
   } catch {
     return [];
   }
@@ -99,6 +124,15 @@ function byDeparture(bookings: Booking[]): Booking[] {
 
 export function fetchCurrentBookings(userId: string): Promise<Booking[]> {
   return fetchBookingsIn(userId, CURRENT_STATES, 50);
+}
+
+export async function fetchMyBookings(userId: string): Promise<{ current: Booking[]; previous: Booking[] }> {
+  const all = await fetchBookingsIn(userId, [...CURRENT_STATES, ...PREVIOUS_STATES], 120);
+  const now = new Set(CURRENT_STATES);
+  return {
+    current: all.filter((b) => now.has(b.status)),
+    previous: all.filter((b) => !now.has(b.status)).sort((a, b) => b.created_at.localeCompare(a.created_at)),
+  };
 }
 
 export async function fetchSeatRequests(userId: string): Promise<Booking[]> {
@@ -221,19 +255,21 @@ export function fetchPreviousBookings(userId: string): Promise<Booking[]> {
   return fetchBookingsIn(userId, PREVIOUS_STATES, 50);
 }
 
-export async function fetchBooking(id: string): Promise<Booking | null> {
+export async function fetchBooking(id: string, viewerId?: string): Promise<Booking | null> {
   if (!UUID.test(id)) return null;
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("bookings")
-      .select(BOOKING_SELECT)
-      .eq("id", id)
-      .maybeSingle();
+  const supabase = await createClient();
+  const [bookingRes, ratingRes] = await Promise.all([
+    supabase.from("bookings").select(BOOKING_SELECT).eq("id", id).maybeSingle(),
+    viewerId
+      ? supabase.from("ratings").select("score").eq("booking_id", id).eq("from_user_id", viewerId).maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-    if (error || !data) return null;
-    return toBooking(data);
-  } catch {
-    return null;
+  if (bookingRes.error) throw new Error(`booking ${id}: ${bookingRes.error.code} ${bookingRes.error.message}`);
+  if (!bookingRes.data) return null;
+  const booking = toBooking(bookingRes.data);
+  if (booking.status === "completed") {
+    booking.my_rating = ratingRes.data ? Number((ratingRes.data as { score: number }).score) : null;
   }
+  return booking;
 }

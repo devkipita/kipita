@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { confirmAlert, reactToAlert, setAlertSaved } from "@/lib/alerts/api";
 import { formatCompactNumber } from "@/lib/alerts/meta";
 import { SITE } from "@/lib/site";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Alert, ConfirmKind } from "@/lib/alerts/types";
 
 const Bar = styled.div<{ $onMedia: boolean }>`
@@ -48,12 +49,11 @@ const Confirms = styled.div`
   gap: 2px;
 `;
 
-/* Text actions: no outline at rest, a pill on hover, colour change when set. */
 const Pill = styled.button<{ $active?: boolean; $accent: string }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border: none;
   border-radius: 999px;
@@ -64,8 +64,8 @@ const Pill = styled.button<{ $active?: boolean; $accent: string }>`
   color: ${({ $active, $accent }) => ($active ? $accent : "var(--ink)")};
   cursor: pointer;
   transition:
-    background 0.15s ease,
-    color 0.15s ease;
+    background ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
 
   svg {
     flex: none;
@@ -88,8 +88,8 @@ const Action = styled.button<{ $active?: boolean; $accent?: string }>`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
-  min-width: 40px;
+  min-height: 44px;
+  min-width: 44px;
   justify-content: center;
   padding: 0 10px;
   border: none;
@@ -102,8 +102,8 @@ const Action = styled.button<{ $active?: boolean; $accent?: string }>`
     $active && $accent ? $accent : "var(--ink)"};
   cursor: pointer;
   transition:
-    color 0.15s ease,
-    background 0.15s ease;
+    color ${dur.state} ${ease.standard},
+    background ${dur.state} ${ease.standard};
 
   svg {
     flex: none;
@@ -125,7 +125,7 @@ const Stat = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 10px;
   font-size: 0.83rem;
   font-weight: 500;
@@ -135,13 +135,6 @@ const Stat = styled.span`
     flex: none;
   }
 `;
-
-/**
- * A red heart for "like" is a cross-app convention, so it stays a fixed value
- * for the same reason ALERT_META's category hexes do. Everything else reads
- * from the theme's semantic roles.
- */
-const LIKE = "#E0245E";
 
 function whatsappHref(alert: Alert): string {
   const url = `${SITE.websiteUrl}/alerts/${alert.id}`;
@@ -200,8 +193,6 @@ export function AlertActions({
     }
   }
 
-  // A like is the `heart` reaction row mobile already writes, so the two
-  // clients stay in sync and `reactions_count` keeps its existing meaning.
   async function toggleLike() {
     if (!viewerId) return onRequireAuth?.();
 
@@ -285,7 +276,7 @@ export function AlertActions({
           <Action
             type="button"
             $active={liked}
-            $accent={LIKE}
+            $accent={nocturne.danger}
             aria-pressed={liked}
             aria-label={`Like. ${alert.reactions_count} likes.`}
             onClick={(e) => {

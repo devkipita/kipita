@@ -1,7 +1,8 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useSyncExternalStore } from "react";
-import type { SavedCar } from "./draft";
+import { readPrefill, type SavedCar } from "./draft";
 import { PublishMobile } from "./PublishMobile";
 import { PublishSkeleton } from "./PublishSkeleton";
 import { PublishWeb } from "./PublishWeb";
@@ -31,10 +32,23 @@ export function PublishSurface({
     () => null,
   );
 
+  const prefill = readPrefill(useSearchParams());
+
   if (phone === null) return <PublishSkeleton />;
   return phone ? (
-    <PublishMobile userId={userId} savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} />
+    <PublishMobile
+      userId={userId}
+      savedCars={savedCars}
+      publishBeforeApproval={publishBeforeApproval}
+      prefill={prefill}
+    />
   ) : (
-    <PublishWeb userId={userId} savedCars={savedCars} publishBeforeApproval={publishBeforeApproval} driverName={driverName} />
+    <PublishWeb
+      userId={userId}
+      savedCars={savedCars}
+      publishBeforeApproval={publishBeforeApproval}
+      driverName={driverName}
+      prefill={prefill}
+    />
   );
 }

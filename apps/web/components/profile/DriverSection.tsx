@@ -15,7 +15,7 @@ const Pill = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 999px;
   border: 1.5px solid ${({ theme }) => theme.color.outlineVariant};
@@ -78,8 +78,8 @@ const Remove = styled.button`
   display: grid;
   place-items: center;
   flex: none;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 12px;
   background: transparent;
@@ -110,6 +110,12 @@ const ErrorLine = styled.p`
   font-size: 0.86rem;
   font-weight: 600;
   color: ${({ theme }) => theme.color.error};
+  flex-wrap: wrap;
+`;
+
+const Reload = styled(Pill)`
+  min-height: 44px;
+  margin-left: auto;
 `;
 
 const STATUS = {
@@ -119,7 +125,13 @@ const STATUS = {
   rejected: { text: "We couldn’t verify your details", action: "Send again" },
 } as const;
 
-export function DriverSection({ cars: initial }: { cars: GarageCar[] }) {
+export function DriverSection({
+  cars: initial,
+  carsError = false,
+}: {
+  cars: GarageCar[];
+  carsError?: boolean;
+}) {
   const { kycStatus, requireKyc } = useAppMode();
   const router = useRouter();
   const [cars, setCars] = useState(initial);
@@ -168,10 +180,20 @@ export function DriverSection({ cars: initial }: { cars: GarageCar[] }) {
           </ControlRow>
         ))}
       </Panel>
-      <AddRow type="button" onClick={() => setAdding(true)}>
-        <Plus size={18} weight="bold" />
-        Add a car
-      </AddRow>
+      {carsError ? (
+        <ErrorLine role="alert">
+          <Warning size={16} />
+          We couldn&apos;t load your cars.
+          <Reload type="button" onClick={() => router.refresh()}>
+            Reload cars
+          </Reload>
+        </ErrorLine>
+      ) : (
+        <AddRow type="button" onClick={() => setAdding(true)}>
+          <Plus size={18} weight="bold" />
+          Add a car
+        </AddRow>
+      )}
       {error && (
         <ErrorLine role="alert">
           <Warning size={16} />

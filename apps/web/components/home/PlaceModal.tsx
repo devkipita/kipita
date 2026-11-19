@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import styled from "styled-components";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
+import { Swap } from "@/components/anim/Swap";
+import { TabIndicator } from "@/components/ui/TabIndicator";
 import { RouteLine } from "./RouteLine";
 import {
   KENYAN_TOWNS,
@@ -17,8 +19,6 @@ import { usePlaces } from "./usePlaces";
 import { HOME_COPY } from "@/lib/home/copy";
 import { nearbyTowns, type Coords } from "@/lib/home/geo";
 import { TextInput } from "./fields";
-
-
 
 export type PlaceField = "from" | "to";
 
@@ -46,7 +46,7 @@ export function pushRecent(name: string): void {
     );
     localStorage.setItem(RECENT_KEY, JSON.stringify(next));
   } catch {
-    /* blocked storage — recents just stay empty */
+    return;
   }
 }
 
@@ -110,17 +110,23 @@ const Connector = styled.span`
   }
 `;
 
+const Prompt = styled.label`
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: ${nocturne.cream};
+`;
+
 const Tab = styled.button<{ $active: boolean }>`
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   flex: 1 1 0;
   min-width: 0;
+  min-height: 48px;
   padding: 0 0 10px;
   border: none;
-  border-bottom: 2px solid
-    ${({ theme, $active }) => ($active ? theme.color.primary : "transparent")};
-  margin-bottom: -1px;
   background: transparent;
   font: inherit;
   text-align: left;
@@ -206,8 +212,8 @@ const Row = styled.button<{ $active?: boolean }>`
   text-align: left;
   cursor: pointer;
   transition:
-    background 0.14s ease,
-    transform 0.14s ease;
+    background ${dur.press} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
   @media (hover: hover) {
     &:hover {
@@ -309,7 +315,6 @@ export function PlaceModal({
   onFieldChange: (field: PlaceField) => void;
   onPickTown: (field: PlaceField, town: Town) => void;
   onPickRoute: (fromName: string, toName: string) => void;
-  /** Runs the search with the fields as they stand and closes the screen. */
   onSearch: () => void;
   searchLabel: string;
   onClose: () => void;
@@ -319,8 +324,12 @@ export function PlaceModal({
   const [active, setActive] = useState(0);
   const [recent, setRecent] = useState<string[]>([]);
   const [keyboarding, setKeyboarding] = useState(false);
-  const listId = "place-options";
+  const uid = useId();
+  const listId = `place-options-${uid.replace(/:/g, "")}`;
+  const inputId = `${listId}-input`;
 
+  const [shown, setShown] = useState<PlaceField>(field ?? "to");
+  if (field && field !== shown) setShown(field);
 
   useEffect(() => {
     if (field) {
@@ -330,8 +339,6 @@ export function PlaceModal({
       setRecent(readRecent());
     }
   }, [field]);
-
-
 
   const results = useMemo(() => searchTowns(query, 8), [query]);
   const near = useMemo(
@@ -426,7 +433,7 @@ export function PlaceModal({
     }
   }
 
-  const isFrom = field === "from";
+  const isFrom = shown === "from";
   let index = -1;
 
   function clearQuery() {
@@ -519,8 +526,7 @@ export function PlaceModal({
       open={field !== null}
       onClose={onClose}
       size="lg"
-      title={isFrom ? HOME_COPY.placeTitleFrom : HOME_COPY.placeTitleTo}
-      description={isFrom ? HOME_COPY.placeDescFrom : HOME_COPY.placeDescTo}
+      title={HOME_COPY.planTitle}
       initialFocusRef={inputRef}
     >
       <DrawerBody>
@@ -528,9 +534,11 @@ export function PlaceModal({
           <Tabs>
             <Tab
               type="button"
-              $active={field === "from"}
+              $active={shown === "from"}
+              aria-pressed={shown === "from"}
               onClick={() => onFieldChange("from")}
             >
+              {shown === "from" && <TabIndicator group={`${listId}-tab`} tone="underline" />}
               <Dot $tone="origin" aria-hidden />
               <span>
                 <small>{HOME_COPY.fromLabel}</small>
@@ -542,9 +550,11 @@ export function PlaceModal({
 
             <Tab
               type="button"
-              $active={field === "to"}
+              $active={shown === "to"}
+              aria-pressed={shown === "to"}
               onClick={() => onFieldChange("to")}
             >
+              {shown === "to" && <TabIndicator group={`${listId}-tab`} tone="underline" />}
               <Dot $tone="dest" aria-hidden />
               <span>
                 <small>{HOME_COPY.toLabel}</small>
@@ -553,13 +563,17 @@ export function PlaceModal({
             </Tab>
           </Tabs>
 
+          <Swap id={shown}>
+            <Prompt htmlFor={inputId}>
+              {isFrom ? HOME_COPY.placeTitleFrom : HOME_COPY.placeTitleTo}
+            </Prompt>
+          </Swap>
+
           <TextInput
             {...comboProps}
+            id={inputId}
             placeholder={
               isFrom ? HOME_COPY.placeInputFrom : HOME_COPY.placeInputTo
-            }
-            aria-label={
-              isFrom ? HOME_COPY.placeTitleFrom : HOME_COPY.placeTitleTo
             }
           />
         </Sticky>

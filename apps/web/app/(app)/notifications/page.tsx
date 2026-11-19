@@ -3,7 +3,7 @@ import { requireProfile } from "@/lib/auth/session";
 import { NotificationsView } from "@/components/notifications/NotificationsView";
 
 export const metadata: Metadata = {
-  title: "Notifications",
+  title: "Activity",
   robots: { index: false, follow: false },
 };
 

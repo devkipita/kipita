@@ -1,18 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
 
-/**
- * M-Pesa payment for a web booking.
- *
- * Mirrors `apps/mobile/src/lib/api/payments.ts` so both clients drive the same
- * backend: `initiate-payment` fires a Daraja STK push, Safaricom calls our
- * `mpesa-callback` once the passenger enters their PIN, and that flips the
- * `payments` row to `completed` (funds held in escrow) or `failed`. The client's
- * only job is to start it and watch the row.
- *
- * The fee split lives in `@kipita/shared` and is enforced server-side by
- * `release-escrow`; anything computed here is preview only.
- */
-
 export type PaymentMethod = "mpesa" | "card";
 
 export type InitiateResult = {
@@ -20,6 +7,56 @@ export type InitiateResult = {
   provider_reference?: string | null;
   status?: string;
 };
+
+export type PaymentErrorKind =
+  | "offline"
+  | "signed_out"
+  | "not_found"
+  | "not_awaiting"
+  | "hold_expired"
+  | "declined";
+
+const PAYMENT_ERROR_COPY: Record<PaymentErrorKind, string> = {
+  offline: "We couldn't reach M-Pesa. Check your connection and try again.",
+  signed_out: "You've been signed out. Sign in again to pay.",
+  not_found: "We couldn't find this booking.",
+  not_awaiting: "This booking isn't waiting for payment any more. Check your trip.",
+  hold_expired: "Your seat hold ran out before payment. Request the seat again.",
+  declined: "M-Pesa didn't accept the request. Check the number and try again.",
+};
+
+export class PaymentError extends Error {
+  readonly kind: PaymentErrorKind;
+
+  constructor(kind: PaymentErrorKind) {
+    super(PAYMENT_ERROR_COPY[kind]);
+    this.name = "PaymentError";
+    this.kind = kind;
+  }
+}
+
+async function toPaymentError(error: unknown): Promise<PaymentError> {
+  const name = (error as { name?: string } | null)?.name;
+  const context = (error as { context?: unknown } | null)?.context;
+  if (name !== "FunctionsHttpError" || !(context instanceof Response)) {
+    return new PaymentError("offline");
+  }
+
+  let serverMessage = "";
+  try {
+    const body = (await context.clone().json()) as { error?: unknown };
+    serverMessage = typeof body.error === "string" ? body.error : "";
+  } catch {
+    serverMessage = "";
+  }
+
+  if (context.status === 401) return new PaymentError("signed_out");
+  if (context.status === 404) return new PaymentError("not_found");
+  if (context.status === 409) {
+    return new PaymentError(/expired/i.test(serverMessage) ? "hold_expired" : "not_awaiting");
+  }
+  return new PaymentError("declined");
+}
 
 export async function initiatePayment(params: {
   booking_id: string;
@@ -30,7 +67,7 @@ export async function initiatePayment(params: {
   const { data, error } = await supabase.functions.invoke("initiate-payment", {
     body: params,
   });
-  if (error) throw error;
+  if (error) throw await toPaymentError(error);
   return data as InitiateResult;
 }
 
@@ -47,13 +84,6 @@ export async function checkPaymentStatus(paymentId: string): Promise<string> {
 
 export type PollOutcome = "completed" | "failed" | "timeout";
 
-/**
- * Watch the payment row until Safaricom's callback resolves it.
- *
- * A timeout is not a failure: the STK push may still be sitting on the
- * passenger's phone, and the callback can land after we stop looking. The
- * caller says so rather than claiming the payment failed.
- */
 export async function pollPaymentStatus(
   paymentId: string,
   opts: { timeoutMs?: number; intervalMs?: number; signal?: AbortSignal } = {},
@@ -64,15 +94,10 @@ export async function pollPaymentStatus(
 
   while (Date.now() < deadline) {
     if (opts.signal?.aborted) return "timeout";
-    try {
-      const status = await checkPaymentStatus(paymentId);
-      if (status === "completed") return "completed";
-      if (status === "failed") return "failed";
-    } catch {
-      // Transient — keep watching until the deadline.
-    }
+    const status = await checkPaymentStatus(paymentId).catch(() => null);
+    if (status === "completed") return "completed";
+    if (status === "failed") return "failed";
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
   return "timeout";
 }
-

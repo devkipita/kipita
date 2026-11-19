@@ -3,33 +3,37 @@
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { BellRinging as BellRing, X } from "@/components/icons";
+import { Collapse } from "@/components/anim/Collapse";
+import { dur, ease, nocturne } from "@/lib/nocturne";
+import { chime, setSound, unlockSound } from "@/lib/notifications/ping";
 
 const DISMISS_KEY = "kipita-push-banner-dismissed";
 
 const Banner = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  flex-wrap: wrap;
+  gap: 12px 14px;
+  padding: 12px 12px 12px 16px;
   margin-bottom: 18px;
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.tone.green.bg};
   color: ${({ theme }) => theme.tone.green.on};
 
   .copy {
-    flex: 1;
+    flex: 1 1 180px;
     min-width: 0;
   }
   b {
     display: block;
-    font-size: 0.92rem;
+    font-size: 0.95rem;
     font-weight: 800;
   }
-  p {
-    margin: 2px 0 0;
-    font-size: 0.83rem;
+  span.sub {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.85rem;
     line-height: 1.4;
-    opacity: 0.82;
   }
 `;
 
@@ -48,20 +52,38 @@ const Lead = styled.span`
   }
 `;
 
+const Actions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+`;
+
 const Enable = styled.button`
   flex: none;
-  height: 38px;
+  min-height: 44px;
   padding: 0 18px;
   border: none;
   border-radius: 999px;
-  background: ${({ theme }) => theme.color.primary};
-  color: ${({ theme }) => theme.color.onPrimary};
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+  font: inherit;
   font-weight: 800;
-  font-size: 0.86rem;
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: transform ${dur.press} ${ease.standard};
 
-  &:hover {
-    background: ${({ theme }) => theme.color.primaryDark};
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -70,25 +92,26 @@ const Dismiss = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: inherit;
-  opacity: 0.7;
   cursor: pointer;
+  transition: background ${dur.state} ${ease.standard};
 
-  &:hover {
-    opacity: 1;
+  @media (hover: hover) {
+    &:hover {
+      background: color-mix(in oklab, currentColor 12%, transparent);
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 `;
 
-/**
- * Asks once for browser-notification permission, so an incoming ride surfaces
- * outside the tab too. Only shown while the decision is still open — granted,
- * denied and unsupported all render nothing.
- */
 export function PushBanner() {
   const [permission, setPermission] = useState<
     NotificationPermission | "unsupported" | null
@@ -106,11 +129,17 @@ export function PushBanner() {
     }
   }, []);
 
-  if (permission !== "default" || dismissed) return null;
+  const open = permission === "default" && !dismissed;
 
   async function enable() {
+    unlockSound();
     try {
-      setPermission(await Notification.requestPermission());
+      const answer = await Notification.requestPermission();
+      setPermission(answer);
+      if (answer === "granted") {
+        setSound(true);
+        chime(true);
+      }
     } catch {
       setPermission("denied");
     }
@@ -120,24 +149,32 @@ export function PushBanner() {
     setDismissed(true);
     try {
       localStorage.setItem(DISMISS_KEY, "1");
-    } catch {}
+    } catch {
+      return;
+    }
   }
 
+  if (permission === "unsupported") return null;
+
   return (
-    <Banner>
-      <Lead>
-        <BellRing size={19} />
-      </Lead>
-      <div className="copy">
-        <b>Get alerted the moment a ride appears</b>
-        <p>Allow browser notifications and we&apos;ll tell you about new rides on your routes.</p>
-      </div>
-      <Enable type="button" onClick={enable}>
-        Allow
-      </Enable>
-      <Dismiss type="button" onClick={dismiss} aria-label="Dismiss">
-        <X size={16} />
-      </Dismiss>
-    </Banner>
+    <Collapse open={open}>
+      <Banner role="region" aria-label="Browser alerts">
+        <Lead>
+          <BellRing size={19} />
+        </Lead>
+        <div className="copy">
+          <b>Hear new requests and road alerts</b>
+          <span className="sub">A chime and a browser alert while Kipita is open.</span>
+        </div>
+        <Actions>
+          <Enable type="button" onClick={enable}>
+            Allow alerts
+          </Enable>
+          <Dismiss type="button" onClick={dismiss} aria-label="Hide the alert prompt">
+            <X size={18} />
+          </Dismiss>
+        </Actions>
+      </Banner>
+    </Collapse>
   );
 }

@@ -24,8 +24,10 @@ import type { SupportCase } from "@/lib/support/types";
 import type { AppMode } from "@/lib/home/mode";
 import { setModeAction } from "@/lib/home/mode-actions";
 import { BOTTOM_BAR_SPACE, TOPBAR_H, TOPBAR_H_SM } from "@/lib/nav/rail";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { barNavFor, primaryNavFor } from "./nav-items";
+import { useScrollChrome } from "./useScrollChrome";
+import { ViewTransitionBridge } from "@/lib/ui/viewTransition";
 import { AppTopBar } from "./AppTopBar";
 import { AppBottomNav } from "./AppBottomNav";
 import { NotificationToast } from "@/components/notifications/NotificationToast";
@@ -49,6 +51,15 @@ export function useAppMode(): ModeContext {
   return value;
 }
 
+/**
+ * Like useAppMode, but returns null outside AppShell instead of throwing.
+ * For chrome that is also rendered on the public (site) pages, such as
+ * /help and /legal, which have no AppShell around them.
+ */
+export function useOptionalAppMode(): ModeContext | null {
+  return useContext(Ctx);
+}
+
 export const Shell = styled.div`
   --rail-w: 0px;
   --aside-w: 0px;
@@ -69,6 +80,12 @@ export const Shell = styled.div`
   }
   @media (max-width: 899px) {
     --bottom-bar-space: ${BOTTOM_BAR_SPACE}px;
+    transition: --sticky-top ${dur.enter} ${ease.standard};
+
+    &[data-chrome="hidden"] {
+      --sticky-top: 0px;
+      transition-timing-function: ${ease.exit};
+    }
   }
 `;
 
@@ -121,6 +138,8 @@ export function AppShell({
   const [kycOpen, setKycOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const afterKyc = useRef<(() => void) | null>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useScrollChrome(shellRef);
   const profileId = profile?.id ?? null;
   const canApply = kycStatus === "not_submitted" || kycStatus === "rejected";
 
@@ -169,12 +188,7 @@ export function AppShell({
     [mode, setMode, driverReady, kycStatus, requireKyc],
   );
 
-  const navCounts = useNavCounts(profile?.id ?? null, mode);
-  const counts = {
-    notifications: navCounts.notifications,
-    alerts: navCounts.alerts,
-    trips: navCounts.trips,
-  };
+  const counts = useNavCounts(profile?.id ?? null, mode);
 
   const signInHref = `/auth/sign-in?next=${encodeURIComponent(pathname)}`;
 
@@ -195,7 +209,8 @@ export function AppShell({
   return (
     <Ctx.Provider value={ctx}>
       <SupportProvider initial={supportCases}>
-      <Shell>
+      <Shell ref={shellRef}>
+        <ViewTransitionBridge />
         <SkipToContent />
 
         {!chromeless && (
@@ -203,12 +218,13 @@ export function AppShell({
             items={barItems}
             profile={profile}
             signInHref={signInHref}
+            counts={counts}
           />
         )}
         <Main id="main" tabIndex={-1}>
           {children}
         </Main>
-        <AppBottomNav counts={counts} />
+        <AppBottomNav counts={counts} mode={profile ? mode : undefined} />
 
         <VisuallyHidden role="status" aria-live="polite">
           {pathname}

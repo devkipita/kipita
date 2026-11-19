@@ -54,6 +54,15 @@ export function relativeTime(iso: string, now = Date.now()): string {
   });
 }
 
+export type AlertTab = "nearby" | "route" | "following" | "all";
+
+export const ALERT_TABS: { key: AlertTab; label: string }[] = [
+  { key: "nearby", label: "Nearby" },
+  { key: "route", label: "My route" },
+  { key: "following", label: "Following" },
+  { key: "all", label: "All Kenya" },
+];
+
 export type SortKey = "newest" | "confirmed" | "closest";
 
 export const SORT_LABEL: Record<SortKey, string> = {
@@ -66,7 +75,6 @@ export function sortAlerts(alerts: Alert[], key: SortKey): Alert[] {
   const out = [...alerts];
 
   out.sort((a, b) => {
-    // A cleared alert has stopped being news. It sinks regardless of the sort.
     const aCleared = alertStatus(a) === "cleared" ? 1 : 0;
     const bCleared = alertStatus(b) === "cleared" ? 1 : 0;
     if (aCleared !== bCleared) return aCleared - bCleared;

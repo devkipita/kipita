@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { Check, QuestionCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import { openSupportCaseAction } from "@/lib/support/actions";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
@@ -84,9 +84,20 @@ const Chip = styled.button<{ $active: boolean }>`
   }
 `;
 
+const unfold = keyframes`
+  from { opacity: 0; transform: translateY(-10px) scaleY(0.92); }
+  to { opacity: 1; transform: none; }
+`;
+
 const Form = styled.div`
   display: grid;
   gap: 10px;
+  transform-origin: top center;
+  animation: ${unfold} ${dur.enter} ${ease.enter};
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   textarea {
     width: 100%;
@@ -175,11 +186,10 @@ export function TripHelp({ booking }: { booking: Booking }) {
   if (existing) {
     return (
       <Card>
-        <h2>Help with this trip</h2>
+        <h2>Report a problem</h2>
         <Done>
           <Check size={21} />
-          {existing.subject}. Open with support. The Support button follows you
-          around the app until it is resolved.
+          {existing.subject}: with support now
         </Done>
       </Card>
     );
@@ -187,11 +197,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
 
   return (
     <Card>
-      <h2>Help with this trip</h2>
-      <p>
-        Something go wrong? Tell us what happened and we will look into it. While
-        a case is open on a trip, nothing is released to the driver.
-      </p>
+      <h2>Report a problem</h2>
 
       <Chips role="group" aria-label="What went wrong?">
         {HELP_TOPICS.map((t) => {
@@ -228,7 +234,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               $variant="ghost"
               onClick={() => setTopic(null)}
             >
-              Cancel
+              Discard report
             </ButtonEl>
             <ButtonEl
               type="button"
@@ -238,7 +244,7 @@ export function TripHelp({ booking }: { booking: Booking }) {
               aria-busy={pending}
             >
               <QuestionCircle size={16} />
-              {pending ? <><ButtonOrb job="committing" /> Opening…</> : "Open case"}
+              {pending ? <><ButtonOrb job="committing" /> Sending report…</> : "Send report"}
             </ButtonEl>
           </div>
         </Form>

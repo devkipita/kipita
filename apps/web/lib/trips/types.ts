@@ -57,6 +57,18 @@ export interface TripLeg {
   price_per_seat: number;
   status: string;
   driver: TripPerson | null;
+  vehicle?: TripCar | null;
+  from_lat?: number | null;
+  from_lng?: number | null;
+  to_lat?: number | null;
+  to_lng?: number | null;
+}
+
+export interface TripCar {
+  make: string | null;
+  model: string | null;
+  color: string | null;
+  plate_number: string | null;
 }
 
 export interface Booking {
@@ -66,7 +78,16 @@ export interface Booking {
   driver_id: string;
   seats_booked: number;
   total_price: number;
+  service_fee: number | null;
   status: BookingStatus;
+  accepted_at: string | null;
+  paid_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  refunded_amount: number | null;
+  refund_to: "wallet" | "mpesa" | null;
+  my_rating?: number | null;
   booking_reference: string | null;
   created_at: string;
   expires_at: string | null;
@@ -86,12 +107,13 @@ export interface Booking {
 const PERSON = "id, full_name, avatar_url, is_verified, rating, total_trips";
 
 export const BOOKING_SELECT = `
-  id, trip_id, passenger_id, driver_id, seats_booked, total_price, status,
+  id, trip_id, passenger_id, driver_id, seats_booked, total_price, service_fee, status,
   booking_reference, created_at, expires_at, cancel_reason,
+  accepted_at, paid_at, started_at, completed_at, cancelled_at, refunded_amount, refund_to,
   trip:trips!trip_id (
     id, from_location, to_location, departure_date, departure_time,
-    price_per_seat, status,
-    driver:users!driver_id ( ${PERSON} )
+    price_per_seat, status, from_lat, from_lng, to_lat, to_lng,
+    vehicle:vehicles!vehicle_id ( make, model, color, plate_number )
   ),
   passenger:users!passenger_id ( ${PERSON} ),
   driver:users!driver_id ( ${PERSON} )

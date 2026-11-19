@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { getProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { searchTrips } from "@/lib/home/search";
+import { searchTrips, type HomeTrip } from "@/lib/home/search";
 import { FindRideView } from "@/components/home/FindRideView";
 import { OffersBand } from "@/components/home/OffersBand";
 
@@ -20,10 +20,8 @@ type Params = Promise<{
   seats?: string;
 }>;
 
-/**
- * Public find-a-ride page. Browsing needs no account; booking and posting do.
- * Fully dynamic (cookies + auth), so never add `revalidate` here.
- */
+type Loaded = { items: HomeTrip[]; failed: boolean };
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -37,17 +35,24 @@ export default async function HomePage({
 
   const [profile, supabase] = await Promise.all([getProfile(), createClient()]);
 
-  const items = await searchTrips(supabase, {
+  const loaded: Loaded = await searchTrips(supabase, {
     from,
     to,
     date: date || null,
     seats,
-  }).catch(() => []);
+  }).then(
+    (items) => ({ items, failed: false }),
+    (error: unknown) => {
+      console.error("home search failed", error);
+      return { items: [], failed: true };
+    },
+  );
 
   return (
     <FindRideView
       profile={profile}
-      initialItems={items}
+      initialItems={loaded.items}
+      initialFailed={loaded.failed}
       initialForm={{ from, to, date, seats }}
       offersSlot={
         <Suspense key="offers" fallback={null}>

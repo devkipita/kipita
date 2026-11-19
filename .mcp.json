@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "kipita": {
+      "command": "node",
+      "args": ["tools/kipita-mcp/server.mjs"]
+    },
+    "supabase-prod": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@supabase/mcp-server-supabase",
+        "--read-only",
+        "--project-ref=opijacwnzkmzhaebquym"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "${SUPABASE_ACCESS_TOKEN}"
+      }
+    }
+  }
+}

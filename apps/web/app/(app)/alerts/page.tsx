@@ -29,7 +29,8 @@ export default async function AlertsPage() {
 
   return (
     <AlertsView
-      initialAlerts={alerts}
+      initialAlerts={alerts ?? []}
+      initialFailed={alerts === null}
       profile={profile}
       followingIds={followingIds}
       routeTowns={routeTowns}

@@ -1,27 +1,28 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { MagnifyingGlass, PlusCircle } from "@/components/icons";
+import { MagnifyingGlass, X } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
-import { GreenHero, HeroGhostLink, HeroPrimaryLink, HeroTicket } from "@/components/ui/GreenHero";
-import { nocturne } from "@/lib/nocturne";
-import { formatTripDate, formatTripTime } from "@/lib/trips/format";
+import { dur, ease, nocturne } from "@/lib/nocturne";
+import { formatTripDate } from "@/lib/trips/format";
 import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking, PublishedTrip } from "@/lib/trips/types";
-import { BookingCard } from "./BookingCard";
+import { BookingCard, STATUS } from "./BookingCard";
 import { PublishedTrips } from "./PublishedTrips";
-import { RULE, SectionHead, fs } from "./RideRow";
+import { SectionHead, fs } from "./RideRow";
 import { SeatRequests } from "./SeatRequests";
 import { SupportPanel } from "./SupportPanel";
 import { TripFaqs } from "./TripFaqs";
 
-type Tab = "current" | "previous";
+type Tab = "current" | "previous" | "incoming";
 
 const Page = styled(ContentWidth)`
   padding-block: 0 72px;
+  padding-left: max(16px, var(--page-pad), env(safe-area-inset-left));
+  padding-right: max(16px, var(--page-pad), env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   background: ${nocturne.bg};
@@ -36,121 +37,89 @@ const Page = styled(ContentWidth)`
   }
 `;
 
-const Booked = styled.section`
-  margin-top: clamp(48px, 7vh, 72px);
-  padding: clamp(32px, 5vh, 48px) 0 clamp(20px, 3vh, 32px);
-  background: ${nocturne.surface2};
-  box-shadow: 0 0 0 100vmax ${nocturne.surface2};
-  clip-path: inset(0 -100vmax);
-`;
+const Head = styled.header`
+  padding-top: clamp(20px, 4vh, 40px);
 
-const TicketLink = styled(HeroGhostLink)`
-  margin-top: 16px;
-  min-height: 44px;
-  padding: 0 18px;
-  font-size: 15px;
-`;
-
-const Controls = styled.div`
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px 40px;
-  margin-top: 14px;
-  border-bottom: 1.5px solid ${RULE};
-
-  @media (max-width: 720px) {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0;
-    border-bottom: none;
+  @media (max-width: 960px) {
+    padding-top: 0;
   }
 `;
 
-const marker = `
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1.5px;
-  height: 3px;
-  border-radius: 2px;
-  transition: background-color 0.16s ease;
-`;
-
-const Tabs = styled.div`
-  display: flex;
-  align-items: flex-end;
-  gap: 26px;
-  flex: none;
-
-  @media (max-width: 720px) {
-    border-bottom: 1.5px solid ${RULE};
-  }
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-  position: relative;
-  min-height: 44px;
-  padding: 4px 0 14px;
-  border: none;
-  background: transparent;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: ${fs.body};
-  font-weight: ${({ $active }) => ($active ? 800 : 600)};
-  letter-spacing: -0.02em;
-  cursor: pointer;
-  color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
-  transition: color 0.16s ease;
-
-  &::after {
-    ${marker}
-    background: ${({ $active }) => ($active ? nocturne.accent : "transparent")};
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: ${nocturne.cream};
-    }
-    &:hover::after {
-      background: ${({ $active }) => ($active ? nocturne.accent : RULE)};
-    }
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
-  }
-`;
-
-const Search = styled.label`
+const HeadRow = styled.div<{ $open: boolean }>`
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex: 1 1 260px;
-  max-width: 400px;
-  padding-bottom: 14px;
-  cursor: text;
+  min-height: 50px;
 
-  &::after {
-    ${marker}
-    background: transparent;
+  h1 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(30px, 4vw, 40px);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    color: ${nocturne.cream};
+    opacity: ${({ $open }) => ($open ? 0 : 1)};
+    transition: opacity ${dur.state} ${ease.standard};
   }
 
-  svg {
+  @media (min-width: 721px) {
+    h1 {
+      opacity: 1;
+    }
+  }
+`;
+
+const Grow = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: 50%;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 520px);
+  height: 48px;
+  padding-left: 16px;
+  border-radius: 24px;
+  background: ${nocturne.surface};
+  transform: translateY(-50%);
+  clip-path: ${({ $open }) => ($open ? "inset(0 round 24px)" : "inset(0 0 0 calc(100% - 48px) round 24px)")};
+  transition: clip-path ${({ $open }) => ($open ? `${dur.enter} ${ease.enter}` : `${dur.exit} ${ease.exit}`)};
+
+  @media (min-width: 721px) {
+    width: min(calc(100% - 200px), 520px);
+  }
+
+  > svg {
     flex: none;
     color: ${nocturne.muted};
-    transition: color 0.16s ease;
+  }
+  > button {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: ${nocturne.cream};
+    cursor: pointer;
+  }
+  > button:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
   }
   input {
-    width: 100%;
+    flex: 1;
     min-width: 0;
-    min-height: 30px;
+    height: 100%;
+    padding: 0;
     border: none;
     background: transparent;
     font: inherit;
-    font-size: ${fs.body};
+    font-size: 16px;
     color: ${nocturne.cream};
     caret-color: ${nocturne.accent};
   }
@@ -158,33 +127,100 @@ const Search = styled.label`
     outline: none;
   }
   input::placeholder {
-    color: ${nocturne.muted};
+    color: ${nocturne.muted2};
   }
-  &::after {
-    background: ${RULE};
-  }
-  &:hover::after {
-    background: ${nocturne.accent};
-  }
-  &:focus-within::after {
-    background: ${nocturne.accent};
-  }
-  &:focus-within svg {
-    color: ${nocturne.accent};
+  &:focus-within {
+    background: ${nocturne.surface};
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
+const Found = styled.p`
+  margin: 16px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: ${nocturne.muted};
+`;
+
+const Booked = styled.section<{ $first: boolean }>`
+  margin-top: ${({ $first }) => ($first ? "4px" : "clamp(28px, 5vh, 56px)")};
+`;
+
+const Controls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 18px;
+
   @media (max-width: 720px) {
-    flex: 0 0 auto;
-    max-width: none;
-    padding-top: 14px;
-    border-bottom: 1.5px solid ${RULE};
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const Tabs = styled.div<{ $n: number }>`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: ${nocturne.surface2};
+
+  @media (min-width: 721px) {
+    width: ${({ $n }) => $n * 150}px;
+  }
+`;
+
+const Badge = styled.span`
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: ${nocturne.lime};
+  color: ${nocturne.greenDeep};
+  font-size: 12px;
+  font-weight: 800;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  min-height: 42px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: ${({ $active }) => ($active ? nocturne.surface : "transparent")};
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 15px;
+  font-weight: ${({ $active }) => ($active ? 800 : 600)};
+  cursor: pointer;
+  color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
+  font-variant-numeric: tabular-nums;
+  transition:
+    color ${dur.state} ${ease.standard},
+    background-color ${dur.state} ${ease.standard};
+
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.cream};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 `;
 
 const Rows = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding-top: 6px;
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
 `;
 
 const Empty = styled.div`
@@ -221,9 +257,9 @@ const Find = styled(Link)`
   font-weight: 800;
   text-decoration: none;
   transition:
-    background-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
   @media (hover: hover) {
     &:hover {
@@ -251,7 +287,7 @@ const Find = styled(Link)`
 `;
 
 const Section = styled.section`
-  margin-top: clamp(48px, 7vh, 72px);
+  margin-top: clamp(36px, 5vh, 56px);
 
   > h2 {
     margin-bottom: 20px;
@@ -260,12 +296,10 @@ const Section = styled.section`
 
 const HelpGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px;
-  align-items: start;
+  gap: 40px;
 
   h3 {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
     font-size: ${fs.meta};
     font-weight: 800;
     color: ${nocturne.muted};
@@ -276,25 +310,33 @@ const HelpGrid = styled.div`
   }
 `;
 
-const LIVE = new Set(["posted", "active", "in_progress"]);
-
-function departsAt(t: PublishedTrip) {
-  return `${t.departure_date ?? "9999-12-31"}T${t.departure_time ?? "23:59"}`;
+function fold(s: string) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
-function matches(booking: Booking, query: string): boolean {
-  if (!query) return true;
-  const haystack = [
-    booking.trip?.from_location,
-    booking.trip?.to_location,
-    booking.driver?.full_name,
-    booking.passenger?.full_name,
-    booking.booking_reference,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-  return haystack.includes(query.toLowerCase());
+function haystack(b: Booking) {
+  return fold(
+    [
+      b.trip?.from_location,
+      b.trip?.to_location,
+      b.driver?.full_name,
+      b.passenger?.full_name,
+      b.booking_reference,
+      STATUS[b.status]?.label,
+      formatTripDate(b.trip?.departure_date ?? null),
+      b.trip?.departure_date,
+      b.trip?.vehicle?.plate_number,
+      b.trip?.vehicle?.plate_number?.replace(/\s+/g, ""),
+      String(b.total_price),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
+}
+
+function matches(b: Booking, words: string[]) {
+  const hay = haystack(b);
+  return words.every((w) => hay.includes(w));
 }
 
 export function TripsView({
@@ -311,85 +353,93 @@ export function TripsView({
   viewerId: string;
 }) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("current");
+  const [tab, setTab] = useState<Tab>(requests.length > 0 ? "incoming" : "current");
+  const [incoming, setIncoming] = useState(requests.length);
   const [query, setQuery] = useState("");
 
-  const refresh = useCallback(() => router.refresh(), [router]);
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refresh = useCallback(() => {
+    if (pending.current) clearTimeout(pending.current);
+    pending.current = setTimeout(() => router.refresh(), 400);
+  }, [router]);
+  useEffect(() => () => {
+    if (pending.current) clearTimeout(pending.current);
+  }, []);
   useBookingStream(
     `my-trips:${viewerId}`,
     viewerId ? `passenger_id=eq.${viewerId}` : null,
     refresh,
   );
 
-  const source = tab === "current" ? current : previous;
+  const words = useMemo(() => fold(query).split(/\s+/).filter(Boolean), [query]);
+  const everything = useMemo(() => {
+    const seen = new Set<string>();
+    return [...current, ...requests, ...previous].filter((b) => (seen.has(b.id) ? false : (seen.add(b.id), true)));
+  }, [current, requests, previous]);
+
   const shown = useMemo(
-    () => source.filter((b) => matches(b, query.trim())),
-    [source, query],
-  );
-
-  const searchable = current.length + previous.length > 0;
-
-  const next = useMemo(
     () =>
-      published
-        .filter((t) => LIVE.has(t.status))
-        .sort((a, b) =>
-          a.status === "in_progress" ? -1 : b.status === "in_progress" ? 1 : departsAt(a).localeCompare(departsAt(b)),
-        )[0] ?? null,
-    [published],
+      words.length > 0
+        ? everything.filter((b) => matches(b, words))
+        : tab === "current"
+          ? current
+          : previous,
+    [words, everything, tab, current, previous],
   );
 
-  const lead =
-    requests.length > 0
-      ? `${requests.length} ${requests.length === 1 ? "passenger is" : "passengers are"} waiting on your answer.`
-      : next
-        ? next.status === "in_progress"
-          ? `You're on the road to ${next.to_location}.`
-          : `Your next ride leaves ${formatTripDate(next.departure_date)?.toLowerCase() || "soon"} at ${formatTripTime(next.departure_time) || "the time you set"}.`
-        : current.length > 0
-          ? `You have ${current.length} ${current.length === 1 ? "trip" : "trips"} coming up.`
-          : "Rides you publish and seats you book live here.";
+  const searchable = everything.length > 0;
+
+  const [searching, setSearching] = useState(false);
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searching) searchRef.current?.focus({ preventScroll: true });
+  }, [searching]);
+
+  const closeSearch = () => {
+    setQuery("");
+    setSearching(false);
+  };
+
+  const driving = requests.length > 0 || published.length > 0;
 
   return (
     <Page $max={1080}>
-      <GreenHero
-        title="Trips"
-        lead={lead}
-        actions={
-          <>
-            <HeroPrimaryLink href="/publish">
-              <PlusCircle size={19} /> Publish a ride
-            </HeroPrimaryLink>
-            <HeroGhostLink href="/home">
-              <MagnifyingGlass size={19} /> Find a ride
-            </HeroGhostLink>
-          </>
-        }
-        aside={
-          next ? (
-            <HeroTicket>
-              <small>{next.status === "in_progress" ? "Under way" : formatTripDate(next.departure_date) || "Next departure"}</small>
-              <b>{formatTripTime(next.departure_time) || "Time to confirm"}</b>
-              <p>
-                <strong>
-                  {next.from_location} to {next.to_location}
-                </strong>
-                <br />
-                {next.seats_taken} of {next.seats_total} seats taken
-              </p>
-              <TicketLink href={`/ride/${next.id}`}>Open ride</TicketLink>
-            </HeroTicket>
-          ) : undefined
-        }
-      />
+      <Head>
+        <HeadRow $open={searching}>
+          <h1>Trips</h1>
+          {searchable && (
+            <Grow $open={searching}>
+              <MagnifyingGlass size={20} aria-hidden />
+              <input
+                ref={searchRef}
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") closeSearch();
+                }}
+                tabIndex={searching ? 0 : -1}
+                aria-hidden={!searching}
+                placeholder="Town, person or reference"
+                aria-label="Search trips"
+              />
+              <button
+                type="button"
+                aria-label={searching ? "Close search" : "Search trips"}
+                aria-expanded={searching}
+                onClick={() => (searching ? closeSearch() : setSearching(true))}
+              >
+                {searching ? <X size={18} weight="bold" /> : <MagnifyingGlass size={20} />}
+              </button>
+            </Grow>
+          )}
+        </HeadRow>
+      </Head>
 
-      <SeatRequests initial={requests} viewerId={viewerId} />
-      <PublishedTrips initial={published} />
-
-      <Booked>
-      <SectionHead>Seats you booked</SectionHead>
+      <Booked $first>
       <Controls>
-        <Tabs role="group" aria-label="Which trips">
+        <Tabs role="group" aria-label="Which trips" $n={driving ? 3 : 2}>
           <TabButton
             type="button"
             $active={tab === "current"}
@@ -397,7 +447,7 @@ export function TripsView({
             onClick={() => setTab("current")}
           >
             Current
-            {current.length > 0 ? ` (${current.length})` : ""}
+            {current.length > 0 ? ` ${current.length}` : ""}
           </TabButton>
           <TabButton
             type="button"
@@ -406,25 +456,31 @@ export function TripsView({
             onClick={() => setTab("previous")}
           >
             Previous
-            {previous.length > 0 ? ` (${previous.length})` : ""}
+            {previous.length > 0 ? ` ${previous.length}` : ""}
           </TabButton>
+          {driving && (
+            <TabButton
+              type="button"
+              $active={tab === "incoming"}
+              aria-pressed={tab === "incoming"}
+              onClick={() => setTab("incoming")}
+            >
+              Incoming
+              {incoming > 0 && <Badge>{incoming}</Badge>}
+            </TabButton>
+          )}
         </Tabs>
-
-        {searchable && (
-          <Search>
-            <MagnifyingGlass size={20} aria-hidden />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Town, person or reference"
-              aria-label="Search trips"
-            />
-          </Search>
-        )}
       </Controls>
 
-      {shown.length > 0 ? (
+      {words.length > 0 && (
+        <Found role="status">
+          {shown.length} {shown.length === 1 ? "trip" : "trips"} match &ldquo;{query.trim()}&rdquo;
+        </Found>
+      )}
+
+      {tab === "incoming" && words.length === 0 ? (
+        <SeatRequests initial={requests} viewerId={viewerId} onCount={setIncoming} />
+      ) : shown.length > 0 ? (
         <Rows>
           {shown.map((booking) => (
             <BookingCard key={booking.id} booking={booking} viewerId={viewerId} />
@@ -432,31 +488,21 @@ export function TripsView({
         </Rows>
       ) : (
         <Empty>
-          {query ? (
-            <>
-              <b>No matches</b>
-              <p>Try a town, a person&rsquo;s name, or a booking reference.</p>
-            </>
+          {words.length > 0 ? (
+            <b>Try a town, a name, a date or a booking reference</b>
           ) : tab === "current" ? (
             <>
               <b>No trips yet</b>
-              <p>
-                Book a seat and it appears here, with the driver, the car and
-                what you paid.
-              </p>
               <Find href="/home">Find a ride</Find>
             </>
           ) : (
-            <>
-              <b>No past trips</b>
-              <p>
-                Completed and cancelled trips move here, with their receipts.
-              </p>
-            </>
+            <b>No past trips</b>
           )}
         </Empty>
       )}
       </Booked>
+
+      <PublishedTrips initial={published} />
 
       <Section id="help">
         <SectionHead>Need help?</SectionHead>

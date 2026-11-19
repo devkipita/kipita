@@ -11,6 +11,7 @@ import {
   MagnifyingGlass,
   MapPin,
   Plus,
+  Trash,
   Warning,
   X,
 } from "@/components/icons";
@@ -25,8 +26,8 @@ import { detectOrigin } from "@/lib/home/geo";
 import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime, todayISO } from "./WhenPicker";
-import type { SavedCar } from "./draft";
-import { clearDraft, loadDraft, saveDraft } from "./draft";
+import type { Prefill, SavedCar } from "./draft";
+import { clearDraft, loadDraft, saveDraft, withPrefill } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
@@ -371,20 +372,26 @@ const Ghost = styled.button`
   ${ring}
 `;
 
-/** A low-key action that must not compete with the step's own buttons. */
-const Quiet = styled(Ghost)`
-  color: ${nocturne.muted2};
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: default;
-  }
-`;
-
-const TopRow = styled.div`
+const Discard = styled.button`
   display: flex;
-  justify-content: flex-end;
-  margin: -14px -8px 4px 0;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  margin: -8px 0 16px auto;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: ${nocturne.surface2};
+  color: ${nocturne.cream};
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  ${ring}
+
+  &:active {
+    background: color-mix(in oklab, ${nocturne.surface2} 80%, ${nocturne.green});
+  }
 `;
 
 const FieldLabel = styled.label`
@@ -947,10 +954,12 @@ export function PublishMobile({
   userId,
   savedCars: initialCars = [],
   publishBeforeApproval = false,
+  prefill = null,
 }: {
   userId: string;
   savedCars?: SavedCar[];
   publishBeforeApproval?: boolean;
+  prefill?: Prefill | null;
 }) {
   const { kycStatus, requireKyc } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
@@ -974,7 +983,6 @@ export function PublishMobile({
   const panelRef = useRef<HTMLElement>(null);
   const moved = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  // The furthest step reached, readable from the history listener below.
   const maxStepRef = useRef(0);
   maxStepRef.current = maxStep;
 
@@ -1012,6 +1020,11 @@ export function PublishMobile({
       setStep(start);
       setMaxStep(Math.min(Math.max(saved.maxStep ?? start, start), STEPS.length - 1));
     }
+    if (prefill) {
+      setDraft((d) => withPrefill(d, prefill));
+      start = 0;
+      setStep(0);
+    }
     window.history.replaceState({ ...window.history.state, publishStep: start }, "");
     setReady(true);
 
@@ -1032,7 +1045,6 @@ export function PublishMobile({
     detectOrigin(abort.signal)
       .then((origin) => {
         if (!origin) return;
-        // Only a suggestion: nothing is selected until the driver taps it.
         setNear(origin.town.name);
       })
       .catch(() => undefined);
@@ -1387,11 +1399,12 @@ export function PublishMobile({
       </Header>
 
       <Scroll ref={scrollRef}>
-        <TopRow>
-          <Quiet type="button" onClick={askDiscard} disabled={!hasDraft}>
+        {hasDraft && (
+          <Discard type="button" onClick={askDiscard}>
+            <Trash size={18} />
             Discard draft
-          </Quiet>
-        </TopRow>
+          </Discard>
+        )}
         <Sentence>{sentence.map((part, i) => (typeof part === "string" ? part : <span key={i}>{part}</span>))}</Sentence>
 
         {(

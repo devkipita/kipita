@@ -143,8 +143,8 @@ export const MagnifyingGlass = createIcon("MagnifyingGlass", () => (
 /** The circled plus the bottom bar uses for Post. */
 export const PlusCircle = createIcon("PlusCircle", (f) => (
   <>
-    <circle cx="12" cy="12" r="8.6" {...(f ? SOLID : {})} />
-    <path d="M12 8.1v7.8M8.1 12h7.8" {...(f ? { stroke: "var(--n-surface)" } : {})} />
+    <circle cx="12" cy="12" r="9.6" {...(f ? SOLID : {})} />
+    <path d="M12 7.6v8.8M7.6 12h8.8" {...(f ? { stroke: "var(--icon-knockout, var(--n-surface))" } : {})} />
   </>
 ));
 
@@ -445,6 +445,14 @@ export const CloudRain = createIcon("CloudRain", () => (
 
 export const Cloud = createIcon("Cloud", (f) => (
   <path d={CLOUD} {...(f ? SOLID : {})} />
+));
+
+export const CloudOffline = createIcon("CloudOffline", (f) => (
+  <>
+    <path d={CLOUD} {...(f ? SOLID : {})} />
+    <path d="M3.6 3.6 20.4 20.4" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} strokeWidth={f ? 3.5 : undefined} />
+    <path d="M3.6 3.6 20.4 20.4" />
+  </>
 ));
 
 export const CloudSun = createIcon("CloudSun", () => (
@@ -994,6 +1002,27 @@ export const ShareNetwork = createIcon("ShareNetwork", () => (
   </>
 ));
 
+export const WhatsappLogo = createIcon("WhatsappLogo", () => (
+  <>
+    <path d="M12 3.2a8.8 8.8 0 0 0-7.55 13.3L3.2 20.8l4.4-1.2A8.8 8.8 0 1 0 12 3.2Z" />
+    <path d="M9.3 8.1c.3 0 .5.1.6.4l.7 1.6c.1.2 0 .5-.1.6l-.6.7a6.4 6.4 0 0 0 2.6 2.6l.7-.6c.2-.2.4-.2.6-.1l1.6.7c.3.1.4.4.4.6 0 1-.8 1.8-1.8 1.8A5.8 5.8 0 0 1 7.5 9.9c0-1 .8-1.8 1.8-1.8Z" />
+  </>
+));
+
+export const FacebookLogo = createIcon("FacebookLogo", () => (
+  <>
+    <circle cx="12" cy="12" r="8.8" />
+    <path d="M15.2 8.2h-1.6a2 2 0 0 0-2 2v10.6M9 13.4h5.6" />
+  </>
+));
+
+export const XLogo = createIcon("XLogo", () => (
+  <>
+    <path d="M4.4 4h4.4l10.8 16h-4.4Z" />
+    <path d="M19.2 4l-6.1 7M10.9 13 4.8 20" />
+  </>
+));
+
 export const Copy = createIcon("Copy", () => (
   <>
     <path d="M9.6 8h8.8a1.8 1.8 0 0 1 1.8 1.8v9.8a1.8 1.8 0 0 1-1.8 1.8H9.6a1.8 1.8 0 0 1-1.8-1.8V9.8A1.8 1.8 0 0 1 9.6 8Z" />
@@ -1148,6 +1177,14 @@ export const PawPrint = createIcon("PawPrint", () => (
     <ellipse cx="16.4" cy="8.4" rx="2.1" ry="2.7" />
     <ellipse cx="19.6" cy="13" rx="1.9" ry="2.3" />
     <path d="M11.8 13.2c2.7 0 4.9 2.3 4.9 4.8a3 3 0 0 1-3 3c-1 0-1.6-.4-1.9-.4s-.9.4-1.9.4a3 3 0 0 1-3-3c0-2.5 2.2-4.8 4.9-4.8Z" />
+  </>
+));
+
+export const SpeakerHigh = createIcon("SpeakerHigh", () => (
+  <>
+    <path d="M3.4 9.4h3.4l5-4.2a.8.8 0 0 1 1.3.62v12.36a.8.8 0 0 1-1.3.62l-5-4.2H3.4a.8.8 0 0 1-.8-.8V10.2a.8.8 0 0 1 .8-.8Z" />
+    <path d="M16.4 9.2a4 4 0 0 1 0 5.6" />
+    <path d="M18.9 6.6a7.6 7.6 0 0 1 0 10.8" />
   </>
 ));
 

@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import styled from "styled-components";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const Row = styled.div`
   display: grid;
@@ -14,17 +15,19 @@ const Cell = styled.input`
   text-align: center;
   font-size: 1.4rem;
   font-weight: 700;
-  color: ${({ theme }) => theme.color.text};
+  font-variant-numeric: tabular-nums;
+  color: ${nocturne.cream};
   border-radius: ${({ theme }) => theme.radius.sm};
-  border: 1.5px solid transparent;
-  background: ${({ theme }) => theme.color.surface2};
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  border: 1.5px solid ${nocturne.outline};
+  background: ${nocturne.surface};
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
 
   &:focus {
     outline: none;
-    background: ${({ theme }) => theme.color.surface};
-    border-color: ${({ theme }) => theme.color.primary};
-    box-shadow: 0 0 0 4px ${({ theme }) => theme.color.primary}22;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 4px ${nocturne.ring};
   }
 `;
 
@@ -34,7 +37,6 @@ type Props = {
   onComplete?: (v: string) => void;
 };
 
-/** Six-box OTP entry with paste + backspace navigation. */
 export function OtpInput({ value, onChange, onComplete }: Props) {
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const digits = value.padEnd(6, " ").slice(0, 6).split("");
@@ -56,12 +58,13 @@ export function OtpInput({ value, onChange, onComplete }: Props) {
             refs.current[i] = el;
           }}
           inputMode="numeric"
-          maxLength={1}
+          autoComplete={i === 0 ? "one-time-code" : "off"}
+          aria-label={`Digit ${i + 1} of 6`}
+          maxLength={i === 0 ? 6 : 1}
           value={d.trim()}
           onChange={(e) => {
             const only = e.target.value.replace(/\D/g, "");
             if (!only) return setAt(i, "");
-            // support paste of full code
             if (only.length > 1) {
               const pasted = only.slice(0, 6);
               onChange(pasted);

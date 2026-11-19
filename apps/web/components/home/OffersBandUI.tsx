@@ -1,35 +1,58 @@
 "use client";
 
-import { useState } from "react";
-import styled, { useTheme } from "styled-components";
-import { SealPercent as BadgePercent, CalendarDots as CalendarClock, Check, Copy, Gift } from "@/components/icons";
+import styled from "styled-components";
+import { SealPercent, CalendarDots, Gift } from "@/components/icons";
+import { nocturne } from "@/lib/nocturne";
 import type { ToneName } from "@/lib/theme";
-import {
-  formatPromotionValue,
-  isLive,
-  type Promotion,
-} from "@/lib/promotions";
+import { formatPromotionValue, isLive, type Promotion } from "@/lib/promotions";
+
+type Palette = "green" | "sage" | "lime" | "plain";
+
+const PALETTE: Record<Palette, { bg: string; fg: string }> = {
+  green: { bg: nocturne.green, fg: nocturne.onGreen },
+  sage: { bg: nocturne.sage, fg: nocturne.greenDeep },
+  lime: { bg: nocturne.lime, fg: nocturne.greenDeep },
+  plain: { bg: nocturne.surface3, fg: nocturne.cream },
+};
+
+const TONE_TO_PALETTE: Partial<Record<ToneName, Palette>> = {
+  green: "green",
+  forest: "green",
+  deep: "green",
+  jungle: "green",
+  dark: "green",
+  mint: "sage",
+  blue: "sage",
+  lav: "sage",
+  lilac: "sage",
+  lime: "lime",
+  amber: "lime",
+  peach: "lime",
+  tan: "lime",
+  surface: "plain",
+};
+
+const ROTATION: Palette[] = ["green", "sage", "lime"];
 
 const Head = styled.h2`
   margin: 0 0 12px;
-  font-size: ${({ theme }) => theme.type.subhead};
+  font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: ${({ theme }) => theme.color.text};
+  color: ${nocturne.cream};
 `;
 
 const Rail = styled.div`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(min(250px, 82%), 1fr);
-  gap: var(--card-gap);
+  gap: 12px;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  scroll-padding-inline: var(--page-pad);
-  padding: 0 var(--page-pad) 2px;
-  margin-inline: calc(-1 * var(--page-pad));
+  scroll-padding-inline: 18px;
+  padding: 0 18px 2px;
+  margin-inline: -18px;
   scrollbar-width: none;
-  -ms-overflow-style: none;
 
   &::-webkit-scrollbar {
     display: none;
@@ -49,137 +72,79 @@ const Rail = styled.div`
   }
 `;
 
-const Card = styled.article<{ $tone: ToneName }>`
+const Card = styled.article<{ $palette: Palette }>`
   display: flex;
   flex-direction: column;
-  gap: ${({ theme }) => theme.space.sm};
-  padding: ${({ theme }) => theme.space.lg};
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme, $tone }) => theme.tone[$tone].bg};
-  color: ${({ theme, $tone }) => theme.tone[$tone].on};
+  gap: 8px;
+  min-width: 0;
+  padding: 20px;
+  border-radius: 20px;
+  background: ${({ $palette }) => PALETTE[$palette].bg};
+  color: ${({ $palette }) => PALETTE[$palette].fg};
 
   .value {
     display: flex;
     align-items: center;
     gap: 9px;
-    font-size: ${({ theme }) => theme.type.heading};
+    font-size: 24px;
     font-weight: 700;
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
   h3 {
     margin: 0;
-    font-size: ${({ theme }) => theme.type.body};
+    font-size: 16px;
     font-weight: 700;
+    overflow-wrap: anywhere;
   }
   p {
     margin: 0;
-    font-size: ${({ theme }) => theme.type.label};
+    font-size: 14px;
     line-height: 1.5;
-    opacity: 0.84;
+    overflow-wrap: anywhere;
   }
   .ends {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     margin-top: 2px;
-    font-size: ${({ theme }) => theme.type.label};
+    font-size: 13px;
     font-weight: 700;
-    opacity: 0.74;
   }
 `;
 
-const CodeRow = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  align-self: flex-start;
-  margin-top: 6px;
-  padding: 7px 13px;
-  border: 1.5px dashed currentColor;
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: ${({ theme }) => theme.type.label};
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  cursor: pointer;
-  opacity: 0.92;
+function endsOn(iso: string) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Africa/Nairobi",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(iso));
+}
 
-  &:hover {
-    opacity: 1;
-  }
-`;
-
-const FALLBACK_TONE: ToneName = "green";
-
-/**
- * Band 3 — live offers.
- *
- * `tone` is a free-text column with a CHECK constraint behind it (migration
- * 018); the guard here is belt-and-braces so a tone added to the DB before the
- * theme can't crash the page on `theme.tone[undefined].bg`.
- */
 export function OffersBandUI({ offers }: { offers: Promotion[] }) {
-  const theme = useTheme();
-  const [copied, setCopied] = useState<string | null>(null);
-
-  // The server render can be a few minutes stale; re-check the window here so a
-  // just-expired offer doesn't linger in a cached payload.
   const live = offers.filter((offer) => isLive(offer));
   if (live.length === 0) return null;
-
-  async function copy(code: string) {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(code);
-      window.setTimeout(() => setCopied(null), 1800);
-    } catch {
-      // Clipboard denied — the code is on screen anyway.
-    }
-  }
 
   return (
     <section>
       <Head>Offers for you</Head>
       <Rail>
-        {live.map((offer) => {
-          const tone = offer.tone in theme.tone ? offer.tone : FALLBACK_TONE;
-          const Icon = offer.kind === "gift_card" ? Gift : BadgePercent;
-          const ends = offer.ends_at
-            ? new Date(offer.ends_at).toLocaleDateString("en-KE", {
-                day: "numeric",
-                month: "short",
-              })
-            : null;
-
+        {live.map((offer, i) => {
+          const palette = TONE_TO_PALETTE[offer.tone as ToneName] ?? ROTATION[i % ROTATION.length];
+          const Icon = offer.kind === "gift_card" ? Gift : SealPercent;
           return (
-            <Card key={offer.id} $tone={tone}>
+            <Card key={offer.id} $palette={palette}>
               <span className="value">
-                <Icon size={21} />
+                <Icon size={21} aria-hidden />
                 {formatPromotionValue(offer)}
               </span>
               <h3>{offer.title}</h3>
-              <p>{offer.blurb}</p>
-              {offer.code && (
-                <CodeRow
-                  type="button"
-                  onClick={() => void copy(offer.code as string)}
-                  aria-label={`Copy code ${offer.code}`}
-                >
-                  {copied === offer.code ? (
-                    <Check size={14} />
-                  ) : (
-                    <Copy size={14} />
-                  )}
-                  {offer.code}
-                </CodeRow>
-              )}
-              {ends && (
+              {offer.blurb ? <p>{offer.blurb}</p> : null}
+              {offer.ends_at ? (
                 <span className="ends">
-                  <CalendarClock size={13} /> Ends {ends}
+                  <CalendarDots size={14} aria-hidden /> Ends {endsOn(offer.ends_at)}
                 </span>
-              )}
+              ) : null}
             </Card>
           );
         })}

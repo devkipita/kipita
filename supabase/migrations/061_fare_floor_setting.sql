@@ -1,4 +1,4 @@
--- 060_fare_floor_setting.sql
+-- 061_fare_floor_setting.sql
 -- The lowest price a driver may ask for a seat, as a share of the recommended price.
 --
 -- The recommended price is an even split of the trip cost with the driver counted as one of the

@@ -1,7 +1,7 @@
 "use client";
 
 import styled from "styled-components";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { HomeTrip } from "@/lib/home/search";
 
 export type TimeBucket = "early" | "midday" | "late";
@@ -15,12 +15,12 @@ export type RideFilterState = {
 export const EMPTY_FILTERS: RideFilterState = { times: [], prefs: [] };
 
 export const TIME_OPTIONS: { key: TimeBucket; label: string }[] = [
-  { key: "early", label: "Before 08:00" },
-  { key: "midday", label: "08:00 – 12:00" },
-  { key: "late", label: "After 12:00" },
+  { key: "early", label: "Before 8 AM" },
+  { key: "midday", label: "8 AM to 12 PM" },
+  { key: "late", label: "After 12 PM" },
 ];
 
-export const PREF_OPTIONS: { key: PrefKey; label: string; hint?: string }[] = [
+export const PREF_OPTIONS: { key: PrefKey; label: string }[] = [
   { key: "verified", label: "Verified drivers" },
   { key: "luggage", label: "Luggage space" },
   { key: "quiet", label: "Quiet ride" },
@@ -39,11 +39,6 @@ function inBucket(mins: number, bucket: TimeBucket): boolean {
   return mins >= 720;
 }
 
-/**
- * Trips without a departure time are dropped once any time bucket is active —
- * `searchTrips` deliberately keeps undated trips, so this narrowing only
- * applies when the traveller has asked for a specific part of the day.
- */
 export function applyRideFilters(
   trips: HomeTrip[],
   f: RideFilterState,
@@ -100,51 +95,62 @@ const Row = styled.label`
   margin: 0 0 8px;
   padding: 0 14px;
   min-height: 48px;
-  border: 1px solid ${nocturne.line};
+  border: 1px solid ${nocturne.outline};
   border-radius: 12px;
   font-size: 15px;
   line-height: 1.4;
   color: ${nocturne.muted};
   cursor: pointer;
+  transition:
+    background ${dur.state} ${ease.standard},
+    border-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard};
 
   input {
     flex: none;
     width: 22px;
     height: 22px;
     margin: 0;
-    accent-color: ${nocturne.accent};
+    accent-color: ${nocturne.green};
     cursor: pointer;
   }
   input:focus-visible {
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
-  &:hover,
-  &:has(input:checked) {
-    background: #e5ffc3;
-    color: #12301f;
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.surface2};
+      color: ${nocturne.cream};
+    }
   }
   &:has(input:checked) {
-    border-color: #b9e08a;
+    background: ${nocturne.surface2};
+    border-color: ${nocturne.accent};
+    color: ${nocturne.cream};
     font-weight: 600;
   }
 `;
 
 const Reset = styled.button`
   align-self: flex-start;
+  min-height: 44px;
   margin-top: 18px;
-  padding: 8px 14px;
-  border: 1px solid ${nocturne.line};
+  padding: 0 16px;
+  border: 1px solid ${nocturne.outline};
   border-radius: 999px;
-  background: transparent;
+  background: ${nocturne.surface};
   color: ${nocturne.cream};
   font: inherit;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+  transition: background ${dur.state} ${ease.standard};
 
-  &:hover {
-    background: ${nocturne.surface2};
+  @media (hover: hover) {
+    &:hover {
+      background: ${nocturne.surface2};
+    }
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};

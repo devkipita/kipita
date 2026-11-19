@@ -1,32 +1,16 @@
-/**
- * Ride-search data layer for the public landing page.
- *
- * Reads live from Supabase using the anon key — the `trips`, `cities` and
- * `users` tables are all readable by anonymous visitors (RLS `USING(true)`),
- * so the marketing site can show real, up-to-the-minute rides.
- *
- * Everything here degrades gracefully: if the env vars are missing or a query
- * errors, we fall back to a small set of curated demo rides so the search never
- * looks broken. A *successful* query that returns zero rows is a real empty
- * state (the "request a ride → get the app" flow), and is reported as such.
- */
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-/** A town the user can search from/to. */
 export type Town = {
   name: string;
   county: string | null;
 };
 
-/** A single searchable ride, flattened for the UI. */
 export type Ride = {
   id: string;
   from: string;
   to: string;
-  /** ISO date, e.g. "2026-08-06". */
   date: string;
-  /** "HH:MM" 24h. */
   time: string;
   seatsAvailable: number;
   price: number;
@@ -36,24 +20,13 @@ export type Ride = {
   driverTrips: number;
 };
 
-/** When the traveller wants to leave. */
 export type When = { mode: "now" } | { mode: "schedule"; date: string };
 
-/**
- * The outcome of a search, as a discriminated union so the UI can tell the
- * three cases apart:
- *  - `results` — a live query returned one or more rides.
- *  - `empty`   — a live query succeeded but found nothing (real empty state).
- *  - `demo`    — Supabase was unreachable/unconfigured; these are curated rides.
- */
 export type SearchOutcome =
   | { status: "results"; rides: Ride[] }
   | { status: "empty" }
-  | { status: "demo"; rides: Ride[] };
+  | { status: "error" };
 
-/* ── Fallbacks (used only when Supabase is unconfigured or errors) ── */
-
-/** Seeded Kenyan towns — mirrors migration 003's `cities` seed. */
 export const FALLBACK_TOWNS: Town[] = [
   { name: "Nairobi", county: "Nairobi" },
   { name: "Mombasa", county: "Mombasa" },
@@ -67,33 +40,6 @@ export const FALLBACK_TOWNS: Town[] = [
   { name: "Malindi", county: "Kilifi" },
 ];
 
-const DEMO_DRIVERS = [
-  { name: "James Mwangi", rating: 4.9, trips: 128 },
-  { name: "Aisha Odhiambo", rating: 4.8, trips: 91 },
-  { name: "Brian Kiptoo", rating: 4.7, trips: 54 },
-  { name: "Wanjiku Njeri", rating: 5.0, trips: 203 },
-];
-
-/** Build a few plausible curated rides for a route (offline demo only). */
-function demoRides(from: string, to: string): Ride[] {
-  const base = 900 + Math.round(from.length + to.length) * 40;
-  return DEMO_DRIVERS.slice(0, 3).map((d, i) => ({
-    id: `demo-${i}`,
-    from,
-    to,
-    date: "",
-    time: ["06:00", "10:30", "15:45"][i],
-    seatsAvailable: [4, 2, 3][i],
-    price: base + i * 350,
-    driverName: d.name,
-    driverAvatar: null,
-    driverRating: d.rating,
-    driverTrips: d.trips,
-  }));
-}
-
-/* ── Supabase client (guarded — never throws on missing env) ── */
-
 let cached: SupabaseClient | null | undefined;
 
 function getClient(): SupabaseClient | null {
@@ -106,9 +52,6 @@ function getClient(): SupabaseClient | null {
   return cached;
 }
 
-/* ── Public API ── */
-
-/** Fetch the list of active towns for the destination suggestions. */
 export async function fetchTowns(): Promise<Town[]> {
   const supabase = getClient();
   if (!supabase) return FALLBACK_TOWNS;
@@ -150,7 +93,6 @@ function todayISO(): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
-/** Search live trips for a route + time. See {@link SearchOutcome}. */
 export async function searchRides(
   from: string,
   to: string,
@@ -161,7 +103,7 @@ export async function searchRides(
   const toQ = to.trim();
   const supabase = getClient();
 
-  if (!supabase) return { status: "demo", rides: demoRides(fromQ, toQ) };
+  if (!supabase) return { status: "error" };
 
   const onOrAfter = when.mode === "schedule" ? when.date : todayISO();
 
@@ -182,7 +124,7 @@ export async function searchRides(
       .order("departure_time", { ascending: true })
       .limit(12);
 
-    if (error) return { status: "demo", rides: demoRides(fromQ, toQ) };
+    if (error) return { status: "error" };
 
     const rows = (data ?? []) as unknown as TripRow[];
     if (!rows.length) return { status: "empty" };
@@ -203,15 +145,10 @@ export async function searchRides(
 
     return { status: "results", rides };
   } catch {
-    return { status: "demo", rides: demoRides(fromQ, toQ) };
+    return { status: "error" };
   }
 }
 
-/**
- * Best-effort city detection from the visitor's IP. Returns a town name if it
- * maps to a known Kenyan town, otherwise the raw detected city, otherwise null.
- * Never throws — the caller treats null as "let the user type it".
- */
 export async function detectCity(signal?: AbortSignal): Promise<string | null> {
   try {
     const res = await fetch("https://ipapi.co/json/", { signal });
@@ -224,29 +161,6 @@ export async function detectCity(signal?: AbortSignal): Promise<string | null> {
   }
 }
 
-/** Format a KES price for display, e.g. 1500 → "KES 1,500". */
 export function formatKes(amount: number): string {
   return `KES ${Math.round(amount).toLocaleString("en-KE")}`;
-}
-
-/** Turn "06:00" + optional ISO date into a friendly "Today · 6:00 AM". */
-export function formatWhen(date: string, time: string): string {
-  const [h, m] = time.split(":").map(Number);
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  const clock = `${hour12}:${String(m || 0).padStart(2, "0")} ${period}`;
-
-  if (!date) return clock;
-
-  const today = todayISO();
-  if (date === today) return `Today · ${clock}`;
-
-  const dt = new Date(`${date}T00:00:00`);
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (date === tomorrow.toISOString().slice(0, 10))
-    return `Tomorrow · ${clock}`;
-
-  const day = dt.toLocaleDateString("en-KE", { weekday: "short" });
-  return `${day} · ${clock}`;
 }

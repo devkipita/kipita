@@ -3,12 +3,14 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import {
+  PAGE_SIZE,
   fetchNotifications,
   fetchUnreadCount,
   markAllNotificationsRead,
   markNotificationRead,
 } from "./api";
 import { notificationRoute } from "./route";
+import { ping } from "./ping";
 import type { AppNotification } from "./types";
 
 /**
@@ -34,6 +36,8 @@ export interface NotificationsState {
   unread: number;
   /** Newest realtime arrival, surfaced as a toast until dismissed. */
   incoming: AppNotification | null;
+  hasMore: boolean;
+  loadingMore: boolean;
 }
 
 const EMPTY: NotificationsState = {
@@ -41,6 +45,8 @@ const EMPTY: NotificationsState = {
   items: [],
   unread: 0,
   incoming: null,
+  hasMore: false,
+  loadingMore: false,
 };
 
 let state: NotificationsState = EMPTY;
@@ -121,16 +127,39 @@ async function load(userId: string): Promise<void> {
     ]);
     // A user switch may have landed while we were awaiting — discard stale data.
     if (activeUserId !== userId) return;
-    set({ status: "ready", items, unread });
+    set({ status: "ready", items, unread, hasMore: items.length === PAGE_SIZE });
   } catch {
     if (activeUserId !== userId) return;
     set({ status: "error" });
   }
 }
 
+export async function loadOlder(): Promise<boolean> {
+  const userId = activeUserId;
+  const oldest = state.items[state.items.length - 1];
+  if (!userId || !oldest || state.loadingMore || !state.hasMore) return true;
+  set({ loadingMore: true });
+  try {
+    const older = await fetchNotifications(supabase(), userId, PAGE_SIZE, oldest.created_at);
+    if (activeUserId !== userId) return true;
+    const seen = new Set(state.items.map((n) => n.id));
+    set({
+      items: [...state.items, ...older.filter((n) => !seen.has(n.id))],
+      hasMore: older.length === PAGE_SIZE,
+      loadingMore: false,
+    });
+    return true;
+  } catch {
+    set({ loadingMore: false });
+    return false;
+  }
+}
+
 /** Re-fetch the current feed (used after reconnecting, and by pull-to-refresh). */
 export function refreshNotifications(): void {
-  if (activeUserId) void load(activeUserId);
+  if (!activeUserId) return;
+  if (state.status === "error") set({ status: "loading" });
+  void load(activeUserId);
 }
 
 async function openChannel(userId: string): Promise<void> {
@@ -200,33 +229,9 @@ function reconcile(row: AppNotification): void {
   });
 }
 
-/**
- * Raise an OS-level notification for an arrival while the tab is open.
- *
- * This is deliberately not a Web Push subscription: background delivery needs a
- * service worker plus VAPID keys, and the delivery trigger in migration 007
- * only speaks the Expo push API. Until that exists, an open tab still gets the
- * same alert the phone does.
- */
 function announce(row: AppNotification): void {
-  if (typeof Notification === "undefined") return;
-  if (Notification.permission !== "granted") return;
-
-  try {
-    const osNotification = new Notification(row.title, {
-      body: row.body,
-      tag: row.id,
-      icon: "/favicons/favicon-32x32.png",
-    });
-    osNotification.onclick = () => {
-      window.focus();
-      const path = notificationRoute(row.data);
-      if (path) window.location.assign(path);
-    };
-  } catch {
-    // Some browsers only allow notifications via a service worker — the
-    // in-app toast already covers the arrival.
-  }
+  if (row.read) return;
+  ping({ title: row.title, body: row.body, tag: row.id, href: notificationRoute(row.data) });
 }
 
 /* ── Mutations (optimistic, reverted on failure) ── */

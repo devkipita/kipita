@@ -8,6 +8,7 @@ import { shortRelativeTime } from "@/lib/notifications/meta";
 import { formatCompactNumber, isDisplayableImage } from "@/lib/alerts/meta";
 import { setCommentLike } from "@/lib/alerts/api";
 import { createClient } from "@/lib/supabase/client";
+import { nocturne } from "@/lib/nocturne";
 import type { AlertComment } from "@/lib/alerts/types";
 
 const Row = styled.li`
@@ -35,7 +36,7 @@ const Body = styled.div`
     color: ${({ theme }) => theme.color.text};
   }
   .when {
-    font-size: 0.74rem;
+    font-size: 0.8rem;
     color: ${({ theme }) => theme.color.muted};
   }
   p {
@@ -58,21 +59,30 @@ const Body = styled.div`
 const Like = styled.button<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   align-self: flex-start;
-  margin-top: 2px;
-  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: -8px;
+  padding: 0 8px;
   border: none;
   border-radius: 999px;
   background: transparent;
-  color: ${({ theme, $on }) => ($on ? "#E0245E" : theme.color.muted)};
+  color: ${({ theme, $on }) => ($on ? nocturne.danger : theme.color.muted)};
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
 
-  &:hover {
-    color: #e0245e;
+  @media (hover: hover) {
+    &:hover {
+      color: ${nocturne.danger};
+    }
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
   }
 `;
 
@@ -88,9 +98,6 @@ export function CommentRow({
   const [liked, setLiked] = useState(comment.liked_by_me);
   const [count, setCount] = useState(comment.likes_count);
 
-  // `liked_by_me` is false in the server render and corrected after mount, so
-  // the local state has to follow the prop when it changes. See the same note
-  // in AlertEngagement.
   const [synced, setSynced] = useState({
     liked: comment.liked_by_me,
     count: comment.likes_count,

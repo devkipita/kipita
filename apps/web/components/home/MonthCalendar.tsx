@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import styled from "styled-components";
 import { CaretLeft, CaretRight } from "@/components/icons";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -24,7 +24,7 @@ const Wrap = styled.div`
 
 const Head = styled.div`
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 44px 1fr 44px;
   align-items: center;
   margin-bottom: 14px;
 
@@ -41,14 +41,14 @@ const Head = styled.div`
 const NavBtn = styled.button`
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 999px;
   background: ${nocturne.surface2};
   color: ${nocturne.accent};
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background ${dur.press} ${ease.standard};
 
   &:hover:not(:disabled) {
     background: ${nocturne.surface3};
@@ -93,9 +93,9 @@ const Day = styled.button<{ $on: boolean; $today: boolean }>`
   font-variant-numeric: tabular-nums;
   cursor: pointer;
   transition:
-    background 0.14s ease,
-    border-color 0.14s ease,
-    color 0.14s ease;
+    background ${dur.press} ${ease.standard},
+    border-color ${dur.press} ${ease.standard},
+    color ${dur.press} ${ease.standard};
 
   &:hover:not(:disabled) {
     border-color: ${nocturne.accent};
@@ -145,7 +145,6 @@ export function MonthCalendar({
 
   const cells = useMemo(() => {
     const first = new Date(view.y, view.m, 1);
-    // Monday-first offset.
     const lead = (first.getDay() + 6) % 7;
     const days = new Date(view.y, view.m + 1, 0).getDate();
     const list: (number | null)[] = Array.from({ length: lead }, () => null);

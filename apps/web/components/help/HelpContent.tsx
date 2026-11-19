@@ -20,7 +20,6 @@ import { LandingFooter } from "@/components/landing/sections/LandingFooter";
 import { HelpArt } from "@/components/help/HelpArt";
 import { Container } from "@/components/ui/primitives";
 import { Reveal } from "@/components/anim/Reveal";
-import { ChatSupport } from "@/components/help/ChatSupport";
 import { SITE } from "@/lib/site";
 import type { ToneName } from "@/lib/theme";
 
@@ -489,8 +488,8 @@ const CATS: {
   {
     icon: LifeBuoy,
     t: "Get help",
-    d: "Chat with our support team.",
-    href: "#chat",
+    d: "Report a problem with a trip.",
+    href: "#contact",
     tone: "lav",
   },
 ];
@@ -698,21 +697,11 @@ export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
           )}
         </Section>
 
-        <Section id="chat">
-          <SectionHead>
-            <div>
-              <Kicker>Still stuck?</Kicker>
-              <Title>Chat with support</Title>
-            </div>
-          </SectionHead>
-          <ChatSupport />
-        </Section>
-
         <Section id="contact">
           <SectionHead>
             <div>
-              <Kicker>Prefer email?</Kicker>
-              <Title>Other ways to reach us</Title>
+              <Kicker>Still stuck?</Kicker>
+              <Title>Reach our team</Title>
             </div>
           </SectionHead>
           <Reveal>
@@ -726,13 +715,13 @@ export function HelpContent({ initialFaqs }: { initialFaqs?: FaqItem[] }) {
                   <small>{SITE.supportEmail}</small>
                 </div>
               </ContactCard>
-              <ContactCard href="#chat" $tone="tan">
+              <ContactCard href="/trips#help" $tone="tan">
                 <span className="chip">
                   <MessageCircle size={22} />
                 </span>
                 <div>
-                  <b>Live chat</b>
-                  <small>Message our team right here</small>
+                  <b>Report a problem</b>
+                  <small>Open a case on any trip</small>
                 </div>
               </ContactCard>
             </Support>

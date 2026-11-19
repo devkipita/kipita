@@ -4,9 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
-import { Warning } from "@/components/icons";
+import { NavigationArrow, Warning } from "@/components/icons";
+import { useShareLocation } from "@/lib/trips/live";
 import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { useConfirm } from "@/components/ui/ConfirmPop";
 import { nocturne } from "@/lib/nocturne";
 import { releaseEscrowForAll } from "@/lib/escrow";
 import { cancelTripAction } from "@/lib/trips/booking-actions";
@@ -23,7 +25,6 @@ import {
   Row,
   RULE,
   SectionHead,
-  SectionLead,
   Tag,
   fs,
 } from "./RideRow";
@@ -112,6 +113,22 @@ function seatLine(trip: PublishedTrip) {
   return parts.join(" · ");
 }
 
+function ShareLocation({ tripId }: { tripId: string }) {
+  const { state, toggle } = useShareLocation(tripId, true);
+  return (
+    <Act type="button" onClick={toggle} aria-pressed={state === "on"}>
+      <NavigationArrow size={16} weight={state === "on" ? "fill" : "bold"} />
+      {state === "on"
+        ? "Sharing location"
+        : state === "denied"
+          ? "Allow location to share"
+          : state === "unsupported"
+            ? "Location unavailable"
+            : "Share live location"}
+    </Act>
+  );
+}
+
 export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
   const router = useRouter();
   const { kycStatus, requireKyc } = useAppMode();
@@ -135,21 +152,21 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
     [items],
   );
 
+  const { ask, confirmNode } = useConfirm();
+
   if (items.length === 0) return null;
 
   const shown = expanded ? items : items.slice(0, SHOWN);
   const hidden = items.length - shown.length;
 
-  function cancel(trip: PublishedTrip) {
-    const taken = trip.seats_taken;
-    const message =
-      taken > 0
-        ? `Cancel ${trip.from_location} to ${trip.to_location}? ${taken} ${
-            taken === 1 ? "passenger is" : "passengers are"
-          } booked. They are told straight away and anyone who paid is refunded in full.`
-        : `Cancel ${trip.from_location} to ${trip.to_location}? It comes off the board and nobody can book it.`;
-
-    if (!window.confirm(message)) return;
+  async function cancel(trip: PublishedTrip, anchor: Element) {
+    const ok = await ask(anchor, {
+      title: "Cancel ride?",
+      yes: "Cancel ride",
+      no: "Keep ride",
+      danger: true,
+    });
+    if (!ok) return;
 
     setBusy(trip.id);
     setJob("cancel");
@@ -169,16 +186,14 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
     });
   }
 
-  function start(trip: PublishedTrip) {
+  async function start(trip: PublishedTrip, anchor: Element) {
     const unpaid = trip.awaiting_payment + trip.pending_requests;
-    const warning =
-      unpaid > 0
-        ? ` ${unpaid} unpaid ${unpaid === 1 ? "seat is" : "seats are"} released and those passengers are told.`
-        : "";
-
-    if (!window.confirm(`Start ${trip.from_location} to ${trip.to_location}?${warning}`)) {
-      return;
-    }
+    const ok = await ask(anchor, {
+      title: unpaid > 0 ? `Start ride and drop ${unpaid} unpaid ${unpaid === 1 ? "seat" : "seats"}?` : "Start ride?",
+      yes: "Start ride",
+      no: "Not yet",
+    });
+    if (!ok) return;
 
     setBusy(trip.id);
     setJob("start");
@@ -204,14 +219,13 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
     });
   }
 
-  function complete(trip: PublishedTrip) {
-    if (
-      !window.confirm(
-        `End ${trip.from_location} to ${trip.to_location}? Fares held for this ride are released to you, minus the Kipita fee.`,
-      )
-    ) {
-      return;
-    }
+  async function complete(trip: PublishedTrip, anchor: Element) {
+    const ok = await ask(anchor, {
+      title: "End ride?",
+      yes: "End ride",
+      no: "Keep driving",
+    });
+    if (!ok) return;
 
     setBusy(trip.id);
     setJob("complete");
@@ -237,7 +251,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
       <SectionHead>
         Rides you published <Count>{items.length}</Count>
       </SectionHead>
-      <SectionLead>Start each ride when you leave. Ending it pays you.</SectionLead>
+      {confirmNode}
 
       {error && (
         <Err role="alert">
@@ -304,11 +318,12 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
             </div>
 
             <Acts>
+              {running && <ShareLocation tripId={trip.id} />}
               {running ? (
                 <Act
                   $primary
                   type="button"
-                  onClick={() => complete(trip)}
+                  onClick={(e) => complete(trip, e.currentTarget)}
                   disabled={working}
                   aria-busy={working}
                 >
@@ -325,7 +340,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                   <Act
                     $quiet
                     type="button"
-                    onClick={() => cancel(trip)}
+                    onClick={(e) => cancel(trip, e.currentTarget)}
                     disabled={working}
                     aria-busy={working && job === "cancel"}
                   >
@@ -347,7 +362,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                     <Act
                       $primary
                       type="button"
-                      onClick={() => start(trip)}
+                      onClick={(e) => start(trip, e.currentTarget)}
                       disabled={working}
                       aria-busy={working && job === "start"}
                     >
@@ -363,7 +378,7 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
                 </>
               )}
               <Act as={Link} href={`/ride/${trip.id}`}>
-                View
+                Open ride
               </Act>
             </Acts>
           </Row>
