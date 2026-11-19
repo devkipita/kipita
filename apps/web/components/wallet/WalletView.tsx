@@ -41,6 +41,7 @@ const ROLL_MS = parseInt(dur.max, 10);
 const Page = styled(ContentWidth)`
   padding-block: 20px 56px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 28px;
 `;
 
@@ -176,6 +177,7 @@ const Tile = styled.div`
 
 const Section = styled.section`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 
   > h2 {
@@ -193,6 +195,7 @@ const Ledger = styled.ul`
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 `;
 

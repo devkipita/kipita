@@ -16,7 +16,7 @@ import {
   ActivityError,
   ActivitySkeletonRows,
 } from "@/components/notifications/ActivityStates";
-import { useAppMode } from "@/components/nav/AppShell";
+import { useOptionalAppMode } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { spring } from "@/lib/motion";
 import { markAllRead, refreshNotifications } from "@/lib/notifications/store";
@@ -205,7 +205,8 @@ function Face({
 
 export function ActivityButton({ userId }: { userId: string }) {
   const { status, items, unread } = useNotifications(userId);
-  const { mode } = useAppMode();
+  // No AppShell on /help and /legal, so there is no mode there: use the rider copy.
+  const mode = useOptionalAppMode()?.mode ?? "passenger";
   const pathname = usePathname();
   const sheet = useIsSheet();
   const [open, setOpen] = useState(false);

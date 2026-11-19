@@ -51,6 +51,15 @@ export function useAppMode(): ModeContext {
   return value;
 }
 
+/**
+ * Like useAppMode, but returns null outside AppShell instead of throwing.
+ * For chrome that is also rendered on the public (site) pages, such as
+ * /help and /legal, which have no AppShell around them.
+ */
+export function useOptionalAppMode(): ModeContext | null {
+  return useContext(Ctx);
+}
+
 export const Shell = styled.div`
   --rail-w: 0px;
   --aside-w: 0px;
