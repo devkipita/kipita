@@ -71,6 +71,7 @@ export const LIMITS = {
   reserveSeat: { limit: 10, windowMs: 10 * 60 * 1000 },
   submitKyc: { limit: 5, windowMs: 60 * 60 * 1000 },
   postTrip: { limit: 5, windowMs: 60 * 60 * 1000 },
+  priceQuote: { limit: 40, windowMs: 60 * 1000 },
 
   signInIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
   signInIp: { limit: 30, windowMs: 15 * 60 * 1000 },

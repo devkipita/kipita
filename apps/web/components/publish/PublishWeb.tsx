@@ -28,6 +28,8 @@ import { clearDraft, loadDraft, saveDraft } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
+import { PriceStep } from "./PriceStep";
+import { carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -41,12 +43,13 @@ type Draft = {
   time: string;
   seats: number | null;
   price: string;
+  /** the car type the price is worked out for; empty means the default */
+  vehicleClass: string;
   prefs: Prefs;
 };
 
 const STEPS = ["Destination", "Day", "Departure time", "Seats", "Price", "Car", "Ride details", "Review"] as const;
 const DAYS_AHEAD = 21;
-const FARES = [1000, 1500, 2000, 2500];
 const SEATS = [1, 2, 3, 4, 5, 6, 7, 8];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAJOR = ["Nairobi", "Nakuru", "Nyeri", "Nanyuki", "Naivasha", "Thika", "Eldoret", "Kisumu", "Mombasa", "Meru", "Machakos"];
@@ -153,6 +156,7 @@ function blankDraft(): Draft {
     time: "",
     seats: null,
     price: "",
+    vehicleClass: "",
     prefs: { no_smoking: true, pets: false, luggage: true, music: true, silent_ride: false },
   };
 }
@@ -865,36 +869,6 @@ const Hollow = styled.button`
   ${ring}
 `;
 
-const Money = styled.div`
-  display: flex;
-  align-items: stretch;
-  height: 56px;
-  border: 1.5px solid ${nocturne.green};
-  border-radius: 14px;
-  overflow: hidden;
-
-  .unit {
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    background: ${nocturne.surface3};
-    font-weight: 800;
-    color: ${nocturne.green};
-  }
-  input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    font: inherit;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 0 16px;
-    color: ${nocturne.cream};
-  }
-`;
-
 const Review = styled.section`
   display: flex;
   flex-direction: column;
@@ -1008,7 +982,6 @@ export function PublishWeb({
   const [adding, setAdding] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
-  const [fareOpen, setFareOpen] = useState(false);
   const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
   const sentenceRef = useRef<HTMLParagraphElement>(null);
@@ -1030,6 +1003,7 @@ export function PublishWeb({
         time: saved.time ?? "",
         seats: saved.seats ?? null,
         price: saved.price ?? "",
+        vehicleClass: saved.vehicleClass ?? "",
         prefs: { ...base.prefs, ...saved.prefs },
       });
       if (saved.time) setPeriod(periodOf(saved.time));
@@ -1100,16 +1074,15 @@ export function PublishWeb({
   }, [step]);
 
   useEffect(() => {
-    if (!calOpen && !timeOpen && !fareOpen) return;
+    if (!calOpen && !timeOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setCalOpen(false);
       setTimeOpen(false);
-      setFareOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [calOpen, timeOpen, fareOpen]);
+  }, [calOpen, timeOpen]);
 
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
@@ -1156,7 +1129,6 @@ export function PublishWeb({
     setAdding(false);
     setCalOpen(false);
     setTimeOpen(false);
-    setFareOpen(false);
     setDiscardOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => sentenceRef.current?.focus({ preventScroll: true }), 0);
@@ -1165,13 +1137,16 @@ export function PublishWeb({
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
   const fare = Number(draft.price) || 0;
+  // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, enabled: ready && step >= 3 });
+  const priceBlock = priceBlockText(quote, seats, fare);
 
   const valid = [
     !!draft.from && !!draft.to && draft.from.toLowerCase() !== draft.to.toLowerCase(),
     !!draft.date,
     !!draft.time,
     !!draft.seats,
-    fare > 0,
+    priceReady(quote, seats, fare),
     !adding,
     true,
     true,
@@ -1187,6 +1162,9 @@ export function PublishWeb({
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
+    const carType = carTypeBlockText(quote, car?.make ?? "", car?.model ?? "");
+    if (carType) return { kind: "carType", text: carType };
+    if (priceBlock) return { kind: "price", text: priceBlock };
     return null;
   }
 
@@ -1197,6 +1175,7 @@ export function PublishWeb({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
+    else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else publish();
   }
@@ -1223,6 +1202,7 @@ export function PublishWeb({
         departure_time: draft.time,
         seats_total: seats,
         price_per_seat: fare,
+        vehicle_class: quote.status === "ready" ? quote.quote.vehicleClass : undefined,
         preferences: draft.prefs,
         vehicle_make: car?.make.trim() || undefined,
         vehicle_model: car?.model.trim() || undefined,
@@ -1398,13 +1378,12 @@ export function PublishWeb({
 
   const laterDay = !!draft.date && draft.date !== calendar.today && draft.date !== calendar.tomorrow;
   const quickHit = QUICK_TIMES.includes(draft.time);
-  const customFare = fare > 0 && !FARES.includes(fare);
   const reviewing = step === 7;
 
   // A chip answer moves the flow on by itself, so the button only earns its
   // place where there is nothing to tap, or where the driver is going back
   // over an answer they already gave.
-  const showCta = step === 5 || step === 6 || (valid && step < maxStep);
+  const showCta = step === 4 || step === 5 || step === 6 || (valid && step < maxStep);
   const ctaTone: "go" | "off" = valid ? "go" : "off";
 
 
@@ -1643,16 +1622,15 @@ export function PublishWeb({
                 <FieldHead>
                   <span>Price per seat</span>
                 </FieldHead>
-                <Row>
-                  {FARES.map((f) => (
-                    <Chip key={f} type="button" $on={fare === f} onClick={() => { patch({ price: String(f) }); go(5); }}>
-                      {formatKes(f)}
-                    </Chip>
-                  ))}
-                  <Chip type="button" $on={customFare} onClick={() => setFareOpen(true)}>
-                    {customFare ? formatKes(fare) : "Other amount"}
-                  </Chip>
-                </Row>
+                <PriceStep
+                  state={quote}
+                  seats={seats}
+                  price={draft.price}
+                  vehicleClass={draft.vehicleClass}
+                  onPrice={(price) => patch({ price })}
+                  onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
+                  onChangeSeats={() => go(3)}
+                />
               </Field>
             )}
 
@@ -1810,42 +1788,6 @@ export function PublishWeb({
                 }}
               >
                 Done
-              </Solid>
-            </DialogFoot>
-          </Dialog>
-        </Backdrop>
-      )}
-
-      {fareOpen && (
-        <Backdrop onClick={() => setFareOpen(false)}>
-          <Dialog $w={380} role="dialog" aria-modal="true" aria-label="Your price per seat" onClick={(e) => e.stopPropagation()}>
-            <DialogHead>
-              <label htmlFor="fare">Your price per seat</label>
-            </DialogHead>
-            <Money>
-              <span className="unit">KES</span>
-              <input
-                id="fare"
-                autoFocus
-                inputMode="numeric"
-                placeholder="Enter amount"
-                value={fare > 0 ? fare.toLocaleString("en-US") : ""}
-                onChange={(e) => patch({ price: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-              />
-            </Money>
-            <DialogFoot style={{ justifyContent: "flex-end", borderTop: 0, paddingTop: 0 }}>
-              <Hollow type="button" onClick={() => setFareOpen(false)}>
-                Cancel
-              </Hollow>
-              <Solid
-                type="button"
-                onClick={() => {
-                  if (fare <= 0) return;
-                  setFareOpen(false);
-                  go(5);
-                }}
-              >
-                Use this price
               </Solid>
             </DialogFoot>
           </Dialog>

@@ -15,6 +15,8 @@ export type StoredDraft = {
   model: string;
   plate: string;
   color: string;
+  /** the car type the price was worked out for; empty means the default */
+  vehicleClass?: string;
   carMode?: "saved" | "new" | "none";
   prefs: Partial<Record<keyof RidePreferences, boolean>>;
   step?: number;

@@ -42,6 +42,7 @@ export default async function AdminPricingPage() {
     fare_margin_percent: SETTING_FALLBACKS.fare_margin_percent,
     fare_wear_per_km: SETTING_FALLBACKS.fare_wear_per_km,
     fare_min_seat_price: SETTING_FALLBACKS.fare_min_seat_price,
+    fare_floor_percent: SETTING_FALLBACKS.fare_floor_percent,
     fare_round_step: SETTING_FALLBACKS.fare_round_step,
   };
   for (const row of rows ?? []) {

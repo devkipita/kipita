@@ -201,6 +201,7 @@ export const SETTING_LABELS: Record<string, string> = {
   fare_margin_percent: "Fare headroom (price cap)",
   fare_wear_per_km: "Wear and tear per km",
   fare_min_seat_price: "Lowest seat price",
+  fare_floor_percent: "Price floor (share of recommended)",
   fare_round_step: "Seat price rounding step",
 };
 
