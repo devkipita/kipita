@@ -19,6 +19,12 @@ const Download = styled.section`
   }
 `;
 
+// The shared lime eyebrow is only legible on the dark theme (about 1.4:1 on
+// the light one). The accent colour holds contrast in both.
+const DownloadEyebrow = styled(Eyebrow)`
+  color: ${nocturne.accent};
+`;
+
 const DownloadGrid = styled.div`
   max-width: 1360px;
   margin: 0 auto;
@@ -194,7 +200,7 @@ export function DownloadCta() {
     <Download id="download">
       <DownloadGrid>
         <DownloadCopy stagger={0.1}>
-          <Eyebrow $tone="lime">In build · launching soon</Eyebrow>
+          <DownloadEyebrow>In build · launching soon</DownloadEyebrow>
           <H2>
             Put Kipita
             <br />
