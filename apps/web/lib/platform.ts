@@ -20,7 +20,12 @@ export type SettingKey =
   | "fare_wear_per_km"
   | "fare_min_seat_price"
   | "fare_floor_percent"
-  | "fare_round_step";
+  | "fare_round_step"
+  | "cancel_free_hours"
+  | "cancel_grace_minutes"
+  | "cancel_late_refund_percent"
+  | "no_show_wait_minutes"
+  | "no_show_dispute_hours";
 
 export const SETTING_FALLBACKS: Record<SettingKey, number> = {
   platform_fee_percent: 12,
@@ -34,6 +39,11 @@ export const SETTING_FALLBACKS: Record<SettingKey, number> = {
   fare_min_seat_price: 100,
   fare_floor_percent: 70,
   fare_round_step: 10,
+  cancel_free_hours: 12,
+  cancel_grace_minutes: 30,
+  cancel_late_refund_percent: 50,
+  no_show_wait_minutes: 15,
+  no_show_dispute_hours: 24,
 };
 
 export type Platform = {

@@ -8,7 +8,7 @@ export const TRIP_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if I need to cancel?",
-    a: "Cancel from the trip itself, or from the row on this page. During the pilot there is no cancellation charge at all: if you paid, the full fare goes back to your Kipita wallet; if you had not paid yet, the seat is simply released.",
+    a: "Cancel from the trip itself. If you have not paid yet, nothing is charged. If you have paid, you can cancel free until shortly before the ride, and for a short while after paying. After that you get part of the seat price back and the driver keeps the rest, and the service fee is not refunded. If you do not turn up, nothing is refunded. If the driver cancels, you always get everything back. The exact amounts are shown before you pay and again when you cancel.",
   },
   {
     q: "The driver never arrived. What now?",

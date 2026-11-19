@@ -20,11 +20,19 @@ import { Avatar } from "@/components/profile/Avatar";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
-import { cancelBookingAction } from "@/lib/trips/booking-actions";
+import { cancellationRuleLines, freeUntil, noShowOpensAt, type CancellationConfig } from "@kipita/shared";
+import {
+  cancelBookingAction,
+  disputeNoShowAction,
+  getCancellationQuoteAction,
+  markNoShowAction,
+  type CancellationQuoteView,
+} from "@/lib/trips/booking-actions";
 import { answerSeatRequestAction } from "@/lib/trips/request-actions";
 import { useBookingStream } from "@/lib/trips/realtime";
-import type { Booking } from "@/lib/trips/types";
+import type { Booking, NoShowState } from "@/lib/trips/types";
 import { CancelPanel } from "./CancelPanel";
+import { NoShowPanel } from "./NoShowPanel";
 import { FinishScene } from "./FinishScene";
 import { RateRide } from "./RateRide";
 import { PayPanel } from "./PayPanel";
@@ -223,7 +231,7 @@ const MapTop = styled.div`
 `;
 
 type Snap = "peek" | "half" | "full";
-type Side = "pay" | "chat" | "cancel";
+type Side = "pay" | "chat" | "cancel" | "dispute";
 
 const SNAP_Y: Record<Snap, string> = {
   full: "0px",
@@ -732,6 +740,18 @@ const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "comp
 const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid, held by Kipita", "On the way", "Arrived"];
 const DRIVER_STEPS = ["Request received", "You accepted", "Passenger paid", "On the way", "Arrived"];
 
+/** "Tue, 8:00 pm" in Nairobi time. */
+function whenLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-KE", {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi",
+  }).format(d);
+}
+
 function holdLeft(expiresAt: string | null): string | null {
   if (!expiresAt) return null;
   const ms = new Date(expiresAt).getTime() - Date.now();
@@ -749,12 +769,17 @@ export function TripDetail({
   viewerId,
   viewerPhone,
   walletBalance,
+  cancelConfig,
+  noShow,
   route,
 }: {
   booking: Booking;
   viewerId: string;
   viewerPhone?: string | null;
   walletBalance: number | null;
+  cancelConfig: CancellationConfig;
+  /** Null when migration 063 has not run yet. */
+  noShow: NoShowState | null;
   route: Promise<TripRoute | null>;
 }) {
   const router = useRouter();
@@ -790,7 +815,7 @@ export function TripDetail({
   const feePct = fee != null && subtotal > 0 ? Math.round((fee / subtotal) * 100) : null;
   const seatLine = perSeat > 0 && perSeat * booking.seats_booked === subtotal;
 
-  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | null>(null);
+  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | "noshow" | "dispute" | null>(null);
   const [error, setError] = useState("");
   const [hold, setHold] = useState<string | null>(() => holdLeft(booking.expires_at));
   const [, startTransition] = useTransition();
@@ -912,6 +937,128 @@ export function TripDetail({
   const [side, setSide] = useState<Side | null>(null);
   const [lastSide, setLastSide] = useState<Side>("pay");
   const [payBusy, setPayBusy] = useState(false);
+
+  // ── Cancellation: what it costs now, and the no-show path ──
+  const departsAt = (() => {
+    const d = booking.trip?.departure_date;
+    const t = booking.trip?.departure_time;
+    if (!d || !t) return null;
+    const when = new Date(`${d}T${t.slice(0, 8)}+03:00`);
+    return Number.isNaN(when.getTime()) ? null : when;
+  })();
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!paid) return;
+    setNowMs(Date.now());
+    const timer = setInterval(() => setNowMs(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, [paid]);
+
+  const paidAtDate = booking.paid_at ? new Date(booking.paid_at) : null;
+  const freeEnds = departsAt && paidAtDate ? freeUntil(departsAt, paidAtDate, cancelConfig) : null;
+  const freeNow = freeEnds ? nowMs <= freeEnds.getTime() : false;
+  const canReportNoShow =
+    isDriver && paid && departsAt != null && nowMs >= noShowOpensAt(departsAt, cancelConfig).getTime();
+
+  const markedMs = noShow?.markedAt ? new Date(noShow.markedAt).getTime() : null;
+  const disputeOpen =
+    markedMs != null && !noShow?.disputedAt && nowMs <= markedMs + cancelConfig.noShowDisputeHours * 3_600_000;
+  const noShowNote: string | null =
+    stopped && noShow?.tier === "no_show"
+      ? noShow.disputedAt
+        ? "Under review. The fare stays on hold while we look into it"
+        : isDriver
+          ? disputeOpen
+            ? `${formatCurrency(subtotal)} goes to your wallet in ${cancelConfig.noShowDisputeHours} hours unless the passenger disputes it`
+            : `${formatCurrency(subtotal)} was added to your wallet`
+          : disputeOpen
+            ? `Your driver says you didn't show up. Dispute it within ${cancelConfig.noShowDisputeHours} hours or the fare goes to your driver`
+            : "You didn't show up, so the seat price went to your driver"
+      : stopped && noShow?.tier === "late" && booking.refunded_amount == null
+        ? "Cancelled late, so nothing was refunded"
+        : null;
+
+  const [quote, setQuote] = useState<CancellationQuoteView | "loading" | "failed" | null>(null);
+  useEffect(() => {
+    if (side !== "cancel" || !paid) return;
+    let current = true;
+    setQuote("loading");
+    getCancellationQuoteAction(booking.id).then((r) => {
+      if (current) setQuote(r.ok ? r.quote : "failed");
+    });
+    return () => {
+      current = false;
+    };
+  }, [side, paid, booking.id]);
+
+  const cancelCopy: { money: string; detail: string | null; refund: boolean } = (() => {
+    if (!paid) return { money: "Nothing has been charged", detail: null, refund: false };
+    if (quote === "loading" || quote === null) {
+      return { money: "Checking what you'd get back…", detail: null, refund: true };
+    }
+    if (quote === "failed") {
+      return {
+        money: "We couldn't check what you'd get back",
+        detail: cancellationRuleLines(cancelConfig).slice(0, 2).join(" "),
+        refund: true,
+      };
+    }
+    if (quote.tier === "free" || quote.tier === "driver") {
+      return {
+        money: `${formatCurrency(quote.passengerGets)} goes back to your Kipita wallet`,
+        detail: "You're inside the free cancellation window, so nothing is kept.",
+        refund: true,
+      };
+    }
+    if (quote.tier === "late") {
+      const ended = quote.freeUntil ? `Free cancellation ended ${whenLabel(quote.freeUntil)}.` : "Free cancellation has ended.";
+      const fee = `the ${formatCurrency(quote.kipitaKeeps)} service fee isn't refunded`;
+      return {
+        money: quote.passengerGets > 0 ? `${formatCurrency(quote.passengerGets)} goes back to your Kipita wallet` : "Nothing is refunded",
+        detail:
+          quote.passengerGets > 0
+            ? `${ended} The other ${formatCurrency(quote.driverGets)} goes to your driver and ${fee}.`
+            : `${ended} The seat price goes to your driver and ${fee}.`,
+        refund: quote.passengerGets > 0,
+      };
+    }
+    return { money: "Nothing has been charged", detail: null, refund: false };
+  })();
+
+  async function reportNoShow(anchor: Element) {
+    const ok = await ask(anchor, {
+      title: `Report ${firstName} as a no-show?`,
+      yes: "Report no-show",
+      no: "Not yet",
+      danger: true,
+    });
+    if (!ok) return;
+    setBusy("noshow");
+    setError("");
+    startTransition(async () => {
+      const result = await markNoShowAction(booking.id);
+      setBusy(null);
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
+  }
+
+  const [disputeError, setDisputeError] = useState("");
+
+  function sendDispute(reason: string) {
+    setBusy("dispute");
+    setDisputeError("");
+    startTransition(async () => {
+      const result = await disputeNoShowAction(booking.id, reason);
+      setBusy(null);
+      if (!result.ok) {
+        setDisputeError(result.error);
+        return;
+      }
+      setSide(null);
+      router.refresh();
+    });
+  }
 
   const pageRef = useRef<HTMLDivElement>(null);
   const [squeeze, setSqueeze] = useState(false);
@@ -1129,10 +1276,14 @@ export function TripDetail({
     <SidePanel
       open={side !== null}
       mode={panelMode}
-      title={shown === "chat" ? name : shown === "cancel" ? "Cancel ride" : "Pay for your seat"}
-      closeLabel={shown === "chat" ? "Close messages" : shown === "cancel" ? "Keep ride" : "Close payment"}
+      title={
+        shown === "chat" ? name : shown === "cancel" ? "Cancel ride" : shown === "dispute" ? "Dispute no-show" : "Pay for your seat"
+      }
+      closeLabel={
+        shown === "chat" ? "Close messages" : shown === "cancel" ? "Keep ride" : shown === "dispute" ? "Close" : "Close payment"
+      }
       onClose={() => setSide(null)}
-      locked={(shown === "pay" && payBusy) || (shown === "cancel" && busy === "cancel")}
+      locked={(shown === "pay" && payBusy) || (shown === "cancel" && busy === "cancel") || (shown === "dispute" && busy === "dispute")}
     >
       {shown === "pay" && due && !isDriver && (
         <PayPanel
@@ -1149,6 +1300,7 @@ export function TripDetail({
           }
           defaultPhone={viewerPhone ?? null}
           walletBalance={walletBalance}
+          ruleLines={cancellationRuleLines(cancelConfig)}
           onBusy={setPayBusy}
           onClose={() => setSide(null)}
           onPaid={() => {
@@ -1159,17 +1311,17 @@ export function TripDetail({
       )}
       {shown === "cancel" && (
         <CancelPanel
-          money={
-            paid
-              ? `${formatCurrency(booking.total_price)} goes back to your Kipita wallet`
-              : "Nothing has been charged"
-          }
-          refund={paid}
+          money={cancelCopy.money}
+          detail={cancelCopy.detail}
+          refund={cancelCopy.refund}
           busy={busy === "cancel"}
           error={cancelError}
           onKeep={() => setSide(null)}
           onCancel={cancel}
         />
+      )}
+      {shown === "dispute" && (
+        <NoShowPanel busy={busy === "dispute"} error={disputeError} onBack={() => setSide(null)} onSend={sendDispute} />
       )}
       {shown === "chat" && ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status) && (
         <ChatPanel
@@ -1200,7 +1352,7 @@ export function TripDetail({
   const labels = isDriver ? DRIVER_STEPS : RIDER_STEPS;
   const at = ORDER.indexOf(booking.status as (typeof ORDER)[number]);
 
-  const note = due
+  const baseNote = due
     ? hold
       ? isDriver
         ? `Waiting for ${firstName} to pay · ${hold} left`
@@ -1227,6 +1379,7 @@ export function TripDetail({
             : booking.paid_at
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
+  const note = noShowNote ?? baseNote;
 
   return (
     <>
@@ -1418,6 +1571,16 @@ export function TripDetail({
               {due && isDriver ? <Clock size={18} /> : <Lock size={18} />}
               {note}
             </Hint>
+            {!isDriver && paid && freeEnds && (
+              <Hint>
+                <Clock size={18} />
+                {freeNow
+                  ? `Free cancellation until ${whenLabel(freeEnds.toISOString())}`
+                  : cancelConfig.latePercent > 0
+                    ? `Free cancellation has ended. Cancelling now returns ${cancelConfig.latePercent}% of the seat price`
+                    : "Free cancellation has ended. Cancelling now returns nothing"}
+              </Hint>
+            )}
             {runnable && (
               <Pay
                 type="button"
@@ -1502,9 +1665,21 @@ export function TripDetail({
               </>
             ) : finished ? (
               !isDriver && (
-                <Outline as={Link} href="/home">
-                  Find another ride
-                </Outline>
+                <>
+                  {noShow?.tier === "no_show" && disputeOpen && (
+                    <Outline
+                      type="button"
+                      onClick={() => openSide("dispute")}
+                      aria-expanded={side === "dispute"}
+                      disabled={busy !== null}
+                    >
+                      This isn't right
+                    </Outline>
+                  )}
+                  <Outline as={Link} href="/home">
+                    Find another ride
+                  </Outline>
+                </>
               )
             ) : (
               <>
@@ -1522,6 +1697,17 @@ export function TripDetail({
                   >
                     {busy === "cancel" ? <ButtonOrb job="committing" /> : null}
                     Cancel ride
+                  </Outline>
+                )}
+                {canReportNoShow && (
+                  <Outline
+                    type="button"
+                    onClick={(e) => reportNoShow(e.currentTarget)}
+                    disabled={busy !== null}
+                    aria-busy={busy === "noshow"}
+                  >
+                    {busy === "noshow" ? <ButtonOrb job="committing" /> : null}
+                    Passenger didn't show up
                   </Outline>
                 )}
               </>

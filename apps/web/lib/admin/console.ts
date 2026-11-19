@@ -203,6 +203,11 @@ export const SETTING_LABELS: Record<string, string> = {
   fare_min_seat_price: "Lowest seat price",
   fare_floor_percent: "Price floor (share of recommended)",
   fare_round_step: "Seat price rounding step",
+  cancel_free_hours: "Free cancellation closes before departure",
+  cancel_grace_minutes: "Free cancellation after paying",
+  cancel_late_refund_percent: "Late cancellation refund",
+  no_show_wait_minutes: "Wait before a no-show can be reported",
+  no_show_dispute_hours: "Time to dispute a no-show",
 };
 
 export function describeAction(row: AuditRow) {

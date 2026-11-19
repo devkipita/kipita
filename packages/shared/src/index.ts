@@ -8,3 +8,4 @@ export * from "./cardColor";
 export * from "./publish-draft";
 export * from "./price-input";
 export * from "./vehicle-class";
+export * from "./cancellation";

@@ -17,6 +17,11 @@ const SETTING_RANGES: Record<string, { min: number; max: number; integer?: boole
   fare_min_seat_price: { min: 0, max: 5000 },
   fare_floor_percent: { min: 0, max: 100, integer: true },
   fare_round_step: { min: 1, max: 100, integer: true },
+  cancel_free_hours: { min: 0, max: 168, integer: true },
+  cancel_grace_minutes: { min: 0, max: 1440, integer: true },
+  cancel_late_refund_percent: { min: 0, max: 100, integer: true },
+  no_show_wait_minutes: { min: 0, max: 240, integer: true },
+  no_show_dispute_hours: { min: 1, max: 168, integer: true },
 };
 
 export async function fetchTripAction(tripId: string): Promise<TripDetail | null> {
