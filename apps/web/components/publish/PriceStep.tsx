@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import styled, { css } from "styled-components";
-import { fillOutcomes, judgePrice, type PriceChoiceKey } from "@kipita/shared";
+import { fillOutcomes, judgePrice, wholeShillings, type PriceChoiceKey } from "@kipita/shared";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import { rangeFor, type QuoteState } from "./price";
@@ -269,10 +269,22 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
   const range = quote ? rangeFor(quote, seats) : null;
 
   const typedValue = (digits: string) => (digits ? Number(digits).toLocaleString("en-US") : "");
+  // Set once a decimal point has been typed. Prices are whole shillings, so the point ends the amount and
+  // anything typed after it is ignored until the driver deletes a digit or leaves the box.
+  const pointed = useRef(false);
   const onType = (raw: string) => {
-    const digits = raw.replace(/\D/g, "").replace(/^0+/, "").slice(0, 6);
+    const digits = wholeShillings(raw);
+    if (raw.includes(".")) pointed.current = true;
+    else if (pointed.current) {
+      const current = typed ?? price;
+      if (current.length > 0 && digits.length > current.length) return;
+      pointed.current = false;
+    }
     setTyped(digits);
     onPrice(digits);
+  };
+  const onBlur = () => {
+    pointed.current = false;
   };
 
   if (state.status === "unavailable" || (state.status === "ready" && !range)) {
@@ -288,6 +300,7 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
               aria-label="Price per seat in Kenyan shillings"
               value={typedValue(typed ?? price)}
               onChange={(e) => onType(e.target.value)}
+              onBlur={onBlur}
             />
           </AmountBox>
         </Section>
@@ -398,6 +411,7 @@ export function PriceStep({ state, seats, price, vehicleClass, onPrice, onVehicl
             aria-describedby="price-range-note"
             value={boxValue}
             onChange={(e) => onType(e.target.value)}
+            onBlur={onBlur}
           />
         </AmountBox>
         <Note id="price-range-note" $tone={tone} role={tone ? "alert" : undefined}>

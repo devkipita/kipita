@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { judgePrice, seatPriceRange, type SeatPriceRange } from "@kipita/shared";
+import { className, classForCar, judgePrice, seatPriceRange, type SeatPriceRange } from "@kipita/shared";
 import { getPriceQuoteAction } from "@/lib/fare/actions";
 import type { PriceQuote, PriceUnavailableReason } from "@/lib/fare/types";
 import { formatKes } from "@/lib/rides";
@@ -100,6 +100,20 @@ export function priceBlockText(state: QuoteState, seats: number, fare: number): 
     return `That price is too high for a shared ride. The most is ${formatKes(range.capKes)} a seat.`;
   }
   return null;
+}
+
+/**
+ * Why the car the driver named does not match the car type the trip was priced with, in words for the
+ * driver, or null if they match, the model is not one we recognise, or the types are not known yet.
+ */
+export function carTypeBlockText(state: QuoteState, make: string, model: string): string | null {
+  if (state.status !== "ready") return null;
+  const { classes, vehicleClass } = state.quote;
+  const listed = classForCar(make, model, classes);
+  if (!listed || listed.code === vehicleClass) return null;
+  const priced = classes.find((c) => c.code === vehicleClass);
+  const carName = `${make} ${model}`.replace(/\s+/g, " ").trim();
+  return `${carName} is listed as “${className(listed.label)}”, but the price was worked out for “${priced ? className(priced.label) : "another car type"}”. Go back to the price and pick “${className(listed.label)}”.`;
 }
 
 /** Whether the Price step can be continued from. */

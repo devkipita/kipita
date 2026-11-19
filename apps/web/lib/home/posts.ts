@@ -172,6 +172,8 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
     seats: trip.seats_total,
     priceKes: trip.price_per_seat,
     vehicleClass: trip.vehicle_class,
+    vehicleMake: trip.vehicle_make,
+    vehicleModel: trip.vehicle_model,
   });
   if (!priceCheck.ok) return { ok: false, error: priceCheck.error };
 

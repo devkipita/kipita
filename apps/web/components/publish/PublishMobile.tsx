@@ -31,7 +31,7 @@ import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 import { PriceStep } from "./PriceStep";
-import { priceBlockText, priceReady, usePriceQuote } from "./price";
+import { carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -58,7 +58,7 @@ type Draft = {
 const STEPS = ["Destination", "Day", "Departure time", "Seats", "Price", "Car", "Ride details", "Review"] as const;
 
 const DAYS_AHEAD = 21;
-const SEATS = [1, 2, 3, 4, 5, 6];
+const SEATS = [1, 2, 3, 4, 5, 6, 7, 8];
 const TIMES = ["06:00", "07:00", "07:30", "08:00", "09:00", "12:00", "15:00", "17:00", "18:00"];
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 /** Named with the paint beside it — a driver picks a colour by seeing it. */
@@ -1159,6 +1159,9 @@ export function PublishMobile({
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     const car = carProblem();
     if (car) return { kind: "car", text: car };
+    const named = pickedCar(draft, savedCars);
+    const carType = carTypeBlockText(quote, named?.make ?? "", named?.model ?? "");
+    if (carType) return { kind: "carType", text: carType };
     return priceBlock ? { kind: "price", text: priceBlock } : null;
   }
 
@@ -1169,7 +1172,7 @@ export function PublishMobile({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
-    else if (kind === "price") go(4);
+    else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else publish();
   }

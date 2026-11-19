@@ -2,11 +2,12 @@ import "server-only";
 import {
   DEFAULT_VEHICLE_CLASSES,
   fareConfigFromSettings,
-  haversineKm,
   judgePrice,
   resolveFuelPrice,
   resolveTown,
+  roadDistanceKm,
   seatPriceRange,
+  classForCar,
   type FuelPriceRow,
   type FuelType,
   type VehicleClass,
@@ -17,22 +18,7 @@ import type { PriceQuote, PriceUnavailableReason } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-/**
- * Roads are longer than the straight line between two towns. 1.2 is a typical ratio for Kenyan
- * highways. This is an estimate, not a routed distance, so the price is a suggestion with room
- * either side rather than an exact figure.
- */
-const ROAD_FACTOR = 1.2;
 const DEFAULT_CLASS = "sedan";
-
-/** Estimated road distance between two towns in km, or null if either is unknown or they are the same. */
-export function roadDistanceKm(from: string, to: string): number | null {
-  const a = resolveTown(from);
-  const b = resolveTown(to);
-  if (!a || !b || a.name === b.name) return null;
-  const km = Math.round(haversineKm(a, b) * ROAD_FACTOR * 10) / 10;
-  return km > 0 ? km : null;
-}
 
 async function loadClasses(supabase: Supabase): Promise<VehicleClass[]> {
   try {
@@ -62,7 +48,7 @@ async function loadClasses(supabase: Supabase): Promise<VehicleClass[]> {
  */
 export async function loadPriceQuote(
   supabase: Supabase,
-  args: { from: string; to: string; vehicleClass?: string },
+  args: { from: string; to: string; vehicleClass?: string; vehicleMake?: string; vehicleModel?: string },
 ): Promise<PriceQuote> {
   const fail = (reason: PriceUnavailableReason): PriceQuote => ({ available: false, reason });
 
@@ -72,7 +58,9 @@ export async function loadPriceQuote(
 
     const classes = await loadClasses(supabase);
     if (classes.length === 0) return fail("error");
+    // A car we recognise is priced as its own type, whatever type was asked for.
     const vehicle =
+      classForCar(args.vehicleMake, args.vehicleModel, classes) ??
       classes.find((c) => c.code === args.vehicleClass) ??
       classes.find((c) => c.code === DEFAULT_CLASS) ??
       classes[0];
@@ -125,7 +113,15 @@ export async function loadPriceQuote(
  */
 export async function checkTripPrice(
   supabase: Supabase,
-  args: { from: string; to: string; seats: number; priceKes: number; vehicleClass?: string },
+  args: {
+    from: string;
+    to: string;
+    seats: number;
+    priceKes: number;
+    vehicleClass?: string;
+    vehicleMake?: string;
+    vehicleModel?: string;
+  },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!Number.isInteger(args.priceKes) || args.priceKes <= 0) {
     return { ok: false, error: "Set the price in whole shillings." };

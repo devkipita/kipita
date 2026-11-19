@@ -6,7 +6,7 @@ import { ArrowRight, X } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { CarArt, DayArt, IdArt, OtherArt, TimeArt, TownsArt } from "./PublishArt";
 
-export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "kyc" | "other";
+export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "carType" | "kyc" | "other";
 
 export type Block = { kind: BlockKind; text: string };
 
@@ -24,6 +24,7 @@ const COPY: Record<BlockKind, { title: string; action: string }> = {
   towns: { title: "Start and finish are the same town", action: "Change the route" },
   car: { title: "Your car needs a few details", action: "Finish the car" },
   price: { title: "That price is outside the range", action: "Change the price" },
+  carType: { title: "The car type doesn’t match your car", action: "Change the car type" },
   kyc: { title: "Verify before you publish", action: "Verify to publish" },
   other: { title: "We couldn't publish your ride", action: "Try again" },
 };
@@ -196,6 +197,7 @@ function Art({ kind }: { kind: BlockKind }) {
     case "towns":
       return <TownsArt />;
     case "car":
+    case "carType":
       return <CarArt />;
     case "kyc":
       return <IdArt state="none" />;

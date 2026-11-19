@@ -29,7 +29,7 @@ import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 import { PriceStep } from "./PriceStep";
-import { priceBlockText, priceReady, usePriceQuote } from "./price";
+import { carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -1162,6 +1162,8 @@ export function PublishWeb({
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
+    const carType = carTypeBlockText(quote, car?.make ?? "", car?.model ?? "");
+    if (carType) return { kind: "carType", text: carType };
     if (priceBlock) return { kind: "price", text: priceBlock };
     return null;
   }
@@ -1173,7 +1175,7 @@ export function PublishWeb({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
-    else if (kind === "price") go(4);
+    else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else publish();
   }
