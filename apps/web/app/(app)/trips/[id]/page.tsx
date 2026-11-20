@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * Pickup code, boarding and problem report (migration 068). Every query is allowed to fail: on a database
- * that has not run 068 the columns, tables and function do not exist, and the booking must still load.
+ * Pickup code, boarding and problem report (migration 070). Every query is allowed to fail: on a database
+ * that has not run 070 the columns, tables and function do not exist, and the booking must still load.
  */
 async function loadJourney(bookingId: string, viewerId: string): Promise<JourneyState> {
   const supabase = await createClient();

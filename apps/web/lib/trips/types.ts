@@ -131,8 +131,8 @@ export type NoShowState = {
 };
 
 /**
- * What migration 068 adds to a booking: the passenger's pickup code, whether they boarded, when the fare
- * is released, and any problem they reported. Each field is null when it does not apply or when 068 has not
+ * What migration 070 adds to a booking: the passenger's pickup code, whether they boarded, when the fare
+ * is released, and any problem they reported. Each field is null when it does not apply or when 070 has not
  * run yet (the page reads these in forgiving queries, so an older database still loads the booking).
  */
 export type JourneyState = {

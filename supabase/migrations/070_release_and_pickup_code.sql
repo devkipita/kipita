@@ -1,13 +1,14 @@
--- 068_release_and_pickup_code.sql
+-- 070_release_and_pickup_code.sql
 -- Fares are released by the server, not by the driver's app, and only for passengers who boarded.
 --
 -- What changes
 --   Pickup code   Every booking that becomes "confirmed" (paid, by M-Pesa or wallet) gets a 4-digit
 --                 code. The passenger reads it from their booking (my_pickup_code). The driver types
 --                 it in (mark_boarded) to mark that passenger as on board. Five wrong codes for one
---                 booking lock code entry (pickup_code_max_tries); the driver can still mark the
---                 passenger on board by hand (mark_boarded_manually). A manual boarding is written to
---                 booking_problems and holds that fare until an admin clears it.
+--                 booking lock code entry (pickup_code_max_tries). Only then can the driver mark that
+--                 passenger on board by hand (mark_boarded_manually); before that the database refuses
+--                 it, so nobody can skip the code by saying a phone is off. A manual boarding is written
+--                 to booking_problems and holds that fare until an admin clears it.
 --   Start trip    start_trip refuses while any paid passenger is neither on board nor reported as a
 --                 no-show (SQLSTATE KP005). Unpaid requests are still released at start, as before.
 --   Complete trip complete_trip no longer says the fare "has been released". It stamps
@@ -36,7 +37,7 @@
 -- Run after 067. Safe to run more than once. Tested end to end on a scratch Postgres 16 on 20 Nov 2026
 -- (happy path, wrong-code lockout, manual boarding, release window, report and refund, no-show, the
 -- safety nets at complete, who may call what, and a rollback/re-apply cycle). Not yet applied to production.
--- The rollback is supabase/rollbacks/068_release_and_pickup_code_down.sql.
+-- The rollback is supabase/rollbacks/070_release_and_pickup_code_down.sql.
 
 BEGIN;
 
@@ -259,7 +260,7 @@ BEGIN
               WHEN b.boarded_at IS NOT NULL THEN 'boarded'
               ELSE 'waiting' END,
          b.boarded_method,
-         COALESCE(pc.wrong_tries >= v_max, FALSE),
+         COALESCE(pc.wrong_tries >= v_max, TRUE),
          COALESCE(pay.driver_earning, 0),
          public.trip_departs_at(v_trip.departure_date, v_trip.departure_time)
            + v_wait::DOUBLE PRECISION * INTERVAL '1 minute'
@@ -326,11 +327,11 @@ BEGIN
 
   SELECT pc.* INTO v_pc FROM public.booking_pickup_codes pc WHERE pc.booking_id = p_booking_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'This booking has no pickup code. Mark the passenger on board by hand.' USING ERRCODE = '22023';
+    RAISE EXCEPTION 'No pickup code. Mark on board by hand.' USING ERRCODE = '22023';
   END IF;
 
   IF v_pc.wrong_tries >= v_max THEN
-    RAISE EXCEPTION 'Too many wrong codes. Ask the passenger to read the code from their booking, or mark them on board by hand.'
+    RAISE EXCEPTION 'Code locked. Mark on board by hand.'
       USING ERRCODE = 'KP004';
   END IF;
 
@@ -368,8 +369,9 @@ DECLARE
   v_me    UUID := public.current_app_user_id();
   v_b     public.bookings%ROWTYPE;
   v_trip  public.trips%ROWTYPE;
+  v_pc    public.booking_pickup_codes%ROWTYPE;
+  v_max   INTEGER := public.setting_numeric('pickup_code_max_tries', 5)::INTEGER;
   v_note  TEXT := left(btrim(COALESCE(p_note, '')), 200);
-  v_hours NUMERIC := public.setting_numeric('release_window_hours', 6);
 BEGIN
   IF v_me IS NULL THEN
     RAISE EXCEPTION 'Not signed in' USING ERRCODE = '28000';
@@ -396,8 +398,15 @@ BEGIN
     RAISE EXCEPTION 'This ride has already started' USING ERRCODE = '22023';
   END IF;
 
+  -- The by-hand route opens only once the code has failed the allowed number of times, or when there is
+  -- no code to enter. Otherwise a driver could skip the code by saying the passenger's phone is off.
+  SELECT pc.* INTO v_pc FROM public.booking_pickup_codes pc WHERE pc.booking_id = p_booking_id;
+  IF FOUND AND v_pc.wrong_tries < v_max THEN
+    RAISE EXCEPTION 'Enter the pickup code.' USING ERRCODE = '22023';
+  END IF;
+
   IF v_note = '' THEN
-    RAISE EXCEPTION 'Say why you are marking this passenger by hand' USING ERRCODE = '22023';
+    RAISE EXCEPTION 'Give a reason.' USING ERRCODE = '22023';
   END IF;
 
   UPDATE public.bookings b
@@ -410,15 +419,14 @@ BEGIN
 
   INSERT INTO public.notifications (user_id, type, title, body, data)
   VALUES (
-    v_b.passenger_id, 'system', 'Your driver marked you as on board',
-    'They did it without your pickup code. If that is wrong, report a problem from your booking within '
-      || trim_scale(v_hours) || ' hours of the ride ending.',
+    v_b.passenger_id, 'system', 'You were marked on board',
+    'Your driver did it without your code. Not right? Report a problem on your booking.',
     jsonb_build_object('booking_id', p_booking_id)
   );
 
   INSERT INTO public.notifications (user_id, type, title, body, data)
-  SELECT u.id, 'system', 'Passenger marked on board by hand',
-         'A driver boarded a passenger without a code. The fare is on hold until you clear it.',
+  SELECT u.id, 'system', 'Passenger boarded by hand',
+         'Fare on hold until you clear it.',
          jsonb_build_object('booking_id', p_booking_id)
     FROM public.users u
    WHERE u.is_admin = TRUE;
@@ -483,7 +491,7 @@ BEGIN
      AND b.boarded_at IS NULL;
 
   IF v_waiting > 0 THEN
-    RAISE EXCEPTION 'Waiting for % passenger(s) to board. Enter their pickup code, or report a no-show once the wait time has passed.', v_waiting
+    RAISE EXCEPTION '% still to board.', CASE WHEN v_waiting = 1 THEN '1 passenger' ELSE v_waiting || ' passengers' END
       USING ERRCODE = 'KP005';
   END IF;
 
@@ -531,7 +539,7 @@ BEGIN
     'trip_started',
     'Your ride has started',
     v_trip.from_location || ' to ' || v_trip.to_location ||
-      ' is under way. Your fare stays with Kipita. If anything goes wrong, report a problem from your booking.',
+      ' is under way. Something wrong? Report a problem on your booking.',
     jsonb_build_object('booking_id', m.id, 'trip_id', p_trip_id)
   FROM moved m;
 
@@ -626,8 +634,7 @@ BEGIN
     'trip_completed',
     'You have arrived',
     v_trip.from_location || ' to ' || v_trip.to_location ||
-      ' is done. If anything went wrong, report a problem within ' || trim_scale(v_hours) ||
-      ' hours. After that your fare is released to your driver. ' ||
+      ' is done. Anything wrong? Report it within ' || trim_scale(v_hours) || ' hours. ' ||
       'Rate the trip to help the next passenger.',
     jsonb_build_object('booking_id', m.id, 'trip_id', p_trip_id)
   FROM moved m;
@@ -709,8 +716,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, body, data)
   VALUES (
     v_b.passenger_id, 'system', 'Your driver says you didn''t show up',
-    'If that is wrong, tell us within ' || v_hours::INTEGER
-      || ' hours. Otherwise your fare goes to the driver and is not refunded.',
+    'Not right? Tell us within ' || v_hours::INTEGER || ' hours, or your fare goes to the driver.',
     jsonb_build_object('booking_id', v_b.id, 'no_show', TRUE)
   );
 
@@ -870,7 +876,7 @@ BEGIN
 
   INSERT INTO public.notifications (user_id, type, title, body, data)
   SELECT u.id, 'system', 'Problem reported',
-         'A passenger reported a problem. The fare is on hold until you decide.',
+         'Passenger report. Fare on hold until you decide.',
          jsonb_build_object('booking_id', p_booking_id, 'problem_id', v_row.id)
     FROM public.users u
    WHERE u.is_admin = TRUE;
@@ -878,10 +884,10 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, body, data)
   VALUES
     (v_b.passenger_id, 'system', 'We are looking into it',
-     'Your fare stays on hold while we review this. We will tell you what we decide.',
+     'Your fare is on hold. We will tell you what we decide.',
      jsonb_build_object('booking_id', p_booking_id, 'problem_id', v_row.id)),
     (v_b.driver_id, 'system', 'A problem was reported',
-     'A passenger reported a problem with this ride. The fare stays on hold while we review it.',
+     'The fare is on hold while we review it.',
      jsonb_build_object('booking_id', p_booking_id, 'problem_id', v_row.id));
 
   RETURN NEXT v_row;
@@ -940,13 +946,12 @@ BEGIN
   IF p_outcome = 'refund' THEN
     INSERT INTO public.notifications (user_id, type, title, body, data)
     VALUES (v_b.driver_id, 'system', 'A report was upheld',
-            'A passenger''s report about this ride was upheld and the fare was refunded to them.',
+            'The fare was refunded to the passenger.',
             jsonb_build_object('booking_id', v_b.id));
   ELSIF v_pr.source = 'passenger' THEN
     INSERT INTO public.notifications (user_id, type, title, body, data)
     VALUES (v_b.passenger_id, 'system', 'We looked into your report',
-            'We found no reason to hold the fare, so it goes to your driver as planned. '
-              || 'If you disagree, contact support.',
+            'We found no problem, so the fare goes to your driver. Disagree? Contact support.',
             jsonb_build_object('booking_id', v_b.id));
   END IF;
 
@@ -1011,8 +1016,7 @@ BEGIN
   INSERT INTO public.notifications (user_id, type, title, body, data)
   VALUES (
     v_b.driver_id, 'payment_success', 'Fare released',
-    'KES ' || trim_scale(v_earn) || ' was added to your Kipita wallet (Kipita fee KES ' || trim_scale(v_fee) ||
-      '). Wallets are paid out to M-Pesa once a day, in the morning.',
+    'KES ' || trim_scale(v_earn) || ' was added to your Kipita wallet. Paid out to M-Pesa each morning.',
     jsonb_build_object('booking_id', v_b.id, 'payment_id', v_p.id)
   );
 

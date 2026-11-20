@@ -79,7 +79,7 @@ export function PickupCodeCard({ code }: { code: string }) {
           </span>
         ))}
       </Digits>
-      <p>Tell your driver this code when you get in. It tells Kipita you were picked up. Don&rsquo;t share it before then.</p>
+      <p>Give this to your driver when you get in.</p>
     </Card>
   );
 }
@@ -295,12 +295,16 @@ const Problem = styled.p`
 function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; onDone: () => Promise<void> }) {
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
-  const [manual, setManual] = useState(false);
   const [error, setError] = useState("");
   const [working, setWorking] = useState<"code" | "hand" | "noshow" | null>(null);
   const [, startTransition] = useTransition();
   const first = row.passengerName.split(" ")[0];
   const noShowOpen = row.noShowFrom != null && Date.now() >= new Date(row.noShowFrom).getTime();
+
+  // Once the code locks, "Wrong code." is replaced by the by-hand form.
+  useEffect(() => {
+    if (row.codeLocked) setError("");
+  }, [row.codeLocked]);
 
   function submitCode(e: React.FormEvent) {
     e.preventDefault();
@@ -311,6 +315,8 @@ function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; on
       if (!result.ok) {
         setError(result.error);
         setCode("");
+        // A wrong code may have used the last try. Reload so the by-hand route appears only then.
+        if (result.wrongCode) await onDone();
         setWorking(null);
         return;
       }
@@ -353,7 +359,23 @@ function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; on
   return (
     <>
       {row.codeLocked ? (
-        <Problem>Too many wrong codes. Ask {first} to read the code from their booking, or mark them on board by hand.</Problem>
+        // The by-hand route. It is never offered while the code still works.
+        <>
+          <Problem>Code locked.</Problem>
+          <Row onSubmit={submitHand}>
+            <TextInput
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={200}
+              placeholder="Reason"
+              aria-label={`Reason for marking ${row.passengerName} on board by hand`}
+            />
+            <Go type="submit" disabled={working !== null || note.trim().length < 3} aria-busy={working === "hand"}>
+              {working === "hand" ? <ButtonOrb job="committing" /> : null}
+              Mark on board
+            </Go>
+          </Row>
+        </>
       ) : (
         <Row onSubmit={submitCode}>
           <CodeInput
@@ -372,34 +394,15 @@ function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; on
         </Row>
       )}
 
-      {manual && (
-        <Row onSubmit={submitHand}>
-          <TextInput
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={200}
-            placeholder={`Why can't ${first} give the code?`}
-            aria-label={`Why you are marking ${row.passengerName} on board by hand`}
-          />
-          <Go type="submit" disabled={working !== null || note.trim().length < 3} aria-busy={working === "hand"}>
-            {working === "hand" ? <ButtonOrb job="committing" /> : null}
-            Mark on board
-          </Go>
-        </Row>
-      )}
-
       {error && <Problem role="alert">{error}</Problem>}
 
-      <Links>
-        <LinkBtn type="button" onClick={() => setManual((on) => !on)} aria-expanded={manual} disabled={working !== null}>
-          {manual ? "Use the code instead" : "Can't give the code? Mark on board by hand"}
-        </LinkBtn>
-        {noShowOpen && (
+      {noShowOpen && (
+        <Links>
           <LinkBtn type="button" onClick={reportNoShow} disabled={working !== null} aria-busy={working === "noshow"}>
             {first} didn&rsquo;t show up
           </LinkBtn>
-        )}
-      </Links>
+        </Links>
+      )}
     </>
   );
 }
@@ -417,11 +420,7 @@ export function BoardingPanel({ tripId, board }: { tripId: string; board: Boardi
   return (
     <Card aria-label="Check passengers in">
       <h2>Check passengers in</h2>
-      <p>
-        {summary.waiting > 0
-          ? "Ask each passenger for the 4-digit code on their booking. You can start once everyone is on board or reported as a no-show."
-          : "Everyone is accounted for. You can start the trip."}
-      </p>
+      <p>{summary.waiting > 0 ? "Ask each passenger for their code." : "Everyone is on board."}</p>
       <List>
         {rows.map((row) => (
           <Person key={row.bookingId}>
@@ -447,7 +446,7 @@ export function BoardingPanel({ tripId, board }: { tripId: string; board: Boardi
             </Head>
             {row.state === "boarded" && row.method === "manual" && (
               <p>
-                <Lock size={14} /> Marked by hand. We check these before paying you.
+                <Lock size={14} /> Marked by hand. Held for review.
               </p>
             )}
             {row.state === "waiting" && <CheckIn row={row} tripId={tripId} onDone={reload} />}
@@ -593,8 +592,8 @@ export function SlideToComplete({
 
 /** The line shown above the slider: what the driver will be paid, and when. */
 export function earningsLine(summary: BoardingSummary, hours: number): string {
-  const when = `about ${hours} ${hours === 1 ? "hour" : "hours"} after the trip ends, unless a passenger reports a problem`;
-  if (!summary.loaded) return `Your earnings are paid ${when}.`;
-  if (summary.boarded === 0) return "No passengers boarded, so there is nothing to pay out for this trip.";
+  const when = `${hours} ${hours === 1 ? "hour" : "hours"} after the trip ends`;
+  if (!summary.loaded) return `Paid ${when}.`;
+  if (summary.boarded === 0) return "No one boarded, so nothing to pay out.";
   return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, ${when}.`;
 }

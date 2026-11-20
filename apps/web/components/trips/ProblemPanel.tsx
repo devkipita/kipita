@@ -52,8 +52,8 @@ export function ProblemPanel({
     <>
       <PanelBody>
         <Title>What went wrong?</Title>
-        <Sub>We pause your driver&rsquo;s payment while we look into it, and you hear from us by message.</Sub>
-        <Label>Pick the one that fits</Label>
+        <Sub>We hold the fare while we look into it.</Sub>
+        <Label>What happened?</Label>
         <Chips role="radiogroup" aria-label="What went wrong">
           {PROBLEM_KINDS.map((k) => (
             <Chip
@@ -69,14 +69,14 @@ export function ProblemPanel({
           ))}
         </Chips>
         <Label as="label" htmlFor="problem-note">
-          Tell us what happened
+          Details
         </Label>
         <Note
           id="problem-note"
           value={note}
           maxLength={1000}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="A sentence or two is enough."
+          placeholder="A sentence or two"
         />
         {error && <Err role="alert">{error}</Err>}
       </PanelBody>

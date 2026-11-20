@@ -1,10 +1,10 @@
--- 068_release_and_pickup_code_down.sql
--- Puts the database back as it was before 068 (server-side release and pickup code). NOT a migration: do not
--- put it in supabase/migrations. Run it by hand, and only if 068 has to be undone.
+-- 070_release_and_pickup_code_down.sql
+-- Puts the database back as it was before 070 (server-side release and pickup code). NOT a migration: do not
+-- put it in supabase/migrations. Run it by hand, and only if 070 has to be undone.
 --
 -- Before running:
---   * Redeploy the web app and the release-escrow function from before 068 first. The old web app calls
---     release-escrow after complete_trip; the 068 version of that function refuses every caller, so with the
+--   * Redeploy the web app and the release-escrow function from before 070 first. The old web app calls
+--     release-escrow after complete_trip; the 070 version of that function refuses every caller, so with the
 --     old app on the new function drivers are never paid. With the new app on the rolled-back database the
 --     boarding and report-a-problem screens call functions this script drops.
 --   * This deletes the pickup codes, the boarding record (bookings.boarded_at, boarded_method, boarded_note),
@@ -16,8 +16,8 @@
 --     release_due_at set to now for the ones you want paid.
 --   * Do not run it while a booking_problems row is open on a fare you have not decided: the hold is lost.
 --
--- start_trip, complete_trip, mark_no_show and cancel_booking go back to the bodies they had before 068
--- (045 for the first two, 063 for the last two). The functions 068 added are dropped.
+-- start_trip, complete_trip, mark_no_show and cancel_booking go back to the bodies they had before 070
+-- (045 for the first two, 063 for the last two). The functions 070 added are dropped.
 
 BEGIN;
 
@@ -39,7 +39,7 @@ DROP FUNCTION IF EXISTS public.trip_boarding_status(UUID);
 DROP FUNCTION IF EXISTS public.my_pickup_code(UUID);
 DROP FUNCTION IF EXISTS public.boarding_counts(UUID);
 
--- start_trip: the version before 068
+-- start_trip: the version before 070
 CREATE OR REPLACE FUNCTION public.start_trip(p_trip_id uuid)
  RETURNS integer
  LANGUAGE plpgsql
@@ -136,7 +136,7 @@ BEGIN
 END;
 $function$;
 
--- complete_trip: the version before 068
+-- complete_trip: the version before 070
 CREATE OR REPLACE FUNCTION public.complete_trip(p_trip_id uuid)
  RETURNS integer
  LANGUAGE plpgsql
@@ -198,7 +198,7 @@ BEGIN
 END;
 $function$;
 
--- mark_no_show: the version before 068
+-- mark_no_show: the version before 070
 CREATE OR REPLACE FUNCTION public.mark_no_show(p_booking_id uuid)
  RETURNS SETOF bookings
  LANGUAGE plpgsql
@@ -274,7 +274,7 @@ BEGIN
 END;
 $function$;
 
--- cancel_booking: the version before 068
+-- cancel_booking: the version before 070
 CREATE OR REPLACE FUNCTION public.cancel_booking(p_booking_id uuid, p_reason text DEFAULT NULL::text)
  RETURNS SETOF bookings
  LANGUAGE plpgsql

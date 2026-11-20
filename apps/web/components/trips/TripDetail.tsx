@@ -789,7 +789,7 @@ export function TripDetail({
   cancelConfig: CancellationConfig;
   /** Null when migration 063 has not run yet. */
   noShow: NoShowState | null;
-  /** Pickup code, boarding and problem report. Empty when migration 068 has not run. */
+  /** Pickup code, boarding and problem report. Empty when migration 070 has not run. */
   journey: JourneyState;
   /** Hours between the end of a ride and the fare reaching the driver. */
   releaseHours: number;
@@ -1105,10 +1105,10 @@ export function TripDetail({
     (live || (booking.status === "completed" && journey.escrow === "held" && releaseMs != null && nowMs <= releaseMs));
   const problemNote: string | null = journey.problem
     ? journey.problem.status === "open"
-      ? "We're looking into the problem you reported. Your driver's payment is paused until we decide"
+      ? "We're looking into your report. The fare is on hold"
       : journey.problem.outcome === "refund"
-        ? "We reviewed your report and refunded your fare to your Kipita wallet"
-        : "We reviewed your report and the ride stands. Contact support if you disagree"
+        ? "Refunded to your Kipita wallet"
+        : "We found no problem. Contact support if you disagree"
     : null;
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -1433,11 +1433,11 @@ export function TripDetail({
         : "Nothing is charged until the driver accepts"
       : paid || live
         ? isDriver
-          ? `${formatCurrency(subtotal)} held by Kipita · paid to you about ${releaseHours} hours after the trip ends`
-          : `Kipita holds your fare and pays your driver ${releaseHours} hours after the trip ends. Report a problem before then and we'll look into it`
+          ? `${formatCurrency(subtotal)} held · paid ${releaseHours} hours after the trip ends`
+          : `Your fare is held until ${releaseHours} hours after the trip ends`
         : booking.status === "completed"
           ? isDriver
-            ? `${formatCurrency(subtotal)} is paid to your wallet ${releaseHours} hours after the trip ends, unless a problem is reported`
+            ? `${formatCurrency(subtotal)} is paid to your wallet ${releaseHours} hours after the trip ends`
             : "Trip complete"
           : booking.refunded_amount != null
             ? `${formatCurrency(booking.refunded_amount)} refunded ${booking.refund_to === "mpesa" ? "to M-Pesa" : "to your Kipita wallet"}`
@@ -1662,7 +1662,7 @@ export function TripDetail({
                 {board.summary.waiting > 0 && (
                   <Hint $warn>
                     <Lock size={18} />
-                    Start unlocks when everyone is on board or reported as a no-show
+                    Check everyone in to start
                   </Hint>
                 )}
                 <Pay
