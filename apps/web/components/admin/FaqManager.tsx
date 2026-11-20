@@ -10,6 +10,7 @@ import {
   updateFaq,
   type Faq,
 } from "@/lib/faqs";
+import { FAQ_TOPICS, FAQ_TOPIC_LABEL, type FaqTopic } from "@/lib/faq-topics";
 import {
   ButtonEl,
   Card,
@@ -32,7 +33,8 @@ const Form = styled(Card)`
   display: grid;
   gap: 4px;
 
-  textarea {
+  textarea,
+  select {
     padding: 14px 16px;
     border-radius: ${({ theme }) => theme.radius.sm};
     border: 1.5px solid ${({ theme }) => theme.color.line};
@@ -41,13 +43,15 @@ const Form = styled(Card)`
     line-height: 1.5;
     color: ${({ theme }) => theme.color.text};
     background: ${({ theme }) => theme.color.surface};
-    resize: vertical;
-    min-height: 96px;
 
     &:focus {
       outline: none;
       border-color: ${({ theme }) => theme.color.primary};
     }
+  }
+  textarea {
+    resize: vertical;
+    min-height: 96px;
   }
 
   .row {
@@ -96,6 +100,7 @@ const Row = styled.div<{ $muted: boolean }>`
   .tag {
     display: inline-block;
     margin-top: 10px;
+    margin-right: 6px;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -105,6 +110,11 @@ const Row = styled.div<{ $muted: boolean }>`
     background: ${({ theme }) => theme.color.warnBg};
     color: ${({ theme }) => theme.color.warnText};
   }
+  .tag.topic {
+    background: transparent;
+    border: 1px solid ${({ theme }) => theme.color.line};
+    color: ${({ theme }) => theme.color.textSoft};
+  }
   .actions {
     display: flex;
     gap: 8px;
@@ -112,7 +122,12 @@ const Row = styled.div<{ $muted: boolean }>`
   }
 `;
 
-const emptyDraft = { question: "", answer: "", is_published: true };
+const emptyDraft: {
+  question: string;
+  answer: string;
+  is_published: boolean;
+  topic: FaqTopic;
+} = { question: "", answer: "", is_published: true, topic: "general" };
 
 export function FaqManager() {
   const [faqs, setFaqs] = useState<Faq[]>([]);
@@ -149,6 +164,7 @@ export function FaqManager() {
       question: f.question,
       answer: f.answer,
       is_published: f.is_published,
+      topic: f.topic,
     });
     setEditing(f.id);
   };
@@ -166,6 +182,7 @@ export function FaqManager() {
           question: draft.question.trim(),
           answer: draft.answer.trim(),
           is_published: draft.is_published,
+          topic: draft.topic,
           sort_order: faqs.length,
         });
       } else if (editing) {
@@ -173,6 +190,7 @@ export function FaqManager() {
           question: draft.question.trim(),
           answer: draft.answer.trim(),
           is_published: draft.is_published,
+          topic: draft.topic,
         });
       }
       cancel();
@@ -233,6 +251,24 @@ export function FaqManager() {
               placeholder="Write the answer riders will see…"
             />
           </Field>
+          <Field>
+            <label htmlFor="faq-topic">Shown on</label>
+            <select
+              id="faq-topic"
+              value={draft.topic}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, topic: e.target.value as FaqTopic }))
+              }
+            >
+              {FAQ_TOPICS.map((t) => (
+                <option key={t} value={t}>
+                  {t === "general"
+                    ? "Help page only"
+                    : `Help page and the ${FAQ_TOPIC_LABEL[t].toLowerCase()} page`}
+                </option>
+              ))}
+            </select>
+          </Field>
           <div className="row">
             <label className="check">
               <input
@@ -278,6 +314,9 @@ export function FaqManager() {
               <h4>{f.question}</h4>
               <p>{f.answer}</p>
               {!f.is_published && <span className="tag">Draft</span>}
+              {f.topic !== "general" && (
+                <span className="tag topic">{FAQ_TOPIC_LABEL[f.topic]}</span>
+              )}
             </div>
             <div className="actions">
               <SmallButton type="button" onClick={() => startEdit(f)}>
