@@ -129,3 +129,29 @@ export type NoShowState = {
   markedAt: string | null;
   disputedAt: string | null;
 };
+
+/**
+ * What migration 068 adds to a booking: the passenger's pickup code, whether they boarded, when the fare
+ * is released, and any problem they reported. Each field is null when it does not apply or when 068 has not
+ * run yet (the page reads these in forgiving queries, so an older database still loads the booking).
+ */
+export type JourneyState = {
+  /** Four digits, only while the booking is paid and the passenger has not boarded. Passenger only. */
+  code: string | null;
+  boardedAt: string | null;
+  boardedMethod: "code" | "manual" | "legacy" | null;
+  /** The payment's escrow state: held, released, refunded… Passenger only (a driver cannot read payments). */
+  escrow: string | null;
+  /** When the fare is released to the driver. A problem report must come before this. */
+  releaseDueAt: string | null;
+  problem: { kind: string; status: "open" | "resolved"; outcome: "clear" | "refund" | null } | null;
+};
+
+export const NO_JOURNEY: JourneyState = {
+  code: null,
+  boardedAt: null,
+  boardedMethod: null,
+  escrow: null,
+  releaseDueAt: null,
+  problem: null,
+};

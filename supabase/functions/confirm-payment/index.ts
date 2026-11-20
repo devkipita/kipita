@@ -120,9 +120,16 @@ serve(async (req) => {
     }
 
     // Passenger payment captured to the Kipita paybill. Compute the escrow
-    // split now and HOLD the funds — they are released to the driver (minus the
-    // Kipita fee) only when the ride is ended. See release-escrow.
+    // split now and HOLD the funds. The database releases them to the driver
+    // (minus the Kipita fee) release_window_hours after the ride is completed,
+    // for boarded passengers only and unless a problem was reported:
+    // release_due_escrow(), migration 068.
     const settingPercent = await feePercent(supabase);
+    const { data: windowSetting } = await supabase.rpc('setting_numeric', {
+      p_key: 'release_window_hours',
+      p_default: 6,
+    });
+    const releaseHours = Number.isFinite(Number(windowSetting)) && Number(windowSetting) > 0 ? Number(windowSetting) : 6;
     const { fee, driverEarning, percent } = paidSplit(
       Number(payment.amount),
       booking.service_fee,
@@ -182,7 +189,7 @@ serve(async (req) => {
         user_id: booking.passenger_id,
         type: 'payment_success',
         title: 'Payment Held Securely',
-        body: `KES ${payment.amount} is held safely and released to your driver when your ride ends.`,
+        body: `KES ${payment.amount} is held safely. Your driver is paid ${releaseHours} hours after your ride ends, and you can report a problem until then.`,
         data: { booking_id: booking.id, payment_id },
       },
       {
