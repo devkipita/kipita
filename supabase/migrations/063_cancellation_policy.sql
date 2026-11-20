@@ -23,8 +23,8 @@
 --
 -- Also adds a reminder sent to the passenger about an hour before free cancellation closes.
 --
--- Run after 062. Safe to run more than once. Test on a Supabase branch or a restored backup
--- before production: none of this has been executed against a database yet.
+-- Run after 062. Safe to run more than once. Tested end to end on a scratch Postgres 16 on
+-- 19 Nov 2026; applied to production on 20 Nov 2026.
 
 BEGIN;
 
@@ -213,6 +213,38 @@ $$;
 
 REVOKE ALL ON FUNCTION public.cancellation_terms(UUID, TEXT, TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
 
+-- A refund opened through the old review flow (014, request-refund) parks the fare at refund_pending
+-- and leaves a pending request for an admin. Once a cancellation settles the money itself, that request
+-- must be closed, or approving it later would pay the passenger a second time. A fare parked that way
+-- goes back to 'held' so the ordinary refund path can move it. A no-show parks the fare too; those are
+-- told apart by no_show_marked_at and stay parked.
+CREATE OR REPLACE FUNCTION public.close_legacy_refund(p_booking_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.refund_requests r
+     SET status = 'rejected',
+         reviewed_at = NOW(),
+         review_note = 'Closed: settled under the cancellation policy',
+         updated_at = NOW()
+   WHERE r.booking_id = p_booking_id
+     AND r.status = 'pending';
+
+  UPDATE public.payments p
+     SET escrow_status = 'held', updated_at = NOW()
+    FROM public.bookings b
+   WHERE b.id = p.booking_id
+     AND p.booking_id = p_booking_id
+     AND p.escrow_status = 'refund_pending'
+     AND b.no_show_marked_at IS NULL;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.close_legacy_refund(UUID) FROM PUBLIC, anon, authenticated;
+
 -- Moves the money for a cancellation, as decided by cancellation_terms().
 -- 'free' and 'driver' go through refund_booking_payment (everything back, same as before).
 -- 'late' and 'no_show' split the fare: part to the passenger, part to the driver, fee kept.
@@ -237,6 +269,8 @@ BEGIN
   IF v_tier IS NULL OR v_tier = 'nothing_held' THEN
     RETURN;
   END IF;
+
+  PERFORM public.close_legacy_refund(p_booking_id);
 
   IF v_tier IN ('free', 'driver') THEN
     PERFORM public.refund_booking_payment(p_booking_id);
@@ -304,7 +338,7 @@ BEGIN
     VALUES
       (v_b.passenger_id, 'system', 'Booking cancelled',
        CASE WHEN v_pass > 0
-            THEN 'KES ' || trim_scale(v_pass) || ' is back in your Kipita wallet. The rest went to your driver because the ride was less than '
+            THEN 'KES ' || trim_scale(v_pass) || ' is back in your Kipita wallet. The rest of the seat price goes to your driver and the service fee is not refunded, because the ride was less than '
                  || v_free::INTEGER || ' hours away.'
             ELSE 'Because the ride was less than ' || v_free::INTEGER
                  || ' hours away, the seat price went to your driver.' END,
@@ -379,8 +413,9 @@ AS $$
      AND c.created_at >= NOW() - make_interval(days => GREATEST(p_days, 1))
 $$;
 
-REVOKE ALL ON FUNCTION public.driver_late_cancels(UUID, INTEGER) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.driver_late_cancels(UUID, INTEGER) TO authenticated;
+-- Not for signed-in users: it would let anyone read another driver's record. Admins use it from SQL.
+REVOKE ALL ON FUNCTION public.driver_late_cancels(UUID, INTEGER) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.driver_late_cancels(UUID, INTEGER) TO service_role;
 
 -- ── What the screen shows before cancelling ──────────────────────────────────
 
@@ -405,6 +440,14 @@ BEGIN
   END IF;
   IF v_b.passenger_id <> v_me AND v_b.driver_id <> v_me THEN
     RAISE EXCEPTION 'Not your booking' USING ERRCODE = '42501';
+  END IF;
+
+  -- Same refusals as cancel_booking, so the screen never offers what the button would reject.
+  IF v_b.status IN ('completed', 'cancelled', 'rejected') THEN
+    RAISE EXCEPTION 'This booking is already closed' USING ERRCODE = '22023';
+  END IF;
+  IF v_b.passenger_id = v_me AND v_b.status = 'in_progress' THEN
+    RAISE EXCEPTION 'This ride is under way' USING ERRCODE = 'KP001';
   END IF;
 
   RETURN public.cancellation_terms(
@@ -436,6 +479,11 @@ DECLARE
   v_drv   NUMERIC;
 BEGIN
   v_me := public.current_app_user_id();
+  -- Without this, nobody signed in compares as NULL, "Not your booking" never fires, and anyone who
+  -- knows a booking id could cancel it. (044 had the same gap.)
+  IF v_me IS NULL THEN
+    RAISE EXCEPTION 'Not signed in' USING ERRCODE = '28000';
+  END IF;
 
   SELECT b.* INTO v_b FROM public.bookings b
    WHERE b.id = p_booking_id FOR UPDATE;
@@ -495,6 +543,10 @@ BEGIN
   RETURN NEXT v_b;
 END;
 $$;
+
+-- 038 only revoked PUBLIC. Supabase also grants new functions to anon directly, so name it.
+REVOKE ALL ON FUNCTION public.cancel_booking(UUID, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.cancel_booking(UUID, TEXT) TO authenticated, service_role;
 
 -- ── cancel_trip ──────────────────────────────────────────────────────────────
 -- Same as 044, plus: every booking is settled through the same terms ('driver': all back),
@@ -599,6 +651,7 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.cancel_trip(UUID, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.cancel_trip(UUID, TEXT) TO authenticated;
 
 -- ── No-show ──────────────────────────────────────────────────────────────────
@@ -802,6 +855,7 @@ BEGIN
        jsonb_build_object('booking_id', p_booking_id));
   ELSE
     -- Put the fare back to 'held' so the ordinary refund path can return all of it.
+    PERFORM public.close_legacy_refund(p_booking_id);
     UPDATE public.payments
        SET escrow_status = 'held', updated_at = NOW()
      WHERE booking_id = p_booking_id AND escrow_status = 'refund_pending';

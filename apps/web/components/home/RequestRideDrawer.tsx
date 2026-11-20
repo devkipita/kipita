@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import styled from "styled-components";
-import { ArrowRight, Calendar, Check, MapPin, NavigationArrow, Users, Warning } from "@/components/icons";
+import { ArrowRight, Calendar, Check, Users, Warning } from "@/components/icons";
 import { Drawer, DrawerBody, DrawerFooter } from "@/components/ui/Drawer";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { createRideRequestAction } from "@/lib/home/posts";
@@ -20,32 +20,99 @@ const Lead = styled.p`
   color: ${nocturne.muted};
 `;
 
-const Summary = styled.dl`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px 16px;
+/* The request as a trip: a line from where you start to where you are going, then seats and day. */
+const Card = styled.div`
+  border-radius: 18px;
+  background: ${nocturne.surface2};
+  border: 1px solid ${nocturne.line2};
+  overflow: hidden;
+`;
+
+const Route = styled.dl`
   margin: 0;
-  padding: 16px;
-  border-radius: 16px;
-  background: ${nocturne.bg};
-  font-size: 16px;
+  padding: 18px 18px 16px;
+
+  .stop {
+    position: relative;
+    padding-left: 30px;
+  }
+  .stop + .stop {
+    margin-top: 18px;
+  }
+  .stop::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 1px;
+    box-sizing: border-box;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .start::before {
+    border: 3px solid ${nocturne.accent};
+    background: ${nocturne.surface};
+  }
+  .end::before {
+    background: ${nocturne.accent};
+    box-shadow: 0 0 0 4px color-mix(in oklab, ${nocturne.accent} 22%, transparent);
+  }
+  .start::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 20px;
+    bottom: -14px;
+    width: 2px;
+    background: repeating-linear-gradient(
+      to bottom,
+      ${nocturne.outline} 0 4px,
+      transparent 4px 8px
+    );
+  }
 
   dt {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-transform: uppercase;
     color: ${nocturne.muted2};
   }
-  dt svg {
-    color: ${nocturne.accent};
-  }
   dd {
-    margin: 0;
-    min-width: 0;
-    text-align: right;
+    margin: 3px 0 0;
+    font-size: 19px;
     font-weight: 700;
+    line-height: 1.25;
     color: ${nocturne.cream};
     overflow-wrap: anywhere;
+  }
+`;
+
+const Facts = styled.ul`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 18px 16px;
+  list-style: none;
+  border-top: 1px solid ${nocturne.line2};
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px 8px 12px;
+    border-radius: 999px;
+    border: 1px solid ${nocturne.line};
+    background: ${nocturne.surface};
+    font-size: 15px;
+    font-weight: 700;
+    color: ${nocturne.cream};
+  }
+  li svg {
+    flex: none;
+    color: ${nocturne.accent};
   }
 `;
 
@@ -151,13 +218,17 @@ const DoneBox = styled(DrawerBody)`
   }
 `;
 
+function seatsLabel(seats: number) {
+  return `${seats} ${seats === 1 ? "seat" : "seats"}`;
+}
+
 function dayLabel(date: string) {
   if (!date) return "Any day";
   const d = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return "Any day";
   return new Intl.DateTimeFormat("en-GB", {
     timeZone: "Africa/Nairobi",
-    weekday: "long",
+    weekday: "short",
     day: "numeric",
     month: "short",
   }).format(d);
@@ -255,28 +326,28 @@ export function RequestRideDrawer({
         <Body>
           <Lead>Drivers heading that way see your request. You pay only once one accepts.</Lead>
 
-          <Summary>
-            <dt>
-              <NavigationArrow size={18} aria-hidden />
-              From
-            </dt>
-            <dd>{from || "Anywhere"}</dd>
-            <dt>
-              <MapPin size={18} aria-hidden />
-              To
-            </dt>
-            <dd>{to}</dd>
-            <dt>
-              <Users size={18} aria-hidden />
-              Seats
-            </dt>
-            <dd>{seats}</dd>
-            <dt>
-              <Calendar size={18} aria-hidden />
-              When
-            </dt>
-            <dd>{dayLabel(date)}</dd>
-          </Summary>
+          <Card>
+            <Route>
+              <div className="stop start">
+                <dt>From</dt>
+                <dd>{from || "Anywhere"}</dd>
+              </div>
+              <div className="stop end">
+                <dt>To</dt>
+                <dd>{to}</dd>
+              </div>
+            </Route>
+            <Facts>
+              <li>
+                <Users size={16} aria-hidden />
+                {seatsLabel(seats)}
+              </li>
+              <li>
+                <Calendar size={16} aria-hidden />
+                {dayLabel(date)}
+              </li>
+            </Facts>
+          </Card>
 
           {error && (
             <Err role="alert">

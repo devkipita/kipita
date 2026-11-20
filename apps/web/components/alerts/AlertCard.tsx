@@ -8,6 +8,8 @@ import { Avatar } from "@/components/profile/Avatar";
 import { Swap } from "@/components/anim/Swap";
 import { Notice } from "@/components/ui/primitives";
 import { shortRelativeTime } from "@/lib/notifications/meta";
+import { useIsUnseenAlert } from "@/lib/alerts/unseen";
+import { alertStatus } from "@/lib/alerts/status";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import {
   isDisplayableImage,
@@ -16,11 +18,12 @@ import {
 } from "@/lib/alerts/meta";
 import type { Alert } from "@/lib/alerts/types";
 import { CategoryBadge } from "./CategoryBadge";
+import { ClearedTag } from "./ClearedTag";
 import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
 
-const Shell = styled.article`
+const Shell = styled.article<{ $unseen: boolean }>`
   position: relative;
   border-radius: 16px;
   background-color: ${({ theme }) => theme.color.surface};
@@ -44,11 +47,39 @@ const Shell = styled.article`
     }
   }
 
+  /* Same marker as an unread row in Activity. */
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    z-index: 3;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: ${nocturne.accent};
+    opacity: ${({ $unseen }) => ($unseen ? 1 : 0)};
+    pointer-events: none;
+    transition: opacity ${dur.state} ${ease.standard};
+  }
+
   @media (prefers-reduced-motion: reduce) {
     &:hover {
       transform: none;
     }
   }
+`;
+
+const NewTag = styled.span`
+  flex: none;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
 `;
 
 const Body = styled(Link)<{ $owned?: boolean }>`
@@ -88,11 +119,11 @@ const Head = styled.div`
   }
 `;
 
-const Text = styled.p`
+const Text = styled.p<{ $cleared: boolean }>`
   margin: 0;
   font-size: 0.93rem;
   line-height: 1.55;
-  color: ${({ theme }) => theme.color.textSoft};
+  color: ${({ theme, $cleared }) => ($cleared ? theme.color.muted : theme.color.textSoft)};
   overflow-wrap: anywhere;
 
   em {
@@ -106,7 +137,7 @@ const Foot = styled.div`
   padding: 0 16px 14px;
 `;
 
-const MediaFrame = styled.div`
+const MediaFrame = styled.div<{ $cleared: boolean }>`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -120,6 +151,8 @@ const MediaFrame = styled.div`
     width: 100%;
     height: 100%;
     object-fit: cover;
+    /* A cleared alert has stopped being news: the photo loses its colour. */
+    filter: ${({ $cleared }) => ($cleared ? "grayscale(0.9)" : "none")};
   }
   .scrim {
     position: absolute;
@@ -145,7 +178,10 @@ const MediaLink = styled(Link)`
   text-decoration: none;
 
   .top {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
   }
   .bottom {
     display: block;
@@ -224,6 +260,8 @@ export function AlertCard({
   const hasImage = isDisplayableImage(alert.image_url);
   const mine = viewerId != null && alert.user_id === viewerId;
   const edited = wasEdited(alert);
+  const unseen = useIsUnseenAlert(alert.id);
+  const cleared = alertStatus(alert) === "cleared";
 
   const ownerMenu = mine ? (
     <OwnerSlot $onMedia={hasImage}>
@@ -260,13 +298,15 @@ export function AlertCard({
     view = (
       <>
         {ownerMenu}
-        <MediaFrame>
+        <MediaFrame $cleared={cleared}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="photo" src={alert.image_url as string} alt="" />
           <span className="scrim" />
           <MediaLink href={href}>
             <span className="top">
               <CategoryBadge category={alert.category} solid />
+              {cleared && <ClearedTag solid />}
+              {unseen && <NewTag title="You haven't opened this alert yet">New</NewTag>}
             </span>
             <span className="bottom">
               <span className="where">
@@ -309,10 +349,12 @@ export function AlertCard({
               </div>
             </div>
             <CategoryBadge category={alert.category} />
+            {unseen && <NewTag title="You haven't opened this alert yet">New</NewTag>}
             <Stamp>{shortRelativeTime(alert.created_at)}</Stamp>
             {edited && <Edited>· Edited</Edited>}
           </Head>
-          <Text>
+          {cleared && <ClearedTag spaced />}
+          <Text $cleared={cleared}>
             {body}
             {truncated && <em> Read more</em>}
           </Text>
@@ -331,7 +373,7 @@ export function AlertCard({
   }
 
   return (
-    <Shell>
+    <Shell $unseen={unseen}>
       <Swap id={editing ? "edit" : "view"}>{view}</Swap>
     </Shell>
   );
