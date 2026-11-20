@@ -121,10 +121,15 @@ export async function checkTripPrice(
     vehicleClass?: string;
     vehicleMake?: string;
     vehicleModel?: string;
+    /** people riding with the driver who are not booking a seat */
+    othersAboard?: number;
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!Number.isInteger(args.priceKes) || args.priceKes <= 0) {
     return { ok: false, error: "Set the price in whole shillings." };
+  }
+  if (args.seats + (args.othersAboard ?? 0) > 8) {
+    return { ok: false, error: "That is more people than the car can carry. Check the seats and who is travelling with you." };
   }
 
   const quote = await loadPriceQuote(supabase, args);
@@ -138,6 +143,7 @@ export async function checkTripPrice(
       fuel: quote.fuel,
       config: quote.config,
       seatsOffered: args.seats,
+      othersAboard: args.othersAboard ?? 0,
     });
   } catch {
     return { ok: true };

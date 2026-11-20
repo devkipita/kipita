@@ -69,6 +69,9 @@ export const postTripSchema = z.object({
     .regex(/^[a-z0-9_]+$/)
     .max(40)
     .optional(),
+  // People riding with the driver who are not booking a seat. They share the cost, so they lower the
+  // recommended price. Only used to check the price; it is not saved with the trip.
+  others_aboard: z.number().int().min(0).max(7).optional(),
 });
 
 export const postRequestSchema = z.object({

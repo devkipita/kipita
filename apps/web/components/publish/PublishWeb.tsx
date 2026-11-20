@@ -42,6 +42,8 @@ type Draft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others: number;
   price: string;
   /** the car type the price is worked out for; empty means the default */
   vehicleClass: string;
@@ -155,6 +157,7 @@ function blankDraft(): Draft {
     date: "",
     time: "",
     seats: null,
+    others: 0,
     price: "",
     vehicleClass: "",
     prefs: { no_smoking: true, pets: false, luggage: true, music: true, silent_ride: false },
@@ -1009,6 +1012,7 @@ export function PublishWeb({
         date: saved.date ?? "",
         time: saved.time ?? "",
         seats: saved.seats ?? null,
+        others: saved.others ?? 0,
         price: saved.price ?? "",
         vehicleClass: saved.vehicleClass ?? "",
         prefs: { ...base.prefs, ...saved.prefs },
@@ -1147,17 +1151,19 @@ export function PublishWeb({
 
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
+  // Never more than the car can hold with the seats offered.
+  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
   const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, enabled: ready && step >= 3 });
-  const priceBlock = priceBlockText(quote, seats, fare);
+  const priceBlock = priceBlockText(quote, seats, fare, others);
 
   const valid = [
     !!draft.from && !!draft.to && draft.from.toLowerCase() !== draft.to.toLowerCase(),
     !!draft.date,
     !!draft.time,
     !!draft.seats,
-    priceReady(quote, seats, fare),
+    priceReady(quote, seats, fare, others),
     !adding,
     true,
     true,
@@ -1212,6 +1218,7 @@ export function PublishWeb({
         departure_date: draft.date,
         departure_time: draft.time,
         seats_total: seats,
+        others_aboard: others,
         price_per_seat: fare,
         vehicle_class: quote.status === "ready" ? quote.quote.vehicleClass : undefined,
         preferences: draft.prefs,
@@ -1636,10 +1643,12 @@ export function PublishWeb({
                 <PriceStep
                   state={quote}
                   seats={seats}
+                  others={others}
                   price={draft.price}
                   vehicleClass={draft.vehicleClass}
                   onPrice={(price) => patch({ price })}
                   onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
+                  onOthers={(count) => patch({ others: count })}
                   onChangeSeats={() => go(3)}
                 />
               </Field>

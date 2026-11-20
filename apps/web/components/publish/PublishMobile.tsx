@@ -44,6 +44,8 @@ type Draft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others: number;
   price: string;
   /** the car type the price is worked out for; empty means the default */
   vehicleClass: string;
@@ -146,6 +148,7 @@ function blankDraft(cars: SavedCar[]): Draft {
     date: "",
     time: "",
     seats: null,
+    others: 0,
     price: "",
     vehicleClass: "",
     carMode: cars.length > 0 ? "saved" : "none",
@@ -1006,6 +1009,7 @@ export function PublishMobile({
         date: saved.date ?? "",
         time: saved.time ?? "",
         seats: saved.seats ?? null,
+        others: saved.others ?? 0,
         price: saved.price ?? "",
         vehicleClass: saved.vehicleClass ?? "",
         carMode,
@@ -1064,6 +1068,7 @@ export function PublishMobile({
       date: draft.date,
       time: draft.time,
       seats: draft.seats,
+      others: draft.others,
       price: draft.price,
       vehicleClass: draft.vehicleClass,
       carMode: draft.carMode,
@@ -1136,11 +1141,13 @@ export function PublishMobile({
   }
 
   const seats = draft.seats ?? 1;
+  // Never more than the car can hold with the seats offered.
+  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   const car = carLine(draft, savedCars);
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
   const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, enabled: ready && step >= 3 });
-  const priceBlock = priceBlockText(quote, seats, fare);
+  const priceBlock = priceBlockText(quote, seats, fare, others);
 
   function carProblem(): string | null {
     if (draft.carMode !== "new") return null;
@@ -1156,7 +1163,7 @@ export function PublishMobile({
     !!draft.date,
     !!draft.time,
     !!draft.seats,
-    priceReady(quote, seats, fare),
+    priceReady(quote, seats, fare, others),
     carProblem() === null,
     true,
     true,
@@ -1211,6 +1218,7 @@ export function PublishMobile({
         departure_date: draft.date,
         departure_time: draft.time,
         seats_total: seats,
+        others_aboard: others,
         price_per_seat: fare,
         vehicle_class: quote.status === "ready" ? quote.quote.vehicleClass : undefined,
         preferences: draft.prefs,
@@ -1551,10 +1559,12 @@ export function PublishMobile({
                 <PriceStep
                   state={quote}
                   seats={seats}
+                  others={others}
                   price={draft.price}
                   vehicleClass={draft.vehicleClass}
                   onPrice={(price) => patch({ price })}
                   onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
+                  onOthers={(count) => patch({ others: count })}
                   onChangeSeats={() => go(3)}
                 />
               </>
