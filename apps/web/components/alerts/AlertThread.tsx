@@ -21,6 +21,7 @@ import { addCommentAction } from "@/lib/alerts/actions";
 import type { Alert, AlertComment } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { CategoryBadge } from "./CategoryBadge";
+import { ClearedNote } from "./ClearedTag";
 import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
@@ -342,6 +343,8 @@ export function AlertThread({
           {isDisplayableImage(alert.image_url) && (
             <Hero src={alert.image_url} alt="" />
           )}
+
+          <ClearedNote votes={alert} />
 
           <Stats>
             <span>

@@ -2,9 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { pickUnseen, unseenWindowStart } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/client";
 import { useNotifications } from "@/lib/notifications/useNotifications";
 import { ALERT_VIEWED_EVENT } from "@/lib/alerts/api";
+import { unseenAlertStore, useUnseenAlertCount } from "@/lib/alerts/unseen";
 import { ping } from "@/lib/notifications/ping";
 import type { AppMode } from "@/lib/home/mode";
 
@@ -58,7 +60,7 @@ async function countSince(
 async function unseenAlerts(userId: string): Promise<string[]> {
   try {
     const supabase = createClient();
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const since = unseenWindowStart(Date.now()).toISOString();
     const { data: recent, error } = await supabase
       .from("announcements")
       .select("id")
@@ -74,8 +76,7 @@ async function unseenAlerts(userId: string): Promise<string[]> {
       .eq("user_id", userId)
       .in("alert_id", ids);
     if (seenError) return [];
-    const viewed = new Set((seen ?? []).map((v) => v.alert_id as string));
-    return ids.filter((id) => !viewed.has(id));
+    return pickUnseen(ids, (seen ?? []).map((v) => v.alert_id as string));
   } catch {
     return [];
   }
@@ -87,8 +88,8 @@ export function useNavCounts(
 ): { notifications: number; alerts: number } & Fresh {
   const pathname = usePathname() ?? "/";
   const { unread } = useNotifications(userId ?? "");
+  const alerts = useUnseenAlertCount();
   const [fresh, setFresh] = useState<Fresh>(NONE);
-  const [unseen, setUnseen] = useState<string[]>([]);
   const here = useRef(pathname);
   here.current = pathname;
 
@@ -97,7 +98,7 @@ export function useNavCounts(
   const refresh = useCallback(async () => {
     if (!userId) {
       setFresh(NONE);
-      setUnseen([]);
+      unseenAlertStore.reset();
       return;
     }
 
@@ -108,7 +109,7 @@ export function useNavCounts(
     ]);
 
     const onPage = (key: SeenKey) => here.current === SEEN_ON[key];
-    setUnseen(alertIds);
+    unseenAlertStore.replace(alertIds);
     setFresh({ rides: onPage("rides") ? 0 : rides, requests: onPage("requests") ? 0 : requests });
   }, [userId, driver]);
 
@@ -126,8 +127,7 @@ export function useNavCounts(
 
   useEffect(() => {
     const onViewed = (e: Event) => {
-      const id = (e as CustomEvent<string>).detail;
-      setUnseen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev));
+      unseenAlertStore.markSeen((e as CustomEvent<string>).detail);
     };
     window.addEventListener(ALERT_VIEWED_EVENT, onViewed);
     return () => window.removeEventListener(ALERT_VIEWED_EVENT, onViewed);
@@ -174,5 +174,5 @@ export function useNavCounts(
     };
   }, [userId, driver, refresh]);
 
-  return { ...fresh, alerts: unseen.length, notifications: unread };
+  return { ...fresh, alerts, notifications: unread };
 }
