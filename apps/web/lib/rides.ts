@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { kenyaToday } from "@kipita/shared";
 
 export type Town = {
   name: string;
@@ -87,10 +88,8 @@ type TripRow = {
 };
 
 function todayISO(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
+  // Kenya's day, not the device's or the server's.
+  return kenyaToday();
 }
 
 export async function searchRides(

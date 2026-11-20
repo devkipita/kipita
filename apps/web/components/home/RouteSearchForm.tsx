@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { kenyaClock, kenyaToday } from "@kipita/shared";
 import {
   CalendarBlank as CalendarDays,
   CaretDown as ChevronDown,
@@ -132,25 +133,14 @@ const Submit = styled(ButtonEl)`
 const MAX_SUGGESTIONS = 6;
 
 function todayLocalISO(): string {
-  const now = new Date();
-  // Local, not toISOString() — Kenya is UTC+3, so a UTC date is wrong before
-  // 03:00 EAT. (`lib/rides.ts` has this bug; don't copy it.)
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate(),
-  ).padStart(2, "0")}`;
+  // Kenya's day, not the device's: a ride's date means Kenya time wherever the searcher is.
+  return kenyaToday();
 }
 
 function nextQuarterHour(): { date: string; time: string } {
   const quarter = 1000 * 60 * 15;
-  const slot = new Date(Math.ceil(Date.now() / quarter) * quarter);
-  return {
-    date: `${slot.getFullYear()}-${String(slot.getMonth() + 1).padStart(2, "0")}-${String(
-      slot.getDate(),
-    ).padStart(2, "0")}`,
-    time: `${String(slot.getHours()).padStart(2, "0")}:${String(
-      slot.getMinutes(),
-    ).padStart(2, "0")}`,
-  };
+  const slot = kenyaClock(new Date(Math.ceil(Date.now() / quarter) * quarter));
+  return { date: slot.date, time: slot.time };
 }
 
 /**

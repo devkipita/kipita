@@ -1,5 +1,6 @@
 import "server-only";
 import { unstable_cache } from "next/cache";
+import { kenyaToday } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import { supabasePublic } from "@/lib/supabase/public";
 import { POPULAR_ROUTES } from "@/components/landing/data";
@@ -118,10 +119,8 @@ type TripRow = {
 };
 
 function localToday(): string {
-  const d = new Date();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${m}-${day}`;
+  // Kenya's day. The server runs in UTC, which is a day behind Kenya from midnight to 03:00.
+  return kenyaToday();
 }
 
 export async function searchTrips(q: TripQuery): Promise<Ride[]> {
