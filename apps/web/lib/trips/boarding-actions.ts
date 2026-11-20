@@ -159,29 +159,3 @@ export async function reportProblemAction(
   revalidatePath("/admin/problems");
   return { ok: true };
 }
-
-// ── Admin side ──────────────────────────────────────────────────────────────────
-
-export async function resolveProblemAction(
-  problemId: string,
-  outcome: "clear" | "refund",
-  note: string,
-): Promise<{ ok: true } | Fail> {
-  const { supabase, user } = await signedIn();
-  if (!user) return { ok: false, error: SESSION };
-
-  const { error } = await supabase.rpc("resolve_booking_problem", {
-    p_problem_id: problemId,
-    p_outcome: outcome,
-    p_note: note.trim() || null,
-  });
-  if (error) {
-    return {
-      ok: false,
-      error: dbMessage(error.code, error.message, { "28000": SESSION, "42501": "Admins only.", P0002: "Problem not found." }, "Try again."),
-    };
-  }
-
-  revalidatePath("/admin/problems");
-  return { ok: true };
-}

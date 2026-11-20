@@ -24,7 +24,8 @@
 --                 change to supabase/functions/release-escrow) before the web app drops its calls.
 --   Problems      report_problem (passenger, from the moment the ride starts until release_due_at) opens a
 --                 booking_problems row and holds the fare. resolve_booking_problem (admin) either clears
---                 it (the fare follows the normal path) or refunds the passenger in full to their wallet.
+--                 it (the fare follows the normal path) or refunds the passenger in full to their wallet,
+--                 and writes the decision to the admin audit log.
 --   Guards        mark_no_show refuses a passenger who is on board. cancel_booking refuses a passenger who
 --                 is on board (KP001).
 --
@@ -942,6 +943,12 @@ BEGIN
      SET status = 'resolved', outcome = p_outcome, resolved_by = v_me,
          resolved_note = v_note, resolved_at = NOW()
    WHERE pr.booking_id = v_pr.booking_id AND pr.status = 'open';
+
+  -- A decision that can move money goes in the audit log, like the other admin actions.
+  PERFORM public.record_admin_action(
+    'problem.' || p_outcome, 'bookings', v_pr.booking_id::TEXT,
+    jsonb_build_object('problem_id', p_problem_id, 'source', v_pr.source, 'kind', v_pr.kind, 'note', v_note)
+  );
 
   IF p_outcome = 'refund' THEN
     INSERT INTO public.notifications (user_id, type, title, body, data)

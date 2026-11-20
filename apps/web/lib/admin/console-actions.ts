@@ -112,3 +112,18 @@ export async function setVehicleClassAction(code: string, kmPerLitre: number, ac
   revalidatePath("/admin/pricing");
   return { ok: true };
 }
+
+/** Clear: the fare is paid to the driver as planned. Refund: the passenger gets it back in their wallet. Either way every open problem on the booking is closed together. */
+export async function resolveProblemAction(problemId: string, outcome: "clear" | "refund", note: string): Promise<Result> {
+  if (outcome !== "clear" && outcome !== "refund") return { ok: false, error: "Choose clear or refund" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("resolve_booking_problem", {
+    p_problem_id: problemId,
+    p_outcome: outcome,
+    p_note: note.trim() || null,
+  });
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/admin/problems");
+  revalidatePath("/admin", "layout");
+  return { ok: true };
+}
