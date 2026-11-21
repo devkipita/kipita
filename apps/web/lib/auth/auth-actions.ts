@@ -1,9 +1,9 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, siteOrigin } from "@/lib/security/request";
 import { enforce, LIMITS, retryMessage } from "@/lib/security/rate-limit";
-import { safeNextPath } from "@/lib/security/redirect";
 import { clearStepUpTicket, hasStepUpTicketFor } from "@/lib/security/step-up";
 import {
   emailSchema,
@@ -131,28 +131,49 @@ export async function sendPasswordResetAction(
   return { ok: true };
 }
 
-export async function sendPhoneOtpAction(phone: string): Promise<AuthResult> {
+/**
+ * Phone numbers are verified, never used to sign in. Both actions need a signed-in
+ * user, so an SMS can only be sent to someone who already has an account, and the
+ * limits below count per account as well as per address.
+ */
+export async function startPhoneVerificationAction(
+  phone: string,
+): Promise<AuthResult> {
   const parsed = keLocalPhoneSchema.safeParse(phone);
   if (!parsed.success) return fail("Enter a valid Kenyan number.");
 
-  const ip = await clientIp();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail("Your session expired. Sign in again.");
+
   const e164 = toE164(parsed.data);
+  if (user.phone && user.phone === e164.slice(1) && user.phone_confirmed_at) {
+    return fail("That number is already verified on your account.");
+  }
+
+  const ip = await clientIp();
   const blocked = await limited([
-    [`otp-send:ip:${ip}`, LIMITS.otpSendIp],
-    [`otp-send:id:${e164}`, LIMITS.otpSendIdentity],
+    [`phone-send:user:${user.id}`, LIMITS.otpSendIdentity],
+    [`phone-send:day:${user.id}`, LIMITS.phoneVerifyDay],
+    [`phone-send:ip:${ip}`, LIMITS.otpSendIp],
   ]);
   if (blocked) return fail(blocked);
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({ phone: e164 });
-  if (error) return fail(GENERIC_FAILURE);
+  const { error } = await supabase.auth.updateUser({ phone: e164 });
+  if (error) {
+    if ((error as { code?: string }).code === "phone_exists") {
+      return fail("That number is already on another Kipita account.");
+    }
+    return fail(GENERIC_FAILURE);
+  }
   return { ok: true };
 }
 
-export async function verifyPhoneOtpAction(
+export async function confirmPhoneVerificationAction(
   phone: string,
   token: string,
-  next?: string,
 ): Promise<AuthResult> {
   const parsedPhone = keLocalPhoneSchema.safeParse(phone);
   const parsedToken = otpSchema.safeParse(token);
@@ -160,21 +181,26 @@ export async function verifyPhoneOtpAction(
     return fail("That code didn't work.");
   }
 
-  const e164 = toE164(parsedPhone.data);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return fail("Your session expired. Sign in again.");
+
   const blocked = await limited([
-    [`otp-verify:id:${e164}`, LIMITS.otpVerifyIdentity],
+    [`phone-verify:user:${user.id}`, LIMITS.otpVerifyIdentity],
   ]);
   if (blocked) return fail(blocked);
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({
-    phone: e164,
+  const { error } = await supabase.auth.verifyOtp({
+    phone: toE164(parsedPhone.data),
     token: parsedToken.data,
-    type: "sms",
+    type: "phone_change",
   });
+  if (error) return fail("That code didn't work.");
 
-  if (error || !data.session) return fail("That code didn't work.");
-  return { ok: true, next: safeNextPath(next) };
+  revalidatePath("/profile");
+  return { ok: true };
 }
 
 export async function updatePasswordAction(

@@ -498,7 +498,7 @@ const HOW: { icon: typeof UserPlus; t: string; d: string; tone: ToneName }[] = [
   {
     icon: UserPlus,
     t: "Create your account",
-    d: "Sign up with email or phone in seconds. Set a password and add a photo.",
+    d: "Sign up with your email in seconds. Set a password and add a photo.",
     tone: "green",
   },
   {
@@ -554,7 +554,7 @@ const DEFAULT_FAQS: FaqItem[] = [
   {
     question: "How do I change my email or phone?",
     answer:
-      "Head to your profile, edit your details, and confirm the change via the code or link we send you.",
+      "Head to your profile. Your phone number has its own card: add or change it there and confirm it with the code we text you. To change your email, edit your details and confirm the link we send you.",
   },
 ];
 

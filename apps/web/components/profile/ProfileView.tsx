@@ -15,6 +15,7 @@ import { AvatarUploader } from "./AvatarUploader";
 import { NotificationsCard } from "./NotificationsCard";
 import { ControlRow, LinkRow, Panel, SectionTitle } from "./SettingsUI";
 import { ChangePasswordCard } from "./ChangePasswordCard";
+import { PhoneCard } from "./PhoneCard";
 import { DriverSection } from "./DriverSection";
 import type { GarageCar } from "@/lib/home/vehicle";
 
@@ -332,7 +333,10 @@ export function ProfileView({
             <Phone className="lead" size={20} />
             <div className="body">
               <div className="k">Phone</div>
-              <div className={`v ${profile.phone ? "" : "empty"}`}>{profile.phone ?? "Not set"}</div>
+              <div className={`v ${profile.phone ? "" : "empty"}`}>
+                {profile.phone ? `+${profile.phone.replace(/^\+/, "")}` : "Not set"}
+                {profile.phone && !profile.phone_verified ? " (not verified)" : ""}
+              </div>
             </div>
           </Row>
           <Row>
@@ -362,6 +366,11 @@ export function ProfileView({
 
         <SectionTitle>Security</SectionTitle>
         <Panel>
+          <PhoneCard
+            phone={profile.phone}
+            verified={profile.phone_verified}
+            via={profile.phone_verified_via}
+          />
           <ChangePasswordCard email={profile.email} />
         </Panel>
 
