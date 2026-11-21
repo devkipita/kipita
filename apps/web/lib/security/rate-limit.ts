@@ -83,6 +83,7 @@ export const LIMITS = {
   otpSendIdentity: { limit: 4, windowMs: 30 * 60 * 1000 },
   otpSendIp: { limit: 12, windowMs: 30 * 60 * 1000 },
   otpVerifyIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
+  phoneVerifyDay: { limit: 6, windowMs: 24 * 60 * 60 * 1000 },
   proxyIp: { limit: 60, windowMs: 60 * 1000 },
 } as const;
 

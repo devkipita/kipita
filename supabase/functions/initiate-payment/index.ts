@@ -108,6 +108,17 @@ serve(async (req) => {
 
     if (paymentErr) throw paymentErr;
 
+    // Remember which number the M-Pesa prompt goes to. Safaricom masks the payer's
+    // number in callbacks, so this is the only record of it. confirm-payment uses it
+    // to mark the number verified after a successful payment. Written separately so
+    // a payment still works if the payer_phone column is not there yet.
+    if (method === 'mpesa') {
+      const payerPhone = toPayerPhone(phone);
+      if (payerPhone) {
+        await supabase.from('payments').update({ payer_phone: payerPhone }).eq('id', payment.id);
+      }
+    }
+
     let providerReference: string | null = null;
 
     if (method === 'mpesa') {
@@ -145,6 +156,13 @@ serve(async (req) => {
     });
   }
 });
+
+/** 2547XXXXXXXX or 2541XXXXXXXX, or null when the number is not a Kenyan mobile. */
+function toPayerPhone(raw: unknown): string | null {
+  let p = String(raw ?? '').replace(/[\s+]/g, '');
+  if (p.startsWith('0')) p = `254${p.slice(1)}`;
+  return /^254[17]\d{8}$/.test(p) ? p : null;
+}
 
 /**
  * M-Pesa Daraja STK Push

@@ -15,6 +15,9 @@ export interface Profile {
   is_verified: boolean;
   email_verified: boolean;
   phone_verified: boolean;
+  /** How the number was verified: an SMS code or a successful M-Pesa payment. */
+  phone_verified_via?: "sms" | "mpesa" | null;
+  phone_verified_at?: string | null;
   rating: number;
   total_trips: number;
   created_at: string;

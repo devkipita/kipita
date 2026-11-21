@@ -28,7 +28,7 @@ export function OAuthButtons({ next = "/home" }: { next?: string }) {
     if (err) {
       setError(
         /not enabled|unsupported|provider/i.test(err.message)
-          ? "Google sign-in isn't switched on yet. Use email or phone for now."
+          ? "Google sign-in isn't switched on yet. Use email for now."
           : "Google sign-in couldn't start. Try again.",
       );
       setBusy(false);
