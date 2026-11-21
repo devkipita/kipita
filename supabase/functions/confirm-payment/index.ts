@@ -144,6 +144,17 @@ serve(async (req) => {
       .select('*')
       .single();
 
+    // A successful M-Pesa prompt proves the passenger holds that SIM and entered the
+    // PIN, so the number is verified. It never replaces a number already verified.
+    // Failure here must not undo a payment that has been taken.
+    if (payment.payer_phone) {
+      const { error: verifyErr } = await supabase.rpc('mark_phone_verified_by_payment', {
+        p_user_id: booking.passenger_id,
+        p_phone: payment.payer_phone,
+      });
+      if (verifyErr) console.error('mark_phone_verified_by_payment failed', verifyErr.message);
+    }
+
     await supabase.rpc('record_wallet_entry', {
       p_user_id: booking.passenger_id,
       p_amount: Number(payment.amount),
