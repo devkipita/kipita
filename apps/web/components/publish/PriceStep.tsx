@@ -2,10 +2,18 @@
 
 import { useRef, useState } from "react";
 import styled, { css } from "styled-components";
-import { fillOutcomes, judgePrice, wholeShillings, type PriceChoiceKey } from "@kipita/shared";
+import {
+  MOST_PASSENGERS,
+  className,
+  classHolds,
+  fillOutcomes,
+  judgePrice,
+  wholeShillings,
+  type PriceChoiceKey,
+} from "@kipita/shared";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
-import { rangeFor, type QuoteState } from "./price";
+import { classFor, rangeFor, type QuoteState } from "./price";
 
 const CHOICE_LABEL: Record<PriceChoiceKey, string> = {
   lower: "Lower",
@@ -82,8 +90,13 @@ const ClassChip = styled.button<{ $on: boolean }>`
     color: ${({ $on }) => ($on ? nocturne.onGreenMuted : nocturne.muted2)};
   }
 
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:disabled) {
       border-color: ${nocturne.green};
     }
   }
@@ -303,10 +316,17 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
 
   const quote = state.status === "ready" ? state.quote : null;
   const classes = quote?.classes ?? (state.status === "loading" ? state.classes : undefined);
-  const activeClass = quote?.vehicleClass ?? (state.status === "loading" ? state.vehicleClass : undefined) ?? vehicleClass;
+  // The type the price is for. While a new quote loads it is worked out the same way the quote will be.
+  const activeClass = quote?.vehicleClass ?? classFor(classes, vehicleClass, seats, others);
   const range = quote ? rangeFor(quote, seats, others) : null;
-  // The car holds eight in all, so the people riding along and the seats offered share that room.
-  const maxOthers = Math.max(0, 8 - seats);
+  // A trip lists eight at most, so the people riding along and the seats offered share that room.
+  // The car type follows: it moves up to one that carries them all.
+  const maxOthers = Math.max(0, MOST_PASSENGERS - seats);
+  const people = seats + others;
+  // The type the driver picked, when it is too small for the people and the price moved to a bigger one.
+  const pickedLabel = vehicleClass && vehicleClass !== activeClass ? classes?.find((c) => c.code === vehicleClass)?.label : undefined;
+  const activeLabel = classes?.find((c) => c.code === activeClass)?.label;
+  const moved = pickedLabel && activeLabel && !classHolds(vehicleClass, people) ? { from: pickedLabel, to: activeLabel } : null;
 
   const typedValue = (digits: string) => (digits ? Number(digits).toLocaleString("en-US") : "");
   // Set once a decimal point has been typed. Prices are whole shillings, so the point ends the amount and
@@ -355,14 +375,27 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
         {classes.map((c) => {
           const { name, examples } = splitLabel(c.label);
           return (
-            <ClassChip key={c.code} type="button" $on={activeClass === c.code} aria-pressed={activeClass === c.code} onClick={() => onVehicleClass(c.code)}>
+            <ClassChip
+              key={c.code}
+              type="button"
+              $on={activeClass === c.code}
+              aria-pressed={activeClass === c.code}
+              disabled={!classHolds(c.code, people)}
+              onClick={() => onVehicleClass(c.code)}
+            >
               <span className="name">{name}</span>
               {examples && <span className="examples">{examples}</span>}
             </ClassChip>
           );
         })}
       </Chips>
-      <Note>Helps us estimate your fuel. You’ll pick the car you’re driving on the next step.</Note>
+      {moved ? (
+        <Note role="status">
+          {className(moved.from)} can’t carry {people}. Using {className(moved.to)}.
+        </Note>
+      ) : (
+        <Note>Helps us estimate your fuel. You’ll pick the car you’re driving on the next step.</Note>
+      )}
     </Section>
   );
 

@@ -1,13 +1,15 @@
 import "server-only";
 import {
   DEFAULT_VEHICLE_CLASSES,
+  carryLimitText,
+  classHolds,
   fareConfigFromSettings,
   judgePrice,
+  pickVehicleClass,
   resolveFuelPrice,
   resolveTown,
   roadDistanceKm,
   seatPriceRange,
-  classForCar,
   type FuelPriceRow,
   type FuelType,
   type VehicleClass,
@@ -17,8 +19,6 @@ import { fetchPlatform } from "@/lib/platform.server";
 import type { PriceQuote, PriceUnavailableReason } from "./types";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
-
-const DEFAULT_CLASS = "sedan";
 
 async function loadClasses(supabase: Supabase): Promise<VehicleClass[]> {
   try {
@@ -45,10 +45,23 @@ async function loadClasses(supabase: Supabase): Promise<VehicleClass[]> {
  * Everything needed to price a trip between two towns for one class of car.
  * Never throws: when the prices cannot be worked out it says why, and the screen falls back to
  * letting the driver type a price.
+ *
+ * The class is the one `pickVehicleClass` gives: never a type too small for the seats offered and the
+ * people riding along. `classes` can be passed in by a caller that has already loaded them.
  */
 export async function loadPriceQuote(
   supabase: Supabase,
-  args: { from: string; to: string; vehicleClass?: string; vehicleMake?: string; vehicleModel?: string },
+  args: {
+    from: string;
+    to: string;
+    vehicleClass?: string;
+    vehicleMake?: string;
+    vehicleModel?: string;
+    /** seats offered and people riding along, used to keep the class big enough */
+    seats?: number;
+    othersAboard?: number;
+  },
+  loaded?: VehicleClass[],
 ): Promise<PriceQuote> {
   const fail = (reason: PriceUnavailableReason): PriceQuote => ({ available: false, reason });
 
@@ -56,14 +69,15 @@ export async function loadPriceQuote(
     const distanceKm = roadDistanceKm(args.from, args.to);
     if (distanceKm === null) return fail("no_route");
 
-    const classes = await loadClasses(supabase);
-    if (classes.length === 0) return fail("error");
-    // A car we recognise is priced as its own type, whatever type was asked for.
-    const vehicle =
-      classForCar(args.vehicleMake, args.vehicleModel, classes) ??
-      classes.find((c) => c.code === args.vehicleClass) ??
-      classes.find((c) => c.code === DEFAULT_CLASS) ??
-      classes[0];
+    const classes = loaded ?? (await loadClasses(supabase));
+    const vehicle = pickVehicleClass(classes, {
+      requested: args.vehicleClass,
+      make: args.vehicleMake,
+      model: args.vehicleModel,
+      seats: args.seats,
+      othersAboard: args.othersAboard,
+    });
+    if (!vehicle) return fail("error");
 
     // Fuel is priced by the town the trip leaves from; Nairobi is the fallback.
     const region = (resolveTown(args.from)?.name ?? args.from).trim().toLowerCase();
@@ -128,11 +142,26 @@ export async function checkTripPrice(
   if (!Number.isInteger(args.priceKes) || args.priceKes <= 0) {
     return { ok: false, error: "Set the price in whole shillings." };
   }
-  if (args.seats + (args.othersAboard ?? 0) > 8) {
+  const people = args.seats + (args.othersAboard ?? 0);
+  if (people > 8) {
     return { ok: false, error: "That is more people than the car can carry. Check the seats and who is travelling with you." };
   }
 
-  const quote = await loadPriceQuote(supabase, args);
+  // The car type must carry everyone. This holds even when no price can be worked out, so a car that is
+  // too small for the seats is never let through just because the fuel price is missing.
+  const classes = await loadClasses(supabase);
+  const vehicle = pickVehicleClass(classes, {
+    requested: args.vehicleClass,
+    make: args.vehicleMake,
+    model: args.vehicleModel,
+    seats: args.seats,
+    othersAboard: args.othersAboard,
+  });
+  if (vehicle && !classHolds(vehicle.code, people)) {
+    return { ok: false, error: carryLimitText(vehicle.label, vehicle.code, people) };
+  }
+
+  const quote = await loadPriceQuote(supabase, args, classes);
   if (!quote.available) return { ok: true };
 
   let range;
