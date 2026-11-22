@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Starting and ending a ride. Payment to the driver is NOT triggered from here any more: the database
- * releases each boarded passenger's fare by itself, six hours after the ride ends (migration 070,
- * `release_due_escrow`). The browser never moves money.
+ * releases each boarded passenger's fare by itself once the release window has passed (migration 070,
+ * setting `release_window_hours`, function `release_due_escrow`). The browser never moves money.
  */
 export type TripRunResult = { ok: true; moved: number } | { ok: false; error: string };
 

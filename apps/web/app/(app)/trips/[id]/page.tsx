@@ -124,7 +124,6 @@ export default async function TripPage({
       cancelConfig={cancellationConfigFromSettings(platform.settings)}
       noShow={noShow}
       journey={journey}
-      releaseHours={platform.settings.release_window_hours ?? 6}
       route={route}
     />
   );

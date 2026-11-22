@@ -744,7 +744,7 @@ const Help = styled.div`
 
 const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "completed"] as const;
 
-const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid, held by Kipita", "On the way", "Arrived"];
+const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid", "On the way", "Arrived"];
 const DRIVER_STEPS = ["Request received", "You accepted", "Passenger paid", "On the way", "Arrived"];
 
 /** "Tue, 8:00 pm" in Nairobi time. */
@@ -779,7 +779,6 @@ export function TripDetail({
   cancelConfig,
   noShow,
   journey,
-  releaseHours,
   route,
 }: {
   booking: Booking;
@@ -791,8 +790,6 @@ export function TripDetail({
   noShow: NoShowState | null;
   /** Pickup code, boarding and problem report. Empty when migration 070 has not run. */
   journey: JourneyState;
-  /** Hours between the end of a ride and the fare reaching the driver. */
-  releaseHours: number;
   route: Promise<TripRoute | null>;
 }) {
   const router = useRouter();
@@ -1419,7 +1416,7 @@ export function TripDetail({
   const labels = isDriver ? DRIVER_STEPS : RIDER_STEPS;
   const at = ORDER.indexOf(booking.status as (typeof ORDER)[number]);
 
-  const baseNote = due
+  const baseNote: string | null = due
     ? hold
       ? isDriver
         ? `Waiting for ${firstName} to pay · ${hold} left`
@@ -1431,20 +1428,22 @@ export function TripDetail({
       ? isDriver
         ? `${firstName} pays once you accept`
         : "Nothing is charged until the driver accepts"
-      : paid || live
-        ? isDriver
-          ? `${formatCurrency(subtotal)} held · paid ${releaseHours} hours after the trip ends`
-          : `Your fare is held until ${releaseHours} hours after the trip ends`
-        : booking.status === "completed"
+      : live
+        ? null // The slide-to-end line says what the driver will be paid.
+        : paid || booking.status === "completed"
           ? isDriver
-            ? `${formatCurrency(subtotal)} is paid to your wallet ${releaseHours} hours after the trip ends`
-            : "Trip complete"
+            ? "Paid when there is no dispute"
+            : booking.status === "completed"
+              ? "Trip complete"
+              : null
           : booking.refunded_amount != null
             ? `${formatCurrency(booking.refunded_amount)} refunded ${booking.refund_to === "mpesa" ? "to M-Pesa" : "to your Kipita wallet"}`
             : booking.paid_at
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
+  // A clock where the driver is waiting on a payment or a release, a lock for everything else.
+  const waiting = isDriver && (due || (!noShowNote && (paid || booking.status === "completed")));
 
   return (
     <>
@@ -1643,10 +1642,12 @@ export function TripDetail({
                 </dd>
               </div>
             </Lines>
-            <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
-              {due && isDriver ? <Clock size={18} /> : <Lock size={18} />}
-              {note}
-            </Hint>
+            {note && (
+              <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
+                {waiting ? <Clock size={18} /> : <Lock size={18} />}
+                {note}
+              </Hint>
+            )}
             {!isDriver && paid && freeEnds && (
               <Hint>
                 <Clock size={18} />
@@ -1680,7 +1681,7 @@ export function TripDetail({
               <>
                 <Hint>
                   <Clock size={18} />
-                  {earningsLine(board.summary, releaseHours)}
+                  {earningsLine(board.summary)}
                 </Hint>
                 <SlideToComplete
                   label="Slide to end trip"

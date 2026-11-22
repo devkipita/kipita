@@ -136,7 +136,7 @@ export function FinishScene({
       </Art>
       <Copy>
         <h2>{isDriver ? `You delivered your passenger to ${destination}` : `You made it to ${destination}`}</h2>
-        <p>{isDriver ? "The fare is on its way to your wallet" : "Kipita released your fare to the driver"}</p>
+        <p>{isDriver ? "Paid when there is no dispute" : "Thanks for riding with Kipita"}</p>
       </Copy>
       <Stats>
         <div>

@@ -491,7 +491,12 @@ const Label = styled.span`
   pointer-events: none;
 `;
 
-const Knob = styled.button`
+const Knob = styled.button.attrs<{ $x: number; $dragging: boolean }>(({ $x, $dragging }) => ({
+  style: {
+    transform: `translateX(${$x}px)`,
+    transition: $dragging ? "none" : `transform ${dur.state} ${ease.standard}`,
+  },
+}))`
   position: absolute;
   top: 4px;
   left: 4px;
@@ -579,10 +584,8 @@ export function SlideToComplete({
             onComplete();
           }
         }}
-        style={{
-          transform: `translateX(${x}px)`,
-          transition: dragging ? "none" : `transform ${dur.state} ${ease.standard}`,
-        }}
+        $x={x}
+        $dragging={dragging}
       >
         <span aria-hidden>›››</span>
       </Knob>
@@ -590,10 +593,9 @@ export function SlideToComplete({
   );
 }
 
-/** The line shown above the slider: what the driver will be paid, and when. */
-export function earningsLine(summary: BoardingSummary, hours: number): string {
-  const when = `${hours} ${hours === 1 ? "hour" : "hours"} after the trip ends`;
-  if (!summary.loaded) return `Paid ${when}.`;
+/** The line shown above the slider: what the driver will be paid, and on what condition. */
+export function earningsLine(summary: BoardingSummary): string {
+  if (!summary.loaded) return "Paid when there is no dispute.";
   if (summary.boarded === 0) return "No one boarded, so nothing to pay out.";
-  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, ${when}.`;
+  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, when there is no dispute.`;
 }

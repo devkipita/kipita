@@ -444,7 +444,7 @@ export function WalletView({
               <span className="value">
                 {formatKes(summary.pending_earnings)}
               </span>
-              <span className="note">Lands in your balance when you end the ride.</span>
+              <span className="note">Lands in your balance when there is no dispute.</span>
             </Tile>
           )}
 
