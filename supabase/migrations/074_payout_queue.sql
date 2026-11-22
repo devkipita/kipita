@@ -11,9 +11,10 @@
 --     already has the money taken from their wallet and a row in status pending or processing. That is a
 --     "request" line.
 --   * A driver whose released earnings are in their wallet has no row yet. That is an "earnings" line: the
---     whole wallet balance, if it is at least KES 100 (the withdraw-wallet minimum), the phone number is
---     verified (072), the account is active, and the driver has no request open. Only people who have been
---     paid earnings (a 'payout' entry in their wallet) are listed this way; anyone else asks for a withdrawal.
+--     wallet balance in whole shillings (M-Pesa pays whole shillings; any cents stay in the wallet), if it is
+--     at least KES 1, the phone number is verified (072), the account is active, and the driver has no
+--     request open. There is no larger minimum (CEO, 22 Nov). Only people who have been paid earnings (a
+--     'payout' entry in their wallet) are listed this way; anyone else asks for a withdrawal.
 --   * Mark paid, with the M-Pesa receipt number, records the payout. For an earnings line it takes the amount
 --     out of the wallet at that moment and writes the paid row in one step, so nothing is taken from a wallet
 --     before the money has gone. For a request line the money is already out of the wallet: the row becomes paid.
@@ -25,8 +26,8 @@
 -- What this migration adds (all admin only unless said)
 --   1. kenya_msisdn(text): 2547XXXXXXXX or NULL, the same rule as withdraw-wallet.
 --   2. A unique index so one receipt cannot mark two payouts paid.
---   3. admin_payout_queue(): { min, lines[], waiting[] }. Lines are what can be paid today, oldest first;
---      waiting are drivers owed money who cannot be paid yet, with the reason (phone, account, minimum).
+--   3. admin_payout_queue(): { lines[], waiting[] }. Lines are what can be paid today, oldest first;
+--      waiting are drivers owed money who cannot be paid yet, with the reason (phone or account).
 --   4. admin_payout_count(): the number of lines, for the sidebar badge.
 --   5. admin_mark_payout_paid(user, withdrawal, amount, receipt).
 --   6. admin_return_payout(withdrawal, reason).
@@ -81,7 +82,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_min   CONSTANT NUMERIC := 100;
   v_lines JSONB;
   v_wait  JSONB;
 BEGIN
@@ -114,14 +114,14 @@ BEGIN
              public.kenya_msisdn(u.phone),
              TRUE,
              u.phone_verified_via,
-             wl.balance,
+             floor(wl.balance),
              (SELECT max(t.created_at) FROM public.wallet_transactions t
                WHERE t.wallet_id = wl.id AND t.type::TEXT = 'payout'),
              (SELECT max(t.created_at) FROM public.wallet_transactions t
                WHERE t.wallet_id = wl.id AND t.type::TEXT = 'payout')
         FROM public.wallets wl
         JOIN public.users u ON u.id = wl.user_id
-       WHERE wl.balance >= v_min
+       WHERE wl.balance >= 1
          AND COALESCE(u.phone_verified, FALSE)
          AND public.kenya_msisdn(u.phone) IS NOT NULL
          AND u.status::TEXT = 'active'
@@ -138,11 +138,10 @@ BEGIN
       SELECT u.id                       AS user_id,
              u.full_name                AS name,
              u.phone                    AS phone,
-             wl.balance                 AS amount,
+             floor(wl.balance)          AS amount,
              CASE
                WHEN u.status::TEXT <> 'active' OR u.deleted_at IS NOT NULL OR u.erased_at IS NOT NULL THEN 'account'
-               WHEN NOT COALESCE(u.phone_verified, FALSE) OR public.kenya_msisdn(u.phone) IS NULL     THEN 'phone'
-               ELSE 'minimum'
+               ELSE 'phone'
              END                        AS reason,
              (SELECT max(t.created_at) FROM public.wallet_transactions t
                WHERE t.wallet_id = wl.id AND t.type::TEXT = 'payout') AS since,
@@ -150,14 +149,13 @@ BEGIN
                WHERE t.wallet_id = wl.id AND t.type::TEXT = 'payout') AS sort_key
         FROM public.wallets wl
         JOIN public.users u ON u.id = wl.user_id
-       WHERE wl.balance > 0
+       WHERE wl.balance >= 1
          AND EXISTS (SELECT 1 FROM public.wallet_transactions t
                       WHERE t.wallet_id = wl.id AND t.type::TEXT = 'payout')
          AND NOT EXISTS (SELECT 1 FROM public.wallet_withdrawals o
                           WHERE o.user_id = u.id AND o.status IN ('pending', 'processing'))
          AND NOT (
-               wl.balance >= v_min
-           AND COALESCE(u.phone_verified, FALSE)
+               COALESCE(u.phone_verified, FALSE)
            AND public.kenya_msisdn(u.phone) IS NOT NULL
            AND u.status::TEXT = 'active'
            AND u.deleted_at IS NULL
@@ -165,7 +163,7 @@ BEGIN
          )
     ) x;
 
-  RETURN jsonb_build_object('min', v_min, 'lines', v_lines, 'waiting', v_wait);
+  RETURN jsonb_build_object('lines', v_lines, 'waiting', v_wait);
 END;
 $$;
 
@@ -203,7 +201,6 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_min     CONSTANT NUMERIC := 100;
   v_receipt TEXT := upper(btrim(COALESCE(p_receipt, '')));
   v_w       public.wallet_withdrawals%ROWTYPE;
   v_u       public.users%ROWTYPE;
@@ -267,8 +264,8 @@ BEGIN
     IF NOT COALESCE(v_u.phone_verified, FALSE) OR public.kenya_msisdn(v_u.phone) IS NULL THEN
       RAISE EXCEPTION 'Their phone number is not verified.' USING ERRCODE = '22023';
     END IF;
-    IF p_amount IS NULL OR p_amount < v_min THEN
-      RAISE EXCEPTION 'The smallest payout is KES 100.' USING ERRCODE = '22023';
+    IF p_amount IS NULL OR p_amount < 1 OR p_amount <> floor(p_amount) THEN
+      RAISE EXCEPTION 'Enter whole shillings.' USING ERRCODE = '22023';
     END IF;
     IF p_amount > v_balance THEN
       RAISE EXCEPTION 'The balance changed. Reload the page.' USING ERRCODE = '22023';

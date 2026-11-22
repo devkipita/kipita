@@ -150,7 +150,6 @@ const Plain = styled.p`
 const REASON: Record<PayoutWaitingReason, string> = {
   account: "Account not active",
   phone: "Phone number not verified",
-  minimum: "Under the minimum",
 };
 
 const lineKey = (l: PayoutLine) => l.withdrawal_id ?? l.user_id;
@@ -344,7 +343,7 @@ function ToPay({ queue }: { queue: PayoutQueue }) {
                         </Right>
                       </td>
                       <td>
-                        <Pill $tone="warning">{w.reason === "minimum" ? `Under KES ${queue.min}` : REASON[w.reason]}</Pill>
+                        <Pill $tone="warning">{REASON[w.reason]}</Pill>
                       </td>
                     </tr>
                   ))}

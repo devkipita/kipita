@@ -197,7 +197,7 @@ export type PayoutLine = {
   since: string | null;
 };
 
-export type PayoutWaitingReason = "account" | "phone" | "minimum";
+export type PayoutWaitingReason = "account" | "phone";
 
 /** Owed money but cannot be paid yet. */
 export type PayoutWaiting = {
@@ -209,7 +209,7 @@ export type PayoutWaiting = {
   since: string | null;
 };
 
-export type PayoutQueue = { min: number; lines: PayoutLine[]; waiting: PayoutWaiting[] };
+export type PayoutQueue = { lines: PayoutLine[]; waiting: PayoutWaiting[] };
 
 export type PayoutHistoryRow = {
   id: string;
