@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { kenyaToday } from "@kipita/shared";
 import {
   BOOKING_SELECT,
   CURRENT_STATES,
@@ -199,7 +200,7 @@ export async function fetchPublishedTrips(
     const supabase = await createClient();
     const columns = `id, from_location, to_location, departure_date, departure_time,
          price_per_seat, seats_available, seats_total, status`;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = kenyaToday();
 
     const [open, running] = await Promise.all([
       supabase

@@ -3,7 +3,18 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
+import {
+  KENYAN_TOWNS,
+  POPULAR_ROUTES,
+  dateFromISO,
+  hasDeparted,
+  isEmptyDraft,
+  kenyaClock,
+  kenyaToday,
+  putNearTownFirst,
+  sameTown,
+  searchTowns,
+} from "@kipita/shared";
 import {
   ArrowRight,
   CalendarBlank,
@@ -103,7 +114,7 @@ function shortDay(value: string) {
 
 function dayPhrase(value: string) {
   if (!value) return "";
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   if (value === iso(today)) return "today";
   if (value === iso(plusDays(today, 1))) return "tomorrow";
   return `on ${shortDay(value)}`;
@@ -112,7 +123,7 @@ function dayPhrase(value: string) {
 function pillDay(value: string) {
   if (!value) return "";
   const d = new Date(`${value}T00:00:00`);
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   const lead =
     value === iso(today)
       ? "Today"
@@ -1172,10 +1183,8 @@ export function PublishWeb({
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
       return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now()) {
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      return draft.date < today
+    if (hasDeparted(draft.date, draft.time)) {
+      return draft.date < kenyaToday()
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
@@ -1363,8 +1372,7 @@ export function PublishWeb({
   }
 
   const calendar = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateFromISO(kenyaToday());
     const last = plusDays(today, DAYS_AHEAD - 1);
     const start = plusDays(today, -((today.getDay() + 6) % 7));
     const end = plusDays(last, 6 - ((last.getDay() + 6) % 7));
@@ -1383,7 +1391,7 @@ export function PublishWeb({
 
   const exact = draft.time || "07:30";
   const exactLabel = prettyTime(exact);
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowMin = kenyaClock().minutes;
   const isToday = draft.date === calendar.today;
   const def = PERIODS.find((p) => p.key === period)!;
   const slots: string[] = [];

@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
+import {
+  KENYAN_TOWNS,
+  POPULAR_ROUTES,
+  dateFromISO,
+  hasDeparted,
+  isEmptyDraft,
+  kenyaClock,
+  kenyaToday,
+  putNearTownFirst,
+  sameTown,
+  searchTowns,
+} from "@kipita/shared";
 import {
   CaretLeft,
   CaretRight,
@@ -110,7 +121,7 @@ function plusDays(base: Date, n: number) {
 
 function dayPhrase(value: string) {
   if (!value) return "";
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   if (value === iso(today)) return "today";
   if (value === iso(plusDays(today, 1))) return "tomorrow";
   const d = new Date(`${value}T00:00:00`);
@@ -1172,7 +1183,7 @@ export function PublishMobile({
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
       return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now())
+    if (hasDeparted(draft.date, draft.time))
       return draft.date < todayISO()
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
@@ -1343,8 +1354,7 @@ export function PublishMobile({
   }
 
   const calendar = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateFromISO(kenyaToday());
     const last = plusDays(today, DAYS_AHEAD - 1);
     const start = plusDays(today, -((today.getDay() + 6) % 7));
     const end = plusDays(last, 6 - ((last.getDay() + 6) % 7));
@@ -1366,7 +1376,7 @@ export function PublishMobile({
     return { cells, month, today: iso(today), tomorrow: iso(plusDays(today, 1)) };
   }, []);
 
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowMin = kenyaClock().minutes;
   const times = draft.date === calendar.today ? TIMES.filter((t) => minutesOf(t) > nowMin + 15) : TIMES;
 
   const ctaTone: "go" | "publish" | "off" = step === 7 ? "publish" : valid ? "go" : "off";
