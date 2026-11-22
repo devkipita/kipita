@@ -183,12 +183,51 @@ export type ProblemRow = {
   problems: ProblemItem[];
 };
 
+/** One payment to make (migration 074). "request": money already taken from the wallet. "earnings": a driver's wallet balance. */
+export type PayoutLine = {
+  kind: "request" | "earnings";
+  withdrawal_id: string | null;
+  user_id: string;
+  name: string | null;
+  /** 2547XXXXXXXX, or null when the number on file is not usable. */
+  phone: string | null;
+  verified: boolean;
+  verified_via: string | null;
+  amount: number;
+  since: string | null;
+};
+
+export type PayoutWaitingReason = "account" | "phone" | "minimum";
+
+/** Owed money but cannot be paid yet. */
+export type PayoutWaiting = {
+  user_id: string;
+  name: string | null;
+  phone: string | null;
+  amount: number;
+  reason: PayoutWaitingReason;
+  since: string | null;
+};
+
+export type PayoutQueue = { min: number; lines: PayoutLine[]; waiting: PayoutWaiting[] };
+
+export type PayoutHistoryRow = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  amount: number;
+  status: "paid" | "failed" | "cancelled";
+  receipt: string | null;
+  reason: string | null;
+  at: string | null;
+};
+
 export type AuditRow = {
   id: string;
   action: string;
   subject: string | null;
   subject_id: string | null;
-  detail: { from?: unknown; to?: unknown; petrol?: unknown; diesel?: unknown } | null;
+  detail: { from?: unknown; to?: unknown; petrol?: unknown; diesel?: unknown; amount?: unknown; receipt?: unknown; reason?: unknown } | null;
   created_at: string;
   actor: string | null;
   actor_avatar: string | null;
@@ -274,6 +313,10 @@ export function describeAction(row: AuditRow) {
       return `Changed user status from ${String(from)} to ${String(to)}`;
     case "report.status":
       return `Moved case from ${String(from)} to ${String(to)}`;
+    case "payout.paid":
+      return `Marked KES ${String(row.detail?.amount ?? "")} paid, receipt ${String(row.detail?.receipt ?? "")}`;
+    case "payout.returned":
+      return `Returned KES ${String(row.detail?.amount ?? "")} to the wallet: ${String(row.detail?.reason ?? "")}`;
     default:
       return row.action;
   }
