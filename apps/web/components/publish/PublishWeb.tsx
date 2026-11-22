@@ -29,7 +29,7 @@ import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 import { PriceStep } from "./PriceStep";
-import { carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
+import { carCapacityText, carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -1151,11 +1151,11 @@ export function PublishWeb({
 
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
-  // Never more than the car can hold with the seats offered.
+  // Never more than a trip can list with the seats offered.
   const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
-  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, enabled: ready && step >= 3 });
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, others, enabled: ready && step >= 3 });
   const priceBlock = priceBlockText(quote, seats, fare, others);
 
   const valid = [
@@ -1179,6 +1179,8 @@ export function PublishWeb({
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
+    const tooSmall = carCapacityText(quote, car?.make ?? "", car?.model ?? "", seats, others);
+    if (tooSmall) return { kind: "seats", text: tooSmall };
     const carType = carTypeBlockText(quote, car?.make ?? "", car?.model ?? "");
     if (carType) return { kind: "carType", text: carType };
     if (priceBlock) return { kind: "price", text: priceBlock };
@@ -1192,6 +1194,7 @@ export function PublishWeb({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
+    else if (kind === "seats") go(3);
     else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else publish();
