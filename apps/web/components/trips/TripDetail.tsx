@@ -1425,7 +1425,7 @@ export function TripDetail({
         : "Your hold ran out. Request the seat again if it's still free"
     : booking.status === "requested"
       ? isDriver
-        ? `${firstName} pays once you accept`
+        ? `${firstName} pays once you accept, then can message you and see your number`
         : "Nothing is charged until the driver accepts"
       : live
         ? null // The slide-to-end line says what the driver will be paid.

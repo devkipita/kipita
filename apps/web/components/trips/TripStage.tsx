@@ -66,7 +66,7 @@ const PASSENGER: Record<BookingStatus, Copy> = {
 const DRIVER: Record<BookingStatus, Copy> = {
   requested: {
     title: "Someone wants a seat",
-    line: "Accepting holds the seat for 30 minutes and asks them to pay. Once they pay, they can message you and see your number. Declining tells them straight away.",
+    line: "Accepting holds the seat for 30 minutes and asks them to pay. Declining tells them straight away.",
     nudge: "Answer quickly and passengers keep choosing you.",
   },
   pending_payment: {
