@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type TripRunResult =
-  | { ok: true; moved: number; bookingIds: string[] }
-  | { ok: false; error: string };
+/**
+ * Starting and ending a ride. Payment to the driver is NOT triggered from here any more: the database
+ * releases each boarded passenger's fare by itself once the release window has passed (migration 070,
+ * setting `release_window_hours`, function `release_due_escrow`). The browser never moves money.
+ */
+export type TripRunResult = { ok: true; moved: number } | { ok: false; error: string };
 
 const RUN_ERRORS: Record<string, string> = {
   "28000": "Your session expired. Sign in again.",
@@ -17,20 +20,6 @@ const RUN_ERRORS: Record<string, string> = {
 
 function message(code: string | undefined, fallback: string): string {
   return RUN_ERRORS[code ?? ""] ?? fallback;
-}
-
-async function bookingIdsFor(
-  tripId: string,
-  statuses: string[],
-): Promise<string[]> {
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("bookings")
-    .select("id")
-    .eq("trip_id", tripId)
-    .in("status", statuses);
-
-  return (data ?? []).map((row) => row.id as string);
 }
 
 export async function startTripAction(tripId: string): Promise<TripRunResult> {
@@ -46,6 +35,8 @@ export async function startTripAction(tripId: string): Promise<TripRunResult> {
   });
 
   if (error) {
+    // KP005: passengers are still waiting to board. The database words it with the count, so use its text.
+    if (error.code === "KP005" && error.message) return { ok: false, error: error.message };
     return {
       ok: false,
       error: message(error.code, "We couldn't start that ride. Please try again."),
@@ -54,7 +45,7 @@ export async function startTripAction(tripId: string): Promise<TripRunResult> {
 
   revalidatePath("/trips");
   revalidatePath(`/ride/${tripId}`);
-  return { ok: true, moved: Number(data ?? 0), bookingIds: [] };
+  return { ok: true, moved: Number(data ?? 0) };
 }
 
 export async function completeTripAction(
@@ -66,8 +57,6 @@ export async function completeTripAction(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Your session expired. Sign in again." };
-
-  const paid = await bookingIdsFor(tripId, ["confirmed", "in_progress"]);
 
   const { data, error } = await supabase.rpc("complete_trip", {
     p_trip_id: tripId,
@@ -82,5 +71,5 @@ export async function completeTripAction(
 
   revalidatePath("/trips");
   revalidatePath(`/ride/${tripId}`);
-  return { ok: true, moved: Number(data ?? 0), bookingIds: paid };
+  return { ok: true, moved: Number(data ?? 0) };
 }

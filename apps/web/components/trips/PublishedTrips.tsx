@@ -10,7 +10,6 @@ import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { useConfirm } from "@/components/ui/ConfirmPop";
 import { nocturne } from "@/lib/nocturne";
-import { releaseEscrowForAll } from "@/lib/escrow";
 import { cancelTripAction } from "@/lib/trips/booking-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
@@ -238,7 +237,6 @@ export function PublishedTrips({ initial }: { initial: PublishedTrip[] }) {
         setJob(null);
         return;
       }
-      await releaseEscrowForAll(result.bookingIds);
       setItems((prev) => prev.filter((t) => t.id !== trip.id));
       setBusy(null);
       setJob(null);

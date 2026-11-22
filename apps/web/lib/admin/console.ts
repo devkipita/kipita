@@ -140,6 +140,49 @@ export type ReportRow = {
   } | null;
 };
 
+export type AdminProblemKind =
+  | "never_picked_up"
+  | "not_dropped_off"
+  | "unsafe_driving"
+  | "asked_for_cash"
+  | "other"
+  | "manual_board";
+
+export type ProblemItem = {
+  id: string;
+  /** A passenger's report, or a driver marking a passenger on board by hand. */
+  source: "passenger" | "manual_board";
+  kind: AdminProblemKind;
+  note: string;
+  status: "open" | "resolved";
+  outcome: "clear" | "refund" | null;
+  resolved_note: string | null;
+  created_at: string;
+};
+
+/** One booking with everything open (or resolved) on it. Deciding resolves all of it at once. */
+export type ProblemRow = {
+  booking_id: string;
+  reference: string | null;
+  booking_status: string;
+  boarded_method: "code" | "manual" | "legacy" | null;
+  seats: number;
+  trip_id: string;
+  from: string;
+  to: string;
+  departure_date: string;
+  departure_time: string | null;
+  amount: number | null;
+  driver_earning: number | null;
+  escrow_status: string | null;
+  release_due_at: string | null;
+  passenger: { id: string; name: string | null; phone: string | null };
+  driver: { id: string; name: string | null; phone: string | null };
+  opened_at: string;
+  resolved_at: string | null;
+  problems: ProblemItem[];
+};
+
 export type AuditRow = {
   id: string;
   action: string;
