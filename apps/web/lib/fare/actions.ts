@@ -14,6 +14,9 @@ const inputSchema = z.object({
     .regex(/^[a-z0-9_]+$/)
     .max(40)
     .optional(),
+  // Seats offered and people riding along: they keep the car type big enough for everyone.
+  seats: z.number().int().min(1).max(8).optional(),
+  others: z.number().int().min(0).max(7).optional(),
 });
 
 /** The recommended price range for a trip, for the Price step of Publish a ride. */
@@ -21,6 +24,8 @@ export async function getPriceQuoteAction(input: {
   from: string;
   to: string;
   vehicleClass?: string;
+  seats?: number;
+  others?: number;
 }): Promise<PriceQuote> {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return { available: false, reason: "no_route" };
@@ -38,5 +43,6 @@ export async function getPriceQuoteAction(input: {
   );
   if (!gate.ok) return { available: false, reason: "error" };
 
-  return loadPriceQuote(supabase, parsed.data);
+  const { seats, others, ...route } = parsed.data;
+  return loadPriceQuote(supabase, { ...route, seats, othersAboard: others });
 }
