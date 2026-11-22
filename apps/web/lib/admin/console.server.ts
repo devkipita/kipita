@@ -6,6 +6,7 @@ import type {
   Paged,
   Payments,
   PaymentTab,
+  ProblemRow,
   ReportRow,
   TripRow,
   UserRole,
@@ -55,18 +56,26 @@ export function loadReports(status: string) {
   return rpc<ReportRow[]>("admin_reports", { p_status: status });
 }
 
+export function loadProblems(status: "open" | "resolved") {
+  return rpc<ProblemRow[]>("admin_booking_problems", { p_status: status });
+}
+
 export function loadAudit(action?: string, limit = 50) {
   return rpc<AuditRow[]>("admin_audit_log", { p_action: action ?? null, p_limit: limit });
 }
 
 export async function loadSidebarCounts() {
   const supabase = await createClient();
-  const [drivers, reports] = await Promise.all([
+  const [drivers, reports, problems] = await Promise.all([
     supabase.from("driver_profiles").select("user_id", { count: "exact", head: true }).eq("approval_status", "pending"),
     supabase.rpc("admin_reports", { p_status: "open" }),
+    // Rides to review (migration 070). Bookings, not rows: a booking can carry two open problems.
+    // On a database that has not run 070 this errors and counts as none.
+    supabase.from("booking_problems").select("booking_id").eq("status", "open"),
   ]);
   return {
     drivers: drivers.count ?? 0,
     disputes: Array.isArray(reports.data) ? reports.data.length : 0,
+    problems: problems.error ? 0 : new Set((problems.data ?? []).map((r) => r.booking_id as string)).size,
   };
 }

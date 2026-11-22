@@ -7,7 +7,7 @@ import styled, { css, keyframes } from "styled-components";
 import { ArrowLeft, ChatCircle, Check, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareNetwork, Star, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
-import { releaseEscrowForAll } from "@/lib/escrow";
+import { reportProblemAction, type ProblemKind } from "@/lib/trips/boarding-actions";
 import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
 import { LiveStatus, useLiveEta } from "./LiveCard";
@@ -30,9 +30,11 @@ import {
 } from "@/lib/trips/booking-actions";
 import { answerSeatRequestAction } from "@/lib/trips/request-actions";
 import { useBookingStream } from "@/lib/trips/realtime";
-import type { Booking, NoShowState } from "@/lib/trips/types";
+import type { Booking, JourneyState, NoShowState } from "@/lib/trips/types";
 import { CancelPanel } from "./CancelPanel";
 import { NoShowPanel } from "./NoShowPanel";
+import { ProblemPanel } from "./ProblemPanel";
+import { BoardingPanel, PickupCodeCard, SlideToComplete, earningsLine, useBoarding } from "./Boarding";
 import { FinishScene } from "./FinishScene";
 import { RateRide } from "./RateRide";
 import { PayPanel } from "./PayPanel";
@@ -231,7 +233,7 @@ const MapTop = styled.div`
 `;
 
 type Snap = "peek" | "half" | "full";
-type Side = "pay" | "chat" | "cancel" | "dispute";
+type Side = "pay" | "chat" | "cancel" | "dispute" | "problem";
 
 const SNAP_Y: Record<Snap, string> = {
   full: "0px",
@@ -339,6 +341,11 @@ const Card = styled.section<{ $order?: number }>`
   ${DESK} {
     padding: 22px;
   }
+`;
+
+/** Places a card that has its own styling into the same ordered column as the local cards. */
+const Slot = styled.div<{ $order: number }>`
+  order: ${({ $order }) => $order};
 `;
 
 const Top = styled.div`
@@ -737,7 +744,7 @@ const Help = styled.div`
 
 const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "completed"] as const;
 
-const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid, held by Kipita", "On the way", "Arrived"];
+const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid", "On the way", "Arrived"];
 const DRIVER_STEPS = ["Request received", "You accepted", "Passenger paid", "On the way", "Arrived"];
 
 /** "Tue, 8:00 pm" in Nairobi time. */
@@ -771,6 +778,7 @@ export function TripDetail({
   walletBalance,
   cancelConfig,
   noShow,
+  journey,
   route,
 }: {
   booking: Booking;
@@ -780,6 +788,8 @@ export function TripDetail({
   cancelConfig: CancellationConfig;
   /** Null when migration 063 has not run yet. */
   noShow: NoShowState | null;
+  /** Pickup code, boarding and problem report. Empty when migration 070 has not run. */
+  journey: JourneyState;
   route: Promise<TripRoute | null>;
 }) {
   const router = useRouter();
@@ -815,7 +825,7 @@ export function TripDetail({
   const feePct = fee != null && subtotal > 0 ? Math.round((fee / subtotal) * 100) : null;
   const seatLine = perSeat > 0 && perSeat * booking.seats_booked === subtotal;
 
-  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | "noshow" | "dispute" | null>(null);
+  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | "noshow" | "dispute" | "problem" | null>(null);
   const [error, setError] = useState("");
   const [hold, setHold] = useState<string | null>(() => holdLeft(booking.expires_at));
   const [, startTransition] = useTransition();
@@ -867,21 +877,28 @@ export function TripDetail({
   const firstName = name.split(" ")[0];
   const runnable = isDriver && (paid || live);
 
-  async function run(anchor: Element) {
-    const starting = paid;
+  const board = useBoarding(booking.trip_id, isDriver && (paid || live));
+
+  // Starting asks first. Ending is the slide, which is its own confirmation.
+  async function startRide(anchor: Element) {
     const ok = await ask(anchor, {
-      title: starting ? `Start the trip to ${destination}?` : `End the trip at ${destination}?`,
-      yes: starting ? "Start trip" : "End trip",
-      no: starting ? "Not yet" : "Keep driving",
+      title: `Start the trip to ${destination}?`,
+      yes: "Start trip",
+      no: "Not yet",
     });
-    if (!ok || !booking.trip_id) return;
+    if (!ok) return;
+    runTrip(true);
+  }
+
+  function runTrip(starting: boolean) {
+    if (!booking.trip_id) return;
     setBusy("run");
     setError("");
     startTransition(async () => {
       const result = starting ? await startTripAction(booking.trip_id) : await completeTripAction(booking.trip_id);
-      if (result.ok && !starting) await releaseEscrowForAll(result.bookingIds);
       setBusy(null);
       if (!result.ok) setError(result.error);
+      if (result.ok && starting) await board.reload();
       router.refresh();
     });
   }
@@ -948,11 +965,11 @@ export function TripDetail({
   })();
   const [nowMs, setNowMs] = useState(() => Date.now());
   useEffect(() => {
-    if (!paid) return;
+    if (!paid && !live && booking.status !== "completed") return;
     setNowMs(Date.now());
     const timer = setInterval(() => setNowMs(Date.now()), 30_000);
     return () => clearInterval(timer);
-  }, [paid]);
+  }, [paid, live, booking.status]);
 
   const paidAtDate = booking.paid_at ? new Date(booking.paid_at) : null;
   const freeEnds = departsAt && paidAtDate ? freeUntil(departsAt, paidAtDate, cancelConfig) : null;
@@ -1059,6 +1076,37 @@ export function TripDetail({
       router.refresh();
     });
   }
+
+  const [problemError, setProblemError] = useState("");
+
+  function sendProblem(kind: ProblemKind, note: string) {
+    setBusy("problem");
+    setProblemError("");
+    startTransition(async () => {
+      const result = await reportProblemAction(booking.id, kind, note);
+      setBusy(null);
+      if (!result.ok) {
+        setProblemError(result.error);
+        return;
+      }
+      setSide(null);
+      router.refresh();
+    });
+  }
+
+  // A passenger can report a problem from the moment the ride starts until the fare is released.
+  const releaseMs = journey.releaseDueAt ? new Date(journey.releaseDueAt).getTime() : null;
+  const problemOpen =
+    !isDriver &&
+    !journey.problem &&
+    (live || (booking.status === "completed" && journey.escrow === "held" && releaseMs != null && nowMs <= releaseMs));
+  const problemNote: string | null = journey.problem
+    ? journey.problem.status === "open"
+      ? "We're looking into your report. The fare is on hold"
+      : journey.problem.outcome === "refund"
+        ? "Refunded to your Kipita wallet"
+        : "We found no problem. Contact support if you disagree"
+    : null;
 
   const pageRef = useRef<HTMLDivElement>(null);
   const [squeeze, setSqueeze] = useState(false);
@@ -1277,13 +1325,26 @@ export function TripDetail({
       open={side !== null}
       mode={panelMode}
       title={
-        shown === "chat" ? name : shown === "cancel" ? "Cancel ride" : shown === "dispute" ? "Dispute no-show" : "Pay for your seat"
+        shown === "chat"
+          ? name
+          : shown === "cancel"
+            ? "Cancel ride"
+            : shown === "dispute"
+              ? "Dispute no-show"
+              : shown === "problem"
+                ? "Report a problem"
+                : "Pay for your seat"
       }
       closeLabel={
-        shown === "chat" ? "Close messages" : shown === "cancel" ? "Keep ride" : shown === "dispute" ? "Close" : "Close payment"
+        shown === "chat" ? "Close messages" : shown === "cancel" ? "Keep ride" : shown === "dispute" || shown === "problem" ? "Close" : "Close payment"
       }
       onClose={() => setSide(null)}
-      locked={(shown === "pay" && payBusy) || (shown === "cancel" && busy === "cancel") || (shown === "dispute" && busy === "dispute")}
+      locked={
+        (shown === "pay" && payBusy) ||
+        (shown === "cancel" && busy === "cancel") ||
+        (shown === "dispute" && busy === "dispute") ||
+        (shown === "problem" && busy === "problem")
+      }
     >
       {shown === "pay" && due && !isDriver && (
         <PayPanel
@@ -1323,6 +1384,9 @@ export function TripDetail({
       {shown === "dispute" && (
         <NoShowPanel busy={busy === "dispute"} error={disputeError} onBack={() => setSide(null)} onSend={sendDispute} />
       )}
+      {shown === "problem" && (
+        <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} />
+      )}
       {shown === "chat" && ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status) && (
         <ChatPanel
           open={side === "chat"}
@@ -1352,7 +1416,7 @@ export function TripDetail({
   const labels = isDriver ? DRIVER_STEPS : RIDER_STEPS;
   const at = ORDER.indexOf(booking.status as (typeof ORDER)[number]);
 
-  const baseNote = due
+  const baseNote: string | null = due
     ? hold
       ? isDriver
         ? `Waiting for ${firstName} to pay · ${hold} left`
@@ -1364,22 +1428,22 @@ export function TripDetail({
       ? isDriver
         ? `${firstName} pays once you accept`
         : "Nothing is charged until the driver accepts"
-      : paid || live
-        ? isDriver
-          ? `${formatCurrency(subtotal)} held in escrow · yours when you end the trip`
-          : fee != null
-            ? `Your driver receives the full ${formatCurrency(subtotal)} once the trip ends`
-            : "Kipita holds the fare until the trip ends"
-        : booking.status === "completed"
+      : live
+        ? null // The slide-to-end line says what the driver will be paid.
+        : paid || booking.status === "completed"
           ? isDriver
-            ? `${formatCurrency(subtotal)} released to your wallet`
-            : "Trip complete"
+            ? "Paid when there is no dispute"
+            : booking.status === "completed"
+              ? "Trip complete"
+              : null
           : booking.refunded_amount != null
             ? `${formatCurrency(booking.refunded_amount)} refunded ${booking.refund_to === "mpesa" ? "to M-Pesa" : "to your Kipita wallet"}`
             : booking.paid_at
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
+  // A clock where the driver is waiting on a payment or a release, a lock for everything else.
+  const waiting = isDriver && (due || (!noShowNote && (paid || booking.status === "completed")));
 
   return (
     <>
@@ -1543,6 +1607,17 @@ export function TripDetail({
         </Col>
 
         <Col $single={hasMap}>
+          {!isDriver && paid && journey.code && (
+            <Slot $order={0}>
+              <PickupCodeCard code={journey.code} />
+            </Slot>
+          )}
+          {isDriver && paid && booking.trip_id && (
+            <Slot $order={2}>
+              <BoardingPanel tripId={booking.trip_id} board={board} />
+            </Slot>
+          )}
+
           <Card $order={2} aria-label="Fare">
             <h2>{isDriver ? receiveTitle : "What you pay"}</h2>
             <Lines>
@@ -1567,10 +1642,12 @@ export function TripDetail({
                 </dd>
               </div>
             </Lines>
-            <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
-              {due && isDriver ? <Clock size={18} /> : <Lock size={18} />}
-              {note}
-            </Hint>
+            {note && (
+              <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
+                {waiting ? <Clock size={18} /> : <Lock size={18} />}
+                {note}
+              </Hint>
+            )}
             {!isDriver && paid && freeEnds && (
               <Hint>
                 <Clock size={18} />
@@ -1581,16 +1658,38 @@ export function TripDetail({
                     : "Free cancellation has ended. Cancelling now returns nothing"}
               </Hint>
             )}
-            {runnable && (
-              <Pay
-                type="button"
-                onClick={(e) => run(e.currentTarget)}
-                disabled={busy !== null}
-                aria-busy={busy === "run"}
-              >
-                {busy === "run" ? <ButtonOrb job="committing" /> : paid ? <NavigationArrow size={18} weight="bold" /> : <Flag size={18} weight="bold" />}
-                {paid ? "Start trip" : "End trip"}
-              </Pay>
+            {runnable && paid && (
+              <>
+                {board.summary.waiting > 0 && (
+                  <Hint $warn>
+                    <Lock size={18} />
+                    Check everyone in to start
+                  </Hint>
+                )}
+                <Pay
+                  type="button"
+                  onClick={(e) => startRide(e.currentTarget)}
+                  disabled={busy !== null || board.summary.waiting > 0}
+                  aria-busy={busy === "run"}
+                >
+                  {busy === "run" ? <ButtonOrb job="committing" /> : <NavigationArrow size={18} weight="bold" />}
+                  Start trip
+                </Pay>
+              </>
+            )}
+            {runnable && live && (
+              <>
+                <Hint>
+                  <Clock size={18} />
+                  {earningsLine(board.summary)}
+                </Hint>
+                <SlideToComplete
+                  label="Slide to end trip"
+                  busyLabel="Ending trip…"
+                  busy={busy === "run"}
+                  onComplete={() => runTrip(false)}
+                />
+              </>
             )}
             {due && !isDriver && (
               <Pay
@@ -1676,6 +1775,11 @@ export function TripDetail({
                       This isn't right
                     </Outline>
                   )}
+                  {problemOpen && (
+                    <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
+                      Report a problem
+                    </Outline>
+                  )}
                   <Outline as={Link} href="/home">
                     Find another ride
                   </Outline>
@@ -1699,6 +1803,11 @@ export function TripDetail({
                     Cancel ride
                   </Outline>
                 )}
+                {problemOpen && (
+                  <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
+                    Report a problem
+                  </Outline>
+                )}
                 {canReportNoShow && (
                   <Outline
                     type="button"
@@ -1713,6 +1822,13 @@ export function TripDetail({
               </>
             )}
           </Acts>
+
+          {!isDriver && problemNote && (
+            <Hint $order={4}>
+              <Flag size={18} />
+              {problemNote}
+            </Hint>
+          )}
 
           {error && (
             <Hint $warn $order={4} role="alert">
