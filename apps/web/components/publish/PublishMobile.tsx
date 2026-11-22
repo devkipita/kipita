@@ -43,7 +43,7 @@ import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 import { PriceStep } from "./PriceStep";
-import { carCapacityText, carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
+import { carCapacityBlock, carTypeBlockText, othersRoom, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -1152,12 +1152,12 @@ export function PublishMobile({
   }
 
   const seats = draft.seats ?? 1;
-  // Never more than a trip can list with the seats offered.
-  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   const car = carLine(draft, savedCars);
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
-  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, others, enabled: ready && step >= 3 });
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, enabled: ready && step >= 3 });
+  // Never more than the car type the trip is priced as has room for, besides the seats offered.
+  const others = Math.min(draft.others, othersRoom(quote, draft.vehicleClass, seats));
   const priceBlock = priceBlockText(quote, seats, fare, others);
 
   function carProblem(): string | null {
@@ -1190,8 +1190,8 @@ export function PublishMobile({
     const car = carProblem();
     if (car) return { kind: "car", text: car };
     const named = pickedCar(draft, savedCars);
-    const tooSmall = carCapacityText(quote, named?.make ?? "", named?.model ?? "", seats, others);
-    if (tooSmall) return { kind: "seats", text: tooSmall };
+    const tooSmall = carCapacityBlock(quote, named?.make ?? "", named?.model ?? "", seats, others);
+    if (tooSmall) return tooSmall;
     const carType = carTypeBlockText(quote, named?.make ?? "", named?.model ?? "");
     if (carType) return { kind: "carType", text: carType };
     return priceBlock ? { kind: "price", text: priceBlock } : null;
@@ -1205,6 +1205,7 @@ export function PublishMobile({
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
     else if (kind === "seats") go(3);
+    else if (kind === "others") go(4);
     else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else publish();

@@ -46,8 +46,9 @@ async function loadClasses(supabase: Supabase): Promise<VehicleClass[]> {
  * Never throws: when the prices cannot be worked out it says why, and the screen falls back to
  * letting the driver type a price.
  *
- * The class is the one `pickVehicleClass` gives: never a type too small for the seats offered and the
- * people riding along. `classes` can be passed in by a caller that has already loaded them.
+ * The class is the one `pickVehicleClass` gives: never a type too small for the seats offered. People
+ * riding along do not move it; `checkTripPrice` refuses a trip they would overfill.
+ * `classes` can be passed in by a caller that has already loaded them.
  */
 export async function loadPriceQuote(
   supabase: Supabase,
@@ -57,9 +58,8 @@ export async function loadPriceQuote(
     vehicleClass?: string;
     vehicleMake?: string;
     vehicleModel?: string;
-    /** seats offered and people riding along, used to keep the class big enough */
+    /** seats offered, used to keep the class big enough */
     seats?: number;
-    othersAboard?: number;
   },
   loaded?: VehicleClass[],
 ): Promise<PriceQuote> {
@@ -75,7 +75,6 @@ export async function loadPriceQuote(
       make: args.vehicleMake,
       model: args.vehicleModel,
       seats: args.seats,
-      othersAboard: args.othersAboard,
     });
     if (!vehicle) return fail("error");
 
@@ -147,18 +146,18 @@ export async function checkTripPrice(
     return { ok: false, error: "That is more people than the car can carry. Check the seats and who is travelling with you." };
   }
 
-  // The car type must carry everyone. This holds even when no price can be worked out, so a car that is
-  // too small for the seats is never let through just because the fuel price is missing.
+  // The car type is picked from the seats alone and must carry everyone, people riding along included.
+  // This holds even when no price can be worked out, so a car that is too small is never let through
+  // just because the fuel price is missing.
   const classes = await loadClasses(supabase);
   const vehicle = pickVehicleClass(classes, {
     requested: args.vehicleClass,
     make: args.vehicleMake,
     model: args.vehicleModel,
     seats: args.seats,
-    othersAboard: args.othersAboard,
   });
   if (vehicle && !classHolds(vehicle.code, people)) {
-    return { ok: false, error: carryLimitText(vehicle.label, vehicle.code, people) };
+    return { ok: false, error: carryLimitText(vehicle.label, vehicle.code, args.seats, args.othersAboard ?? 0) };
   }
 
   const quote = await loadPriceQuote(supabase, args, classes);

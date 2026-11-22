@@ -9,6 +9,7 @@ import {
   classForCar,
   classHolds,
   className,
+  maxOthersFor,
   maxPassengersFor,
   pickVehicleClass,
   smallestClassThatHolds,
@@ -113,10 +114,42 @@ test("eight seats are never priced as a sedan", () => {
   assert.equal(pickVehicleClass(CLASSES, { seats: 8, requested: "sedan" })?.code, "minivan");
 });
 
-test("the people riding along count too", () => {
-  assert.equal(pickVehicleClass(CLASSES, { seats: 3, othersAboard: 1 })?.code, "sedan");
-  assert.equal(pickVehicleClass(CLASSES, { seats: 3, othersAboard: 2 })?.code, "suv_diesel");
-  assert.equal(pickVehicleClass(CLASSES, { seats: 4, othersAboard: 4 })?.code, "minivan");
+test("the room for people riding along is what the type carries, less the seats", () => {
+  assert.equal(maxOthersFor("sedan", 3), 1);
+  assert.equal(maxOthersFor("sedan", 4), 0);
+  assert.equal(maxOthersFor("hatch", 1), 3);
+  assert.equal(maxOthersFor("suv_petrol", 2), 2);
+  assert.equal(maxOthersFor("suv_diesel", 5), 1);
+  assert.equal(maxOthersFor("suv_diesel", 6), 0);
+  assert.equal(maxOthersFor("minivan", 6), 2);
+  assert.equal(maxOthersFor("minivan", 7), 1);
+  assert.equal(maxOthersFor("minivan", 8), 0);
+});
+
+test("the room for people riding along is never negative", () => {
+  assert.equal(maxOthersFor("sedan", 5), 0);
+  assert.equal(maxOthersFor("minivan", 20), 0);
+});
+
+test("a type that is not listed leaves room up to the most a trip can list", () => {
+  assert.equal(maxOthersFor("tuktuk", 2), MOST_PASSENGERS - 2);
+});
+
+test("every car type with room for others stays inside the most a trip can list", () => {
+  for (const code of Object.keys(CLASS_PASSENGERS)) {
+    for (let seats = 1; seats <= MOST_PASSENGERS; seats++) {
+      assert.ok(seats + maxOthersFor(code, seats) <= MOST_PASSENGERS, `${code} with ${seats} seats`);
+      assert.ok(classHolds(code, seats + maxOthersFor(code, seats)) || maxOthersFor(code, seats) === 0, `${code} with ${seats} seats holds them`);
+    }
+  }
+});
+
+test("people riding along never move the trip to a bigger type: only the seats decide it", () => {
+  // The type is picked from the seats alone. A sedan with 4 seats stays a sedan; there is simply no room for others.
+  assert.equal(pickVehicleClass(CLASSES, { seats: 4 })?.code, "sedan");
+  assert.equal(maxOthersFor("sedan", 4), 0);
+  assert.equal(pickVehicleClass(CLASSES, { seats: 3 })?.code, "sedan");
+  assert.equal(pickVehicleClass(CLASSES, { seats: 5 })?.code, "suv_diesel");
 });
 
 test("the type the driver asked for is kept when it holds the people", () => {
@@ -152,9 +185,23 @@ test("an empty list gives nothing", () => {
   assert.equal(pickVehicleClass([], { seats: 3 }), null);
 });
 
-test("the limit text names the type, its limit and how many the driver has", () => {
+test("the limit text names the type, its limit and how many seats the driver offered", () => {
   assert.equal(
     carryLimitText("Sedan or wagon (Axio, Premio, Fielder)", "sedan", 8),
-    "Sedan or wagon carries up to 4 passengers. You have 8. Offer fewer seats or pick a bigger car type.",
+    "Sedan or wagon carries up to 4 passengers. You offered 8. Offer fewer seats or pick a bigger car type.",
+  );
+});
+
+test("the limit text blames the people riding along when the seats alone fit", () => {
+  assert.equal(
+    carryLimitText("Sedan or wagon (Axio, Premio, Fielder)", "sedan", 4, 1),
+    "Sedan or wagon carries up to 4 passengers. 4 seats and 1 with you make 5. Change one or pick a bigger car type.",
+  );
+});
+
+test("the limit text blames the seats when they alone are too many, whoever else rides along", () => {
+  assert.equal(
+    carryLimitText("Sedan or wagon (Axio, Premio, Fielder)", "sedan", 5, 1),
+    "Sedan or wagon carries up to 4 passengers. You offered 5. Offer fewer seats or pick a bigger car type.",
   );
 });

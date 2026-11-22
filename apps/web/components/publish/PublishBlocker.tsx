@@ -6,7 +6,7 @@ import { ArrowRight, X } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { CarArt, DayArt, IdArt, OtherArt, TimeArt, TownsArt } from "./PublishArt";
 
-export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "carType" | "seats" | "kyc" | "other";
+export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "carType" | "seats" | "others" | "kyc" | "other";
 
 export type Block = { kind: BlockKind; text: string };
 
@@ -15,6 +15,8 @@ export function blockOf(text: string, fix?: "kyc"): Block {
   if (/already passed/i.test(text)) return { kind: "time", text };
   if (/different towns/i.test(text)) return { kind: "towns", text };
   if (/too low|too high/i.test(text)) return { kind: "price", text };
+  // The car carries the seats offered but not the people riding along as well: that is fixed on the Price step.
+  if (/with you make/i.test(text)) return { kind: "others", text };
   if (/carries up to|more people than the car can carry/i.test(text)) return { kind: "seats", text };
   return { kind: "other", text };
 }
@@ -27,6 +29,7 @@ const COPY: Record<BlockKind, { title: string; action: string }> = {
   price: { title: "That price is outside the range", action: "Change the price" },
   carType: { title: "The car type doesn’t match your car", action: "Change the car type" },
   seats: { title: "Your car can’t carry that many", action: "Change the seats" },
+  others: { title: "Your car can’t carry that many", action: "Change who’s with you" },
   kyc: { title: "Verify before you publish", action: "Verify to publish" },
   other: { title: "We couldn't publish your ride", action: "Try again" },
 };
@@ -201,6 +204,7 @@ function Art({ kind }: { kind: BlockKind }) {
     case "car":
     case "carType":
     case "seats":
+    case "others":
       return <CarArt />;
     case "kyc":
       return <IdArt state="none" />;
