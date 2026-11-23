@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import styled, { css, keyframes } from "styled-components";
+import { SITE } from "@/lib/site";
 import { Reveal } from "../anim/Reveal";
 import { SupportDock } from "./SupportDock";
 
@@ -1047,7 +1048,7 @@ export function ContactDock() {
         </ContactCardLink>
 
         <ContactCardLink
-          href="mailto:hello@kipita.co.ke"
+          href={`mailto:${SITE.supportEmail}`}
           $tone={TONES.email}
           {...depth}
         >
@@ -1057,7 +1058,7 @@ export function ContactDock() {
           <CardBody>
             <CardTitle $tone={TONES.email}>Email</CardTitle>
             <CardText $tone={TONES.email}>
-              hello@kipita.co.ke. We answer within a working day.
+              {SITE.supportEmail}. We answer within a working day.
             </CardText>
           </CardBody>
         </ContactCardLink>
