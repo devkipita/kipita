@@ -29,8 +29,8 @@ const TINTED: ReadonlySet<ActivityRole> = new Set(["warning", "error", "success"
 
 function cardTone(theme: DefaultTheme, role: ActivityRole, unread: boolean): string {
   const base = theme.color.surfaceContainerLowest;
-  if (!TINTED.has(role)) return base;
-  return `color-mix(in oklab, ${roleColors(theme, role).bg} ${unread ? 48 : 28}%, ${base})`;
+  if (!unread || !TINTED.has(role)) return base;
+  return `color-mix(in oklab, ${roleColors(theme, role).bg} 56%, ${base})`;
 }
 
 export const RowList = styled.ul`

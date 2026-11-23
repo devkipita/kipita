@@ -86,6 +86,9 @@ const Trigger = styled.button`
   .label {
     white-space: nowrap;
   }
+  .label.badged {
+    margin-left: 8px;
+  }
 
   @media (max-width: 960px) {
     width: ${DOT}px;
@@ -316,7 +319,7 @@ function Face({
           <CountBadge count={unread} ring={nocturne.greenDeep} leaving={closing} />
         ) : null}
       </span>
-      <span className="label">Activity</span>
+      <span className={unread > 0 ? "label badged" : "label"}>Activity</span>
     </>
   );
 }
