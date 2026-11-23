@@ -76,6 +76,14 @@ export function classHolds(code: string, people: number): boolean {
   return people <= maxPassengersFor(code);
 }
 
+/**
+ * How many people can ride with the driver without booking a seat, on top of the seats offered: what the
+ * car type carries, less the seats. Never negative.
+ */
+export function maxOthersFor(code: string, seats: number): number {
+  return Math.max(0, maxPassengersFor(code) - seats);
+}
+
 /** The listed type with the fewest places that still carries this many people; the first one on a tie. */
 export function smallestClassThatHolds<T extends { code: string }>(classes: readonly T[], people: number): T | null {
   let best: T | null = null;
@@ -87,9 +95,10 @@ export function smallestClassThatHolds<T extends { code: string }>(classes: read
 }
 
 /**
- * The car type a trip is priced as.
+ * The car type a trip is priced as. Only the seats offered decide it: people riding along with the driver
+ * never move the trip to a bigger type, they are limited by the room the type has (`maxOthersFor`).
  *  1. A car we recognise by its make and model is priced as its own type, whatever was asked for.
- *  2. Otherwise the type the driver asked for, if it carries the seats offered and anyone riding along.
+ *  2. Otherwise the type the driver asked for, if it carries the seats offered.
  *  3. Otherwise the default type, if it carries them; failing that, the smallest type that does.
  *  4. If no type is big enough, the biggest, so the caller can say why it does not fit.
  */
@@ -100,28 +109,35 @@ export function pickVehicleClass<T extends ClassLike>(
     make?: string;
     model?: string;
     seats?: number;
-    othersAboard?: number;
   },
 ): T | null {
   if (classes.length === 0) return null;
-  const people = (want.seats ?? 1) + (want.othersAboard ?? 0);
+  const seats = want.seats ?? 1;
 
   const known = classForCar(want.make, want.model, classes);
   if (known) return known;
 
   const asked = classes.find((c) => c.code === want.requested);
-  if (asked && classHolds(asked.code, people)) return asked;
+  if (asked && classHolds(asked.code, seats)) return asked;
 
   const standard = classes.find((c) => c.code === DEFAULT_CLASS);
-  if (standard && classHolds(standard.code, people)) return standard;
+  if (standard && classHolds(standard.code, seats)) return standard;
 
-  const smallest = smallestClassThatHolds(classes, people);
+  const smallest = smallestClassThatHolds(classes, seats);
   if (smallest) return smallest;
 
   return classes.reduce((a, b) => (maxPassengersFor(b.code) > maxPassengersFor(a.code) ? b : a));
 }
 
-/** Why a car type cannot be used for this many people, in words for the driver. */
-export function carryLimitText(label: string, code: string, people: number): string {
-  return `${className(label)} carries up to ${maxPassengersFor(code)} passengers. You have ${people}. Offer fewer seats or pick a bigger car type.`;
+/**
+ * Why a car type cannot carry the seats offered and the people riding along, in words for the driver.
+ * The text says which of the two is the problem, so the screen can send the driver to the right place.
+ */
+export function carryLimitText(label: string, code: string, seats: number, others = 0): string {
+  const name = className(label);
+  const limit = maxPassengersFor(code);
+  if (others > 0 && classHolds(code, seats)) {
+    return `${name} carries up to ${limit} passengers. ${seats} seats and ${others} with you make ${seats + others}. Change one or pick a bigger car type.`;
+  }
+  return `${name} carries up to ${limit} passengers. You offered ${seats}. Offer fewer seats or pick a bigger car type.`;
 }

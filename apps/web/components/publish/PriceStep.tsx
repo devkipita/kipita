@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import {
-  MOST_PASSENGERS,
   className,
   classHolds,
   fillOutcomes,
   judgePrice,
+  maxOthersFor,
+  smallestClassThatHolds,
   wholeShillings,
   type PriceChoiceKey,
 } from "@kipita/shared";
@@ -317,16 +318,18 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
   const quote = state.status === "ready" ? state.quote : null;
   const classes = quote?.classes ?? (state.status === "loading" ? state.classes : undefined);
   // The type the price is for. While a new quote loads it is worked out the same way the quote will be.
-  const activeClass = quote?.vehicleClass ?? classFor(classes, vehicleClass, seats, others);
+  const activeClass = quote?.vehicleClass ?? classFor(classes, vehicleClass, seats);
   const range = quote ? rangeFor(quote, seats, others) : null;
-  // A trip lists eight at most, so the people riding along and the seats offered share that room.
-  // The car type follows: it moves up to one that carries them all.
-  const maxOthers = Math.max(0, MOST_PASSENGERS - seats);
+  // The seats offered pick the car type. People riding along share what room it has left and never change it:
+  // for more of them the driver picks a bigger type.
+  const maxOthers = maxOthersFor(activeClass, seats);
   const people = seats + others;
-  // The type the driver picked, when it is too small for the people and the price moved to a bigger one.
+  // The type the driver picked, when it is too small for the seats and the price moved to a bigger one.
   const pickedLabel = vehicleClass && vehicleClass !== activeClass ? classes?.find((c) => c.code === vehicleClass)?.label : undefined;
   const activeLabel = classes?.find((c) => c.code === activeClass)?.label;
-  const moved = pickedLabel && activeLabel && !classHolds(vehicleClass, people) ? { from: pickedLabel, to: activeLabel } : null;
+  const moved = pickedLabel && activeLabel && !classHolds(vehicleClass, seats) ? { from: pickedLabel, to: activeLabel } : null;
+  // Smaller types stay off while people ride along who would not fit in them.
+  const heldBack = others > 0 && !!classes?.some((c) => classHolds(c.code, seats) && !classHolds(c.code, people));
 
   const typedValue = (digits: string) => (digits ? Number(digits).toLocaleString("en-US") : "");
   // Set once a decimal point has been typed. Prices are whole shillings, so the point ends the amount and
@@ -391,8 +394,10 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
       </Chips>
       {moved ? (
         <Note role="status">
-          {className(moved.from)} can’t carry {people}. Using {className(moved.to)}.
+          {className(moved.from)} can’t carry {seats}. Using {className(moved.to)}.
         </Note>
+      ) : heldBack ? (
+        <Note>Smaller types are off while others ride with you.</Note>
       ) : (
         <Note>Helps us estimate your fuel. You’ll pick the car you’re driving on the next step.</Note>
       )}
@@ -417,6 +422,13 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
     }
     onOthers(count);
   };
+  // With no room left, say why, and whether a bigger car type would make room.
+  const noRoomNote =
+    maxOthers > 0
+      ? null
+      : smallestClassThatHolds(quote.classes, seats + 1)
+        ? `${activeLabel ? className(activeLabel) : "This car type"} is full with ${seats} ${seats === 1 ? "seat" : "seats"}. Pick a bigger car type to bring others.`
+        : `${seats} seats fill the car.`;
   const othersControl = (
     <Section>
       <Label id="price-others-label">Anyone else travelling with you?</Label>
@@ -441,7 +453,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
           +
         </CountButton>
       </Counter>
-      <Note>People riding with you who aren’t booking a seat. They share the cost, so passengers don’t pay for them.</Note>
+      <Note>{noRoomNote ?? "People riding with you who aren’t booking a seat. They share the cost, so passengers don’t pay for them."}</Note>
     </Section>
   );
 
