@@ -333,13 +333,14 @@ const MainCol = styled.div`
 `;
 
 const Aside = styled.aside`
-  flex: 1 1 300px;
-  max-width: 360px;
+  flex: 0 0 380px;
+  max-width: 380px;
   position: sticky;
   top: calc(var(--sticky-top, 0px) + 16px);
 
   @media (max-width: 1023px) {
     position: static;
+    flex: 1 1 100%;
     max-width: none;
   }
 `;
@@ -499,7 +500,7 @@ export function TripsView({
   }
 
   return (
-    <Page $max={1200}>
+    <Page $max={1320}>
       <Head>
         <HeadRow>
           <h1 data-bar-title="">Trips</h1>

@@ -3,7 +3,10 @@ import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export const HelpPanel = styled.div`
   display: grid;
-  gap: 4px;
+
+  > * + * {
+    box-shadow: inset 0 1px 0 ${nocturne.line};
+  }
 `;
 
 export const rowPress = css`
@@ -12,14 +15,14 @@ export const rowPress = css`
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  min-height: 48px;
-  padding: 12px;
+  min-height: 56px;
+  padding: 12px 8px;
   border: 0;
   border-radius: 12px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
+  background: transparent;
   font: inherit;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   line-height: 20px;
   text-align: left;
   text-decoration: none;
@@ -29,14 +32,18 @@ export const rowPress = css`
     background-color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
-  svg {
+  .caret {
+    display: grid;
     flex: none;
-    color: ${nocturne.muted};
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    color: ${nocturne.cream};
     transition: transform ${dur.state} ${ease.standard};
   }
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background-color: color-mix(in oklab, ${nocturne.cream} 6%, ${({ theme }) => theme.color.surfaceContainerLowest});
+      background-color: ${({ theme }) => theme.color.surfaceContainerLow};
     }
   }
   &:active {
@@ -47,7 +54,7 @@ export const rowPress = css`
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    svg {
+    .caret {
       transition: none;
     }
     &:active {

@@ -343,7 +343,17 @@ function ShareMine({ tripId }: { tripId: string }) {
   );
 }
 
-export function RideRiders({ tripId, viewerId, live = false }: { tripId: string; viewerId: string; live?: boolean }) {
+export function RideRiders({
+  tripId,
+  viewerId,
+  live = false,
+  pending = false,
+}: {
+  tripId: string;
+  viewerId: string;
+  live?: boolean;
+  pending?: boolean;
+}) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [chatWith, setChatWith] = useState<Rider | null>(null);
   const [shownChat, setShownChat] = useState<Rider | null>(null);
@@ -359,6 +369,10 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
   }, [asked, load]);
 
   useEffect(() => {
+    if (pending) {
+      setLoad({ state: "loading" });
+      return;
+    }
     let alive = true;
     void loadRiders(tripId, viewerId, live).then((riders) => {
       if (!alive) return;
@@ -367,14 +381,14 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
     return () => {
       alive = false;
     };
-  }, [tripId, viewerId, live]);
+  }, [tripId, viewerId, live, pending]);
 
   if (live) {
     const riders = load.state === "ready" ? load.riders : [];
     const fares = riders.reduce((sum, r) => sum + r.fare, 0);
     return (
       <>
-        <ShareMine tripId={tripId} />
+        {pending ? null : <ShareMine tripId={tripId} />}
         <PaidTile aria-label="Paid for this ride">
           <small>Paid for this ride</small>
           {load.state === "loading" ? (

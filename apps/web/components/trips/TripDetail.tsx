@@ -1025,15 +1025,28 @@ export function TripDetail({
 
   const board = useBoarding(booking.trip_id, isDriver && (paid || live));
 
+  const ridePage = booking.trip_id ? `/ride/${booking.trip_id}` : null;
+
+  useEffect(() => {
+    if (runnable && ridePage) router.prefetch(ridePage);
+  }, [runnable, ridePage, router]);
+
   function runTrip(starting: boolean) {
     if (!booking.trip_id) return;
     setBusy("run");
     setError("");
     startTransition(async () => {
       const result = starting ? await startTripAction(booking.trip_id) : await completeTripAction(booking.trip_id);
+      if (!result.ok) {
+        setBusy(null);
+        setError(result.error);
+        return;
+      }
+      if (ridePage) {
+        router.push(ridePage);
+        return;
+      }
       setBusy(null);
-      if (!result.ok) setError(result.error);
-      if (result.ok && starting) await board.reload();
       router.refresh();
     });
   }

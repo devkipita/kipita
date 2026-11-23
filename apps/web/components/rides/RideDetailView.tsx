@@ -767,26 +767,10 @@ const EndError = styled.p`
   font-weight: 600;
 `;
 
-function EndRide({ tripId }: { tripId: string }) {
-  const router = useRouter();
-  const [ending, setEnding] = useState(false);
-  const [error, setError] = useState("");
-
-  async function end() {
-    setEnding(true);
-    setError("");
-    const result = await completeTripAction(tripId);
-    if (!result.ok) {
-      setEnding(false);
-      setError(result.error);
-      return;
-    }
-    router.refresh();
-  }
-
+function EndRide({ onRun, error }: { onRun: () => void; error: string }) {
   return (
     <div>
-      <SlideToComplete label="Slide to end ride" busyLabel="Ending ride…" busy={ending} onComplete={() => void end()} />
+      <SlideToComplete label="Slide to end ride" busyLabel="Ending ride…" busy={false} onComplete={onRun} />
       {error ? (
         <EndError role="alert">
           <Warning size={16} aria-hidden />
@@ -897,6 +881,27 @@ export function RideDetailView({
   const [result, setResult] = useState<BookingResult | null>(null);
   const [outcomeOpen, setOutcomeOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [override, setOverride] = useState<"in_progress" | "completed" | null>(null);
+  const [runError, setRunError] = useState("");
+  const phase = isTrip ? (override ?? ride.status) : ride.status;
+  const settling = override !== null;
+
+  useEffect(() => {
+    if (override && ride.status === override) setOverride(null);
+  }, [override, ride.status]);
+
+  function runRide(next: "in_progress" | "completed") {
+    setRunError("");
+    setOverride(next);
+    void (next === "in_progress" ? startTripAction(ride.id) : completeTripAction(ride.id)).then((result) => {
+      if (!result.ok) {
+        setOverride(null);
+        setRunError(result.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
 
   const date = formatRideDate(isTrip ? ride.departure_date : ride.preferred_date);
   const time = formatRideTime(isTrip ? ride.departure_time : ride.preferred_time);
@@ -911,19 +916,19 @@ export function RideDetailView({
     : null;
 
   const isOwn = !!profile && !!person && profile.id === person.id;
-  const awaiting = isTrip && ride.status === "awaiting_approval";
+  const awaiting = isTrip && phase === "awaiting_approval";
   const soldOut = isTrip && ride.seats_available < 1;
   const closed = isTrip
-    ? !["posted", "active"].includes(ride.status) && !(isOwn && awaiting)
-    : ride.status !== "pending";
+    ? !["posted", "active"].includes(phase) && !(isOwn && awaiting)
+    : phase !== "pending";
   const scarce = isTrip && ride.seats_available > 0 && ride.seats_available <= 2;
   const ownerView = isOwn && isTrip && !closed;
   const bookable = isTrip && !closed && !ownerView;
   const breakdown = isTrip && fareConfig ? bookingBreakdown(ride.price_per_seat, seats, fareConfig) : null;
   const searchHref = routeSearch(ride.from_location, ride.to_location, isTrip ? undefined : ride.seats_needed);
 
-  const ended = isTrip && closed ? ride.status : null;
-  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && ride.status === "in_progress");
+  const ended = isTrip && closed ? phase : null;
+  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && phase === "in_progress");
   const board = useBoarding(isTrip ? ride.id : null, ownerView && !awaiting);
   const pickups = usePickupLocations(isTrip ? ride.id : null, ownerView && !awaiting);
   const people = board.rows
@@ -1084,7 +1089,7 @@ export function RideDetailView({
     <MapSheet
       map={(padding) =>
         ownDone ? (
-          <RideFinish tripId={ride.id} destination={ride.to_location} />
+          <RideFinish tripId={ride.id} destination={ride.to_location} pending={settling} />
         ) : (
           <RouteMap
             route={route}
@@ -1107,12 +1112,12 @@ export function RideDetailView({
           </>
         ) : liveDocked && profile ? (
           <>
-            <RideRiders tripId={ride.id} viewerId={profile.id} live />
+            <RideRiders tripId={ride.id} viewerId={profile.id} live pending={settling} />
             {carTile}
           </>
         ) : doneDocked && profile ? (
           <>
-            <RideRiders tripId={ride.id} viewerId={profile.id} />
+            <RideRiders tripId={ride.id} viewerId={profile.id} pending={settling} />
             {carTile}
           </>
         ) : undefined
@@ -1158,14 +1163,16 @@ export function RideDetailView({
             from={ride.from_location}
             to={ride.to_location}
             when={[date, time].filter(Boolean).join(" at ")}
-            start={ready ? <StartRide tripId={ride.id} /> : undefined}
+            start={ready ? <StartRide onRun={() => runRide("in_progress")} error={runError} /> : undefined}
           />
         )}
 
         {ownerView && awaiting && <VerifyStatusCard compact context="ride" stage="pending" />}
 
-        {ownDone && !split && profile ? <RideRiders tripId={ride.id} viewerId={profile.id} /> : null}
-        {ownLive && !split && profile ? <RideRiders tripId={ride.id} viewerId={profile.id} live /> : null}
+        {ownDone && !split && profile ? <RideRiders tripId={ride.id} viewerId={profile.id} pending={settling} /> : null}
+        {ownLive && !split && profile ? (
+          <RideRiders tripId={ride.id} viewerId={profile.id} live pending={settling} />
+        ) : null}
         {!docked && !ownDone && !ownLive && priceTile}
 
 
@@ -1353,7 +1360,7 @@ export function RideDetailView({
 
   function renderSideAction() {
     if (closed) {
-      if (ownLive) return <EndRide tripId={ride.id} />;
+      if (ownLive) return <EndRide onRun={() => runRide("completed")} error={settling ? "" : runError} />;
       if (ownDone) return null;
       return isOwn && isTrip ? (
         <ManageLink href="/trips">
@@ -1469,26 +1476,10 @@ export function RideDetailView({
   }
 }
 
-function StartRide({ tripId }: { tripId: string }) {
-  const router = useRouter();
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState("");
-
-  async function start() {
-    setStarting(true);
-    setError("");
-    const result = await startTripAction(tripId);
-    if (!result.ok) {
-      setStarting(false);
-      setError(result.error);
-      return;
-    }
-    router.refresh();
-  }
-
+function StartRide({ onRun, error }: { onRun: () => void; error: string }) {
   return (
     <div>
-      <SlideToComplete label="Slide to start ride" busyLabel="Starting ride…" busy={starting} onComplete={() => void start()} />
+      <SlideToComplete label="Slide to start ride" busyLabel="Starting ride…" busy={false} onComplete={onRun} />
       {error ? (
         <EndError role="alert">
           <Warning size={16} aria-hidden />

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import styled from "styled-components";
-import { ArrowRight } from "@/components/icons";
+import { ArrowRight, Lifebuoy } from "@/components/icons";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Booking } from "@/lib/trips/types";
 import { SupportPanel } from "./SupportPanel";
@@ -10,48 +10,74 @@ import { TripFaqs } from "./TripFaqs";
 
 const Panel = styled.aside`
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  padding: 20px 16px 8px;
   border-radius: 20px;
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  background: ${nocturne.surface};
 
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 8px 4px;
+  }
+  .badge {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: ${nocturne.popoverControl};
+    color: ${nocturne.cream};
+    --icon-knockout: ${nocturne.popoverControl};
+  }
   h2 {
-    margin: 0 4px;
+    margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 17px;
+    font-size: 20px;
     font-weight: 800;
-    line-height: 24px;
-    letter-spacing: -0.01em;
+    line-height: 28px;
+    letter-spacing: -0.02em;
     color: ${nocturne.cream};
   }
   h3 {
-    margin: 8px 4px 0;
-    font-size: 13px;
-    font-weight: 700;
+    margin: 24px 8px 4px;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 15px;
+    font-weight: 800;
     line-height: 20px;
-    color: ${nocturne.muted};
+    color: ${nocturne.cream};
   }
 `;
 
 const AllHelp = styled(Link)`
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  justify-self: start;
-  min-height: 40px;
-  padding: 0 12px;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  margin-top: 12px;
+  padding: 0 8px;
   border-radius: 12px;
-  color: ${nocturne.accent};
-  font-size: 14px;
+  box-shadow: inset 0 1px 0 ${nocturne.line};
+  color: ${nocturne.green};
+  font-size: 15px;
   font-weight: 700;
   text-decoration: none;
   transition:
     background-color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
+  .go {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+  }
+
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background-color: color-mix(in oklab, ${nocturne.cream} 6%, transparent);
+      background-color: ${({ theme }) => theme.color.surfaceContainerLow};
     }
   }
   &:active {
@@ -71,13 +97,21 @@ const AllHelp = styled(Link)`
 export function TripsHelp({ trips }: { trips: Booking[] }) {
   return (
     <Panel aria-labelledby="trips-help">
-      <h2 id="trips-help">Help with trips</h2>
+      <div className="top">
+        <span className="badge" aria-hidden>
+          <Lifebuoy size={24} />
+        </span>
+        <h2 id="trips-help">Help with trips</h2>
+      </div>
+      <h3>Common questions</h3>
       <TripFaqs />
       <h3>Report a problem</h3>
       <SupportPanel trips={trips} />
       <AllHelp href="/help">
         All trip help
-        <ArrowRight size={16} aria-hidden />
+        <span className="go" aria-hidden>
+          <ArrowRight size={20} />
+        </span>
       </AllHelp>
     </Panel>
   );

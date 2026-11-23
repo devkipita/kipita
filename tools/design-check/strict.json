@@ -30,6 +30,7 @@
     "apps/web/components/ui/ConfirmSheet.tsx",
     "apps/web/components/rides/RideRiders.tsx",
     "apps/web/components/trips/FinishScene.tsx",
-    "apps/web/components/trips/RateRide.tsx"
+    "apps/web/components/trips/RateRide.tsx",
+    "apps/web/components/legal/ConsentBanner.tsx"
   ]
 }
