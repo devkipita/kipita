@@ -9,6 +9,10 @@ const corsHeaders = {
 const MIN_TOPUP = 10;
 const MAX_TOPUP = 150_000;
 
+// Passenger top-ups are off for the pilot (CEO, 23 Nov 2026): passengers pay each booking by M-Pesa, and
+// refunds go to the wallet. Set to true to turn them back on (and show the Top up button again).
+const TOPUPS_ON = false as boolean;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -19,6 +23,10 @@ serve(async (req) => {
       status,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+
+  if (!TOPUPS_ON) {
+    return json({ error: 'Top-ups are off for now.' }, 403);
+  }
 
   try {
     const supabase = createClient(
