@@ -17,7 +17,7 @@ import {
   ActivitySkeletonRows,
 } from "@/components/notifications/ActivityStates";
 import { useOpenSeatRequests } from "@/components/notifications/useOpenSeatRequests";
-import { useAppMode } from "@/components/nav/AppShell";
+import { useOptionalAppMode } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { spring } from "@/lib/motion";
 import { bookingOf, groupByDay, settledBookings } from "@/lib/notifications/activity";
@@ -336,7 +336,7 @@ function Tally({ unread }: { unread: number }) {
 
 export function ActivityButton({ userId }: { userId: string }) {
   const { status, items, unread } = useNotifications(userId);
-  const { mode } = useAppMode();
+  const mode = useOptionalAppMode()?.mode ?? "passenger";
   const pathname = usePathname();
   const sheet = useIsSheet();
   const now = useClock();
