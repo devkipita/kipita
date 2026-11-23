@@ -6,12 +6,13 @@ import { ArrowRight, X } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { CarArt, DayArt, IdArt, OtherArt, TimeArt, TownsArt } from "./PublishArt";
 
-export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "carType" | "seats" | "others" | "kyc" | "other";
+export type BlockKind = "time" | "day" | "towns" | "car" | "price" | "carType" | "seats" | "others" | "kyc" | "phone" | "other";
 
 export type Block = { kind: BlockKind; text: string };
 
-export function blockOf(text: string, fix?: "kyc"): Block {
+export function blockOf(text: string, fix?: "kyc" | "phone"): Block {
   if (fix === "kyc") return { kind: "kyc", text };
+  if (fix === "phone") return { kind: "phone", text };
   if (/already passed/i.test(text)) return { kind: "time", text };
   if (/different towns/i.test(text)) return { kind: "towns", text };
   if (/too low|too high/i.test(text)) return { kind: "price", text };
@@ -31,6 +32,7 @@ const COPY: Record<BlockKind, { title: string; action: string }> = {
   seats: { title: "Your car can’t carry that many", action: "Change the seats" },
   others: { title: "Your car can’t carry that many", action: "Change who’s with you" },
   kyc: { title: "Verify before you publish", action: "Verify to publish" },
+  phone: { title: "Confirm your phone number", action: "Confirm number" },
   other: { title: "We couldn't publish your ride", action: "Try again" },
 };
 
@@ -207,6 +209,7 @@ function Art({ kind }: { kind: BlockKind }) {
     case "others":
       return <CarArt />;
     case "kyc":
+    case "phone":
       return <IdArt state="none" />;
     default:
       return <OtherArt />;

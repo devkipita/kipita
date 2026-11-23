@@ -1150,7 +1150,7 @@ export function TripDetail({
   };
 
   const wantPanel: Side | null =
-    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" ? "chat" : null;
+    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" && journey.contactOpen ? "chat" : null;
 
   useEffect(() => {
     if (!wantPanel) return;
@@ -1387,7 +1387,7 @@ export function TripDetail({
       {shown === "problem" && (
         <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} />
       )}
-      {shown === "chat" && ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status) && (
+      {shown === "chat" && journey.contactOpen && (
         <ChatPanel
           open={side === "chat"}
           bookingId={booking.id}
@@ -1400,8 +1400,7 @@ export function TripDetail({
     </SidePanel>
   );
   const [calling, setCalling] = useState(false);
-  const talkable = ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status);
-  const callable = paid || live;
+  const talkable = journey.contactOpen;
 
   async function call() {
     setCalling(true);
@@ -1426,7 +1425,7 @@ export function TripDetail({
         : "Your hold ran out. Request the seat again if it's still free"
     : booking.status === "requested"
       ? isDriver
-        ? `${firstName} pays once you accept`
+        ? `${firstName} pays once you accept, then can message you and see your number`
         : "Nothing is charged until the driver accepts"
       : live
         ? null // The slide-to-end line says what the driver will be paid.
@@ -1731,11 +1730,9 @@ export function TripDetail({
                   <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
                     <ChatCircle size={20} />
                   </RoundAct>
-                  {callable && (
-                    <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
-                      <Phone size={20} />
-                    </RoundAct>
-                  )}
+                  <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
+                    <Phone size={20} />
+                  </RoundAct>
                 </Talk>
               )}
             </Who>
