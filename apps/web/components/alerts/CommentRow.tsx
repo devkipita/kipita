@@ -4,6 +4,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { Heart } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
+import { shortName } from "@kipita/shared";
 import { shortRelativeTime } from "@/lib/notifications/meta";
 import { formatCompactNumber, isDisplayableImage } from "@/lib/alerts/meta";
 import { setCommentLike } from "@/lib/alerts/api";
@@ -108,7 +109,7 @@ export function CommentRow({
     setCount(comment.likes_count);
   }
 
-  const author = comment.user?.full_name?.trim() || "Kipita user";
+  const author = shortName(comment.user?.full_name);
 
   async function toggle() {
     if (!viewerId) {

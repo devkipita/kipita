@@ -51,12 +51,11 @@ export function relativeTime(iso: string, now = Date.now()): string {
   });
 }
 
-export type AlertTab = "nearby" | "route" | "following" | "all";
+export type AlertTab = "nearby" | "route" | "all";
 
 export const ALERT_TABS: { key: AlertTab; label: string }[] = [
   { key: "nearby", label: "Nearby" },
   { key: "route", label: "My route" },
-  { key: "following", label: "Following" },
   { key: "all", label: "All Kenya" },
 ];
 

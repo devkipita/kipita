@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { ArrowLeft, CircleNotch as Loader2, Lock, MapPin, PaperPlaneTilt as Send } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
+import { shortName } from "@kipita/shared";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { TextArea } from "@/components/home/fields";
 import { createClient } from "@/lib/supabase/client";
@@ -266,7 +267,7 @@ export function AlertThread({
     };
   }, [initialAlert.id]);
 
-  const author = alert.user?.full_name?.trim() || "Kipita user";
+  const author = shortName(alert.user?.full_name);
   const mine = viewerId != null && alert.user_id === viewerId;
 
   function submit() {

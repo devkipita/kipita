@@ -15,6 +15,7 @@ import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { BreakArt } from "@/components/ui/StatusArt";
 import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { TabIndicator } from "@/components/ui/TabIndicator";
+import { shortName } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/client";
 import { fetchAlerts } from "@/lib/alerts/api";
 import {
@@ -295,13 +296,11 @@ export function AlertsView({
   initialAlerts,
   initialFailed = false,
   profile,
-  followingIds,
   routeTowns,
 }: {
   initialAlerts: Alert[];
   initialFailed?: boolean;
   profile: Profile | null;
-  followingIds: string[];
   routeTowns: string[];
 }) {
   const router = useRouter();
@@ -443,17 +442,13 @@ export function AlertsView({
       (a) =>
         a.location.toLowerCase().includes(query) ||
         a.content.toLowerCase().includes(query) ||
-        (a.user?.full_name ?? "").toLowerCase().includes(query),
+        shortName(a.user?.full_name, "").toLowerCase().includes(query),
     );
   }, [withDist, query]);
 
   const locationOff = tab === "nearby" && !coords;
 
   const filtered = useMemo(() => {
-    if (tab === "following") {
-      const set = new Set(followingIds);
-      return searched.filter((a) => set.has(a.user_id));
-    }
     if (tab === "route") {
       const towns = routeTowns.map((t) => t.toLowerCase());
       if (towns.length === 0) return [];
@@ -466,7 +461,7 @@ export function AlertsView({
       );
     }
     return searched;
-  }, [searched, tab, followingIds, routeTowns, coords]);
+  }, [searched, tab, routeTowns, coords]);
 
   const shown = useMemo(() => sortAlerts(filtered, sort), [filtered, sort]);
 
@@ -513,10 +508,6 @@ export function AlertsView({
     route: {
       title: "Nothing on your routes",
       body: "Search for a trip on the home page and we’ll watch those roads for you.",
-    },
-    following: {
-      title: "You’re not following anyone yet",
-      body: "Follow reporters whose alerts you trust and their updates land here.",
     },
     all: {
       title: "Roads are quiet",

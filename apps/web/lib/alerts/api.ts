@@ -289,43 +289,6 @@ export async function recordAlertView(
   return typeof data === "number" ? data : null;
 }
 
-export async function fetchFollowing(
-  supabase: SupabaseClient,
-  viewerId: string,
-): Promise<string[]> {
-  const { data, error } = await supabase
-    .from("user_follows")
-    .select("following_id")
-    .eq("follower_id", viewerId);
-
-  if (error) throw error;
-  return (data ?? []).map((row) => row.following_id as string);
-}
-
-export async function setFollowing(
-  supabase: SupabaseClient,
-  viewerId: string,
-  targetId: string,
-  following: boolean,
-): Promise<void> {
-  if (!following) {
-    const { error } = await supabase
-      .from("user_follows")
-      .delete()
-      .match({ follower_id: viewerId, following_id: targetId });
-    if (error) throw error;
-    return;
-  }
-
-  const { error } = await supabase
-    .from("user_follows")
-    .upsert(
-      { follower_id: viewerId, following_id: targetId },
-      { onConflict: "follower_id,following_id" },
-    );
-  if (error) throw error;
-}
-
 export async function fetchAlert(
   supabase: SupabaseClient,
   id: string,
