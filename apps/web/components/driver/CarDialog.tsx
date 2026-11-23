@@ -9,6 +9,7 @@ import { nocturne } from "@/lib/nocturne";
 import { saveCarAction } from "@/lib/driver/cars";
 import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
 import type { GarageCar } from "@/lib/home/vehicle";
+import { CarSeatsPicker } from "./CarSeatsPicker";
 
 export const CAR_COLOURS: { label: string; swatch: string }[] = [
   { label: "White", swatch: "#FFFFFF" },
@@ -241,6 +242,7 @@ export function CarDialog({
   const [model, setModel] = useState("");
   const [plate, setPlate] = useState("");
   const [colour, setColour] = useState("");
+  const [seats, setSeats] = useState<number | null>(null);
   const [tried, setTried] = useState(false);
   const [serverError, setServerError] = useState("");
   const [saving, startSaving] = useTransition();
@@ -260,6 +262,7 @@ export function CarDialog({
     setModel("");
     setPlate("");
     setColour("");
+    setSeats(null);
     setTried(false);
     setServerError("");
     onClose();
@@ -274,12 +277,14 @@ export function CarDialog({
         ? PLATE_ERROR
         : !colour
           ? "Pick a colour so passengers can spot your car."
-          : serverError
+          : !seats
+            ? "Pick how many seats it has."
+            : serverError
     : serverError;
 
   function save() {
     const words = model.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0 || !isPlate(plate) || !colour) {
+    if (words.length === 0 || !isPlate(plate) || !colour || !seats) {
       setTried(true);
       return;
     }
@@ -288,7 +293,7 @@ export function CarDialog({
     const rest = titled.slice(1).join(" ") || make;
     setServerError("");
     startSaving(async () => {
-      const result = await saveCarAction({ make, model: rest, plate, color: colour });
+      const result = await saveCarAction({ make, model: rest, plate, color: colour, seats });
       if (!result.ok) {
         setServerError(result.error);
         return;
@@ -357,6 +362,7 @@ export function CarDialog({
             ))}
           </div>
         </Colours>
+        <CarSeatsPicker id="garage-seats" value={seats} onChange={setSeats} disabled={saving} />
         {error && (
           <Alert role="alert">
             <Warning size={16} weight="bold" />

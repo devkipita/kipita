@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isCarSeats } from "@kipita/shared";
 
 export const VEHICLE_BUCKET = "vehicle-media";
 
@@ -93,7 +94,13 @@ export type DriverVehicle = {
   color: string | null;
   plate_number: string | null;
   image_url: string | null;
+  /** seats with the driver's seat in them; only the driver's answer when `seats_confirmed_at` is set */
+  seat_capacity?: number | null;
+  seats_confirmed_at?: string | null;
 };
+
+/** What the car lists need from `vehicles`. */
+export const CAR_COLUMNS = "id, make, model, color, plate_number, image_url, seat_capacity, seats_confirmed_at";
 
 export async function fetchMyVehicle(
   supabase: SupabaseClient,
@@ -117,6 +124,8 @@ export type GarageCar = {
   model: string;
   plate: string;
   color: string;
+  /** seats in the car with the driver's seat in them, or null until the driver has said */
+  seats: number | null;
 };
 
 export function toGarageCar(row: DriverVehicle): GarageCar | null {
@@ -129,6 +138,8 @@ export function toGarageCar(row: DriverVehicle): GarageCar | null {
     model: row.model?.trim() ?? "",
     plate,
     color: /^unspecified$/i.test(color) ? "" : color,
+    // The stored count is only the default until the driver has answered.
+    seats: row.seats_confirmed_at && isCarSeats(row.seat_capacity) ? row.seat_capacity : null,
   };
 }
 
@@ -138,7 +149,7 @@ export async function fetchMyCars(
 ): Promise<GarageCar[]> {
   const { data, error } = await supabase
     .from("vehicles")
-    .select("id, make, model, color, plate_number, image_url")
+    .select(CAR_COLUMNS)
     .eq("driver_id", userId)
     .order("created_at", { ascending: false });
 

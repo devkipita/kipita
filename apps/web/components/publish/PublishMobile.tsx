@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
 import {
+  CAR_SEATS_MISSING,
   KENYAN_TOWNS,
   POPULAR_ROUTES,
   dateFromISO,
@@ -31,8 +32,9 @@ import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
 import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
-import { saveCarAction } from "@/lib/driver/cars";
+import { saveCarAction, saveCarSeatsAction } from "@/lib/driver/cars";
 import { carName } from "@/components/driver/CarDialog";
+import { CarSeatsPicker } from "@/components/driver/CarSeatsPicker";
 import { detectOrigin } from "@/lib/home/geo";
 import { PLATE_ERROR, PLATE_EXAMPLE, formatPlate, isPlate } from "@/lib/home/plate";
 import type { RidePreferences } from "@/lib/ride-detail";
@@ -66,6 +68,8 @@ type Draft = {
   model: string;
   plate: string;
   color: string;
+  /** seats in the car being typed in, with the driver's seat in them; null until picked */
+  carSeats: number | null;
   prefs: Prefs;
 };
 
@@ -140,9 +144,9 @@ function ruleOn(prefs: Prefs, rule: Rule) {
 function pickedCar(d: Draft, cars: SavedCar[]) {
   if (d.carMode === "saved") {
     const saved = cars.find((c) => c.plate === d.savedPlate) ?? cars[0];
-    if (saved) return { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color ?? "" };
+    if (saved) return { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color ?? "", seats: saved.seats ?? null };
   }
-  if (d.carMode === "new") return { make: d.make, model: d.model, plate: d.plate, color: d.color };
+  if (d.carMode === "new") return { make: d.make, model: d.model, plate: d.plate, color: d.color, seats: d.carSeats };
   return null;
 }
 
@@ -168,6 +172,7 @@ function blankDraft(cars: SavedCar[]): Draft {
     model: "",
     plate: "",
     color: "",
+    carSeats: null,
     prefs: { no_smoking: true, pets: false, luggage: true, music: true, silent_ride: false },
   };
 }
@@ -982,6 +987,7 @@ export function PublishMobile({
   const [savedCars, setSavedCars] = useState<SavedCar[]>(initialCars);
   const savedPlates = initialCars.map((c) => c.plate).join(",");
   const [savingCar, setSavingCar] = useState(false);
+  const [savingSeats, startSeats] = useTransition();
   const [draft, setDraft] = useState<Draft>(() => blankDraft(initialCars));
   const [step, setStep] = useState(0);
   const [maxStep, setMaxStep] = useState(0);
@@ -1029,6 +1035,7 @@ export function PublishMobile({
         model: carMode === "new" ? (saved.model ?? "") : "",
         plate: carMode === "new" ? (saved.plate ?? "") : "",
         color: carMode === "new" ? (saved.color ?? "") : "",
+        carSeats: carMode === "new" ? (saved.carSeats ?? null) : null,
         prefs: { ...base.prefs, ...saved.prefs },
       });
       start = Math.min(Math.max(saved.step ?? 0, 0), STEPS.length - 1);
@@ -1087,6 +1094,7 @@ export function PublishMobile({
       model: car?.model ?? "",
       plate: car?.plate ?? "",
       color: car?.color ?? "",
+      carSeats: car?.seats ?? null,
       prefs: draft.prefs,
       step,
       maxStep,
@@ -1154,19 +1162,38 @@ export function PublishMobile({
   const seats = draft.seats ?? 1;
   const fare = Number(draft.price) || 0;
   const car = carLine(draft, savedCars);
+  const picked = pickedCar(draft, savedCars);
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
   const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, enabled: ready && step >= 3 });
-  // Never more than the car type the trip is priced as has room for, besides the seats offered.
-  const others = Math.min(draft.others, othersRoom(quote, draft.vehicleClass, seats));
+  // Never more than the car type the trip is priced as has room for, or the car's own seats allow, besides the seats offered.
+  const others = Math.min(draft.others, othersRoom(quote, draft.vehicleClass, seats, picked?.seats));
   const priceBlock = priceBlockText(quote, seats, fare, others);
 
   function carProblem(): string | null {
+    // A saved car that was added before the seats were asked has none until the driver says.
+    if (draft.carMode === "saved") return picked && picked.seats === null ? CAR_SEATS_MISSING : null;
     if (draft.carMode !== "new") return null;
     if (!draft.make.trim()) return "Add the car make.";
     if (!draft.model.trim()) return "Add the car model.";
     if (!draft.plate.trim()) return "Add the number plate so passengers can find you.";
     if (!isPlate(draft.plate)) return PLATE_ERROR;
+    if (draft.carSeats === null) return CAR_SEATS_MISSING;
     return null;
+  }
+
+  // The seats of a saved car that has none yet, or a wrong answer to correct.
+  function saveSeats(count: number) {
+    if (!picked) return;
+    const plate = picked.plate;
+    setError(null);
+    startSeats(async () => {
+      const result = await saveCarSeatsAction({ plate, seats: count });
+      if (!result.ok) {
+        setError({ text: result.error });
+        return;
+      }
+      setSavedCars((list) => list.map((c) => (c.plate === plate ? { ...c, seats: count } : c)));
+    });
   }
 
   const valid = [
@@ -1189,10 +1216,9 @@ export function PublishMobile({
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     const car = carProblem();
     if (car) return { kind: "car", text: car };
-    const named = pickedCar(draft, savedCars);
-    const tooSmall = carCapacityBlock(quote, named?.make ?? "", named?.model ?? "", seats, others);
+    const tooSmall = carCapacityBlock(quote, picked?.make ?? "", picked?.model ?? "", seats, others, picked?.seats);
     if (tooSmall) return tooSmall;
-    const carType = carTypeBlockText(quote, named?.make ?? "", named?.model ?? "");
+    const carType = carTypeBlockText(quote, picked?.make ?? "", picked?.model ?? "");
     if (carType) return { kind: "carType", text: carType };
     return priceBlock ? { kind: "price", text: priceBlock } : null;
   }
@@ -1262,15 +1288,22 @@ export function PublishMobile({
       return;
     }
     if (step === 5 && draft.carMode === "new") {
+      if (draft.carSeats === null) return;
       setSavingCar(true);
-      const result = await saveCarAction({ make: draft.make, model: draft.model, plate: draft.plate, color: draft.color });
+      const result = await saveCarAction({
+        make: draft.make,
+        model: draft.model,
+        plate: draft.plate,
+        color: draft.color,
+        seats: draft.carSeats,
+      });
       setSavingCar(false);
       if (!result.ok) {
         setError({ text: result.error });
         return;
       }
       setSavedCars((list) => [result.car, ...list.filter((c) => c.plate !== result.car.plate)]);
-      patch({ carMode: "saved", savedPlate: result.car.plate, make: "", model: "", plate: "", color: "" });
+      patch({ carMode: "saved", savedPlate: result.car.plate, make: "", model: "", plate: "", color: "", carSeats: null });
     }
     go(step + 1);
   }
@@ -1581,6 +1614,7 @@ export function PublishMobile({
                   onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
                   onOthers={(count) => patch({ others: count })}
                   onChangeSeats={() => go(3)}
+                  carSeats={picked?.seats}
                 />
               </>
             )}
@@ -1699,6 +1733,8 @@ export function PublishMobile({
                       </span>
                     </FieldLabel>
 
+                    <CarSeatsPicker id="car-seats-new" value={draft.carSeats} onChange={(n) => patch({ carSeats: n })} />
+
                     <div className="foot">
                       {carProblem() ? (
                         <span className="missing" aria-live="polite">
@@ -1707,6 +1743,7 @@ export function PublishMobile({
                             !draft.make.trim() && "make",
                             !draft.model.trim() && "model",
                             !isPlate(draft.plate) && "plate",
+                            draft.carSeats === null && "seats",
                           ]
                             .filter(Boolean)
                             .join(", ")}
@@ -1716,11 +1753,15 @@ export function PublishMobile({
                           <Check size={16} weight="bold" /> Car ready
                         </span>
                       )}
-                      <Ghost type="button" onClick={() => patch({ carMode: savedCars.length > 0 ? "saved" : "none", make: "", model: "", plate: "", color: "" })}>
+                      <Ghost type="button" onClick={() => patch({ carMode: savedCars.length > 0 ? "saved" : "none", make: "", model: "", plate: "", color: "", carSeats: null })}>
                         {savedCars.length > 0 ? "Use saved car" : "Skip for now"}
                       </Ghost>
                     </div>
                   </NewCar>
+                )}
+
+                {draft.carMode === "saved" && picked && (
+                  <CarSeatsPicker id="car-seats" value={picked.seats} onChange={saveSeats} disabled={savingSeats} />
                 )}
 
                 {draft.carMode !== "new" && (

@@ -16,6 +16,8 @@ export function blockOf(text: string, fix?: "kyc" | "phone"): Block {
   if (/already passed/i.test(text)) return { kind: "time", text };
   if (/different towns/i.test(text)) return { kind: "towns", text };
   if (/too low|too high/i.test(text)) return { kind: "price", text };
+  // The car step asks for the car's seats; this is the server saying the question was skipped.
+  if (/how many seats your car has/i.test(text)) return { kind: "car", text };
   // The car carries the seats offered but not the people riding along as well: that is fixed on the Price step.
   if (/with you make/i.test(text)) return { kind: "others", text };
   if (/carries up to|more people than the car can carry/i.test(text)) return { kind: "seats", text };

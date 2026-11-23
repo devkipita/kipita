@@ -1,9 +1,11 @@
 import "server-only";
 import {
   DEFAULT_VEHICLE_CLASSES,
+  carSeatsText,
   carryLimitText,
   classHolds,
   fareConfigFromSettings,
+  isCarSeats,
   judgePrice,
   pickVehicleClass,
   resolveFuelPrice,
@@ -136,6 +138,8 @@ export async function checkTripPrice(
     vehicleModel?: string;
     /** people riding with the driver who are not booking a seat */
     othersAboard?: number;
+    /** seats in the car with the driver's seat in them, when the driver has said; it can only tighten the type's limit */
+    carSeats?: number | null;
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!Number.isInteger(args.priceKes) || args.priceKes <= 0) {
@@ -158,6 +162,10 @@ export async function checkTripPrice(
   });
   if (vehicle && !classHolds(vehicle.code, people)) {
     return { ok: false, error: carryLimitText(vehicle.label, vehicle.code, args.seats, args.othersAboard ?? 0) };
+  }
+  // The car itself may carry fewer than its type does.
+  if (isCarSeats(args.carSeats) && people > args.carSeats - 1) {
+    return { ok: false, error: carSeatsText(args.carSeats, args.seats, args.othersAboard ?? 0) };
   }
 
   const quote = await loadPriceQuote(supabase, args, classes);

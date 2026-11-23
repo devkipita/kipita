@@ -168,7 +168,7 @@ export function DriverSection({
           )}
         </ControlRow>
         {cars.map((car) => (
-          <ControlRow key={car.id} icon={Car} title={carName(car) || "Your car"} description={car.plate} tone="mint">
+          <ControlRow key={car.id} icon={Car} title={carName(car) || "Your car"} description={car.seats ? `${car.plate} · ${car.seats} seats` : car.plate} tone="mint">
             <Remove
               type="button"
               aria-label={`Remove ${carName(car)} ${car.plate}`}

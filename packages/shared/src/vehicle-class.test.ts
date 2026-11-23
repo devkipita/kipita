@@ -2,15 +2,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  CAR_SEATS_MISSING,
   CLASS_PASSENGERS,
+  LEAST_CAR_SEATS,
+  MOST_CAR_SEATS,
   MOST_PASSENGERS,
+  carSeatsText,
   carryLimitText,
   classExamples,
   classForCar,
   classHolds,
   className,
+  isCarSeats,
   maxOthersFor,
   maxPassengersFor,
+  passengerLimit,
   pickVehicleClass,
   smallestClassThatHolds,
 } from "./vehicle-class.ts";
@@ -204,4 +210,75 @@ test("the limit text blames the seats when they alone are too many, whoever else
     carryLimitText("Sedan or wagon (Axio, Premio, Fielder)", "sedan", 5, 1),
     "Sedan or wagon carries up to 4 passengers. You offered 5. Offer fewer seats or pick a bigger car type.",
   );
+});
+
+// ───────────────────────── the car's own seat count ─────────────────────────
+
+test("a car has between 2 and 9 seats, the driver's own included", () => {
+  assert.equal(LEAST_CAR_SEATS, 2);
+  assert.equal(MOST_CAR_SEATS, MOST_PASSENGERS + 1);
+  for (const n of [2, 5, 7, 9]) assert.equal(isCarSeats(n), true, String(n));
+  for (const n of [0, 1, 10, 4.5, -3, NaN, "5", null, undefined]) assert.equal(isCarSeats(n), false, String(n));
+});
+
+test("the car's seats can only tighten the car type's limit, never raise it", () => {
+  // a 5-seater (4 passengers) in a type that carries 6 is held to 4
+  assert.equal(passengerLimit("suv_diesel", 5), 4);
+  // a 9-seater in a sedan stays at the sedan's 4
+  assert.equal(passengerLimit("sedan", 9), 4);
+  // a 7-seater (6 passengers) in a minivan that carries 8 is held to 6
+  assert.equal(passengerLimit("minivan", 7), 6);
+  // equal limits stay put
+  assert.equal(passengerLimit("sedan", 5), 4);
+});
+
+test("without a usable seat count the car type's limit stands", () => {
+  for (const seats of [undefined, null, 0, 1, 10, 3.5]) {
+    assert.equal(passengerLimit("suv_diesel", seats), 6, String(seats));
+  }
+  assert.equal(passengerLimit("minivan"), 8);
+  // a type that is not listed keeps taking the most
+  assert.equal(passengerLimit("campervan"), MOST_PASSENGERS);
+  assert.equal(passengerLimit("campervan", 4), 3);
+});
+
+test("the room for people riding along follows the car's own seats", () => {
+  // minivan, 6 seats offered: 2 more fit a 9-seater, none fit a 7-seater
+  assert.equal(maxOthersFor("minivan", 6, 9), 2);
+  assert.equal(maxOthersFor("minivan", 6, 7), 0);
+  // diesel SUV, 3 seats offered: 3 more by type, only 1 in a 5-seater
+  assert.equal(maxOthersFor("suv_diesel", 3), 3);
+  assert.equal(maxOthersFor("suv_diesel", 3, 5), 1);
+  // never negative, even when the seats alone are too many
+  assert.equal(maxOthersFor("minivan", 6, 4), 0);
+});
+
+test("the car seats text blames the people riding along when the seats alone fit", () => {
+  assert.equal(
+    carSeatsText(5, 3, 2),
+    "Your car has 5 seats and carries up to 4 passengers. 3 seats and 2 with you make 5. Change one.",
+  );
+});
+
+test("the car seats text blames the seats when they alone are too many", () => {
+  assert.equal(
+    carSeatsText(5, 5),
+    "Your car has 5 seats and carries up to 4 passengers. You offered 5. Offer fewer seats.",
+  );
+  assert.equal(
+    carSeatsText(5, 5, 1),
+    "Your car has 5 seats and carries up to 4 passengers. You offered 5. Offer fewer seats.",
+  );
+});
+
+test("the car seats text reads the same way the screen sorts the type text", () => {
+  // PublishBlocker sends "with you make" to the people riding along and "carries up to" to the seats
+  assert.match(carSeatsText(5, 3, 2), /with you make/);
+  assert.doesNotMatch(carSeatsText(5, 5), /with you make/);
+  assert.match(carSeatsText(5, 5), /carries up to/);
+});
+
+test("the missing seat count has one wording the screens can recognise", () => {
+  assert.equal(CAR_SEATS_MISSING, "Add how many seats your car has.");
+  assert.match(CAR_SEATS_MISSING, /how many seats your car has/i);
 });
