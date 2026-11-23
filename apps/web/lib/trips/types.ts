@@ -36,6 +36,11 @@ export interface PublishedTrip {
   paid_seats: number;
   vehicle?: TripCar | null;
   riders?: SeatRider[];
+  fares_paid?: number;
+  from_lat?: number | null;
+  from_lng?: number | null;
+  to_lat?: number | null;
+  to_lng?: number | null;
 }
 
 export interface SeatRider {

@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { AnimatePresence, m } from "motion/react";
 import { Check, NavigationArrow, ShareForward, Warning } from "@/components/icons";
+import { tween } from "@/lib/motion";
+import { SITE } from "@/lib/site";
 import { Chip } from "@/components/ui/Chip";
 import { RollingNumber } from "@/components/ui/Counter";
 import { useShareLocation } from "@/lib/trips/live";
@@ -13,16 +15,16 @@ import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { useConfirm } from "@/components/ui/ConfirmPop";
 import { ConfirmSheet } from "@/components/ui/ConfirmSheet";
-import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
-import { SITE } from "@/lib/site";
 import { cancelTripAction } from "@/lib/trips/booking-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import type { PublishedTrip, SeatRider } from "@/lib/trips/types";
+import type { TripRoute } from "@/lib/maps/types";
 import { Act, Acts, Count, Depart, Meta, Road, Row, SeatTrack, SectionHead, Tag, fs } from "./RideRow";
 import { assignSeats } from "./SeatMap";
 import { RideHero } from "./RideHero";
+import { SlideToComplete } from "./Boarding";
 import { CancelRideArt } from "./TripsArt";
 
 const SHOWN = 4;
@@ -39,33 +41,6 @@ const Section = styled.section`
 
 
 
-
-
-
-
-const HeroActs = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-
-  .spacer {
-    flex: 1;
-  }
-
-  @media (max-width: 600px) {
-    .spacer {
-      display: none;
-    }
-    > * {
-      flex: 1 1 0;
-    }
-    > :first-child {
-      flex-basis: 100%;
-    }
-  }
-`;
 
 const Cta = styled(Act)`
   background: ${nocturne.ctaBg};
@@ -110,12 +85,17 @@ const Err = styled.p`
   }
 `;
 
+const SlideSlot = styled.div`
+  flex: 1 1 280px;
+  min-width: 0;
+`;
+
 const Busy = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: var(--hero-soft);
+  color: ${nocturne.onGreenMuted};
   transition: opacity ${dur.state} ${ease.standard};
 `;
 
@@ -188,27 +168,22 @@ function seatLine(trip: PublishedTrip) {
 }
 
 function ShareLocation({ tripId }: { tripId: string }) {
-  const { state, toggle } = useShareLocation(tripId, true);
+  const { state, retry } = useShareLocation(tripId, true);
+  if (state !== "denied" && state !== "failed") return null;
   return (
-    <Act type="button" onClick={toggle} aria-pressed={state === "on"}>
-      <NavigationArrow size={16} weight={state === "on" ? "fill" : "bold"} aria-hidden />
-      {state === "on"
-        ? "Sharing location"
-        : state === "denied"
-          ? "Allow location to share"
-          : state === "unsupported"
-            ? "Location unavailable"
-            : "Share live location"}
+    <Act type="button" onClick={retry}>
+      <NavigationArrow size={16} weight="bold" aria-hidden />
+      {state === "denied" ? "Allow location so passengers can see you" : "Location didn't send. Try again"}
     </Act>
   );
 }
 
 export function PublishedTrips({
   initial,
-  onAnswer,
+  liveRoute,
 }: {
   initial: PublishedTrip[];
-  onAnswer?: () => void;
+  liveRoute?: Promise<TripRoute | null>;
 }) {
   const router = useRouter();
   const { kycStatus, requireKyc } = useAppMode();
@@ -322,14 +297,7 @@ export function PublishedTrips({
     });
   }
 
-  async function complete(trip: PublishedTrip, anchor: Element) {
-    const ok = await ask(anchor, {
-      title: "End ride?",
-      yes: "End ride",
-      no: "Keep driving",
-    });
-    if (!ok) return;
-
+  function complete(trip: PublishedTrip) {
     setBusy(trip.id);
     setJob("complete");
     setError("");
@@ -376,20 +344,18 @@ export function PublishedTrips({
   const startable = !held && (at === null || until <= START_WINDOW_MS);
   const working = busy === hero.id;
   const booked = hero.paid_seats + hero.awaiting_payment;
-  const shareLabel = copied ? "Link copied" : "Share ride";
 
   let primary: React.ReactNode = null;
   if (running) {
     primary = (
-      <Cta type="button" onClick={(e) => complete(hero, e.currentTarget)} disabled={working} aria-busy={working}>
-        {working && job === "complete" ? (
-          <>
-            <ButtonOrb job="committing" /> Ending ride
-          </>
-        ) : (
-          "End ride"
-        )}
-      </Cta>
+      <SlideSlot>
+        <SlideToComplete
+          label="Slide to end ride"
+          busyLabel="Ending ride…"
+          busy={working && job === "complete"}
+          onComplete={() => complete(hero)}
+        />
+      </SlideSlot>
     );
   } else if (held) {
     primary = canVerify ? (
@@ -397,12 +363,6 @@ export function PublishedTrips({
         Finish verification
       </Cta>
     ) : null;
-  } else if (hero.pending_requests > 0) {
-    primary = (
-      <Cta type="button" onClick={() => onAnswer?.()}>
-        Answer <RollingNumber value={hero.pending_requests} /> {hero.pending_requests === 1 ? "request" : "requests"}
-      </Cta>
-    );
   } else if (startable) {
     primary = (
       <Cta
@@ -427,12 +387,12 @@ export function PublishedTrips({
         <span className="label">
           <AnimatePresence mode="popLayout" initial={false}>
             <m.span
-              key={shareLabel}
+              key={copied ? "copied" : "share"}
               initial={{ opacity: 0, filter: "blur(2px)" }}
               animate={{ opacity: 1, filter: "blur(0px)", transition: tween.enter }}
               exit={{ opacity: 0, filter: "blur(2px)", transition: tween.exit }}
             >
-              {shareLabel}
+              {copied ? "Link copied" : "Share ride"}
             </m.span>
           </AnimatePresence>
         </span>
@@ -476,6 +436,7 @@ export function PublishedTrips({
       <RideHero
         trip={hero}
         running={running}
+        route={running ? liveRoute : undefined}
         status={
           running ? (
             <Tag $tone="live">
@@ -492,38 +453,32 @@ export function PublishedTrips({
           running || held || at === null || until <= 0
             ? null
             : startable
-              ? { ms: until, lead: "Ride leaves in", progress: 1 - until / START_WINDOW_MS }
-              : {
-                  ms: until - START_WINDOW_MS,
-                  lead: "You can start the ride in",
-                  progress: 1 - (until - START_WINDOW_MS) / (24 * 60 * 60 * 1000),
-                }
+              ? { target: at, from: now, lead: "Leaves in" }
+              : { target: at - START_WINDOW_MS, from: now, lead: "Starts in" }
         }
         news={news}
         actions={
-          <HeroActs>
-            {running && <ShareLocation tripId={hero.id} />}
+          <>
             {primary}
-            <Act as={Link} href={`/ride/${hero.id}`}>
-              Open ride
-            </Act>
-            <span className="spacer" />
-            {!running && (
-              <CancelAct
-                type="button"
-                onClick={() => setCancelling(hero)}
-                disabled={working}
-                aria-busy={working && job === "cancel"}
-              >
-                Cancel ride
-              </CancelAct>
-            )}
-          </HeroActs>
+            {running && <ShareLocation tripId={hero.id} />}
+          </>
+        }
+        trailing={
+          running ? null : (
+            <CancelAct
+              type="button"
+              onClick={() => setCancelling(hero)}
+              disabled={working}
+              aria-busy={working && job === "cancel"}
+            >
+              Cancel ride
+            </CancelAct>
+          )
         }
         busy={
           working && job === "cancel" ? (
             <Busy role="status">
-              <ButtonOrb job="committing" on="surface" /> Cancelling ride
+              <ButtonOrb job="committing" on="green" /> Cancelling ride
             </Busy>
           ) : null
         }
@@ -589,15 +544,14 @@ export function PublishedTrips({
 
                 <Acts>
                   {going ? (
-                    <Act $primary type="button" onClick={(e) => complete(trip, e.currentTarget)} disabled={doing} aria-busy={doing}>
-                      {doing && job === "complete" ? (
-                        <>
-                          <ButtonOrb job="committing" /> Ending ride
-                        </>
-                      ) : (
-                        "End ride"
-                      )}
-                    </Act>
+                    <SlideSlot>
+                      <SlideToComplete
+                        label="Slide to end ride"
+                        busyLabel="Ending ride…"
+                        busy={doing && job === "complete"}
+                        onComplete={() => complete(trip)}
+                      />
+                    </SlideSlot>
                   ) : canStart ? (
                     <Act
                       $primary

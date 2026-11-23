@@ -1,7 +1,7 @@
 "use client";
 
 import styled, { css, keyframes } from "styled-components";
-import { dur, ease, nocturne, pulse } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
@@ -230,6 +230,11 @@ const tagLook: Record<TagTone, ReturnType<typeof css>> = {
   `,
 };
 
+const ping = keyframes`
+  0% { opacity: 0.5; transform: scale(0.5); }
+  70%, 100% { opacity: 0; transform: scale(1.5); }
+`;
+
 export const Tag = styled.span<{ $tone: TagTone }>`
   display: inline-flex;
   align-items: center;
@@ -256,7 +261,7 @@ export const Tag = styled.span<{ $tone: TagTone }>`
     inset: -4px;
     border-radius: 50%;
     background: currentColor;
-    animation: ${pulse} calc(${dur.max} * 4) ${ease.standard} infinite;
+    animation: ${ping} calc(${dur.max} * 4) ${ease.enter} infinite;
   }
   > svg {
     flex: none;
@@ -265,7 +270,7 @@ export const Tag = styled.span<{ $tone: TagTone }>`
   @media (prefers-reduced-motion: reduce) {
     > i[data-pulse]::after {
       animation: none;
-      opacity: 0.3;
+      opacity: 0;
     }
   }
 `;

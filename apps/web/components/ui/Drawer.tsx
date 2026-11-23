@@ -259,7 +259,9 @@ export type DrawerProps = {
   children: ReactNode;
 };
 
-function useRoomy(): boolean {
+export const SIDE_PUSH = SIDE_W + SIDE_GAP * 2;
+
+export function useRoomy(): boolean {
   const [roomy, setRoomy] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1200px)");
@@ -364,7 +366,7 @@ export function Drawer({
   useEffect(() => {
     if (!open || !pushing) return;
     const root = document.documentElement;
-    root.style.setProperty("--side-panel", `${SIDE_W + SIDE_GAP * 2}px`);
+    root.style.setProperty("--side-panel", `${SIDE_PUSH}px`);
     return () => {
       root.style.removeProperty("--side-panel");
     };

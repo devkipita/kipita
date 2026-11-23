@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled, { css } from "styled-components";
@@ -12,7 +12,7 @@ import {
   CarProfile,
   CheckCircle as CheckCircle2,
   Copy,
-  ShareNetwork,
+  ShareForward,
   Ticket as TicketIcon,
   Lightning,
   Lock,
@@ -28,7 +28,7 @@ import {
 import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
-import { OwnerBoarding } from "@/components/trips/Boarding";
+import { BoardingPanel, SlideToComplete, useBoarding } from "@/components/trips/Boarding";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { formatKes } from "@/lib/rides";
 import { bookingBreakdown } from "@/lib/platform";
@@ -38,11 +38,13 @@ import { dur as motionDur } from "@/lib/motion";
 import { RollingNumber } from "@/components/ui/Counter";
 import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
 import { useMorphNavigate } from "@/lib/ui/viewTransition";
 import { MapSheet, useSplitLayout } from "@/components/trips/MapSheet";
 import { PersonCard } from "./PersonCard";
 import { RideRiders } from "./RideRiders";
+import { RideFinish } from "./RideFinish";
 import { useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "@/components/trips/RouteMap";
 import type { TripRoute } from "@/lib/maps/types";
@@ -743,11 +745,51 @@ const OwnerActs = styled.div`
   }
 `;
 
-const ShareCta = styled.button`
+const ShareCta = styled.button<{ $quiet?: boolean }>`
   ${actButton}
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
+  background: ${({ $quiet, theme }) => ($quiet ? theme.tone.green.bg : nocturne.ctaBg)};
+  color: ${({ $quiet, theme }) => ($quiet ? theme.tone.green.on : nocturne.ctaFg)};
 `;
+
+const EndError = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: ${({ theme }) => theme.color.error};
+  font-size: 14px;
+  font-weight: 600;
+`;
+
+function EndRide({ tripId }: { tripId: string }) {
+  const router = useRouter();
+  const [ending, setEnding] = useState(false);
+  const [error, setError] = useState("");
+
+  async function end() {
+    setEnding(true);
+    setError("");
+    const result = await completeTripAction(tripId);
+    if (!result.ok) {
+      setEnding(false);
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <SlideToComplete label="Slide to end ride" busyLabel="Ending ride…" busy={ending} onComplete={() => void end()} />
+      {error ? (
+        <EndError role="alert">
+          <Warning size={16} aria-hidden />
+          {error}
+        </EndError>
+      ) : null}
+    </div>
+  );
+}
 
 const ManageLink = styled(Link)`
   ${actButton}
@@ -876,6 +918,8 @@ export function RideDetailView({
 
   const ended = isTrip && closed ? ride.status : null;
   const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && ride.status === "in_progress");
+  const board = useBoarding(isTrip ? ride.id : null, ownerView && !awaiting);
+  const ready = ownerView && !awaiting && board.summary.loaded && board.rows.length > 0 && board.summary.waiting === 0;
   const endedLabel =
     ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
   const endedLead = !ended
@@ -1019,21 +1063,26 @@ export function RideDetailView({
     ) : null;
 
   return (
-    <MapSheet      map={(padding) => (
-        <RouteMap
-          route={route}
-          fromLabel={ride.from_location}
-          toLabel={ride.to_location}
-          padding={padding}
-          car={carLoc}
-          follow={carLoc != null}
-        />
-      )}
-      mapTop={back}
+    <MapSheet
+      map={(padding) =>
+        ownDone ? (
+          <RideFinish tripId={ride.id} destination={ride.to_location} />
+        ) : (
+          <RouteMap
+            route={route}
+            fromLabel={ride.from_location}
+            toLabel={ride.to_location}
+            padding={padding}
+            car={carLoc}
+            follow={carLoc != null}
+          />
+        )
+      }
+      mapTop={ownDone ? undefined : back}
       aside={
         docked ? (
           <>
-            <OwnerBoarding tripId={ride.id} />
+            <BoardingPanel tripId={ride.id} board={board} always />
             {priceTile}
             {carTile}
           </>
@@ -1065,7 +1114,7 @@ export function RideDetailView({
           <i className="leg" aria-hidden />
           <span>{ride.to_location}</span>
         </h1>
-        {lead ? <p>{lead}</p> : null}
+        {lead && !ownDone ? <p>{lead}</p> : null}
       </Head>
 
       {meta.length > 0 && (
@@ -1080,7 +1129,7 @@ export function RideDetailView({
       )}
 
       <Stack>
-        {ownerView && !awaiting && !split && <OwnerBoarding tripId={ride.id} />}
+        {ownerView && !awaiting && !split && <BoardingPanel tripId={ride.id} board={board} always />}
 
         {ownerView && !awaiting && (
           <ShareRide
@@ -1088,6 +1137,7 @@ export function RideDetailView({
             from={ride.from_location}
             to={ride.to_location}
             when={[date, time].filter(Boolean).join(" at ")}
+            start={ready ? <StartRide tripId={ride.id} /> : undefined}
           />
         )}
 
@@ -1260,6 +1310,8 @@ export function RideDetailView({
 
   function renderSideAction() {
     if (closed) {
+      if (ownLive) return <EndRide tripId={ride.id} />;
+      if (ownDone) return null;
       return isOwn && isTrip ? (
         <ManageLink href="/trips">
           <TicketIcon size={20} /> See your trips
@@ -1374,16 +1426,48 @@ export function RideDetailView({
   }
 }
 
+function StartRide({ tripId }: { tripId: string }) {
+  const router = useRouter();
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function start() {
+    setStarting(true);
+    setError("");
+    const result = await startTripAction(tripId);
+    if (!result.ok) {
+      setStarting(false);
+      setError(result.error);
+      return;
+    }
+    router.refresh();
+  }
+
+  return (
+    <div>
+      <SlideToComplete label="Slide to start ride" busyLabel="Starting ride…" busy={starting} onComplete={() => void start()} />
+      {error ? (
+        <EndError role="alert">
+          <Warning size={16} aria-hidden />
+          {error}
+        </EndError>
+      ) : null}
+    </div>
+  );
+}
+
 function ShareRide({
   rideId,
   from,
   to,
   when,
+  start,
 }: {
   rideId: string;
   from: string;
   to: string;
   when: string;
+  start?: ReactNode;
 }) {
   const [origin, setOrigin] = useState("");
   const [native, setNative] = useState(false);
@@ -1422,8 +1506,9 @@ function ShareRide({
   return (
     <Card aria-label="Share your ride">
       <OwnerActs>
-        <ShareCta type="button" onClick={() => void share()}>
-          <ShareNetwork size={20} /> Share your ride
+        {start}
+        <ShareCta type="button" onClick={() => void share()} $quiet={!!start}>
+          <ShareForward size={20} /> Share your ride
         </ShareCta>
         <ManageLink href="/trips">
           <TicketIcon size={20} /> Manage in your trips

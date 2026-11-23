@@ -42,7 +42,7 @@ export const HELP_TOPICS: {
     category: "no_show",
     hint: "We will hold the fare while we look into it.",
     icon: Clock,
-    tone: "warning",
+    tone: "neutral",
     viewers: ["rider"],
   },
   {
@@ -51,7 +51,7 @@ export const HELP_TOPICS: {
     category: "no_show",
     hint: "Tell us where you waited and for how long.",
     icon: Clock,
-    tone: "warning",
+    tone: "neutral",
     viewers: ["driver"],
   },
   {
@@ -60,7 +60,7 @@ export const HELP_TOPICS: {
     category: "refund",
     hint: "Tell us which trip and what went wrong.",
     icon: HandCoins,
-    tone: "success",
+    tone: "neutral",
     viewers: ["rider"],
   },
   {
@@ -78,7 +78,7 @@ export const HELP_TOPICS: {
     category: "general",
     hint: "Anything the answers above do not cover.",
     icon: Question,
-    tone: "info",
+    tone: "neutral",
     viewers: ["rider", "driver"],
   },
 ];

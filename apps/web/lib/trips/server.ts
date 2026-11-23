@@ -159,6 +159,7 @@ type SeatTally = {
   pending_requests: number;
   awaiting_payment: number;
   paid_seats: number;
+  fares_paid: number;
   riders: SeatRider[];
 };
 
@@ -171,7 +172,7 @@ async function tallySeats(
   const supabase = await createClient();
   const { data } = await supabase
     .from("bookings")
-    .select("id, trip_id, seats_booked, status, created_at, passenger:users!passenger_id ( full_name, avatar_url )")
+    .select("id, trip_id, seats_booked, total_price, status, created_at, passenger:users!passenger_id ( full_name, avatar_url )")
     .in("trip_id", tripIds)
     .in("status", ["requested", "pending_payment", "confirmed", "in_progress"]);
 
@@ -183,6 +184,7 @@ async function tallySeats(
       pending_requests: 0,
       awaiting_payment: 0,
       paid_seats: 0,
+      fares_paid: 0,
       riders: [],
     };
 
@@ -201,7 +203,10 @@ async function tallySeats(
 
     if (row.status === "requested") current.pending_requests += 1;
     else if (row.status === "pending_payment") current.awaiting_payment += seats;
-    else current.paid_seats += seats;
+    else {
+      current.paid_seats += seats;
+      current.fares_paid += Number(row.total_price ?? 0);
+    }
 
     tally.set(tripId, current);
   }
@@ -215,7 +220,7 @@ export async function fetchPublishedTrips(
   try {
     const supabase = await createClient();
     const columns = `id, from_location, to_location, departure_date, departure_time,
-         price_per_seat, seats_available, seats_total, status,
+         price_per_seat, seats_available, seats_total, status, from_lat, from_lng, to_lat, to_lng,
          vehicle:vehicles!vehicle_id ( make, model, color, plate_number )`;
     const today = kenyaToday();
 
@@ -264,6 +269,11 @@ export async function fetchPublishedTrips(
         paid_seats: counts?.paid_seats ?? 0,
         vehicle: (Array.isArray(row.vehicle) ? row.vehicle[0] : row.vehicle) as PublishedTrip["vehicle"] ?? null,
         riders: counts?.riders ?? [],
+        fares_paid: counts?.fares_paid ?? 0,
+        from_lat: row.from_lat == null ? null : Number(row.from_lat),
+        from_lng: row.from_lng == null ? null : Number(row.from_lng),
+        to_lat: row.to_lat == null ? null : Number(row.to_lat),
+        to_lng: row.to_lng == null ? null : Number(row.to_lng),
       } satisfies PublishedTrip;
     });
   } catch {

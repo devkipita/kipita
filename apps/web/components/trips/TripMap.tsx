@@ -23,6 +23,16 @@ const Frame = styled.div`
     inset: 0;
   }
 
+  &[data-bare] .kp-pin {
+    display: none;
+  }
+
+  .gm-style a[href*="maps.google"],
+  .gm-style .gm-style-cc,
+  .gm-style .gmnoprint {
+    display: none !important;
+  }
+
   .kp-pin {
     position: absolute;
     left: 0;
@@ -170,6 +180,7 @@ export default function TripMap({
   padding,
   shift = 0,
   onboard = false,
+  bare = false,
 }: {
   polyline: string;
   car?: TripLocation | null;
@@ -181,6 +192,7 @@ export default function TripMap({
   padding?: google.maps.Padding;
   shift?: number;
   onboard?: boolean;
+  bare?: boolean;
 }) {
   const onboardRef = useRef(onboard);
   onboardRef.current = onboard;
@@ -461,9 +473,9 @@ export default function TripMap({
   };
 
   return (
-    <Frame role="region" aria-label={`Map of the route from ${fromLabel} to ${toLabel}`}>
+    <Frame role="region" aria-label={`Map of the route from ${fromLabel} to ${toLabel}`} data-bare={bare ? "" : undefined}>
       <div className="host" ref={hostRef} />
-      {ready && (
+      {ready && !bare && (
         <Controls>
           <Locate type="button" $on={locating} aria-pressed={locating} aria-label={locating ? "Hide my location" : "Show my location"} onClick={locate}>
             <Crosshair size={20} />

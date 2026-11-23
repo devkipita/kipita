@@ -77,10 +77,12 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
 
 export default async function TripPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ chat?: string }>;
 }) {
-  const { id } = await params;
+  const [{ id }, { chat }] = await Promise.all([params, searchParams]);
   const profile = await getProfile();
   if (!profile) redirect(`/auth/sign-in?next=/trips/${id}`);
 
@@ -115,6 +117,9 @@ export default async function TripPage({
   if (!booking) notFound();
 
   const trip = booking.trip;
+  if (trip?.status === "in_progress" && trip.driver?.id === profile.id) {
+    redirect(`/ride/${trip.id}${chat ? `?chat=${id}` : ""}`);
+  }
   const showMap = trip && !["completed", "cancelled", "rejected"].includes(booking.status);
   const destination = trip ? placeKey(trip.to_location, trip.to_lat, trip.to_lng) : "";
   const route: Promise<TripRoute | null> = showMap

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import styled, { css } from "styled-components";
-import { Check, Clock, Lock } from "@/components/icons";
+import styled, { css, keyframes } from "styled-components";
+import { ArrowRight, Check, Clock, Lock } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { RollingNumber } from "@/components/ui/Counter";
@@ -582,6 +582,15 @@ export function OwnerBoarding({ tripId }: { tripId: string }) {
 
 /* ── Driver: slide to end the trip ───────────────────────────────────────────── */
 
+const nudge = keyframes`
+  0%, 62%, 100% { transform: translateX(0); }
+  72% { transform: translateX(6px); }
+  82% { transform: translateX(0); }
+  90% { transform: translateX(3px); }
+`;
+
+const KNOB = 52;
+
 const Track = styled.div<{ $busy: boolean }>`
   position: relative;
   height: 60px;
@@ -591,47 +600,104 @@ const Track = styled.div<{ $busy: boolean }>`
   overflow: hidden;
   user-select: none;
   touch-action: none;
-  opacity: ${({ $busy }) => ($busy ? 0.7 : 1)};
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow ${dur.state} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.ink} 8%, transparent);
+    }
+  }
 `;
 
-const Label = styled.span`
+const Fill = styled.span.attrs<{ $w: number; $dragging: boolean }>(({ $w, $dragging }) => ({
+  style: {
+    width: `${$w}px`,
+    transition: $dragging ? "none" : `width ${dur.enter} ${ease.enter}`,
+  },
+}))`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, ${nocturne.ink} 18%, transparent);
+  pointer-events: none;
+`;
+
+const Label = styled.span.attrs<{ $p: number }>(({ $p }) => ({
+  style: { opacity: Math.max(0, 1 - $p * 1.4), transform: `translateX(${Math.round($p * 16)}px)` },
+}))`
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 52px;
+  gap: 8px;
+  padding-left: ${KNOB}px;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 16px;
   font-weight: 800;
   pointer-events: none;
+  transition:
+    opacity ${dur.state} ${ease.standard},
+    transform ${dur.state} ${ease.standard};
 `;
 
 const Knob = styled.button.attrs<{ $x: number; $dragging: boolean }>(({ $x, $dragging }) => ({
   style: {
     transform: `translateX(${$x}px)`,
-    transition: $dragging ? "none" : `transform ${dur.state} ${ease.standard}`,
+    transition: $dragging ? "none" : `transform ${dur.enter} ${ease.enter}`,
   },
-}))`
+}))<{ $idle: boolean }>`
   position: absolute;
   top: 4px;
   left: 4px;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: ${KNOB}px;
+  height: ${KNOB}px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: ${nocturne.surface};
   color: ${nocturne.cream};
+  box-shadow: ${nocturne.panelShadow};
   cursor: grab;
   touch-action: none;
 
+  > span {
+    display: grid;
+    place-items: center;
+    transition: transform ${dur.press} ${ease.standard};
+  }
+  svg {
+    animation: ${({ $idle }) => ($idle ? css`${nudge} calc(${dur.max} * 6) ${ease.standard} infinite` : "none")};
+  }
+  &:active > span {
+    transform: scale(0.92);
+  }
   &:active {
     cursor: grabbing;
   }
+  &:disabled {
+    cursor: default;
+  }
   ${focusRing}
+
+  @media (prefers-reduced-motion: reduce) {
+    svg {
+      animation: none;
+    }
+    &:active > span {
+      transform: none;
+    }
+  }
 `;
+
+function buzz(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
+}
 
 /**
  * Ending a ride moves money (each boarded passenger's fare starts its release timer), so it takes a deliberate
@@ -651,36 +717,70 @@ export function SlideToComplete({
   const track = useRef<HTMLDivElement>(null);
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [sent, setSent] = useState(false);
   const origin = useRef(0);
-  const KNOB = 52;
+  const armed = useRef(false);
+  const wasBusy = useRef(false);
 
   const maxX = () => Math.max(0, (track.current?.clientWidth ?? 0) - KNOB - 8);
+  const max = maxX();
+  const progress = max > 0 ? Math.min(1, x / max) : 0;
+
+  useEffect(() => {
+    if (busy) {
+      wasBusy.current = true;
+      return;
+    }
+    if (wasBusy.current && sent) {
+      wasBusy.current = false;
+      setSent(false);
+      setX(0);
+    }
+  }, [busy, sent]);
+
+  function finish() {
+    buzz([12, 40, 24]);
+    setX(maxX());
+    setSent(true);
+    onComplete();
+  }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
-    if (busy) return;
+    if (busy || sent) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     origin.current = e.clientX - x;
+    armed.current = false;
     setDragging(true);
+    buzz(8);
   }
   function move(e: React.PointerEvent<HTMLButtonElement>) {
     if (!dragging) return;
-    setX(Math.min(maxX(), Math.max(0, e.clientX - origin.current)));
+    const next = Math.min(maxX(), Math.max(0, e.clientX - origin.current));
+    const past = next >= maxX() * 0.9;
+    if (past !== armed.current) {
+      armed.current = past;
+      if (past) buzz(14);
+    }
+    setX(next);
   }
   function up() {
     if (!dragging) return;
     setDragging(false);
-    const done = x >= maxX() * 0.9 && maxX() > 0;
+    if (armed.current && maxX() > 0) {
+      finish();
+      return;
+    }
     setX(0);
-    if (done) onComplete();
   }
 
   return (
     <Track ref={track} $busy={busy}>
-      <Label>
-        {busy ? (
+      <Fill $w={x + KNOB + 8} $dragging={dragging} />
+      <Label $p={busy || sent ? 0 : progress}>
+        {busy || sent ? (
           <>
             <ButtonOrb job="committing" />
-            &nbsp;{busyLabel}
+            {busyLabel}
           </>
         ) : (
           label
@@ -689,7 +789,7 @@ export function SlideToComplete({
       <Knob
         type="button"
         aria-label={label}
-        disabled={busy}
+        disabled={busy || sent}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -697,13 +797,16 @@ export function SlideToComplete({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onComplete();
+            finish();
           }
         }}
         $x={x}
         $dragging={dragging}
+        $idle={!dragging && !busy && !sent && x === 0}
       >
-        <span aria-hidden>›››</span>
+        <span>
+          {sent || busy ? <Check size={24} weight="bold" aria-hidden /> : <ArrowRight size={24} weight="bold" aria-hidden />}
+        </span>
       </Knob>
     </Track>
   );
@@ -711,7 +814,7 @@ export function SlideToComplete({
 
 /** The line shown above the slider: what the driver will be paid, and on what condition. */
 export function earningsLine(summary: BoardingSummary): string {
-  if (!summary.loaded) return "Paid when there is no dispute.";
+  if (!summary.loaded) return "Paid to your wallet when you end the ride.";
   if (summary.boarded === 0) return "No one boarded, so nothing to pay out.";
-  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, when there is no dispute.`;
+  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"} when you end the ride.`;
 }

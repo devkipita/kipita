@@ -28,6 +28,8 @@
     "apps/web/components/ui/AppUpdate.tsx",
     "apps/web/components/nav/BottomTabBar.tsx",
     "apps/web/components/ui/ConfirmSheet.tsx",
-    "apps/web/components/rides/RideRiders.tsx"
+    "apps/web/components/rides/RideRiders.tsx",
+    "apps/web/components/trips/FinishScene.tsx",
+    "apps/web/components/trips/RateRide.tsx"
   ]
 }

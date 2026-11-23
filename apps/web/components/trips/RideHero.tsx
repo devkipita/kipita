@@ -1,360 +1,389 @@
 "use client";
 
-import { type ReactNode } from "react";
-import Image from "next/image";
-import styled, { keyframes } from "styled-components";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
+import styled from "styled-components";
 import { AnimatePresence, m } from "motion/react";
+import { Clock } from "@/components/icons";
 import { RollingNumber } from "@/components/ui/Counter";
 import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import type { PublishedTrip } from "@/lib/trips/types";
 import { SeatMap } from "./SeatMap";
+import { RouteMap } from "./RouteMap";
+import { useTripLocation } from "@/lib/trips/live";
+import type { TripRoute } from "@/lib/maps/types";
 
-const CAR_W = 52;
+const MINI_PAD = { top: 32, right: 32, bottom: 32, left: 32 };
 
-const drive = keyframes`
-  0% { transform: translateX(calc(-100% + ${CAR_W}px)); opacity: 0; }
-  8% { opacity: 1; }
-  82% { transform: translateX(0); opacity: 1; }
-  92%, 100% { transform: translateX(0); opacity: 0; }
-`;
-
-const Card = styled.article`
+const Card = styled.article<{ $window: boolean; $running: boolean }>`
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  grid-template-areas:
-    "band band"
-    "seats details";
-  overflow: hidden;
+  grid-template-columns: ${({ $window, $running }) =>
+    $window ? `minmax(0, 1fr) minmax(${$running ? "240px, 44%" : "280px, 40%"})` : "minmax(0, 1fr)"};
+  grid-template-areas: ${({ $window }) => ($window ? `"info win" "acts win"` : `"info" "acts"`)};
+  grid-template-rows: 1fr auto;
+  gap: 0 8px;
+  padding: 8px;
   border-radius: 24px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  color: ${nocturne.cream};
+  background: ${nocturne.greenDeep};
+  color: ${nocturne.onGreen};
 
-  @media (max-width: 600px) {
+  @media (max-width: 760px) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: ${({ $window }) => ($window ? `"info" "win" "acts"` : `"info" "acts"`)};
+    grid-template-rows: auto;
     border-radius: 20px;
   }
+`;
 
-  @media (max-width: 860px) {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      "band"
-      "details"
-      "seats";
+const Info = styled.div`
+  grid-area: info;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+  padding: 20px 20px 24px;
+
+  .head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .title {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+  }
+  h3 {
+    margin: 0;
+    overflow: hidden;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(16px, 6cqi, 28px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .facts {
+    margin-top: auto;
+  }
+  h3 .to {
+    font-weight: 600;
+    color: ${nocturne.onGreenMuted};
+  }
+  .car {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: ${nocturne.onGreenMuted};
+  }
+  .plate {
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: ${nocturne.cream};
+    color: ${nocturne.bg};
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 20px;
+    letter-spacing: 0.06em;
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    column-gap: clamp(16px, 8cqi, 32px);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .facts li {
+    display: flex;
+    align-items: baseline;
+    gap: clamp(4px, 2cqi, 8px);
+    min-width: 0;
+    font-size: clamp(12px, 4cqi, 16px);
+    font-weight: 600;
+    white-space: nowrap;
+    color: ${nocturne.onGreenMuted};
+  }
+  .facts b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(18px, 7cqi, 28px);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: ${nocturne.onGreen};
+    font-variant-numeric: tabular-nums;
+  }
+  .facts .money b {
+    color: ${nocturne.lime};
+  }
+
+  @container (max-width: 480px) {
+    .head {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+    }
+    .title {
+      gap: 4px;
+    }
+    h3 {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: clamp(20px, 8cqi, 28px);
+    }
+    h3 .town {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .car {
+      flex-wrap: nowrap;
+      justify-content: space-between;
+    }
+    .car > span:first-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .plate {
+      flex: none;
+    }
+    .facts {
+      grid-template-columns: auto auto;
+      justify-content: space-between;
+      column-gap: 16px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    gap: 16px;
+    padding: 12px 8px 16px;
   }
 `;
 
 const Corner = styled.span`
   display: inline-flex;
   flex: none;
-  align-self: flex-start;
 `;
 
-const Band = styled.div<{ $running: boolean }>`
-  grid-area: band;
+const Timer = styled.p`
   display: grid;
-  gap: 20px;
-  padding: 24px 28px 20px;
-  background: ${({ $running }) => ($running ? nocturne.greenDeep : nocturne.green)};
-  color: ${nocturne.onGreen};
-
-  @media (max-width: 860px) {
-    gap: 12px;
-    padding: 16px;
-  }
-`;
-
-const Top = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px 24px;
-`;
-
-const When = styled.div`
-  display: grid;
+  flex: none;
+  justify-items: end;
   gap: 4px;
+  margin: 0;
+  padding-top: 4px;
 
-  .time {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 44px;
-    font-weight: 800;
-    line-height: 48px;
-    letter-spacing: -0.04em;
-    font-variant-numeric: tabular-nums;
-    color: ${nocturne.lime};
-  }
-  .day {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    font-size: 15px;
-    color: ${nocturne.onGreenMuted};
-  }
-
-  @media (max-width: 600px) {
-    width: 100%;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-
-    .time {
-      font-size: 36px;
-      line-height: 40px;
-    }
-    .day {
-      justify-content: flex-end;
-      font-size: 14px;
-    }
-  }
-`;
-
-const Timer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-
-  svg.ring {
-    flex: none;
-    transform: rotate(-90deg);
-  }
-  .ring .track {
-    stroke: color-mix(in oklab, var(--n-on-green) 18%, transparent);
-  }
-  .ring .fill {
-    stroke: ${nocturne.lime};
-    transition: stroke-dashoffset ${dur.enter} ${ease.standard};
-  }
   .lead {
-    display: block;
-    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: clamp(12px, 3.6cqi, 14px);
+    font-weight: 600;
+    white-space: nowrap;
     color: ${nocturne.onGreenMuted};
+  }
+  .lead svg {
+    color: ${nocturne.lime};
   }
   .units {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: clamp(2px, 1cqi, 4px);
+    white-space: nowrap;
   }
   .unit {
     display: inline-flex;
     align-items: baseline;
-    gap: 2px;
-    font-size: 14px;
+    gap: 1px;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: clamp(12px, 3.6cqi, 17px);
+    font-weight: 700;
     color: ${nocturne.onGreenMuted};
   }
   .unit b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 28px;
+    font-size: clamp(15px, 5.2cqi, 22px);
     font-weight: 800;
-    line-height: 32px;
+    line-height: 1.25;
     color: ${nocturne.onGreen};
     font-variant-numeric: tabular-nums;
   }
+  .unit.tick b {
+    color: ${nocturne.lime};
+  }
 
-  @media (max-width: 600px) {
+  @container (max-width: 480px) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: color-mix(in oklab, ${nocturne.onGreen} 10%, transparent);
 
-    svg.ring {
-      width: 44px;
-      height: 44px;
-    }
     .lead {
-      font-size: 13px;
+      font-size: 14px;
+    }
+    .units {
+      gap: 12px;
+    }
+    .unit {
+      gap: 2px;
+      font-size: 14px;
     }
     .unit b {
-      font-size: 22px;
-      line-height: 28px;
+      font-size: clamp(18px, 6.4cqi, 24px);
     }
   }
 `;
 
-const Route = styled.div`
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-
-  .town {
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .to {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-  }
-
-  @media (max-width: 600px) {
-    font-size: 17px;
-    gap: 12px;
-  }
-`;
-
-const Road = styled.div`
-  position: relative;
-  height: 32px;
-  min-width: 80px;
-
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    height: 2px;
-    margin-top: -1px;
-    background-image: linear-gradient(90deg, ${nocturne.lime} 0 12px, transparent 12px 24px);
-    background-size: 24px 2px;
-  }
-  .end {
-    position: absolute;
-    top: 50%;
-    width: 12px;
-    height: 12px;
-    transform: translateY(-50%);
-    border-radius: 50%;
-    background: ${nocturne.lime};
-  }
-  .end.from {
-    left: -6px;
-  }
-  .end.to-dot {
-    right: -6px;
-    box-shadow: 0 0 0 4px color-mix(in oklab, ${nocturne.lime} 30%, transparent);
-  }
-  .lane {
-    position: absolute;
-    inset: 0;
-    animation: ${drive} calc(${dur.max} * 14) ${ease.standard} infinite;
-  }
-  .car {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    width: ${CAR_W}px;
-    height: 24px;
-    margin-top: -12px;
-  }
-  .car img {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 24px !important;
-    height: 52px !important;
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .lane {
-      animation: none;
-      transform: translateX(calc(-50% + ${CAR_W / 2}px));
-    }
-  }
-`;
-
-const Seats = styled.div`
-  grid-area: seats;
-  display: grid;
-  align-content: start;
-  justify-items: center;
-  gap: 12px;
-  padding: 24px;
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
-
-  @media (max-width: 600px) {
-    padding: 16px 12px;
-  }
-
-  .booked {
-    justify-self: stretch;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    font-size: 14px;
-    color: ${nocturne.muted};
-  }
-  .booked b {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 20px;
-    font-weight: 800;
-    color: ${nocturne.cream};
-  }
-`;
-
-const Details = styled.div`
-  grid-area: details;
+const Acts = styled.div<{ $running: boolean }>`
+  grid-area: acts;
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  min-width: 0;
-  padding: 24px 28px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 20px;
 
-  @media (max-width: 860px) {
-    gap: 12px;
-    padding: 12px;
+  > :first-child {
+    flex: ${({ $running }) => ($running ? "1 1 auto" : "none")};
+    min-width: 0;
+  }
+  > a,
+  > button {
+    min-height: ${({ $running }) => ($running ? "60px" : "48px")};
+  }
+  .spacer {
+    flex: 1;
+  }
+
+  @media (max-width: 760px) {
+    padding: 12px 8px 8px;
+
+    .spacer {
+      display: none;
+    }
+    ${({ $running }) =>
+      $running
+        ? `
+      flex-direction: column;
+      align-items: stretch;
+    `
+        : `
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+      > :first-child:nth-last-child(4) {
+        grid-column: 1 / -1;
+      }
+    `}
   }
 `;
 
-const Tiles = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+const OpenRide = styled(Link)`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  padding: 0 24px;
+  border-radius: 999px;
+  background: color-mix(in oklab, ${nocturne.onGreen} 14%, transparent);
+  color: ${nocturne.onGreen};
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  > div {
-    display: grid;
-    align-content: start;
-    gap: 4px;
-    padding: 12px 16px;
-    border-radius: 16px;
-  }
-  .car-tile {
-    background: ${({ theme }) => theme.tone.blue.bg};
-    color: ${({ theme }) => theme.tone.blue.on};
-  }
-  .price-tile {
-    background: ${({ theme }) => theme.tone.amber.bg};
-    color: ${({ theme }) => theme.tone.amber.on};
-  }
-  .label {
-    font-size: 13px;
-    font-weight: 600;
-    opacity: 0.8;
-  }
-  b {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 20px;
-    font-weight: 800;
-    line-height: 28px;
-  }
-  @media (max-width: 600px) {
-    > div {
-      padding: 8px 12px;
-      border-radius: 12px;
-    }
-    b {
-      font-size: 17px;
-      line-height: 24px;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${nocturne.onGreen} 22%, transparent);
     }
   }
-  .plate {
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.lime};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const MapWell = styled.div`
+  grid-area: win;
+  position: relative;
+  min-height: 240px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: color-mix(in oklab, ${nocturne.onGreen} 10%, transparent);
+
+  @media (max-width: 760px) {
+    min-height: 200px;
+    border-radius: 12px;
+  }
+`;
+
+const SeatWell = styled.div`
+  grid-area: win;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 16px;
+  border-radius: 16px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+
+  .price {
     justify-self: start;
-    margin-top: 4px;
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: ${nocturne.surface};
-    color: ${nocturne.cream};
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    background: ${nocturne.lime};
+    color: ${nocturne.greenDeep};
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .price b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 760px) {
+    padding: 12px 8px 16px;
+    border-radius: 12px;
+
+    .price {
+      margin-left: 8px;
+    }
   }
 `;
 
@@ -378,58 +407,41 @@ const Live = styled(m.div)`
   }
 `;
 
-function Countdown({ ms, lead, progress }: { ms: number; lead: string; progress: number }) {
-  const total = Math.max(0, Math.floor(ms / 1000));
+function Countdown({ target, from, lead }: { target: number; from: number; lead: string }) {
+  const [now, setNow] = useState(from);
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const total = Math.max(0, Math.floor((target - now) / 1000));
   const days = Math.floor(total / 86400);
   const hours = Math.floor((total % 86400) / 3600);
   const mins = Math.floor((total % 3600) / 60);
   const secs = total % 60;
-  const units =
-    days > 0
-      ? [
-          { key: "d", value: days, label: "d" },
-          { key: "h", value: hours, label: "h" },
-          { key: "m", value: mins, label: "min" },
-        ]
-      : [
-          { key: "h", value: hours, label: "h" },
-          { key: "m", value: mins, label: "min" },
-          { key: "s", value: secs, label: "s" },
-        ].filter((u, i) => u.key !== "h" || hours > 0 || i > 0);
-  const spoken = units.map((u) => `${u.value} ${u.label}`).join(" ");
-  const r = 24;
-  const c = 2 * Math.PI * r;
-  const p = Math.min(1, Math.max(0, progress));
+  const units = [
+    { key: "d", value: days, label: "d" },
+    { key: "h", value: hours, label: "h" },
+    { key: "m", value: mins, label: "m" },
+    { key: "s", value: secs, label: "s" },
+  ].filter((u, i, all) => u.key === "s" || u.value > 0 || all.slice(0, i).some((x) => x.value > 0));
+  const spoken = units.map((u) => `${u.value}${u.label}`).join(" ");
 
   return (
     <Timer role="timer" aria-label={`${lead} ${spoken}`}>
-      <svg className="ring" width="60" height="60" viewBox="0 0 60 60" aria-hidden="true" focusable="false">
-        <circle className="track" cx="30" cy="30" r={r} fill="none" strokeWidth="6" />
-        <circle
-          className="fill"
-          cx="30"
-          cy="30"
-          r={r}
-          fill="none"
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - p)}
-        />
-      </svg>
-      <div aria-hidden>
-        <span className="lead">{lead}</span>
-        <span className="units">
-          {units.map((u) => (
-            <span key={u.key} className="unit">
-              <b>
-                <RollingNumber value={u.value} duration={u.key === "s" ? 400 : 900} />
-              </b>
-              {u.label}
-            </span>
-          ))}
-        </span>
-      </div>
+      <span className="lead" aria-hidden>
+        <Clock size={16} />
+        {lead}
+      </span>
+      <span className="units" aria-hidden>
+        {units.map((u) => (
+          <span key={u.key} className={u.key === "s" ? "unit tick" : "unit"}>
+            <b>
+              <RollingNumber value={u.value} duration={u.key === "s" ? 400 : 900} />
+            </b>
+            {u.label}
+          </span>
+        ))}
+      </span>
     </Timer>
   );
 }
@@ -437,65 +449,83 @@ function Countdown({ ms, lead, progress }: { ms: number; lead: string; progress:
 export function RideHero({
   trip,
   running,
+  route,
   status,
   countdown,
   news,
   actions,
+  trailing,
   busy,
 }: {
   trip: PublishedTrip;
   running: boolean;
+  route?: Promise<TripRoute | null>;
   status: ReactNode;
-  countdown: { ms: number; lead: string; progress: number } | null;
+  countdown: { target: number; from: number; lead: string } | null;
   news: { key: string; text: string } | null;
   actions: ReactNode;
+  trailing?: ReactNode;
   busy?: ReactNode;
 }) {
   const booked = trip.paid_seats + trip.awaiting_payment;
+  const carLoc = useTripLocation(trip.id, running);
   const car = trip.vehicle ? [trip.vehicle.make, trip.vehicle.model].filter(Boolean).join(" ") : "";
+  const time = formatTripTime(trip.departure_time);
+  const day = formatTripDate(trip.departure_date);
+  const hasWindow = running ? route != null : true;
+  const carLine = running ? [car, time && `left ${time}`].filter(Boolean).join(" · ") : car || "Car to add";
 
   return (
-    <Card aria-label={`${trip.from_location} to ${trip.to_location}`}>
-      <Band $running={running}>
-        <Top>
-          <When>
-            <span className="time">{formatTripTime(trip.departure_time) || "Time to confirm"}</span>
-            <span className="day">
-              {formatTripDate(trip.departure_date) || "Date to confirm"}
-              {countdown ? status : null}
-            </span>
-          </When>
-          {countdown ? <Countdown {...countdown} /> : status ? <Corner>{status}</Corner> : null}
-        </Top>
-
-        <Route>
-          <span className="town">{trip.from_location}</span>
-          <Road aria-hidden>
-            <span className="end from" />
-            <span className="lane">
-              <span className="car">
-                <Image src="/map/car.svg" alt="" width={24} height={52} unoptimized />
-              </span>
-            </span>
-            <span className="end to-dot" />
-          </Road>
-          <span className="to"> to </span>
-          <span className="town">{trip.to_location}</span>
-        </Route>
-      </Band>
-
-      <Details>
-        <Tiles>
-          <div className="car-tile">
-            <span className="label">Car</span>
-            <b>{car || "Car to add"}</b>
-            {trip.vehicle?.plate_number && <span className="plate">{trip.vehicle.plate_number}</span>}
+    <Card $window={hasWindow} $running={running} aria-label={`${trip.from_location} to ${trip.to_location}`}>
+      <Info>
+        <div className="head">
+          <div className="title">
+            <h3>
+              <span className="town">{trip.from_location}</span> <span className="to">to</span>{" "}
+              <span className="town">{trip.to_location}</span>
+            </h3>
+            <p className="car">
+              {carLine ? <span>{carLine}</span> : null}
+              {trip.vehicle?.plate_number && <span className="plate">{trip.vehicle.plate_number}</span>}
+              {countdown && status ? status : null}
+            </p>
           </div>
-          <div className="price-tile">
-            <span className="label">A seat</span>
-            <b>{formatCurrency(trip.price_per_seat)}</b>
-          </div>
-        </Tiles>
+          {countdown ? (
+            <Countdown target={countdown.target} from={countdown.from} lead={countdown.lead} />
+          ) : status ? (
+            <Corner>{status}</Corner>
+          ) : null}
+        </div>
+
+        {running ? (
+          <ul className="facts">
+            <li>
+              <b>
+                <RollingNumber value={trip.paid_seats} />
+              </b>
+              of {trip.seats_total} on board
+            </li>
+            {trip.fares_paid != null ? (
+              <li className="money">
+                <b>{formatCurrency(trip.fares_paid)}</b>
+                paid
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          <ul className="facts">
+            <li>
+              <b>{time || "Time to confirm"}</b>
+              {day}
+            </li>
+            <li>
+              <b>
+                <RollingNumber value={booked} />
+              </b>
+              of {trip.seats_total} booked
+            </li>
+          </ul>
+        )}
 
         <AnimatePresence initial={false}>
           {news && (
@@ -512,29 +542,48 @@ export function RideHero({
           )}
         </AnimatePresence>
 
-        {actions}
         {busy}
-      </Details>
+      </Info>
 
-      <Seats>
-        <span className="booked">
-          Seats
-          <span>
-            <b>
-              <RollingNumber value={booked} />
-            </b>{" "}
-            of {trip.seats_total} booked
+      <Acts $running={running}>
+        {actions}
+        <OpenRide href={`/ride/${trip.id}`}>Open ride</OpenRide>
+        {trailing ? (
+          <>
+            <span className="spacer" />
+            {trailing}
+          </>
+        ) : null}
+      </Acts>
+
+      {running ? (
+        route ? (
+          <MapWell>
+            <RouteMap
+              route={route}
+              fromLabel={trip.from_location}
+              toLabel={trip.to_location}
+              car={carLoc}
+              follow={carLoc != null}
+              padding={MINI_PAD}
+              bare
+            />
+          </MapWell>
+        ) : null
+      ) : (
+        <SeatWell aria-label="Seats">
+          <span className="price">
+            <b>{formatCurrency(trip.price_per_seat)}</b>a seat
           </span>
-        </span>
-        <SeatMap
-          total={trip.seats_total}
-          paid={trip.paid_seats}
-          booked={trip.awaiting_payment}
-          requested={trip.pending_requests}
-          riders={trip.riders}
-        />
-      </Seats>
+          <SeatMap
+            total={trip.seats_total}
+            paid={trip.paid_seats}
+            booked={trip.awaiting_payment}
+            requested={trip.pending_requests}
+            riders={trip.riders}
+          />
+        </SeatWell>
+      )}
     </Card>
   );
 }
-

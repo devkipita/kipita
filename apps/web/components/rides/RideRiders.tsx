@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import styled from "styled-components";
-import { ChatCircle, NavigationArrow, Star } from "@/components/icons";
+import { useSearchParams } from "next/navigation";
+import styled, { css } from "styled-components";
+import { Drawer } from "@/components/ui/Drawer";
+import { CaretRight, ChatCircle, NavigationArrow, Star } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { RollingNumber } from "@/components/ui/Counter";
 import { Shimmer } from "@/components/ui/Shimmer";
@@ -11,6 +14,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useShareLocation } from "@/lib/trips/live";
 import { formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
+
+const ChatPanel = dynamic(() => import("@/components/trips/ChatSheet"), { ssr: false });
+const AS_DRIVER = "driver" as const;
 
 type Rider = {
   bookingId: string;
@@ -111,6 +117,77 @@ const Row = styled.li`
   }
 `;
 
+const RiderLink = styled(Link)`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 12px 12px 12px;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
+  color: inherit;
+  text-decoration: none;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  .who {
+    display: grid;
+    flex: 1;
+    min-width: 0;
+  }
+  b {
+    font-weight: 700;
+    color: ${nocturne.cream};
+    overflow-wrap: anywhere;
+  }
+  small {
+    font-size: 13px;
+    color: ${nocturne.muted};
+    font-variant-numeric: tabular-nums;
+  }
+  > svg {
+    flex: none;
+    color: ${nocturne.muted};
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const RateTag = styled.span`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: ${({ theme }) => theme.tone.green.bg};
+  color: ${({ theme }) => theme.tone.green.on};
+  font-size: 14px;
+  font-weight: 700;
+
+  svg {
+    color: ${nocturne.star};
+  }
+`;
+
 const Rated = styled.span`
   display: grid;
   flex: none;
@@ -129,7 +206,7 @@ const Rated = styled.span`
   }
 `;
 
-const RateLink = styled(Link)`
+const pill = css`
   display: inline-flex;
   flex: none;
   align-items: center;
@@ -147,9 +224,6 @@ const RateLink = styled(Link)`
     box-shadow ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
-  svg {
-    color: ${nocturne.star};
-  }
   @media (pointer: coarse) {
     min-height: 44px;
   }
@@ -212,6 +286,13 @@ const ShareButton = styled.button<{ $on: boolean }>`
   }
 `;
 
+const MessageButton = styled.button`
+  ${pill}
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+`;
+
 async function loadRiders(tripId: string, viewerId: string, live: boolean): Promise<Rider[] | null> {
   const supabase = createClient();
   const { data: bookings, error } = await supabase
@@ -252,26 +333,30 @@ async function loadRiders(tripId: string, viewerId: string, live: boolean): Prom
 }
 
 function ShareMine({ tripId }: { tripId: string }) {
-  const { state, toggle } = useShareLocation(tripId, true);
-  const on = state === "on";
+  const { state, retry } = useShareLocation(tripId, true);
+  if (state !== "denied" && state !== "failed") return null;
   return (
-    <ShareButton type="button" onClick={toggle} aria-pressed={on} $on={on}>
-      <NavigationArrow size={20} weight={on ? "fill" : "bold"} aria-hidden />
-      {on
-        ? "Sharing your location"
-        : state === "denied"
-          ? "Allow location to share it"
-          : state === "unsupported"
-            ? "Location isn't available here"
-            : state === "failed"
-              ? "Couldn't share your location. Try again"
-              : "Share live location"}
+    <ShareButton type="button" onClick={retry} $on={false}>
+      <NavigationArrow size={20} weight="bold" aria-hidden />
+      {state === "denied" ? "Allow location so passengers can see you" : "Location didn't send. Try again"}
     </ShareButton>
   );
 }
 
 export function RideRiders({ tripId, viewerId, live = false }: { tripId: string; viewerId: string; live?: boolean }) {
   const [load, setLoad] = useState<Load>({ state: "loading" });
+  const [chatWith, setChatWith] = useState<Rider | null>(null);
+  const [shownChat, setShownChat] = useState<Rider | null>(null);
+  const asked = useSearchParams()?.get("chat") ?? null;
+
+  if (chatWith && chatWith !== shownChat) setShownChat(chatWith);
+
+  useEffect(() => {
+    if (!asked || load.state !== "ready") return;
+    const hit = load.riders.find((r) => r.bookingId === asked);
+    if (hit) setChatWith(hit);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [asked, load]);
 
   useEffect(() => {
     let alive = true;
@@ -333,15 +418,40 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
                       {r.seats} {r.seats === 1 ? "seat" : "seats"} · on board
                     </small>
                   </span>
-                  <RateLink href={`/trips/${r.bookingId}?chat=1`} aria-label={`Message ${r.name}`}>
+                  <MessageButton
+                    type="button"
+                    aria-label={`Message ${r.name}`}
+                    aria-expanded={chatWith?.bookingId === r.bookingId}
+                    onClick={() => setChatWith(r)}
+                  >
                     <ChatCircle size={20} aria-hidden />
                     Message
-                  </RateLink>
+                  </MessageButton>
                 </Row>
               ))}
             </List>
           )}
         </RidersCard>
+        <Drawer
+          open={chatWith !== null}
+          onClose={() => setChatWith(null)}
+          title={chatWith ? chatWith.name : "Messages"}
+          side
+          fill
+        >
+          {shownChat ? (
+            <ChatPanel
+              key={shownChat.bookingId}
+              open={chatWith !== null}
+              bookingId={shownChat.bookingId}
+              me={viewerId}
+              otherName={shownChat.name}
+              otherAvatar={shownChat.avatarUrl}
+              role={AS_DRIVER}
+              status="in_progress"
+            />
+          ) : null}
+        </Drawer>
       </>
     );
   }
@@ -396,31 +506,41 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
             {riders.map((r) => {
               const first = r.name.split(" ")[0];
               return (
-                <Row key={r.bookingId}>
-                  <Avatar name={r.name} src={r.avatarUrl} size={40} />
-                  <span className="who">
-                    <b>{r.name}</b>
-                    <small>
-                      {r.seats} {r.seats === 1 ? "seat" : "seats"}
-                      {r.payout != null ? ` · ${formatCurrency(r.payout)} to you` : " · on hold"}
-                    </small>
-                  </span>
-                  {r.myScore ? (
-                    <Rated role="img" aria-label={`You rated ${first} ${r.myScore} out of 5`}>
-                      <small aria-hidden>You rated</small>
-                      <span className="stars" aria-hidden>
-                        {[1, 2, 3, 4, 5].map((n) => (
-                          <Star key={n} size={16} weight={n <= (r.myScore ?? 0) ? "fill" : "regular"} />
-                        ))}
-                      </span>
-                    </Rated>
-                  ) : (
-                    <RateLink href={`/trips/${r.bookingId}`}>
-                      <Star size={20} weight="fill" aria-hidden />
-                      Rate {first}
-                    </RateLink>
-                  )}
-                </Row>
+                <li key={r.bookingId}>
+                  <RiderLink
+                    href={`/trips/${r.bookingId}`}
+                    aria-label={
+                      r.myScore
+                        ? `${r.name}, you rated ${first} ${r.myScore} out of 5. Open trip`
+                        : `Rate ${r.name}`
+                    }
+                  >
+                    <Avatar name={r.name} src={r.avatarUrl} size={40} />
+                    <span className="who">
+                      <b>{r.name}</b>
+                      <small>
+                        {r.payout != null ? `${formatCurrency(r.payout)} to you` : "On hold"} · {r.seats}{" "}
+                        {r.seats === 1 ? "seat" : "seats"}
+                      </small>
+                    </span>
+                    {r.myScore ? (
+                      <Rated aria-hidden>
+                        <small>You rated</small>
+                        <span className="stars">
+                          {[1, 2, 3, 4, 5].map((n) => (
+                            <Star key={n} size={16} weight={n <= (r.myScore ?? 0) ? "fill" : "regular"} />
+                          ))}
+                        </span>
+                      </Rated>
+                    ) : (
+                      <RateTag aria-hidden>
+                        <Star size={16} weight="fill" />
+                        Rate
+                      </RateTag>
+                    )}
+                    <CaretRight size={20} aria-hidden />
+                  </RiderLink>
+                </li>
               );
             })}
           </List>

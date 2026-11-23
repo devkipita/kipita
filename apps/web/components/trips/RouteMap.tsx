@@ -20,6 +20,7 @@ type Props = {
   follow?: boolean;
   padding?: google.maps.Padding;
   onboard?: boolean;
+  bare?: boolean;
 };
 
 function short(secs: number) {

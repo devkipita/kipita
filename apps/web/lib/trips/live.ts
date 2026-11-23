@@ -13,23 +13,6 @@ export type TripLocation = {
   updated_at: string;
 };
 
-const KEY = (tripId: string) => `kipita:share-location:${tripId}`;
-
-function read(tripId: string) {
-  try {
-    return localStorage.getItem(KEY(tripId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function write(tripId: string, on: boolean) {
-  try {
-    if (on) localStorage.setItem(KEY(tripId), "1");
-    else localStorage.removeItem(KEY(tripId));
-  } catch {}
-}
-
 export type ShareState = "off" | "on" | "denied" | "unsupported" | "failed";
 
 export function useShareLocation(tripId: string, running: boolean) {
@@ -53,7 +36,6 @@ export function useShareLocation(tripId: string, running: boolean) {
     watch.current = navigator.geolocation.watchPosition(
       (pos) => {
         setState((s) => (s === "failed" ? s : "on"));
-        write(tripId, true);
         const now = Date.now();
         if (now - last.current < 8000) return;
         last.current = now;
@@ -75,7 +57,6 @@ export function useShareLocation(tripId: string, running: boolean) {
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           setState("denied");
-          write(tripId, false);
           stop();
         }
       },
@@ -83,26 +64,17 @@ export function useShareLocation(tripId: string, running: boolean) {
     );
   }, [tripId, stop]);
 
-  const toggle = useCallback(() => {
-    if (state === "on") {
-      stop();
-      write(tripId, false);
-      setState("off");
-    } else {
-      start();
-    }
-  }, [state, start, stop, tripId]);
+  const retry = useCallback(() => {
+    start();
+  }, [start]);
 
   useEffect(() => {
-    if (running && read(tripId)) start();
-    if (!running) {
-      stop();
-      write(tripId, false);
-    }
+    if (running) start();
+    else stop();
     return stop;
-  }, [running, tripId, start, stop]);
+  }, [running, start, stop]);
 
-  return { state, toggle };
+  return { state, retry };
 }
 
 export function useTripLocation(tripId: string | null, enabled: boolean) {

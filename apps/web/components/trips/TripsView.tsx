@@ -18,6 +18,7 @@ import { Count, fs } from "./RideRow";
 import { RollingNumber } from "@/components/ui/Counter";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { tween } from "@/lib/motion";
+import type { TripRoute } from "@/lib/maps/types";
 import { PastTrips, pastEntries } from "./PastTrips";
 import { TripsHelp } from "./TripsHelp";
 import { NoPastArt, NoRequestsArt, NoTripsArt } from "./TripsArt";
@@ -373,6 +374,7 @@ function matches(b: Booking, words: string[]) {
 }
 
 export function TripsView({
+  liveRoute,
   current,
   previous,
   requests = [],
@@ -384,6 +386,7 @@ export function TripsView({
   requests?: Booking[];
   published?: PublishedTrip[];
   viewerId: string;
+  liveRoute?: Promise<TripRoute | null>;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(requests.length > 0 ? "incoming" : "current");
@@ -525,7 +528,7 @@ export function TripsView({
 
       <Layout>
         <MainCol>
-          <PublishedTrips initial={published} onAnswer={() => setTab("incoming")} />
+          <PublishedTrips initial={published} liveRoute={liveRoute} />
 
           <Booked $first={published.length === 0}>
             <Controls>
