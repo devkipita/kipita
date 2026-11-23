@@ -407,12 +407,30 @@ const Live = styled(m.div)`
   }
 `;
 
-function Countdown({ target, from, lead }: { target: number; from: number; lead: string }) {
-  const [now, setNow] = useState(from);
+function Countdown({ target, lead }: { target: number; lead: string }) {
+  const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
+    setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  if (now == null) {
+    return (
+      <Timer aria-hidden>
+        <span className="lead">
+          <Clock size={16} />
+          {lead}
+        </span>
+        <span className="units">
+          <span className="unit">
+            <b>&nbsp;</b>
+          </span>
+        </span>
+      </Timer>
+    );
+  }
+
   const total = Math.max(0, Math.floor((target - now) / 1000));
   const days = Math.floor(total / 86400);
   const hours = Math.floor((total % 86400) / 3600);
@@ -461,7 +479,7 @@ export function RideHero({
   running: boolean;
   route?: Promise<TripRoute | null>;
   status: ReactNode;
-  countdown: { target: number; from: number; lead: string } | null;
+  countdown: { target: number; lead: string } | null;
   news: { key: string; text: string } | null;
   actions: ReactNode;
   trailing?: ReactNode;
@@ -491,7 +509,7 @@ export function RideHero({
             </p>
           </div>
           {countdown ? (
-            <Countdown target={countdown.target} from={countdown.from} lead={countdown.lead} />
+            <Countdown target={countdown.target} lead={countdown.lead} />
           ) : status ? (
             <Corner>{status}</Corner>
           ) : null}

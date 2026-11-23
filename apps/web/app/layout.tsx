@@ -86,6 +86,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={landingFonts}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body>

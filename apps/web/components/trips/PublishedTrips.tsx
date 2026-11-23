@@ -453,8 +453,8 @@ export function PublishedTrips({
           running || held || at === null || until <= 0
             ? null
             : startable
-              ? { target: at, from: now, lead: "Leaves in" }
-              : { target: at - START_WINDOW_MS, from: now, lead: "Starts in" }
+              ? { target: at, lead: "Leaves in" }
+              : { target: at - START_WINDOW_MS, lead: "Starts in" }
         }
         news={news}
         actions={
@@ -538,7 +538,7 @@ export function PublishedTrips({
                     <span>
                       <b>{formatCurrency(trip.price_per_seat)}</b> a seat
                     </span>
-                    {!going && !canStart && tripAt !== null && <span>{leavesIn(tripUntil)}</span>}
+                    {!going && !canStart && tripAt !== null && <span suppressHydrationWarning>{leavesIn(tripUntil)}</span>}
                   </Meta>
                 </div>
 
