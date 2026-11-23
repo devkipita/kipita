@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { CAR_SEATS_MISSING, isCarSeats } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
+import { isPhoneConfirmed } from "@/lib/auth/phone";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { postRequestSchema, postTripSchema } from "@/lib/validators/home";
 import type { PostRequestInput, PostTripInput } from "@/lib/validators/home";
@@ -177,12 +178,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
     };
   }
   // The database refuses this too (migration 075); asking here gives a clear message.
-  const { data: me } = await supabase
-    .from("users")
-    .select("phone_verified")
-    .eq("id", session.userId)
-    .maybeSingle();
-  if (!me?.phone_verified) {
+  if (!(await isPhoneConfirmed(supabase))) {
     return {
       ok: false,
       error: "Confirm your phone number to publish a ride.",
