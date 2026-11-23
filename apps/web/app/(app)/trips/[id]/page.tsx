@@ -21,7 +21,7 @@ export const metadata: Metadata = {
  */
 async function loadJourney(bookingId: string, viewerId: string): Promise<JourneyState> {
   const supabase = await createClient();
-  const [boarded, payment, problem] = await Promise.all([
+  const [boarded, payment, problem, contact] = await Promise.all([
     supabase.from("bookings").select("boarded_at, boarded_method, passenger_id, status").eq("id", bookingId).maybeSingle(),
     // Payments are readable by their owner only, so this is the passenger's view; for a driver it is empty.
     supabase
@@ -40,6 +40,8 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    // The database decides when chat and calling are open (073). Before that migration it does not exist.
+    supabase.rpc("booking_contact_open", { p_booking_id: bookingId }),
   ]);
 
   const row = boarded.error ? null : boarded.data;
@@ -58,6 +60,7 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
     boardedMethod: (row?.boarded_method as JourneyState["boardedMethod"]) ?? null,
     escrow: payment.error ? null : ((payment.data?.escrow_status as string | null) ?? null),
     releaseDueAt: payment.error ? null : ((payment.data?.release_due_at as string | null) ?? null),
+    contactOpen: contact.error ? row?.status === "confirmed" || row?.status === "in_progress" : contact.data === true,
     problem:
       problem.error || !problem.data
         ? null

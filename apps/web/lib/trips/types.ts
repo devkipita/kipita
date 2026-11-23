@@ -145,6 +145,8 @@ export type JourneyState = {
   /** When the fare is released to the driver. A problem report must come before this. */
   releaseDueAt: string | null;
   problem: { kind: string; status: "open" | "resolved"; outcome: "clear" | "refund" | null } | null;
+  /** Chat and calling work for this booking right now: the seat is paid and the release window has not closed. */
+  contactOpen: boolean;
 };
 
 export const NO_JOURNEY: JourneyState = {
@@ -154,4 +156,5 @@ export const NO_JOURNEY: JourneyState = {
   escrow: null,
   releaseDueAt: null,
   problem: null,
+  contactOpen: false,
 };

@@ -63,10 +63,10 @@ export async function contactPhoneAction(bookingId: string): Promise<Result<stri
   if (error) {
     return {
       ok: false,
-      error: error.code === "22023" ? "Calling opens once the seat is paid." : "We couldn't get that number. Try again.",
+      error: error.code === "22023" ? error.message : "We couldn't get that number. Try again.",
     };
   }
-  if (!data) return { ok: false, error: "They haven't added a phone number." };
+  if (!data) return { ok: false, error: "No verified number yet." };
   return { ok: true, value: data as string };
 }
 

@@ -21,7 +21,7 @@ import { checkTripPrice } from "@/lib/fare/quote.server";
 
 export type PostResult =
   | { ok: true; kind: "trip" | "request"; id: string; awaiting?: boolean }
-  | { ok: false; error: string; fix?: "kyc" };
+  | { ok: false; error: string; fix?: "kyc" | "phone" };
 
 const PROFILE_NOT_READY =
   "Your profile isn't ready yet. Sign out and back in, then try again.";
@@ -174,6 +174,19 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       ok: false,
       error: "Verification unsuccessful. Submit your details again to publish.",
       fix: "kyc",
+    };
+  }
+  // The database refuses this too (migration 075); asking here gives a clear message.
+  const { data: me } = await supabase
+    .from("users")
+    .select("phone_verified")
+    .eq("id", session.userId)
+    .maybeSingle();
+  if (!me?.phone_verified) {
+    return {
+      ok: false,
+      error: "Confirm your phone number to publish a ride.",
+      fix: "phone",
     };
   }
   let status: "posted" | "awaiting_approval" = "posted";

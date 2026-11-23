@@ -198,6 +198,12 @@ const Err = styled.p`
   color: ${nocturne.danger};
 `;
 
+const Consent = styled.p`
+  margin: ${({ theme }) => theme.space.md} 0 0;
+  font-size: ${({ theme }) => theme.type.label};
+  color: ${nocturne.muted};
+`;
+
 const Terms = styled.div`
   margin-top: ${({ theme }) => theme.space.md};
   font-size: ${({ theme }) => theme.type.label};
@@ -699,6 +705,7 @@ export function PayPanel({
                 <ShieldCheck size={18} /> Held in escrow by Kipita until you
                 arrive
               </Safe>
+              <Consent>Paying opens chat and calls with your driver, and shares your number with them for this ride.</Consent>
               {ruleLines && ruleLines.length > 0 && (
                 <Terms aria-label="Cancellation rules">
                   <b>If plans change</b>
