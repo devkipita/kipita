@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } f
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
 import {
+  CAR_SEATS_MISSING,
   KENYAN_TOWNS,
   POPULAR_ROUTES,
   dateFromISO,
@@ -32,6 +33,8 @@ import { formatKes } from "@/lib/rides";
 import { createTripAction } from "@/lib/home/posts";
 import { detectOrigin } from "@/lib/home/geo";
 import { CarDialog } from "@/components/driver/CarDialog";
+import { CarSeatsPicker } from "@/components/driver/CarSeatsPicker";
+import { saveCarSeatsAction } from "@/lib/driver/cars";
 import type { RidePreferences } from "@/lib/ride-detail";
 import { prettyTime } from "./WhenPicker";
 import type { Prefill, SavedCar } from "./draft";
@@ -40,11 +43,12 @@ import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
 import { PriceStep } from "./PriceStep";
-import { carCapacityText, carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
+import { carCapacityBlock, carTypeBlockText, othersRoom, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
-type CarRow = { make: string; model: string; plate: string; color: string };
+/** `seats` is the car's seats with the driver's seat in them, or null until the driver has said. */
+type CarRow = { make: string; model: string; plate: string; color: string; seats: number | null };
 type Period = "morning" | "afternoon" | "evening";
 
 type Draft = {
@@ -970,7 +974,7 @@ export function PublishWeb({
   const { kycStatus, requireKyc, requirePhone } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
 
-  const initialCars: CarRow[] = savedCars.map((c) => ({ make: c.make, model: c.model, plate: c.plate, color: c.color ?? "" }));
+  const initialCars: CarRow[] = savedCars.map((c) => ({ make: c.make, model: c.model, plate: c.plate, color: c.color ?? "", seats: c.seats ?? null }));
   const savedPlates = savedCars.map((c) => c.plate).join(",");
 
   const [draft, setDraft] = useState<Draft>(blankDraft);
@@ -989,6 +993,8 @@ export function PublishWeb({
   const [timeOpen, setTimeOpen] = useState(false);
   const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
+  const [savingSeats, startSeats] = useTransition();
+  const [seatsError, setSeatsError] = useState("");
   const sentenceRef = useRef<HTMLParagraphElement>(null);
   const router = useRouter();
   const moved = useRef(false);
@@ -1018,7 +1024,7 @@ export function PublishWeb({
       } else if (known >= 0) {
         setCarIndex(known);
       } else if (saved.plate) {
-        const row = { make: saved.make ?? "", model: saved.model ?? "", plate: saved.plate, color: saved.color ?? "" };
+        const row = { make: saved.make ?? "", model: saved.model ?? "", plate: saved.plate, color: saved.color ?? "", seats: saved.carSeats ?? null };
         setCars([...initialCars, row]);
         setCarIndex(initialCars.length);
       }
@@ -1071,6 +1077,7 @@ export function PublishWeb({
       model: car?.model ?? "",
       plate: car?.plate ?? "",
       color: car?.color ?? "",
+      carSeats: car?.seats ?? null,
       step,
       maxStep,
     });
@@ -1145,11 +1152,11 @@ export function PublishWeb({
 
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
-  // Never more than a trip can list with the seats offered.
-  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
-  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, others, enabled: ready && step >= 3 });
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, enabled: ready && step >= 3 });
+  // Never more than the car type the trip is priced as has room for, besides the seats offered.
+  const others = Math.min(draft.others, othersRoom(quote, draft.vehicleClass, seats, car?.seats));
   const priceBlock = priceBlockText(quote, seats, fare, others);
 
   const valid = [
@@ -1158,7 +1165,7 @@ export function PublishWeb({
     !!draft.time,
     !!draft.seats,
     priceReady(quote, seats, fare, others),
-    !adding,
+    !adding && (!car || car.seats !== null),
     true,
     true,
   ][step];
@@ -1171,8 +1178,10 @@ export function PublishWeb({
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
-    const tooSmall = carCapacityText(quote, car?.make ?? "", car?.model ?? "", seats, others);
-    if (tooSmall) return { kind: "seats", text: tooSmall };
+    // Cars saved before the seats were asked, and drafts from then, reach the review without them.
+    if (car && car.seats === null) return { kind: "car", text: CAR_SEATS_MISSING };
+    const tooSmall = carCapacityBlock(quote, car?.make ?? "", car?.model ?? "", seats, others, car?.seats);
+    if (tooSmall) return tooSmall;
     const carType = carTypeBlockText(quote, car?.make ?? "", car?.model ?? "");
     if (carType) return { kind: "carType", text: carType };
     if (priceBlock) return { kind: "price", text: priceBlock };
@@ -1187,6 +1196,7 @@ export function PublishWeb({
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
     else if (kind === "seats") go(3);
+    else if (kind === "others") go(4);
     else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
     else if (kind === "phone") requirePhone(sendTrip);
@@ -1245,7 +1255,7 @@ export function PublishWeb({
   }
 
   function onCarSaved(saved: CarRow) {
-    const row: CarRow = { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color };
+    const row: CarRow = { make: saved.make, model: saved.model, plate: saved.plate, color: saved.color, seats: saved.seats };
     const at = cars.findIndex((c) => c.plate === row.plate);
     if (at >= 0) {
       setCars(cars.map((c, i) => (i === at ? row : c)));
@@ -1255,6 +1265,21 @@ export function PublishWeb({
       setCars([...cars, row]);
     }
     setAdding(false);
+  }
+
+  // The seats of a car that was saved before they were asked, or a wrong answer to correct.
+  function saveSeats(count: number) {
+    if (!car) return;
+    const plate = car.plate;
+    setSeatsError("");
+    startSeats(async () => {
+      const result = await saveCarSeatsAction({ plate, seats: count });
+      if (!result.ok) {
+        setSeatsError(result.error);
+        return;
+      }
+      setCars((list) => list.map((c) => (c.plate === plate ? { ...c, seats: count } : c)));
+    });
   }
 
   // ── The sentence. It is the page: every answer lands in it, and every
@@ -1645,6 +1670,7 @@ export function PublishWeb({
                   onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
                   onOthers={(count) => patch({ others: count })}
                   onChangeSeats={() => go(3)}
+                  carSeats={car?.seats}
                 />
               </Field>
             )}
@@ -1677,6 +1703,10 @@ export function PublishWeb({
                 {cars.length === 0 && (
                   <Alert $tone="warn">A ride without a car still publishes, but passengers find you faster with one.</Alert>
                 )}
+                {car && (
+                  <CarSeatsPicker id="car-seats" value={car.seats} onChange={saveSeats} disabled={savingSeats} />
+                )}
+                {seatsError && <Alert role="alert">{seatsError}</Alert>}
               </Field>
             )}
 

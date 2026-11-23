@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import * as Sentry from "@sentry/nextjs";
 import { requireProfile } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { toGarageCar, type DriverVehicle, type GarageCar } from "@/lib/home/vehicle";
+import { CAR_COLUMNS, toGarageCar, type DriverVehicle, type GarageCar } from "@/lib/home/vehicle";
 import { ProfileView } from "@/components/profile/ProfileView";
 
 export const metadata: Metadata = {
@@ -14,7 +14,7 @@ async function loadCars(userId: string): Promise<{ cars: GarageCar[]; failed: bo
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("vehicles")
-    .select("id, make, model, color, plate_number, image_url")
+    .select(CAR_COLUMNS)
     .eq("driver_id", userId)
     .order("created_at", { ascending: false });
 

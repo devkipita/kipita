@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_VEHICLE_CLASSES,
+  carSeatsText,
   carryLimitText,
   classForCar,
   classHolds,
   className,
+  isCarSeats,
   judgePrice,
+  maxOthersFor,
   pickVehicleClass,
   seatPriceRange,
   type SeatPriceRange,
@@ -32,18 +35,28 @@ const TTL_MS = 5 * 60 * 1000;
 const cache = new Map<string, { at: number; quote: AvailableQuote }>();
 
 /**
- * The car type a trip is priced as: the one the driver picked, unless it cannot carry the seats offered and
- * the people riding along. Then the default, or the smallest type that can. `classes` is the list from the
- * last quote, or the built-in list before there is one.
+ * The car type a trip is priced as: the one the driver picked, unless it cannot carry the seats offered.
+ * Then the default, or the smallest type that can. People riding along never change it. `classes` is the
+ * list from the last quote, or the built-in list before there is one.
  */
 export function classFor(
   classes: ReadonlyArray<{ code: string; label: string }> | undefined,
   picked: string,
   seats: number,
-  others: number,
 ): string {
   const list = classes && classes.length > 0 ? classes : BUILT_IN_CLASSES;
-  return pickVehicleClass(list, { requested: picked, seats, othersAboard: others })?.code ?? "";
+  return pickVehicleClass(list, { requested: picked, seats })?.code ?? "";
+}
+
+/**
+ * How many people can ride with the driver without booking a seat: what the car type the trip is priced as
+ * carries, or what the car's own seats allow if that is fewer, less the seats offered. Works before a quote
+ * has loaded, from the built-in car types. `carSeats` is the car's seats with the driver's in them, when the
+ * driver has said.
+ */
+export function othersRoom(state: QuoteState, picked: string, seats: number, carSeats?: number | null): number {
+  const classes = state.status === "ready" ? state.quote.classes : state.status === "loading" ? state.classes : undefined;
+  return maxOthersFor(classFor(classes, picked, seats), seats, carSeats);
 }
 
 /**
@@ -56,14 +69,13 @@ export function usePriceQuote(args: {
   to: string;
   vehicleClass: string;
   seats: number;
-  others: number;
   enabled: boolean;
 }): QuoteState {
   const from = args.from.trim();
   const to = args.to.trim();
   const [fetched, setFetched] = useState<{ key: string; quote: PriceQuote } | null>(null);
   const lastClasses = fetched?.quote.available ? fetched.quote.classes : undefined;
-  const vehicleClass = classFor(lastClasses, args.vehicleClass, args.seats, args.others);
+  const vehicleClass = classFor(lastClasses, args.vehicleClass, args.seats);
   const key = `${from.toLowerCase()}>${to.toLowerCase()}>${vehicleClass}`;
   const known = args.enabled && from.length >= 2 && to.length >= 2 && from.toLowerCase() !== to.toLowerCase();
 
@@ -75,7 +87,7 @@ export function usePriceQuote(args: {
       return;
     }
     let live = true;
-    getPriceQuoteAction({ from, to, vehicleClass: vehicleClass || undefined, seats: args.seats, others: args.others })
+    getPriceQuoteAction({ from, to, vehicleClass: vehicleClass || undefined, seats: args.seats })
       .then((quote) => {
         // Only a real quote is kept; a failure is tried again next time.
         if (quote.available) cache.set(key, { at: Date.now(), quote });
@@ -154,15 +166,32 @@ export function carTypeBlockText(state: QuoteState, make: string, model: string)
 
 /**
  * Why the car the driver named cannot carry the seats offered and the people riding along, in words for the
- * driver, or null if it can or the model is not one we recognise. This needs no quote: it uses the built-in
+ * driver, or null if it can. Two limits: the car's own seats, when the driver has said them (`carSeats`, the
+ * driver's seat included), and the car type of a model we recognise. `kind` says what to change: the seats
+ * when they alone are too many, otherwise the people riding along. This needs no quote: it uses the built-in
  * car types when there is none.
  */
-export function carCapacityText(state: QuoteState, make: string, model: string, seats: number, others = 0): string | null {
+export function carCapacityBlock(
+  state: QuoteState,
+  make: string,
+  model: string,
+  seats: number,
+  others = 0,
+  carSeats?: number | null,
+): { kind: "seats" | "others"; text: string } | null {
+  if (isCarSeats(carSeats) && seats + others > carSeats - 1) {
+    return {
+      kind: seats > carSeats - 1 ? "seats" : "others",
+      text: carSeatsText(carSeats, seats, others),
+    };
+  }
   const classes = state.status === "ready" ? state.quote.classes : BUILT_IN_CLASSES;
   const listed = classForCar(make, model, classes);
-  const people = seats + others;
-  if (!listed || classHolds(listed.code, people)) return null;
-  return carryLimitText(listed.label, listed.code, people);
+  if (!listed || classHolds(listed.code, seats + others)) return null;
+  return {
+    kind: classHolds(listed.code, seats) ? "others" : "seats",
+    text: carryLimitText(listed.label, listed.code, seats, others),
+  };
 }
 
 /** Whether the Price step can be continued from. */

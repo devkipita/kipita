@@ -1,11 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isCarSeats } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import { PLATE_ERROR, isPlate } from "@/lib/home/plate";
 import type { GarageCar } from "@/lib/home/vehicle";
 
-export type CarInput = { make: string; model: string; plate: string; color: string };
+/** `seats` counts the driver's own seat too, the way people say it ("a 7-seater"). */
+export type CarInput = { make: string; model: string; plate: string; color: string; seats: number };
+
+const SEATS_ERROR = "Pick how many seats it has.";
 
 export type CarResult = { ok: true; car: GarageCar } | { ok: false; error: string };
 
@@ -29,6 +33,7 @@ export async function saveCarAction(input: CarInput): Promise<CarResult> {
 
   if (!make || !model) return { ok: false, error: "Add the make and model." };
   if (!isPlate(plate)) return { ok: false, error: PLATE_ERROR };
+  if (!isCarSeats(input.seats)) return { ok: false, error: SEATS_ERROR };
 
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
@@ -41,7 +46,14 @@ export async function saveCarAction(input: CarInput): Promise<CarResult> {
     .eq("plate_number", plate)
     .maybeSingle();
 
-  const fields = { make, model, plate_number: plate, color: color || "Unspecified" };
+  const fields = {
+    make,
+    model,
+    plate_number: plate,
+    color: color || "Unspecified",
+    seat_capacity: input.seats,
+    seats_confirmed_at: new Date().toISOString(),
+  };
 
   const { data, error } = mine
     ? await supabase.from("vehicles").update(fields).eq("id", mine.id).select("id").maybeSingle()
@@ -63,7 +75,33 @@ export async function saveCarAction(input: CarInput): Promise<CarResult> {
 
   revalidatePath("/profile");
   revalidatePath("/publish");
-  return { ok: true, car: { id: data.id as string, make, model, plate, color } };
+  return { ok: true, car: { id: data.id as string, make, model, plate, color, seats: input.seats } };
+}
+
+/** Records how many seats a car the driver already has, with the driver's seat in them. */
+export async function saveCarSeatsAction(input: {
+  plate: string;
+  seats: number;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!isCarSeats(input.seats)) return { ok: false, error: SEATS_ERROR };
+
+  const supabase = await createClient();
+  const userId = await currentUserId(supabase);
+  if (!userId) return { ok: false, error: "Your session expired. Sign in again." };
+
+  const { data, error } = await supabase
+    .from("vehicles")
+    .update({ seat_capacity: input.seats, seats_confirmed_at: new Date().toISOString() })
+    .eq("driver_id", userId)
+    .eq("plate_number", input.plate.trim().toUpperCase())
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { ok: false, error: "We couldn't save that. Please try again." };
+
+  revalidatePath("/profile");
+  revalidatePath("/publish");
+  return { ok: true };
 }
 
 export async function deleteCarAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
