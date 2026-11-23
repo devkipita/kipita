@@ -18,6 +18,7 @@ import { ChangePasswordCard } from "./ChangePasswordCard";
 import { PhoneCard } from "./PhoneCard";
 import { DriverSection } from "./DriverSection";
 import type { GarageCar } from "@/lib/home/vehicle";
+import { SITE } from "@/lib/site";
 
 const Wrap = styled(ContentWidth)`
   padding-block: 24px 40px;
@@ -450,7 +451,7 @@ export function ProfileView({
         <Panel>
           <LinkRow icon={HelpCircle} title="Help & FAQ" description="Answers to common questions" href="/help" tone="mint" />
           <LinkRow icon={Info} title="How to use Kipita" description="A quick tour of the basics" href="/help#start" tone="green" />
-          <LinkRow icon={QuestionCircle} title="Contact support" description="We're here to help" href="mailto:support@kipita.app" external tone="amber" last />
+          <LinkRow icon={QuestionCircle} title="Contact support" description="We're here to help" href={`mailto:${SITE.supportEmail}`} external tone="amber" last />
         </Panel>
 
         <SectionTitle>Legal</SectionTitle>
