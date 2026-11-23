@@ -1,5 +1,6 @@
-import { HandCoins, QuestionCircle, ShieldCheck, TrafficCone } from "@/components/icons";
+import { Clock, HandCoins, Question, ShieldWarning } from "@/components/icons";
 import type { KipitaIcon } from "@/components/icons";
+import type { ChipTone } from "@/components/ui/Chip";
 
 export const TRIP_FAQS: { q: string; a: string }[] = [
   {
@@ -24,19 +25,34 @@ export const TRIP_FAQS: { q: string; a: string }[] = [
   },
 ];
 
+export type HelpViewer = "rider" | "driver";
+
 export const HELP_TOPICS: {
   key: string;
   subject: string;
   category: string;
   hint: string;
   icon: KipitaIcon;
+  tone: ChipTone;
+  viewers: HelpViewer[];
 }[] = [
   {
     key: "no_show",
     subject: "The driver did not arrive",
     category: "no_show",
     hint: "We will hold the fare while we look into it.",
-    icon: TrafficCone,
+    icon: Clock,
+    tone: "warning",
+    viewers: ["rider"],
+  },
+  {
+    key: "rider_no_show",
+    subject: "The passenger did not turn up",
+    category: "no_show",
+    hint: "Tell us where you waited and for how long.",
+    icon: Clock,
+    tone: "warning",
+    viewers: ["driver"],
   },
   {
     key: "refund",
@@ -44,19 +60,25 @@ export const HELP_TOPICS: {
     category: "refund",
     hint: "Tell us which trip and what went wrong.",
     icon: HandCoins,
+    tone: "success",
+    viewers: ["rider"],
   },
   {
     key: "safety",
     subject: "Something felt unsafe",
     category: "safety",
     hint: "Reported privately and reviewed first.",
-    icon: ShieldCheck,
+    icon: ShieldWarning,
+    tone: "error",
+    viewers: ["rider", "driver"],
   },
   {
     key: "other",
     subject: "Something else",
     category: "general",
     hint: "Anything the answers above do not cover.",
-    icon: QuestionCircle,
+    icon: Question,
+    tone: "info",
+    viewers: ["rider", "driver"],
   },
 ];

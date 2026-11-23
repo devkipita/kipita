@@ -140,7 +140,6 @@ export const MagnifyingGlass = createIcon("MagnifyingGlass", () => (
   </>
 ));
 
-/** The circled plus the bottom bar uses for Post. */
 export const PlusCircle = createIcon("PlusCircle", (f) => (
   <>
     <circle cx="12" cy="12" r="9.6" {...(f ? SOLID : {})} />
@@ -371,6 +370,14 @@ export const Shield = createIcon("Shield", (f) =>
   f ? <path d={SHIELD} {...SOLID} /> : <path d={SHIELD} />,
 );
 
+export const ShieldWarning = createIcon("ShieldWarning", (f) => (
+  <>
+    <path d={SHIELD} {...(f ? SOLID : {})} />
+    <path d="M12 7.8v4.6" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
+    <circle cx={12} cy={15.6} r={1.1} fill={f ? "var(--icon-knockout, var(--n-surface))" : "currentColor"} stroke="none" />
+  </>
+));
+
 export const ShieldCheck = createIcon("ShieldCheck", () => (
   <>
     <path d={SHIELD} />
@@ -579,10 +586,10 @@ export const CalendarDots = createIcon("CalendarDots", () => (
   </>
 ));
 
-export const Clock = createIcon("Clock", () => (
+export const Clock = createIcon("Clock", (f) => (
   <>
-    <circle cx="12" cy="12" r="9.2" />
-    <path d="M12 6.8V12l3.6 2.2" />
+    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
+    <path d="M12 6.8V12l3.6 2.2" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
   </>
 ));
 
@@ -653,11 +660,11 @@ export const Info = createIcon("Info", (f) => (
   </>
 ));
 
-export const Question = createIcon("Question", () => (
+export const Question = createIcon("Question", (f) => (
   <>
-    <circle cx="12" cy="12" r="9.2" />
-    <path d="M9.4 9.5a2.65 2.65 0 0 1 5.16.9c0 1.75-2.58 2.6-2.58 2.6" />
-    {dot(12, 16.9)}
+    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
+    <path d="M9.4 9.5a2.65 2.65 0 0 1 5.16.9c0 1.75-2.58 2.6-2.58 2.6" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
+    <circle cx={12} cy={16.9} r={1.1} fill={f ? "var(--icon-knockout, var(--n-surface))" : "currentColor"} stroke="none" />
   </>
 ));
 
@@ -1112,10 +1119,10 @@ export const Wallet = createIcon("Wallet", (f) =>
   ),
 );
 
-export const HandCoins = createIcon("HandCoins", () => (
+export const HandCoins = createIcon("HandCoins", (f) => (
   <>
-    <circle cx="8.6" cy="6" r="3.2" />
-    <circle cx="16.4" cy="7.4" r="2.6" />
+    <circle cx="8.6" cy="6" r="3.2" {...(f ? { fill: "currentColor" } : {})} />
+    <circle cx="16.4" cy="7.4" r="2.6" {...(f ? { fill: "currentColor" } : {})} />
     <path d="M2.4 15.6h3.4l2.2 2h4.4a1.6 1.6 0 0 0 0-3.2H9.6" />
     <path d="M12.4 14.4h2.8a2 2 0 0 0 1.3-.48l3-2.5a1.7 1.7 0 0 1 2.3 2.5l-4.6 4.3a3 3 0 0 1-2.05.8H8l-2.2-2H2.4" />
   </>

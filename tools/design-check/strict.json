@@ -17,10 +17,12 @@
     "apps/web/components/trips/TripsHelp.tsx",
     "apps/web/components/trips/TripFaqs.tsx",
     "apps/web/components/trips/SupportPanel.tsx",
+    "apps/web/components/trips/StoppedTrip.tsx",
     "apps/web/components/trips/helpRows.ts",
     "apps/web/components/notifications",
     "apps/web/app/(app)/notifications",
     "apps/web/components/nav/ActivityButton.tsx",
+    "apps/web/components/nav/AccountMenu.tsx",
     "apps/web/components/ui/MorphMenu.tsx"
   ]
 }

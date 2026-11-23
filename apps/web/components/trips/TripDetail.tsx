@@ -44,6 +44,7 @@ import { useConfirm } from "@/components/ui/ConfirmPop";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { Chip, STATUS } from "./BookingCard";
 import { TripHelp } from "./TripHelp";
+import { StoppedTrip } from "./StoppedTrip";
 
 const DESK = "@media (min-width: 861px)";
 
@@ -107,7 +108,12 @@ const Bar = styled.header<{ $map?: boolean }>`
   }
 
   @media (max-width: 960px) {
+    min-height: 0;
     padding-top: 0;
+
+    > a {
+      display: none;
+    }
   }
 `;
 
@@ -219,7 +225,7 @@ const MapTop = styled.div`
   left: 12px;
   right: 12px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   pointer-events: none;
 
   > * {
@@ -343,7 +349,6 @@ const Card = styled.section<{ $order?: number }>`
   }
 `;
 
-/** Places a card that has its own styling into the same ordered column as the local cards. */
 const Slot = styled.div<{ $order: number }>`
   order: ${({ $order }) => $order};
 `;
@@ -732,10 +737,10 @@ const Booked = styled.p`
   gap: 10px;
   margin: 14px 0 0;
   padding: 12px 16px;
-  border-radius: 14px;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
-  font-weight: 800;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.color.successContainer};
+  color: ${({ theme }) => theme.color.onSuccessContainer};
+  font-weight: 700;
 `;
 
 const Help = styled.div`
@@ -747,7 +752,6 @@ const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "comp
 const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid", "On the way", "Arrived"];
 const DRIVER_STEPS = ["Request received", "You accepted", "Passenger paid", "On the way", "Arrived"];
 
-/** "Tue, 8:00 pm" in Nairobi time. */
 function whenLabel(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
@@ -778,6 +782,7 @@ export function TripDetail({
   walletBalance,
   cancelConfig,
   noShow,
+  cancelledBy,
   journey,
   route,
 }: {
@@ -786,9 +791,8 @@ export function TripDetail({
   viewerPhone?: string | null;
   walletBalance: number | null;
   cancelConfig: CancellationConfig;
-  /** Null when migration 063 has not run yet. */
   noShow: NoShowState | null;
-  /** Pickup code, boarding and problem report. Empty when migration 070 has not run. */
+  cancelledBy: string | null;
   journey: JourneyState;
   route: Promise<TripRoute | null>;
 }) {
@@ -879,7 +883,6 @@ export function TripDetail({
 
   const board = useBoarding(booking.trip_id, isDriver && (paid || live));
 
-  // Starting asks first. Ending is the slide, which is its own confirmation.
   async function startRide(anchor: Element) {
     const ok = await ask(anchor, {
       title: `Start the trip to ${destination}?`,
@@ -955,7 +958,6 @@ export function TripDetail({
   const [lastSide, setLastSide] = useState<Side>("pay");
   const [payBusy, setPayBusy] = useState(false);
 
-  // ── Cancellation: what it costs now, and the no-show path ──
   const departsAt = (() => {
     const d = booking.trip?.departure_date;
     const t = booking.trip?.departure_time;
@@ -1094,7 +1096,6 @@ export function TripDetail({
     });
   }
 
-  // A passenger can report a problem from the moment the ride starts until the fare is released.
   const releaseMs = journey.releaseDueAt ? new Date(journey.releaseDueAt).getTime() : null;
   const problemOpen =
     !isDriver &&
@@ -1428,7 +1429,7 @@ export function TripDetail({
         ? `${firstName} pays once you accept, then can message you and see your number`
         : "Nothing is charged until the driver accepts"
       : live
-        ? null // The slide-to-end line says what the driver will be paid.
+        ? null
         : paid || booking.status === "completed"
           ? isDriver
             ? "Paid when there is no dispute"
@@ -1441,7 +1442,6 @@ export function TripDetail({
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
-  // A clock where the driver is waiting on a payment or a release, a lock for everything else.
   const waiting = isDriver && (due || (!noShowNote && (paid || booking.status === "completed")));
 
   return (
@@ -1456,9 +1456,6 @@ export function TripDetail({
       {hasMap && (
         <MapPane data-map-pane>
           <MapTop>
-            <Back href="/trips" aria-label="Back to trips">
-              <ArrowLeft size={20} />
-            </Back>
             <Share type="button" aria-label={copied ? "Link copied" : "Share ride"} onClick={share} $done={copied}>
               {copied ? <Check size={20} weight="bold" /> : <ShareNetwork size={20} />}
             </Share>
@@ -1508,15 +1505,17 @@ export function TripDetail({
         <Back href="/trips" aria-label="Back to trips">
           <ArrowLeft size={20} />
         </Back>
-        <h1>Trip</h1>
-        <Share
-          type="button"
-          aria-label={copied ? "Link copied" : "Share ride"}
-          onClick={share}
-          $done={copied}
-        >
-          {copied ? <Check size={20} weight="bold" /> : <ShareNetwork size={20} />}
-        </Share>
+        <h1 data-bar-title="">Trip</h1>
+        {!stopped && (
+          <Share
+            type="button"
+            aria-label={copied ? "Link copied" : "Share ride"}
+            onClick={share}
+            $done={copied}
+          >
+            {copied ? <Check size={20} weight="bold" /> : <ShareNetwork size={20} />}
+          </Share>
+        )}
       </Bar>
 
       {justBooked && (
@@ -1531,6 +1530,15 @@ export function TripDetail({
         </LiveWrap>
       )}
 
+      {stopped ? (
+        <StoppedTrip
+          booking={booking}
+          viewerId={viewerId}
+          cancelledBy={cancelledBy}
+          noShowTier={noShow?.tier ?? null}
+          moneyLine={note ?? "Nothing was charged"}
+        />
+      ) : (
       <Grid $single={hasMap}>
         <Col $single={hasMap}>
           {booking.status === "completed" && (
@@ -1636,9 +1644,7 @@ export function TripDetail({
               )}
               <div className="total">
                 <dt>{isDriver ? receiveTotal : "Total"}</dt>
-                <dd style={stopped || lapsed ? { textDecoration: "line-through", color: "var(--n-muted)" } : undefined}>
-                  {formatCurrency(isDriver ? subtotal : booking.total_price)}
-                </dd>
+                <dd>{formatCurrency(isDriver ? subtotal : booking.total_price)}</dd>
               </div>
             </Lines>
             {note && (
@@ -1834,11 +1840,12 @@ export function TripDetail({
           )}
         </Col>
       </Grid>
+      )}
 
       {!finished && <PushBanner />}
 
       <Help>
-        <TripHelp booking={booking} />
+        <TripHelp booking={booking} viewer={isDriver ? "driver" : "rider"} />
       </Help>
         </SheetBody>
       </Sheet>

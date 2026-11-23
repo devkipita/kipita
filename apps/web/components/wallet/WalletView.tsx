@@ -371,7 +371,7 @@ export function WalletView({
 
   return (
     <Page>
-      <WalletTitle>Wallet</WalletTitle>
+      <WalletTitle data-bar-title="">Wallet</WalletTitle>
 
       <Band>
         <Balance aria-labelledby="wallet-balance-cap">

@@ -22,11 +22,11 @@ export const INBOX_MAX = 680;
 
 type Filter = "all" | ActivityGroup;
 
-export const FILTERS: { key: Filter; label: string; empty: string }[] = [
-  { key: "all", label: "All", empty: "" },
-  { key: "trips", label: "Trips", empty: "trip updates" },
-  { key: "payments", label: "Payments", empty: "payments" },
-  { key: "alerts", label: "Alerts", empty: "road alerts" },
+export const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "trips", label: "Trips" },
+  { key: "payments", label: "Payments" },
+  { key: "alerts", label: "Alerts" },
 ];
 
 export const Page = styled(ContentWidth)`
@@ -273,7 +273,6 @@ export function NotificationsView({ profile }: { profile: Profile }) {
   }
 
   const loading = status === "idle" || status === "loading";
-  const current = FILTERS.find((f) => f.key === filter)!;
   const seatOpen = (n: (typeof items)[number]) => {
     const booking = bookingOf(n);
     return booking ? seatsOpen.has(booking) : false;
@@ -289,7 +288,7 @@ export function NotificationsView({ profile }: { profile: Profile }) {
     <Page $max={INBOX_MAX}>
       <Head>
         <div>
-          <h1>Activity</h1>
+          <h1 data-bar-title="">Activity</h1>
           <Sub aria-live="polite">
             {loading ? (
               "Loading your activity"
@@ -350,7 +349,7 @@ export function NotificationsView({ profile }: { profile: Profile }) {
         ) : status === "error" ? (
           <ActivityError onRetry={refreshNotifications} />
         ) : days.length === 0 && urgent.length === 0 ? (
-          <ActivityEmpty driver={mode === "driver"} filtered={current.empty || null} />
+          <ActivityEmpty driver={mode === "driver"} kind={filter} />
         ) : (
           <>
             {urgent.length > 0 ? (

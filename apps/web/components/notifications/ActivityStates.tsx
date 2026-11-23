@@ -5,74 +5,111 @@ import styled, { css } from "styled-components";
 import { ArrowRight, ArrowClockwise } from "@/components/icons";
 import { Shimmer } from "@/components/ui/Shimmer";
 import { BreakArt } from "@/components/ui/StatusArt";
+import { HappyEyes, Mascot, NoTripsArt, OpenEyes, SceneSvg } from "@/components/trips/TripsArt";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
-const Art = styled.svg`
-  width: 100%;
-  max-width: 180px;
-  height: auto;
+export type EmptyKind = "all" | "trips" | "payments" | "alerts";
 
-  .ink {
-    stroke: ${nocturne.cream};
-  }
-  .accent {
-    stroke: ${nocturne.accent};
-  }
-  .accent-fill {
-    fill: ${nocturne.accent};
-  }
-  .cta-fill {
-    fill: ${nocturne.ctaBg};
-  }
-  .surface {
-    fill: ${nocturne.surface2};
-  }
-  .ground {
-    fill: ${nocturne.cream};
-  }
+const ArtSlot = styled.div<{ $compact: boolean }>`
+  display: grid;
+  place-items: center;
+  width: 100%;
+  max-width: ${({ $compact }) => ($compact ? 200 : 260)}px;
 `;
 
-export function ActivityArt() {
+function BellArt() {
   return (
-    <Art viewBox="0 0 180 128" aria-hidden="true" focusable="false">
-      <ellipse className="ground" cx="90" cy="114" rx="72" ry="8" opacity="0.07" />
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <OpenEyes />
+      <path className="ink" strokeWidth="2" d="M246 46c-4 5-4 13 0 18M316 46c4 5 4 13 0 18" />
+      <path className="ink" strokeWidth="2.6" d="M281 22v8" />
       <path
-        className="ink"
-        d="M22 104 C 62 104, 70 58, 104 54 S 150 30, 160 24"
-        fill="none"
+        className="cta-fill ink"
         strokeWidth="2.6"
-        strokeLinecap="round"
+        d="M281 30c-13 0-21 10-21 23v15l-7 10h56l-7-10V53c0-13-8-23-21-23Z"
       />
-      <path
-        className="accent"
-        d="M22 104 C 62 104, 70 58, 104 54 S 150 30, 160 24"
-        fill="none"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeDasharray="2 9"
-        opacity="0.7"
-      />
-      <circle className="accent-fill" cx="22" cy="104" r="7" opacity="0.2" />
-      <circle className="accent" cx="22" cy="104" r="7" fill="none" strokeWidth="2.6" />
-      <path
-        className="cta-fill"
-        d="M160 6c-7.2 0-13 5.6-13 12.6C147 28 160 40 160 40s13-12 13-21.4C173 11.6 167.2 6 160 6z"
-        opacity="0.9"
-      />
-      <circle className="surface" cx="160" cy="18.5" r="4.5" />
-      <g>
-        <rect className="surface" x="80" y="52" width="34" height="16" rx="6" />
-        <rect className="ink" x="80" y="52" width="34" height="16" rx="6" fill="none" strokeWidth="2.6" />
-        <path className="ink" d="M86 52 l5 -7 h13 l5 7" fill="none" strokeWidth="2" strokeLinejoin="round" />
-        <circle className="surface" cx="88" cy="69" r="4" />
-        <circle className="ink" cx="88" cy="69" r="4" fill="none" strokeWidth="2.6" />
-        <circle className="surface" cx="106" cy="69" r="4" />
-        <circle className="ink" cx="106" cy="69" r="4" fill="none" strokeWidth="2.6" />
-      </g>
-    </Art>
+      <path className="on-cta" strokeWidth="2" d="M270 52c1-5 4-9 8-11" />
+      <circle className="ink-fill ink" strokeWidth="2.6" cx="281" cy="86" r="6" />
+    </SceneSvg>
   );
 }
 
+function WalletArt() {
+  return (
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <OpenEyes />
+      <circle className="tint ink" strokeWidth="2.6" cx="278" cy="66" r="12" />
+      <path className="ink" strokeWidth="2" d="M278 60v12" />
+      <path className="ink" strokeWidth="2" strokeDasharray="3 6" d="M278 84v16" />
+      <path
+        className="cta-fill ink"
+        strokeWidth="2.6"
+        d="M254 108h48c4.4 0 8 3.6 8 8v22c0 4.4-3.6 8-8 8h-48c-4.4 0-8-3.6-8-8v-22c0-4.4 3.6-8 8-8Z"
+      />
+      <path className="on-cta" strokeWidth="2" d="M246 120h64" />
+      <path className="tint ink" strokeWidth="2.6" d="M294 126h16v12h-16c-3.3 0-6-2.7-6-6s2.7-6 6-6Z" />
+      <circle className="ink-fill" cx="295" cy="132" r="2" />
+    </SceneSvg>
+  );
+}
+
+function ClearRoadArt() {
+  return (
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <HappyEyes />
+      <path className="ink" strokeWidth="2.6" d="M282 146V76" />
+      <circle className="cta-fill ink" strokeWidth="2.6" cx="282" cy="52" r="24" />
+      <path className="on-cta" strokeWidth="3.2" d="m271 52 8 8 14-15" />
+    </SceneSvg>
+  );
+}
+
+function EmptyArt({ kind }: { kind: EmptyKind }) {
+  if (kind === "trips") return <NoTripsArt />;
+  if (kind === "payments") return <WalletArt />;
+  if (kind === "alerts") return <ClearRoadArt />;
+  return <BellArt />;
+}
+
+type EmptyCopy = { title: string; lead: string; href: string; label: string };
+
+function emptyCopy(kind: EmptyKind, driver: boolean): EmptyCopy {
+  const start = driver
+    ? { href: "/publish", label: "Publish a ride" }
+    : { href: "/home", label: "Find a ride" };
+  switch (kind) {
+    case "trips":
+      return {
+        title: "No trip updates yet",
+        lead: driver
+          ? "Publish a ride and seat requests show up here."
+          : "Book a seat and every step of the trip shows up here.",
+        ...start,
+      };
+    case "payments":
+      return driver
+        ? { title: "No payments yet", lead: "Fares you earn and payouts show up here.", href: "/wallet", label: "Open wallet" }
+        : { title: "No payments yet", lead: "Fares you pay, refunds and wallet top-ups show up here.", ...start };
+    case "alerts":
+      return {
+        title: "Roads are quiet",
+        lead: "Alerts on the roads you travel show up here.",
+        href: "/alerts",
+        label: "See road alerts",
+      };
+    default:
+      return {
+        title: "Nothing yet",
+        lead: driver
+          ? "Seat requests, payments and trip updates show up here."
+          : "Bookings, payments and trip updates show up here.",
+        ...start,
+      };
+  }
+}
 const SkelRow = styled.div`
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 8px;
@@ -215,31 +252,30 @@ const RetryButton = styled.button`
 
 export function ActivityEmpty({
   driver,
-  filtered,
+  kind = "all",
   compact = false,
   onNavigate,
 }: {
   driver: boolean;
-  filtered?: string | null;
+  kind?: EmptyKind;
   compact?: boolean;
   onNavigate?: () => void;
 }) {
-  const go = driver
-    ? { href: "/publish", label: "Publish a ride", lead: "Seat requests, payments and trip updates land here." }
-    : { href: "/home", label: "Find a ride", lead: "Bookings, payments and trip updates land here." };
+  const copy = emptyCopy(kind, driver);
   return (
     <StateBox $compact={compact} role="status">
-      <ActivityArt />
-      <h3>{filtered ? `No ${filtered} yet` : "Nothing yet"}</h3>
-      <p>{go.lead}</p>
-      <GoLink href={go.href} onClick={onNavigate}>
-        {go.label}
+      <ArtSlot $compact={compact}>
+        <EmptyArt kind={kind} />
+      </ArtSlot>
+      <h3>{copy.title}</h3>
+      <p>{copy.lead}</p>
+      <GoLink href={copy.href} onClick={onNavigate}>
+        {copy.label}
         <ArrowRight size={20} weight="bold" />
       </GoLink>
     </StateBox>
   );
 }
-
 export function ActivityError({
   onRetry,
   compact = false,

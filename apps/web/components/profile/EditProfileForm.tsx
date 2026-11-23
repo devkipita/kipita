@@ -6,6 +6,7 @@ import Image from "next/image";
 import styled, { keyframes } from "styled-components";
 import people from "../../public/landing/people-left.png";
 import { ContentWidth } from "@/components/nav/AppShell";
+import { PageTitle } from "@/components/nav/PageTitle";
 import {
   Calendar,
   Confetti,
@@ -295,7 +296,8 @@ export function EditProfileForm({
     <Wrap $max={1120}>
       <Split>
         <Intro>
-          <Display>
+          {welcome && <PageTitle title="Complete your profile" />}
+          <Display data-bar-title="">
             {welcome ? "Complete your profile" : "Edit profile"}
           </Display>
           <Lede>

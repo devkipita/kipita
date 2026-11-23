@@ -15,15 +15,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/**
- * Pickup code, boarding and problem report (migration 070). Every query is allowed to fail: on a database
- * that has not run 070 the columns, tables and function do not exist, and the booking must still load.
- */
 async function loadJourney(bookingId: string, viewerId: string): Promise<JourneyState> {
   const supabase = await createClient();
   const [boarded, payment, problem, contact] = await Promise.all([
     supabase.from("bookings").select("boarded_at, boarded_method, passenger_id, status").eq("id", bookingId).maybeSingle(),
-    // Payments are readable by their owner only, so this is the passenger's view; for a driver it is empty.
     supabase
       .from("payments")
       .select("escrow_status, release_due_at")
@@ -40,7 +35,6 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
-    // The database decides when chat and calling are open (073). Before that migration it does not exist.
     supabase.rpc("booking_contact_open", { p_booking_id: bookingId }),
   ]);
 
@@ -81,13 +75,12 @@ export default async function TripPage({
   const profile = await getProfile();
   if (!profile) redirect(`/auth/sign-in?next=/trips/${id}`);
 
-  const [booking, walletBalance, platform, noShow, journey] = await Promise.all([
+  const [booking, walletBalance, platform, noShow, journey, cancelledBy] = await Promise.all([
     fetchBooking(id, profile.id),
     createClient()
       .then((supabase) => supabase.from("wallets").select("balance").eq("user_id", profile.id).maybeSingle())
       .then(({ data, error }) => (error ? null : Number(data?.balance ?? 0))),
     fetchPlatform(),
-    // Columns from migration 063. If it has not run, the query errors and this is null.
     createClient()
       .then((supabase) =>
         supabase
@@ -106,6 +99,9 @@ export default async function TripPage({
             },
       ),
     loadJourney(id, profile.id),
+    createClient()
+      .then((supabase) => supabase.from("bookings").select("cancelled_by").eq("id", id).maybeSingle())
+      .then(({ data, error }) => (error ? null : ((data?.cancelled_by as string | null) ?? null))),
   ]);
   if (!booking) notFound();
 
@@ -126,6 +122,7 @@ export default async function TripPage({
       walletBalance={walletBalance}
       cancelConfig={cancellationConfigFromSettings(platform.settings)}
       noShow={noShow}
+      cancelledBy={cancelledBy}
       journey={journey}
       route={route}
     />

@@ -88,6 +88,29 @@ export function morphHead(glyph: string, fade: string, glyphCentre: number) {
   `;
 }
 
+export const MorphHeadBar = styled.div`
+  position: absolute;
+  inset: 0 ${HEAD + 8}px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-left: 4px;
+  opacity: 0;
+  transition: opacity ${dur.press} ${ease.exit};
+
+  &[data-open="true"] {
+    opacity: 1;
+    transition: opacity ${dur.state} ${ease.standard} ${dur.press};
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &[data-open="true"] {
+      transition: opacity ${dur.state} ${ease.standard};
+    }
+  }
+`;
+
 const RADIUS = 20;
 const ITEM = '[role="menuitem"]:not(:disabled)';
 const ROW = "[data-row-link]";
@@ -95,8 +118,8 @@ const OVERLAY = "[data-overlay]";
 
 const Panel = styled.div<{ $width: number }>`
   position: absolute;
-  top: 0;
-  right: var(--morph-right, 0px);
+  top: var(--morph-top, -8px);
+  right: var(--morph-right, -8px);
   z-index: 2;
   display: flex;
   flex-direction: column;

@@ -72,7 +72,7 @@ const Row = styled.li<{ $role: ActivityRole; $unread: boolean; $i: number }>`
   }
 `;
 
-const overlayInteractive = css`
+export const overlayInteractive = css`
   position: absolute;
   inset: 0;
   z-index: 0;
@@ -131,10 +131,8 @@ const Body = styled.div<{ $lines: number }>`
   pointer-events: none;
 
   .title {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     font-size: 15px;
     line-height: 20px;
-    letter-spacing: -0.01em;
     color: ${nocturne.cream};
     overflow-wrap: anywhere;
   }
@@ -151,7 +149,7 @@ const Body = styled.div<{ $lines: number }>`
 `;
 
 const Title = styled.span<{ $unread: boolean }>`
-  font-weight: ${({ $unread }) => ($unread ? 800 : 600)};
+  font-weight: ${({ $unread }) => ($unread ? 700 : 500)};
 `;
 
 const Meta = styled.span`
@@ -283,7 +281,7 @@ const Problem = styled.p`
 
 type Step = "ask" | "accepting" | "declining" | "accepted" | "declined" | "gone";
 
-function SeatAnswer({
+export function SeatAnswer({
   item,
   bookingId,
   seats,

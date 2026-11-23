@@ -12,6 +12,13 @@ These rules come from the review of the Road alerts surface. A rule tagged
 on every edit. Paths listed in `tools/design-check/strict.json` allow zero
 findings. Everywhere else, the count may not go above `baseline.json`.
 
+Before any redesign starts, write its audit: every defect on the current
+screen, the guard it breaks, and whether `tools/design-check` catches it.
+A defect no check catches gets a check first, or is named as a manual
+review item. Show the audit before building.
+Source: "u will write rules and u will not implement until i can see you have
+rules implemented that guard designs", 2026-11-23.
+
 A redesign is done only when all of these are true:
 
 - every file passes `node tools/design-check/index.mjs --strict <dir>`
@@ -55,6 +62,21 @@ A redesign is done only when all of these are true:
   danger tint and weather is sky. A row of outlined grey boxes is the
   internet average. `[check: chip-outline]`
   Source: "what happened to using chipset with softcolors".
+- **Chips use `ui/Chip` with an M3 container role**
+  (https://m3.material.io/styles/color/roles), never a local chip. At rest:
+  `*Container` fill, `on*Container` ink, no border. When selected: the role's
+  solid colour with its `on*` ink, a filled glyph and `aria-pressed`. Report
+  a problem on a trip:
+
+  | Topic | Role | Icon |
+  |---|---|---|
+  | did not arrive / did not turn up | warning | `Clock` |
+  | I need a refund | success | `HandCoins` |
+  | Something felt unsafe | error | `ShieldWarning` (never `ShieldCheck`, which means safe) |
+  | Something else | info | `Question` |
+
+  Source: "improve those chipset at the bottom to have solid softcolores
+  using color roles", 2026-11-23.
 - **A chip's hit area still reaches 44px on touch.** Add
   `position: relative` on the chip. Then add a `::after` with `inset: -8px 0`
   inside `@media (pointer: coarse)`. The visual size does not grow.
@@ -77,9 +99,10 @@ A redesign is done only when all of these are true:
   | place | `MapPin` | |
   | use my location | `Crosshair` | `MapPin` (that is the place, not the action) |
 
-- **Icon sizes are 16px inline with text, 20px in a control and 24px
-  standalone.** Nothing is smaller. `[check: tiny-icon]` Use one stroke weight
-  per row. A filled weight is only for a selected state.
+- **Icon sizes are 16px inline with text, 18px in a chip, 20px in a control
+  and 24px standalone.** Nothing is smaller and nothing sits between.
+  `[check: tiny-icon, icon-scale]` Use one stroke weight per row. A filled
+  weight is only for a selected state.
 - **Hover never hides an icon.** The icon keeps full ink, at least 3:1 against
   the hover background. Hover adds a neutral state layer:
   `color-mix(in oklab, var(--n-cream) 8%, transparent)`. Never tint the
@@ -135,7 +158,8 @@ skills, applied to Kipita's tokens:
   example, a posted alert drops in under the composer.
 - **Enter with `ease.enter` in 300ms or less. Exit faster, with
   `ease.exit`.** Never use `ease-in`, never `transition: all` and never
-  `scale(0)`. Never write a literal duration or `cubic-bezier` in a component.
+  `scale(0)`. Never write a literal duration or `cubic-bezier` in a component,
+  including on the continuation lines of a multi-line `transition`.
   `[check: ease-in, transition-all, scale-zero, literal-motion]`
 - **Anything a user can toggle uses a transition, never a keyframe**, so it
   can be interrupted.
@@ -253,6 +277,33 @@ skills, applied to Kipita's tokens:
   An error replaces the skeleton with `ui/StatusPage`, never sample data.
   `[check: skeleton-source]`
 
+### Phone chrome
+
+- **On phones the page title and back arrow live in the top bar, never in
+  the page.** The title replaces the logo. `routeTitle` in
+  `lib/nav/page-title.ts` maps every route to its title and back link, so
+  a new page adds one line there. A title that depends on state renders
+  `<PageTitle>`. Bottom-bar tabs (Road alerts, Publish a ride) get a title
+  with no back arrow. Home keeps the logo.
+- **The in-page heading stays for screen readers and desktop** and carries
+  `data-bar-title`. One global rule hides it visually at 960px and below.
+  Content headings are not page titles and stay visible: a person's name, a
+  route, an offer.
+- **The title and back arrow are `sage`, the colour of the wordmark**,
+  about 6.5:1 on `greenDeep`. The back arrow is `ArrowLeft` bold, 24px, in a
+  40px round `sage` 18% well (44px hit area on touch). It goes back in
+  history when the user came from inside the app, and falls back to its
+  link otherwise. Its `aria-label` names the destination ("Back to trips").
+- **The browser's own chrome eats the screen, so ours gives space back.**
+  Both bars hide on scroll down and return on scroll up. The `(app)` layout
+  sets `themeColor` to `greenDeep` so the browser's bar and ours read as
+  one. Every surface uses `dvh`, never `vh`. Phones get a compact hero: art
+  160px at most, headline 20px.
+  Source: "the Trips title on mobile should be above in navbar where the
+  logo is together with the back arrow ... we have browser top and bottom
+  navbar then we have your apps top and bottom navbar", "the color of the
+  Titles should match logo", 2026-11-23.
+
 ### Spacing and type
 
 - **Everything sits on the 4px grid.** 1px and 2px are allowed for hairlines
@@ -284,14 +335,32 @@ minimum, 44px on touch (2.5.8). Focus never hidden behind sticky chrome
   renders.** A cancelled, rejected or finished ride has no Share button. A
   driver is never offered "The driver did not arrive". Future tense never
   describes a past or stopped ride ("You'll receive" on a cancelled booking).
+  Copy lists shown to both roles carry a `viewers` field and are filtered
+  by it (`HELP_TOPICS` in `lib/trips/copy.ts`). This is a manual review item:
+  no check can see the viewer.
   Source: "why would u share a cancelled ride the page is not intuitive".
 - **A status is never shaped like a button.** A filled full-width bar that
   says "Nothing was charged" reads as an action. Status is an icon plus a
   sentence on a soft tone, with no hover state and no pill.
+  `[check: status-as-button]` flags any static element with a bold fill
+  (`green`, `ctaBg`, `accent`, a solid M3 role), a radius and a flex row.
+- **Where the money is, is a `k-note`**: `tertiaryContainer` fill,
+  `onTertiaryContainer` ink, a 20px `Lock`, one sentence. Never green:
+  green is the colour of buttons, so a green money line reads as an action.
+  Source: "how is nothing has been charged green it looks like the color of
+  our buttons", 2026-11-23, and `docs/design/kipita-design-system.html` ›
+  `.k-note`.
+- **A stopped booking renders `trips/StoppedTrip`**: a hero on the error
+  container wash with `RideStoppedArt` (the mascot, neutral face, U-turn
+  sign), the status badge, who stopped it and when, the reason, the money
+  note and one action. Below it: the ride (two towns, date, seats,
+  reference), everyone on the ride (driver with car and plate, passenger,
+  "You" on the viewer), the fare with what was charged and refunded, and
+  only the steps that really happened.
 - **A stopped or finished state leads with its illustration and one
   sentence**: who stopped it, when, and where the money is. The progress list,
   the money breakdown and help come after, smaller. Never a strikethrough
-  amount.
+  amount. `[check: strikethrough]`
 
 ### Replies and composers
 

@@ -723,7 +723,7 @@ export function AlertsView({
     body = (
       <Block>
         <span className="glyph" aria-hidden>
-          <Crosshair size={28} />
+          <Crosshair size={24} />
         </span>
         <h2>Turn on location to see nearby alerts</h2>
         {locating === "denied" && (
@@ -817,7 +817,7 @@ export function AlertsView({
       <div id="alerts-panel" role="tabpanel" aria-labelledby={`alerts-tab-${tab}`}>
         <Toolbar>
           <div>
-            <h1>Road alerts</h1>
+            <h1 data-bar-title="">Road alerts</h1>
             {!failed && !locationOff && (
               <p className="count">
                 <RollingNumber value={shown.length} /> {shown.length === 1 ? "report" : "reports"}

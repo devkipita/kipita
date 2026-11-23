@@ -172,7 +172,7 @@ export function PushBanner() {
     <Collapse open={open}>
       <Banner role="region" aria-label="Browser alerts">
         <Lead>
-          <BellRing size={19} />
+          <BellRing size={20} />
         </Lead>
         <div className="copy">
           <b>Hear new requests and road alerts</b>

@@ -8,7 +8,7 @@ const typing = keyframes`
   30% { opacity: 1; }
 `;
 
-const Svg = styled.svg`
+export const SceneSvg = styled.svg`
   display: block;
   width: 100%;
   max-width: 240px;
@@ -33,6 +33,11 @@ const Svg = styled.svg`
   .cta-fill {
     fill: ${nocturne.ctaBg};
   }
+  .on-cta {
+    stroke: ${nocturne.ctaFg};
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .flow {
     animation: ${dash} calc(${dur.max} * 4) linear infinite;
   }
@@ -54,7 +59,7 @@ const Svg = styled.svg`
   }
 `;
 
-function Mascot() {
+export function Mascot() {
   return (
     <>
       <path className="ground" d="M133 153c55.8 0 101-3.1 101-7s-45.2-7-101-7-101 3.1-101 7 45.2 7 101 7Z" />
@@ -74,7 +79,7 @@ function Mascot() {
   );
 }
 
-function OpenEyes() {
+export function OpenEyes() {
   return (
     <>
       <circle className="ink-fill" cx="200" cy="105" r="3" />
@@ -84,7 +89,7 @@ function OpenEyes() {
   );
 }
 
-function HappyEyes() {
+export function HappyEyes() {
   return (
     <path
       className="ink"
@@ -96,7 +101,7 @@ function HappyEyes() {
 
 export function NoTripsArt() {
   return (
-    <Svg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
       <Mascot />
       <OpenEyes />
       <path className="ink flow" strokeWidth="2.6" strokeDasharray="6 8" d="M236 146h44" />
@@ -107,25 +112,39 @@ export function NoTripsArt() {
         d="M282 24c-13 0-23 10-23 22.5C259 63 282 84 282 84s23-21 23-37.5C305 34 295 24 282 24Z"
       />
       <circle className="ink" strokeWidth="2.6" cx="282" cy="46" r="7.5" />
-    </Svg>
+    </SceneSvg>
   );
 }
 
 export function NoPastArt() {
   return (
-    <Svg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
       <Mascot />
       <HappyEyes />
       <path className="ink" strokeWidth="2.6" d="M262 146V34" />
       <path className="cta-fill ink" strokeWidth="2.6" d="M262 36h42l-9 14 9 14h-42V36Z" />
       <path className="ink" strokeWidth="2" d="M276 36v28M290 36v28M262 50h33" />
-    </Svg>
+    </SceneSvg>
+  );
+}
+
+export function RideStoppedArt() {
+  return (
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <circle className="ink-fill" cx="200" cy="106" r="3" />
+      <circle className="ink-fill" cx="214" cy="106" r="3" />
+      <path className="ink" strokeWidth="2.6" d="M203 116h9" />
+      <path className="ink" strokeWidth="2.6" d="M272 82v64" />
+      <path className="cta-fill ink" strokeWidth="2.6" d="M272 81a24 24 0 1 0 0-48 24 24 0 0 0 0 48Z" />
+      <path className="on-cta" strokeWidth="3.4" d="M282 69V52c0-12-19-12-19 0v13m-7-6 7 7 7-7" />
+    </SceneSvg>
   );
 }
 
 export function NoRequestsArt() {
   return (
-    <Svg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
       <Mascot />
       <OpenEyes />
       <path
@@ -138,6 +157,6 @@ export function NoRequestsArt() {
         <circle className="ink-fill dot" cx="272" cy="48" r="3.5" />
         <circle className="ink-fill dot" cx="288" cy="48" r="3.5" />
       </g>
-    </Svg>
+    </SceneSvg>
   );
 }

@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { MagnifyingGlass, X } from "@/components/icons";
 import { IconAction } from "@/components/ui/Chip";
-import { PageTitle } from "@/components/nav/PageTitle";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatTripDate } from "@/lib/trips/format";
@@ -73,14 +72,6 @@ export const HeadRow = styled.div<{ $open?: boolean }>`
 
   @media (max-width: 960px) {
     min-height: 0;
-
-    h1 {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-    }
   }
 `;
 
@@ -506,10 +497,9 @@ export function TripsView({
 
   return (
     <Page $max={1200}>
-      <PageTitle title="Trips" back="/home" />
       <Head>
         <HeadRow>
-          <h1>Trips</h1>
+          <h1 data-bar-title="">Trips</h1>
           {searchable && (
             <Search>
               <MagnifyingGlass size={20} aria-hidden />

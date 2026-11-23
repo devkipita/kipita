@@ -11,8 +11,8 @@ export function NotificationsSkeleton() {
       <Page $max={INBOX_MAX} aria-hidden="true">
         <Head>
           <div>
-            <h1>Activity</h1>
-            <Sub>
+            <h1 data-bar-title="">Activity</h1>
+            <Sub as="div">
               <Shimmer $w="96px" $h="14px" $r="6px" />
             </Sub>
           </div>

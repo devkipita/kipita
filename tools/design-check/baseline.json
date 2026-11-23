@@ -38,6 +38,7 @@
     "off-grid": 2,
     "window-confirm": 1,
     "inline-style": 5,
+    "icon-scale": 1,
     "tiny-icon": 1
   },
   "apps/web/components/admin/SupportInbox.tsx": {
@@ -57,6 +58,7 @@
     "uppercase": 1,
     "raw-count": 1,
     "inline-style": 1,
+    "icon-scale": 2,
     "tiny-icon": 2,
     "state-focus": 1,
     "state-press": 1
@@ -66,6 +68,7 @@
     "tiny-text": 9,
     "rgb": 1,
     "literal-motion": 1,
+    "icon-scale": 2,
     "raw-count": 2,
     "tiny-icon": 6,
     "inline-style": 1,
@@ -86,7 +89,8 @@
   "apps/web/components/admin/console/PaymentsView.tsx": {
     "off-grid": 4,
     "tiny-text": 1,
-    "inline-style": 1
+    "inline-style": 1,
+    "icon-scale": 1
   },
   "apps/web/components/admin/console/PayoutsView.tsx": {
     "off-grid": 8,
@@ -125,7 +129,8 @@
     "accent-stripe": 1,
     "off-grid": 5,
     "tiny-text": 2,
-    "tiny-icon": 2
+    "tiny-icon": 2,
+    "icon-scale": 2
   },
   "apps/web/components/admin/console/UsersView.tsx": {
     "tiny-icon": 2,
@@ -137,6 +142,7 @@
     "off-grid": 31,
     "tiny-text": 13,
     "tiny-icon": 1,
+    "icon-scale": 2,
     "uppercase": 2,
     "literal-motion": 1,
     "rgb": 4,
@@ -152,13 +158,15 @@
   },
   "apps/web/components/auth/AuthShell.tsx": {
     "off-grid": 6,
+    "icon-scale": 1,
     "hover-ungated": 1,
     "state-focus": 1,
     "state-press": 1
   },
   "apps/web/components/auth/ForgotPasswordForm.tsx": {
     "off-grid": 2,
-    "inline-style": 4
+    "inline-style": 4,
+    "icon-scale": 1
   },
   "apps/web/components/auth/NewPasswordForm.tsx": {
     "inline-style": 1
@@ -176,13 +184,18 @@
     "state-focus": 1,
     "state-press": 1
   },
+  "apps/web/components/auth/PhoneField.tsx": {
+    "icon-scale": 1
+  },
   "apps/web/components/auth/SignInForm.tsx": {
-    "off-grid": 2
+    "off-grid": 2,
+    "icon-scale": 1
   },
   "apps/web/components/auth/SignUpForm.tsx": {
     "off-grid": 2,
     "literal-motion": 1,
-    "inline-style": 4
+    "inline-style": 4,
+    "icon-scale": 1
   },
   "apps/web/components/auth/StepDots.tsx": {
     "off-grid": 1,
@@ -192,14 +205,12 @@
   "apps/web/components/auth/ui.ts": {
     "off-grid": 14,
     "literal-motion": 1,
-    "state-focus": 2,
     "state-press": 2
   },
   "apps/web/components/driver/CarDialog.tsx": {
     "hex": 7,
     "rgb": 3,
     "off-grid": 8,
-    "state-focus": 4,
     "state-press": 4
   },
   "apps/web/components/driver/DriverInvite.tsx": {
@@ -233,8 +244,9 @@
     "off-grid": 16,
     "rgb": 12,
     "uppercase": 2,
-    "literal-motion": 4,
+    "literal-motion": 12,
     "tiny-icon": 2,
+    "icon-scale": 3,
     "hover-ungated": 6,
     "hover-moves": 3,
     "state-focus": 4,
@@ -246,6 +258,7 @@
   "apps/web/components/home/FindRideSearchBar.tsx": {
     "off-grid": 25,
     "uppercase": 2,
+    "icon-scale": 3,
     "hover-ungated": 2,
     "state-press": 3
   },
@@ -265,6 +278,7 @@
   },
   "apps/web/components/home/OffersBandUI.tsx": {
     "off-grid": 5,
+    "icon-scale": 1,
     "tiny-icon": 1
   },
   "apps/web/components/home/PlaceModal.tsx": {
@@ -275,6 +289,7 @@
   "apps/web/components/home/RequestRideDrawer.tsx": {
     "off-grid": 10,
     "uppercase": 1,
+    "icon-scale": 1,
     "state-focus": 2,
     "state-press": 2
   },
@@ -296,6 +311,7 @@
     "literal-motion": 1,
     "tiny-icon": 5,
     "inline-style": 3,
+    "icon-scale": 2,
     "state-focus": 1,
     "state-press": 1
   },
@@ -312,7 +328,7 @@
   "apps/web/components/landing/ContactDock.tsx": {
     "hex": 24,
     "rgb": 8,
-    "literal-motion": 22,
+    "literal-motion": 30,
     "off-grid": 6,
     "tiny-text": 1,
     "inline-style": 2,
@@ -328,7 +344,7 @@
   },
   "apps/web/components/landing/SupportDock.tsx": {
     "rgb": 3,
-    "literal-motion": 10,
+    "literal-motion": 30,
     "off-grid": 8,
     "hex": 2,
     "state-focus": 2,
@@ -363,6 +379,7 @@
     "off-grid": 7,
     "rgb": 3,
     "hex": 1,
+    "icon-scale": 2,
     "hover-moves": 2
   },
   "apps/web/components/landing/sections/DriverCta.tsx": {
@@ -391,7 +408,7 @@
   },
   "apps/web/components/landing/sections/LandingNav.tsx": {
     "off-grid": 10,
-    "literal-motion": 1,
+    "literal-motion": 4,
     "rgb": 7,
     "hover-ungated": 2,
     "state-focus": 2,
@@ -406,6 +423,7 @@
     "hover-ungated": 2,
     "state-focus": 2,
     "state-press": 2,
+    "literal-motion": 2,
     "hover-moves": 1
   },
   "apps/web/components/landing/sections/RideSteps.tsx": {
@@ -418,7 +436,9 @@
     "off-grid": 4
   },
   "apps/web/components/legal/ConsentBanner.tsx": {
-    "off-grid": 4
+    "off-grid": 4,
+    "icon-scale": 1,
+    "literal-motion": 2
   },
   "apps/web/components/legal/LegalDoc.tsx": {
     "off-grid": 9,
@@ -439,14 +459,15 @@
     "state-press": 1
   },
   "apps/web/components/nav/AppTopBar.tsx": {
-    "off-grid": 17,
-    "literal-motion": 4,
-    "state-press": 3,
-    "hover-ungated": 5
+    "off-grid": 8,
+    "literal-motion": 7,
+    "icon-scale": 2,
+    "state-press": 1
   },
   "apps/web/components/nav/RailModeSwitch.tsx": {
     "off-grid": 2,
     "tiny-icon": 2,
+    "icon-scale": 2,
     "hover-ungated": 1,
     "state-focus": 2,
     "state-press": 2
@@ -470,8 +491,9 @@
   },
   "apps/web/components/profile/DateOfBirthField.tsx": {
     "off-grid": 4,
-    "literal-motion": 2,
+    "literal-motion": 8,
     "rgb": 2,
+    "icon-scale": 1,
     "state-press": 1
   },
   "apps/web/components/profile/DriverSection.tsx": {
@@ -483,7 +505,9 @@
   },
   "apps/web/components/profile/EditProfileForm.tsx": {
     "off-grid": 7,
+    "icon-scale": 6,
     "raw-count": 1,
+    "status-as-button": 1,
     "hover-ungated": 1,
     "state-press": 1
   },
@@ -496,6 +520,7 @@
     "state-press": 1
   },
   "apps/web/components/profile/PhoneVerifyFlow.tsx": {
+    "icon-scale": 1,
     "tiny-icon": 1
   },
   "apps/web/components/profile/ProfileSkeleton.tsx": {
@@ -522,14 +547,12 @@
     "rgb": 2,
     "literal-motion": 2,
     "off-grid": 5,
-    "state-focus": 2,
     "state-press": 2
   },
   "apps/web/components/publish/PriceStep.tsx": {
     "off-grid": 11,
     "uppercase": 2,
     "chip-size": 2,
-    "state-focus": 3,
     "state-press": 3
   },
   "apps/web/components/publish/PublishArt.tsx": {
@@ -545,13 +568,12 @@
   "apps/web/components/publish/PublishMobile.tsx": {
     "hex": 9,
     "off-grid": 22,
-    "literal-motion": 7,
+    "literal-motion": 11,
     "uppercase": 2,
     "rgb": 3,
     "layout-transition": 1,
     "inline-style": 3,
     "tiny-icon": 1,
-    "state-focus": 9,
     "state-press": 9,
     "chip-size": 1
   },
@@ -569,29 +591,32 @@
     "tiny-text": 1,
     "inline-style": 1,
     "tiny-icon": 2,
-    "chip-outline": 1,
-    "state-focus": 15,
+    "chip-outline": 2,
     "state-press": 14,
     "chip-pill": 2,
-    "chip-size": 4
+    "chip-size": 4,
+    "state-focus": 1
   },
   "apps/web/components/publish/VerifyStatus.tsx": {
     "off-grid": 5,
     "literal-motion": 2,
     "tiny-icon": 1,
+    "icon-scale": 1,
     "hover-ungated": 1,
     "hover-moves": 1
   },
   "apps/web/components/publish/WhenPicker.tsx": {
     "off-grid": 14,
-    "literal-motion": 2,
+    "literal-motion": 10,
     "rgb": 4,
+    "icon-scale": 5,
     "hover-moves": 1,
+    "status-as-button": 1,
     "hover-ungated": 1
   },
   "apps/web/components/publish/controls.tsx": {
     "off-grid": 13,
-    "literal-motion": 6,
+    "literal-motion": 18,
     "hover-ungated": 1,
     "hover-moves": 1
   },
@@ -600,6 +625,7 @@
   },
   "apps/web/components/referrals/ReferralView.tsx": {
     "off-grid": 14,
+    "icon-scale": 4,
     "hover-ungated": 1,
     "state-press": 1,
     "chip-pill": 1
@@ -614,8 +640,7 @@
   "apps/web/components/rides/RideDetailView.tsx": {
     "off-grid": 30,
     "uppercase": 1,
-    "state-focus": 4,
-    "state-press": 4,
+    "icon-scale": 6,
     "hover-moves": 1
   },
   "apps/web/components/rides/RideLayout.tsx": {
@@ -625,7 +650,8 @@
     "uppercase": 4,
     "off-grid": 28,
     "tiny-text": 3,
-    "literal-motion": 1,
+    "literal-motion": 14,
+    "icon-scale": 7,
     "tiny-icon": 4,
     "hover-moves": 2,
     "state-press": 3,
@@ -634,6 +660,7 @@
   "apps/web/components/support/SupportDock.tsx": {
     "off-grid": 11,
     "raw-count": 1,
+    "icon-scale": 2,
     "raw-img": 1,
     "tiny-icon": 1,
     "state-press": 4,
@@ -643,7 +670,6 @@
   "apps/web/components/trips/Boarding.tsx": {
     "off-grid": 9,
     "tiny-icon": 3,
-    "state-focus": 2,
     "state-press": 1
   },
   "apps/web/components/trips/CancelArt.tsx": {
@@ -674,13 +700,16 @@
   },
   "apps/web/components/trips/PayPanel.tsx": {
     "off-grid": 1,
-    "literal-motion": 1
+    "literal-motion": 1,
+    "icon-scale": 1
   },
   "apps/web/components/trips/ProblemPanel.tsx": {
     "off-grid": 1
   },
   "apps/web/components/trips/RateRide.tsx": {
     "off-grid": 7,
+    "icon-scale": 1,
+    "literal-motion": 6,
     "chip-size": 1
   },
   "apps/web/components/trips/RideProgress.tsx": {
@@ -698,19 +727,18 @@
   "apps/web/components/trips/TripDetail.tsx": {
     "off-grid": 16,
     "accent-stripe": 1,
-    "literal-motion": 1,
+    "literal-motion": 3,
     "tiny-icon": 5,
-    "state-press": 5,
-    "state-focus": 3
+    "strikethrough": 1,
+    "state-press": 2,
+    "status-as-button": 1
   },
   "apps/web/components/trips/TripDetailSkeleton.tsx": {
     "off-grid": 7
   },
   "apps/web/components/trips/TripHelp.tsx": {
-    "off-grid": 6,
-    "literal-motion": 2,
-    "chip-size": 1,
-    "state-press": 1
+    "off-grid": 3,
+    "literal-motion": 1
   },
   "apps/web/components/trips/TripMap.tsx": {
     "off-grid": 2,
@@ -719,7 +747,7 @@
   },
   "apps/web/components/trips/TripStage.tsx": {
     "off-grid": 11,
-    "literal-motion": 9,
+    "literal-motion": 10,
     "uppercase": 1
   },
   "apps/web/components/trips/WhyKipita.tsx": {
@@ -749,10 +777,11 @@
     "chip-size": 1
   },
   "apps/web/components/ui/Counter.tsx": {
-    "literal-motion": 1
+    "literal-motion": 2
   },
   "apps/web/components/ui/Drawer.tsx": {
-    "off-grid": 1
+    "off-grid": 1,
+    "literal-motion": 3
   },
   "apps/web/components/ui/DrawnCheck.tsx": {
     "literal-motion": 1
@@ -766,7 +795,8 @@
   },
   "apps/web/components/ui/GreenHero.tsx": {
     "off-grid": 13,
-    "literal-motion": 2,
+    "literal-motion": 5,
+    "icon-scale": 1,
     "hover-ungated": 3,
     "state-press": 5,
     "hover-moves": 1,
@@ -782,13 +812,14 @@
   },
   "apps/web/components/ui/NetworkStatus.tsx": {
     "off-grid": 2,
-    "literal-motion": 2,
+    "literal-motion": 8,
     "chip-pill": 1,
     "chip-size": 1
   },
   "apps/web/components/ui/PhoneField.tsx": {
     "literal-motion": 1,
-    "off-grid": 3
+    "off-grid": 3,
+    "icon-scale": 1
   },
   "apps/web/components/ui/Popover.tsx": {
     "off-grid": 2,
@@ -835,10 +866,12 @@
     "off-grid": 6
   },
   "apps/web/components/wallet/WalletView.tsx": {
-    "off-grid": 15
+    "off-grid": 15,
+    "icon-scale": 1
   },
   "apps/web/components/wallet/WithdrawDrawer.tsx": {
     "literal-motion": 1,
-    "off-grid": 3
+    "off-grid": 3,
+    "icon-scale": 1
   }
 }

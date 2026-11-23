@@ -126,7 +126,22 @@ const LINE_RULES = [
     test: offGrid,
     message: "Spacing off the 4px grid. Use 4, 8, 12, 16, 20, 24...",
   },
+  {
+    id: "strikethrough",
+    test: /line-through|<(?:s|del|strike)>/,
+    message: "Strikethrough. A stopped amount is said in words (\"Nothing was charged\"), never struck out.",
+  },
+  {
+    id: "icon-scale",
+    test: (line) => [...line.matchAll(/<([A-Z]\w*)\b[^>]*?\bsize=\{(\d+)\}/g)].some(
+      ([, tag, n]) => !/Avatar|Orb|Art|Spot|Mascot|Illustration|Logo|Mark$/.test(tag) && Number(n) > 16 && Number(n) < 32 && ![18, 20, 24].includes(Number(n)),
+    ),
+    message: "Icon off the scale. 16 inline, 18 in a chip, 20 in a control, 24 standalone.",
+  },
 ];
+
+const BOLD_FILL = /background(?:-color)?\s*:\s*\$\{\s*(?:nocturne\.(?:green|greenDeep|ctaBg|accent|danger)|theme\.color\.(?:primary|secondary|tertiary|error|success|warning|info))\s*\}/;
+const STATIC_TAG = new Set(["div", "p", "span", "section", "li", "output", "strong", "aside"]);
 
 const KEYFRAME_LAYOUT = /(?:^|[{;\s])(?:top|left|right|bottom|width|height|margin(?:-\w+)?)\s*:/;
 const TEMPLATE_START = /(?:const|let)\s+(\w+)\s*=\s*styled(?:\.(\w+)|\(\s*([\w.]+)\s*\))(?:\.attrs\([^)]*\))?(?:<[^`]*?>)?`|\bcss`/g;
@@ -228,7 +243,22 @@ function pxOver(text, pattern, limit) {
   return m ? Number(m[1]) > limit : false;
 }
 
-function checkTemplate(rel, text, match, push) {
+function stateMixins(text) {
+  const found = { focus: new Set(), press: new Set() };
+  for (const m of text.matchAll(/(?:const|let)\s+(\w+)\s*=\s*css`/g)) {
+    const start = m.index + m[0].length;
+    const body = text.slice(start, skipTemplate(text, start));
+    if (/:focus-visible/.test(body)) found.focus.add(m[1]);
+    if (/:active/.test(body)) found.press.add(m[1]);
+  }
+  return found;
+}
+
+function usesMixin(raw, names) {
+  return [...names].some((n) => new RegExp(`\\$\\{\\s*${n}\\s*\\}`).test(raw));
+}
+
+function checkTemplate(rel, text, match, push, mixins) {
   const [, name, tag, base] = match;
   const start = match.index + match[0].length;
   const end = skipTemplate(text, start);
@@ -237,6 +267,17 @@ function checkTemplate(rel, text, match, push) {
   const firstLine = text.slice(0, start).split(/\r?\n/).length;
   const lineAt = (offset) => firstLine + (masked.slice(0, offset).match(/\n/g) ?? []).length;
   const blocks = cssBlocks(masked);
+
+  for (const m of masked.matchAll(/(?:transition|animation)(?:-duration|-delay|-timing-function)?\s*:([^;]*)/g)) {
+    const valueStart = m.index + m[0].length - m[1].length;
+    let offset = valueStart;
+    m[1].split("\n").forEach((part, i) => {
+      if (i > 0 && /cubic-bezier\(|(?<![\w.$-])(?:[1-9]\d*(?:\.\d+)?|0?\.\d*[1-9]\d*)m?s\b/.test(part)) {
+        push(lineAt(offset), "literal-motion", "Literal duration or curve. Use dur.* and ease.* from lib/nocturne.");
+      }
+      offset += part.length + 1;
+    });
+  }
 
   for (const b of blocks) {
     const body = masked.slice(b.start, b.end);
@@ -276,7 +317,9 @@ function checkTemplate(rel, text, match, push) {
       push(at, "chip-pill", `${name}: chip shaped as a pill. Chips are 8px rounded rectangles; pills are buttons.`);
     }
     const outlined = /(?:^|[;\s])border\s*:\s*\d(?:\.\d+)?px\s+solid(?!\s+transparent)/.test(rawDecl);
-    const noFill = !/(?:^|[;\s])background(?:-color)?\s*:/.test(rawDecl) || /(?:^|[;\s])background(?:-color)?\s*:\s*(?:transparent|none)\s*;/.test(rawDecl);
+    const noFill = !/(?:^|[;\s])background(?:-color)?\s*:/.test(rawDecl)
+      || /(?:^|[;\s])background(?:-color)?\s*:\s*(?:transparent|none)\s*;/.test(rawDecl)
+      || /(?:^|[;\s])background(?:-color)?\s*:\s*\$\{[^;]*["'](?:transparent|none)["']/.test(rawDecl);
     if (outlined && noFill) {
       push(at, "chip-outline", `${name}: outlined chip with no fill. Chips carry a soft tonal fill from their meaning.`);
     }
@@ -288,10 +331,16 @@ function checkTemplate(rel, text, match, push) {
     }
   }
 
+  if (STATIC_TAG.has(tag) && !CHIP_NAME.test(name) && BOLD_FILL.test(rawDecl)
+    && /border-radius\s*:/.test(rawDecl) && /display\s*:\s*(?:inline-)?flex/.test(decl) && /align-items\s*:\s*(?:center|flex-start)/.test(decl)
+    && !/:hover|onClick|cursor\s*:\s*pointer/.test(raw)) {
+    push(at, "status-as-button", `${name}: status shaped like a button (a bold filled bar). Status is an icon plus a sentence on a soft container tone.`);
+  }
+
   const interactive = INTERACTIVE_TAG.has(tag) || (base && INTERACTIVE_BASE.test(base));
   if (interactive && !STATE_MIXIN.test(raw)) {
-    if (!/:focus-visible/.test(masked)) push(at, "state-focus", `${name}: no :focus-visible state.`);
-    if (!/:active/.test(masked)) push(at, "state-press", `${name}: no :active press state.`);
+    if (!/:focus-visible/.test(masked) && !usesMixin(raw, mixins.focus)) push(at, "state-focus", `${name}: no :focus-visible state.`);
+    if (!/:active/.test(masked) && !usesMixin(raw, mixins.press)) push(at, "state-press", `${name}: no :active press state.`);
   }
 }
 
@@ -338,7 +387,8 @@ function checkFile(rel) {
     if (tagged && !opensTagged && /`/.test(line)) tagged = false;
     if (depth < 0) depth = 0;
   });
-  for (const match of text.matchAll(TEMPLATE_START)) checkTemplate(rel, text, match, push);
+  const mixins = stateMixins(text);
+  for (const match of text.matchAll(TEMPLATE_START)) checkTemplate(rel, text, match, push, mixins);
   if (/(?:Skeleton\w*\.tsx|\/loading\.tsx)$/.test(rel) && !/Shimmer|Skeleton["']/.test(text)) {
     push(1, "skeleton-source", "Skeleton not built from ui/Shimmer or a surface skeleton.");
   }

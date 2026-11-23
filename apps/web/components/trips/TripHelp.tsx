@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import styled, { keyframes } from "styled-components";
-import { Check, QuestionCircle } from "@/components/icons";
+import { CheckCircle, QuestionCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
-import { HELP_TOPICS } from "@/lib/trips/copy";
+import { Chip } from "@/components/ui/Chip";
+import { HELP_TOPICS, type HelpViewer } from "@/lib/trips/copy";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { openSupportCaseAction } from "@/lib/support/actions";
 import type { Booking } from "@/lib/trips/types";
@@ -36,52 +37,6 @@ const Chips = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-`;
-
-const Chip = styled.button<{ $active: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  padding: 5px 10px;
-  border: 1.5px solid
-    ${({ $active }) =>
-      $active
-        ? nocturne.accent
-        : "color-mix(in oklab, var(--n-accent) 58%, transparent)"};
-  border-radius: 8px;
-  font: inherit;
-  font-size: 15px;
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  background: ${({ $active }) => ($active ? nocturne.accent : "transparent")};
-  color: ${({ $active }) => ($active ? nocturne.onGreen : nocturne.cream)};
-  transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease,
-    color 0.16s ease;
-
-  svg {
-    flex: none;
-    color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
-    transition: color 0.16s ease;
-  }
-  @media (hover: hover) {
-    &:hover {
-      border-color: ${nocturne.accent};
-      background: ${({ $active }) =>
-        $active ? nocturne.greenDeep : nocturne.surface2};
-      color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
-    }
-    &:hover svg {
-      color: ${({ $active }) => ($active ? nocturne.lime : nocturne.accent)};
-    }
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
-  }
 `;
 
 const unfold = keyframes`
@@ -136,10 +91,11 @@ const Done = styled.div`
   align-items: flex-start;
   gap: 12px;
   max-width: 62ch;
-  padding: 16px 18px;
-  border-radius: 14px;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.successContainer};
+  --icon-knockout: ${({ theme }) => theme.color.successContainer};
+  color: ${({ theme }) => theme.color.onSuccessContainer};
   font-size: 15px;
   font-weight: 600;
   line-height: 1.5;
@@ -147,11 +103,10 @@ const Done = styled.div`
   svg {
     flex: none;
     margin-top: 2px;
-    color: ${nocturne.lime};
   }
 `;
 
-export function TripHelp({ booking }: { booking: Booking }) {
+export function TripHelp({ booking, viewer }: { booking: Booking; viewer: HelpViewer }) {
   const { openCase, open } = useSupport();
   const [topic, setTopic] = useState<string | null>(null);
   const [detail, setDetail] = useState("");
@@ -159,7 +114,8 @@ export function TripHelp({ booking }: { booking: Booking }) {
   const [pending, startTransition] = useTransition();
 
   const existing = open.find((c) => c.booking_id === booking.id) ?? null;
-  const chosen = HELP_TOPICS.find((t) => t.key === topic) ?? null;
+  const topics = HELP_TOPICS.filter((t) => t.viewers.includes(viewer));
+  const chosen = topics.find((t) => t.key === topic) ?? null;
 
   function submit() {
     if (!chosen || pending) return;
@@ -187,8 +143,8 @@ export function TripHelp({ booking }: { booking: Booking }) {
     return (
       <Card>
         <h2>Report a problem</h2>
-        <Done>
-          <Check size={21} />
+        <Done role="status">
+          <CheckCircle size={20} weight="fill" aria-hidden />
           {existing.subject}: with support now
         </Done>
       </Card>
@@ -200,17 +156,19 @@ export function TripHelp({ booking }: { booking: Booking }) {
       <h2>Report a problem</h2>
 
       <Chips role="group" aria-label="What went wrong?">
-        {HELP_TOPICS.map((t) => {
+        {topics.map((t) => {
           const Icon = t.icon;
+          const selected = topic === t.key;
           return (
             <Chip
               key={t.key}
               type="button"
-              $active={topic === t.key}
-              aria-pressed={topic === t.key}
-              onClick={() => setTopic(topic === t.key ? null : t.key)}
+              $tone={t.tone}
+              $selected={selected}
+              aria-pressed={selected}
+              onClick={() => setTopic(selected ? null : t.key)}
             >
-              <Icon size={23} />
+              <Icon size={18} weight={selected ? "fill" : "regular"} aria-hidden />
               {t.subject}
             </Chip>
           );

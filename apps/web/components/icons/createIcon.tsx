@@ -22,8 +22,6 @@ export function createIcon(
   opts: { viewBox?: string } = {},
 ): KipitaIcon {
   const viewBox = opts.viewBox ?? "0 0 24 24";
-  // Keep the apparent stroke weight constant across grids: a 20-unit glyph
-  // needs a thinner stroke than a 24-unit one to look the same beside it.
   const span = Number(viewBox.split(/\s+/)[2]) || 24;
   const scale = span / 24;
 

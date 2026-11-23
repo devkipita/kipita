@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import styled from "styled-components";
 import { m, useAnimationControls } from "motion/react";
 import { ArrowRight, Bell, Checks, X } from "@/components/icons";
-import { MorphMenu, morphHead } from "@/components/ui/MorphMenu";
+import { MorphHeadBar, MorphMenu, morphHead } from "@/components/ui/MorphMenu";
 import { CountBadge } from "@/components/ui/CountBadge";
 import { RollingNumber } from "@/components/ui/Counter";
 import { Drawer, DrawerBody, DrawerFooter, useIsSheet } from "@/components/ui/Drawer";
@@ -110,29 +110,6 @@ const HeadTrigger = styled(Trigger)`
     }
     &[data-morph="open"] .glyph {
       transform: none;
-    }
-  }
-`;
-
-const HeadBar = styled.div`
-  position: absolute;
-  inset: 0 ${DOT + 8}px 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding-left: 8px;
-  opacity: 0;
-  transition: opacity ${dur.press} ${ease.exit};
-
-  &[data-open="true"] {
-    opacity: 1;
-    transition: opacity ${dur.state} ${ease.standard} ${dur.press};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &[data-open="true"] {
-      transition: opacity ${dur.state} ${ease.standard};
     }
   }
 `;
@@ -445,10 +422,10 @@ export function ActivityButton({ userId }: { userId: string }) {
           width={420}
           head={(shut, isOpen) => (
             <>
-              <HeadBar data-open={isOpen ? "true" : "false"}>
+              <MorphHeadBar data-open={isOpen ? "true" : "false"}>
                 {status === "ready" ? <Tally unread={unread} /> : <span />}
                 {markAll}
-              </HeadBar>
+              </MorphHeadBar>
               <HeadTrigger
                 type="button"
                 data-morph={isOpen ? "open" : "closed"}

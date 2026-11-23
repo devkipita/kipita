@@ -91,7 +91,7 @@ export function TripsSkeleton() {
     <Page $max={1080}>
       <Head>
         <HeadRow $open={false}>
-          <h1>Trips</h1>
+          <h1 data-bar-title="">Trips</h1>
         </HeadRow>
       </Head>
 
