@@ -1,14 +1,11 @@
+import { alertStatus } from "@kipita/shared";
+import type { AlertStatus } from "@kipita/shared";
 import type { Alert } from "./types";
 
-export const CLEARED_THRESHOLD = 3;
-
-export type AlertStatus = "active" | "unconfirmed" | "cleared";
-
-export function alertStatus(alert: Pick<Alert, "confirms_count" | "cleared_count">): AlertStatus {
-  if (alert.cleared_count >= CLEARED_THRESHOLD) return "cleared";
-  if (alert.confirms_count >= 1) return "active";
-  return "unconfirmed";
-}
+// When an alert counts as cleared is decided once, in @kipita/shared, so the feed, the
+// trending list and the Cleared label cannot disagree.
+export { CLEARED_THRESHOLD, alertStatus, clearedVotesLeft } from "@kipita/shared";
+export type { AlertStatus } from "@kipita/shared";
 
 export const STATUS_LABEL: Record<AlertStatus, string> = {
   active: "Active",

@@ -10,11 +10,15 @@ export type StoredDraft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others?: number;
   price: string;
   make: string;
   model: string;
   plate: string;
   color: string;
+  /** the car type the price was worked out for; empty means the default */
+  vehicleClass?: string;
   carMode?: "saved" | "new" | "none";
   prefs: Partial<Record<keyof RidePreferences, boolean>>;
   step?: number;

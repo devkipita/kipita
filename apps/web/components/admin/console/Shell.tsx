@@ -8,6 +8,7 @@ import {
   Bell,
   CaretRight,
   Grid,
+  HandCoins,
   Lifebuoy,
   MagnifyingGlass,
   QuestionCircle,
@@ -21,6 +22,7 @@ import {
   ArrowUUpLeft,
   Users,
   Wallet,
+  Warning,
 } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { createClient } from "@/lib/supabase/client";
@@ -367,7 +369,7 @@ export function ConsoleShell({
 }: {
   name: string;
   image?: string;
-  counts: { drivers: number; disputes: number };
+  counts: { drivers: number; disputes: number; problems: number; payouts: number };
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -379,6 +381,8 @@ export function ConsoleShell({
     { href: "/admin/drivers", label: "Drivers", icon: SealCheck, count: counts.drivers },
     { href: "/admin/payments", label: "Payments", icon: Wallet },
     { href: "/admin/pricing", label: "Pricing", icon: Tag },
+    { href: "/admin/problems", label: "Problems", icon: Warning, count: counts.problems },
+    { href: "/admin/payouts", label: "Payouts", icon: HandCoins, count: counts.payouts },
     { href: "/admin/disputes", label: "Disputes", icon: Shield, count: counts.disputes },
     { href: "/admin/events", label: "Events", icon: Ticket },
     { href: "/admin/users", label: "Users", icon: Users },

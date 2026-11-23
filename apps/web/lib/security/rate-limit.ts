@@ -71,6 +71,7 @@ export const LIMITS = {
   reserveSeat: { limit: 10, windowMs: 10 * 60 * 1000 },
   submitKyc: { limit: 5, windowMs: 60 * 60 * 1000 },
   postTrip: { limit: 5, windowMs: 60 * 60 * 1000 },
+  priceQuote: { limit: 40, windowMs: 60 * 1000 },
 
   signInIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
   signInIp: { limit: 30, windowMs: 15 * 60 * 1000 },
@@ -82,6 +83,7 @@ export const LIMITS = {
   otpSendIdentity: { limit: 4, windowMs: 30 * 60 * 1000 },
   otpSendIp: { limit: 12, windowMs: 30 * 60 * 1000 },
   otpVerifyIdentity: { limit: 8, windowMs: 15 * 60 * 1000 },
+  phoneVerifyDay: { limit: 6, windowMs: 24 * 60 * 60 * 1000 },
   proxyIp: { limit: 60, windowMs: 60 * 1000 },
 } as const;
 

@@ -34,7 +34,13 @@ export type PricingSettings = {
   fare_margin_percent: number;
   fare_wear_per_km: number;
   fare_min_seat_price: number;
+  fare_floor_percent: number;
   fare_round_step: number;
+  cancel_free_hours: number;
+  cancel_grace_minutes: number;
+  cancel_late_refund_percent: number;
+  no_show_wait_minutes: number;
+  no_show_dispute_hours: number;
 };
 
 export type FuelPriceRecord = {
@@ -343,11 +349,20 @@ const FIELDS: { key: keyof PricingSettings; hint: string; step: number; unit: st
   { key: "fare_margin_percent", hint: "How far above the cost share a driver may price", step: 1, unit: "%" },
   { key: "fare_wear_per_km", hint: "Wear and tear added to fuel, per km", step: 0.5, unit: "KES" },
   { key: "fare_min_seat_price", hint: "Lowest seat price a driver can list", step: 10, unit: "KES" },
+  { key: "fare_floor_percent", hint: "Lowest price a driver may ask, as a share of the recommended price", step: 5, unit: "%" },
   { key: "fare_round_step", hint: "Seat prices snap to this step", step: 5, unit: "KES" },
   { key: "hold_minutes", hint: "Time a passenger has to pay", step: 5, unit: "min" },
 ];
 
-const EDITABLE_KEYS: (keyof PricingSettings)[] = ["fee_on_top", ...FIELDS.map((f) => f.key)];
+const CANCEL_FIELDS: { key: keyof PricingSettings; hint: string; step: number; unit: string }[] = [
+  { key: "cancel_free_hours", hint: "A passenger can cancel free until this long before the ride", step: 1, unit: "hours" },
+  { key: "cancel_grace_minutes", hint: "Always free for this long after paying, even for a ride booked at short notice", step: 5, unit: "min" },
+  { key: "cancel_late_refund_percent", hint: "After that, the share of the seat price a passenger gets back. The driver keeps the rest", step: 5, unit: "%" },
+  { key: "no_show_wait_minutes", hint: "A driver can report a no-show this long after the departure time", step: 5, unit: "min" },
+  { key: "no_show_dispute_hours", hint: "How long a passenger has to dispute a no-show before the driver is paid", step: 1, unit: "hours" },
+];
+
+const EDITABLE_KEYS: (keyof PricingSettings)[] = ["fee_on_top", ...FIELDS.map((f) => f.key), ...CANCEL_FIELDS.map((f) => f.key)];
 
 type Period = { key: string; from: string; to: string; petrol: number | null; diesel: number | null };
 
@@ -665,6 +680,33 @@ export function PricingView({
           <Note>
             <Lock size={15} />
             Each booking keeps the fee it was made with. Only bookings made after saving use the new values.
+          </Note>
+          <p style={{ margin: "20px 0 2px", fontSize: 13, fontWeight: 800 }}>Cancellations and no-shows</p>
+          {CANCEL_FIELDS.map((f) => (
+            <SettingRow key={f.key}>
+              <span>
+                <strong>{SETTING_LABELS[f.key]}</strong>
+                <small>{f.hint}</small>
+              </span>
+              <Stepper>
+                <button type="button" aria-label={`Decrease ${SETTING_LABELS[f.key]}`} onClick={() => set(f.key, draft[f.key] - f.step)}>
+                  <Minus size={14} />
+                </button>
+                <input
+                  inputMode="decimal"
+                  aria-label={`${SETTING_LABELS[f.key]} in ${f.unit}`}
+                  value={draft[f.key]}
+                  onChange={(e) => set(f.key, Number(e.target.value))}
+                />
+                <button type="button" aria-label={`Increase ${SETTING_LABELS[f.key]}`} onClick={() => set(f.key, draft[f.key] + f.step)}>
+                  <Plus size={14} />
+                </button>
+              </Stepper>
+            </SettingRow>
+          ))}
+          <Note>
+            <Lock size={15} />
+            Cancellation settings apply to every booking cancelled after you save, including bookings made before.
           </Note>
           <Button $variant="green" style={{ width: "100%", marginTop: 14 }} disabled={changed.length === 0} onClick={() => setConfirm(true)}>
             {changed.length === 0 ? "No changes" : `Save ${changed.length} ${changed.length === 1 ? "change" : "changes"}`}

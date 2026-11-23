@@ -63,6 +63,15 @@ export const postTripSchema = z.object({
     .refine(isPlate, PLATE_ERROR)
     .optional(),
   vehicle_photo_url: z.string().url().max(500).optional(),
+  // The class of car the price was worked out for (hatch, sedan, ...). Only used to check the price.
+  vehicle_class: z
+    .string()
+    .regex(/^[a-z0-9_]+$/)
+    .max(40)
+    .optional(),
+  // People riding with the driver who are not booking a seat. They share the cost, so they lower the
+  // recommended price. Only used to check the price; it is not saved with the trip.
+  others_aboard: z.number().int().min(0).max(7).optional(),
 });
 
 export const postRequestSchema = z.object({

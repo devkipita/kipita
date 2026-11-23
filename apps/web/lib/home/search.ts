@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { departureInstant, kenyaClock } from "@kipita/shared";
 import type { RidePerson, RidePreferences } from "@/lib/ride-detail";
 
 /**
@@ -127,20 +128,16 @@ function coords(row: Record<string, unknown>): RouteCoords {
   };
 }
 
+/**
+ * A ride's date and time are Kenya time, so "has it left" never depends on the clock of the device
+ * asking. (This used to build a Date in the device's own zone, which put a Cape Town phone two
+ * hours off and let a ride that had left still show as bookable.)
+ */
 function parseDateTime(
   date: string | null | undefined,
   time: string | null | undefined,
 ): Date | null {
-  if (!date) return null;
-  const [y, m, d] = date.split("-").map(Number);
-  if (!y || !m || !d) return null;
-
-  const [hh = "00", mm = "00"] = (time ?? "00:00").split(":");
-  const hour = Number(hh);
-  const minute = Number(mm);
-  if (Number.isNaN(hour) || Number.isNaN(minute)) return null;
-
-  return new Date(y, m - 1, d, hour, minute, 0, 0);
+  return departureInstant(date, time);
 }
 
 function scheduleTarget(params?: SearchParams): Date {
@@ -160,11 +157,7 @@ export async function searchTrips(
   params: SearchParams = {},
 ): Promise<HomeTrip[]> {
   const target = scheduleTarget(params);
-  const today = [
-    target.getFullYear(),
-    String(target.getMonth() + 1).padStart(2, "0"),
-    String(target.getDate()).padStart(2, "0"),
-  ].join("-");
+  const today = kenyaClock(target).date;
 
   // Past rides must be excluded here: the page limit would otherwise be spent
   // on stale rows that the time filter below then throws away.

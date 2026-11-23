@@ -35,6 +35,7 @@ import { Avatar } from "@/components/profile/Avatar";
 import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
+import { OwnerBoarding } from "@/components/trips/Boarding";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { formatKes } from "@/lib/rides";
 import { bookingBreakdown } from "@/lib/platform";
@@ -1016,6 +1017,8 @@ export function RideDetailView({
             when={[date, time].filter(Boolean).join(" at ")}
           />
         )}
+
+        {ownerView && !awaiting && ride.seats_total - ride.seats_available > 0 && <OwnerBoarding tripId={ride.id} />}
 
         {ownerView && awaiting && <VerifyStatusCard compact context="ride" stage="pending" />}
 

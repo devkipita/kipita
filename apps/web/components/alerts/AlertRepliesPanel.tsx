@@ -15,6 +15,7 @@ import type { Alert } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { AlertReplies } from "./AlertReplies";
 import { CategoryBadge } from "./CategoryBadge";
+import { ClearedNote } from "./ClearedTag";
 import { useAlertsDock } from "./AlertsColumns";
 
 const Head = styled.header`
@@ -171,6 +172,7 @@ export function AlertRepliesPanel({
           </div>
           <h3>{place}</h3>
           <p>{current.content}</p>
+          <ClearedNote votes={current} />
         </Summary>
       }
     />

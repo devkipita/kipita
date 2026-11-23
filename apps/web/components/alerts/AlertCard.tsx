@@ -19,6 +19,9 @@ import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
 import { VerifiedMark } from "./VerifiedMark";
+import { ClearedTag } from "./ClearedTag";
+import { useIsUnseenAlert } from "@/lib/alerts/unseen";
+import { alertStatus } from "@/lib/alerts/status";
 
 const Shell = styled.article`
   position: relative;
@@ -53,6 +56,9 @@ const Media = styled.div`
   width: 100%;
   background: ${nocturne.surface3};
 
+  &[data-cleared="true"] img {
+    filter: grayscale(0.9);
+  }
   img {
     object-fit: cover;
   }
@@ -145,6 +151,24 @@ const Text = styled.p`
   color: ${nocturne.cream};
   overflow-wrap: anywhere;
   white-space: pre-line;
+
+  &[data-cleared="true"] {
+    color: ${nocturne.muted};
+  }
+`;
+
+const NewBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
 `;
 
 const Author = styled.div`
@@ -262,6 +286,8 @@ export function AlertCard({
   const image = outgoing?.preview ?? (isDisplayableImage(alert.image_url) ? alert.image_url : null);
   const mine = viewerId != null && alert.user_id === viewerId;
   const edited = wasEdited(alert);
+  const unseen = useIsUnseenAlert(alert.id);
+  const cleared = alertStatus(alert) === "cleared";
   const { place, road } = splitPlace(alert.location);
 
   const view = editing ? (
@@ -278,7 +304,7 @@ export function AlertCard({
   ) : (
     <>
       {image && (
-        <Media>
+        <Media data-cleared={cleared}>
           <Image
             src={image}
             alt=""
@@ -291,6 +317,8 @@ export function AlertCard({
       <Inner>
         <Head>
           <CategoryBadge category={alert.category} />
+          {cleared && <ClearedTag />}
+          {unseen && <NewBadge title="You haven't opened this alert yet">New</NewBadge>}
           <span className="meta">
             <time dateTime={alert.created_at}>{shortRelativeTime(alert.created_at)}</time>
             {edited && " · Edited"}
@@ -336,7 +364,7 @@ export function AlertCard({
           )}
         </Place>
 
-        <Text>{body}</Text>
+        <Text data-cleared={cleared}>{body}</Text>
 
         <Author>
           <Avatar name={author} src={alert.user?.avatar_url} size={24} />

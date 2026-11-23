@@ -2,7 +2,18 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
+import {
+  KENYAN_TOWNS,
+  POPULAR_ROUTES,
+  dateFromISO,
+  hasDeparted,
+  isEmptyDraft,
+  kenyaClock,
+  kenyaToday,
+  putNearTownFirst,
+  sameTown,
+  searchTowns,
+} from "@kipita/shared";
 import {
   CaretLeft,
   CaretRight,
@@ -31,6 +42,8 @@ import { clearDraft, loadDraft, saveDraft, withPrefill } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
+import { PriceStep } from "./PriceStep";
+import { carCapacityText, carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -42,7 +55,11 @@ type Draft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others: number;
   price: string;
+  /** the car type the price is worked out for; empty means the default */
+  vehicleClass: string;
   carMode: CarMode;
   savedPlate: string;
   make: string;
@@ -55,8 +72,7 @@ type Draft = {
 const STEPS = ["Destination", "Day", "Departure time", "Seats", "Price", "Car", "Ride details", "Review"] as const;
 
 const DAYS_AHEAD = 21;
-const FARES = [500, 800, 1200, 1600, 2000, 2500];
-const SEATS = [1, 2, 3, 4, 5, 6];
+const SEATS = [1, 2, 3, 4, 5, 6, 7, 8];
 const TIMES = ["06:00", "07:00", "07:30", "08:00", "09:00", "12:00", "15:00", "17:00", "18:00"];
 const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 /** Named with the paint beside it — a driver picks a colour by seeing it. */
@@ -105,7 +121,7 @@ function plusDays(base: Date, n: number) {
 
 function dayPhrase(value: string) {
   if (!value) return "";
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   if (value === iso(today)) return "today";
   if (value === iso(plusDays(today, 1))) return "tomorrow";
   const d = new Date(`${value}T00:00:00`);
@@ -143,7 +159,9 @@ function blankDraft(cars: SavedCar[]): Draft {
     date: "",
     time: "",
     seats: null,
+    others: 0,
     price: "",
+    vehicleClass: "",
     carMode: cars.length > 0 ? "saved" : "none",
     savedPlate: cars[0]?.plate ?? "",
     make: "",
@@ -957,7 +975,7 @@ export function PublishMobile({
   publishBeforeApproval?: boolean;
   prefill?: Prefill | null;
 }) {
-  const { kycStatus, requireKyc } = useAppMode();
+  const { kycStatus, requireKyc, requirePhone } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
   const willWait = kycStatus !== "approved" && !publishBeforeApproval;
 
@@ -1002,7 +1020,9 @@ export function PublishMobile({
         date: saved.date ?? "",
         time: saved.time ?? "",
         seats: saved.seats ?? null,
+        others: saved.others ?? 0,
         price: saved.price ?? "",
+        vehicleClass: saved.vehicleClass ?? "",
         carMode,
         savedPlate: known?.plate ?? base.savedPlate,
         make: carMode === "new" ? (saved.make ?? "") : "",
@@ -1059,7 +1079,9 @@ export function PublishMobile({
       date: draft.date,
       time: draft.time,
       seats: draft.seats,
+      others: draft.others,
       price: draft.price,
+      vehicleClass: draft.vehicleClass,
       carMode: draft.carMode,
       make: car?.make ?? "",
       model: car?.model ?? "",
@@ -1130,8 +1152,13 @@ export function PublishMobile({
   }
 
   const seats = draft.seats ?? 1;
+  // Never more than a trip can list with the seats offered.
+  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
   const car = carLine(draft, savedCars);
+  // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, others, enabled: ready && step >= 3 });
+  const priceBlock = priceBlockText(quote, seats, fare, others);
 
   function carProblem(): string | null {
     if (draft.carMode !== "new") return null;
@@ -1147,7 +1174,7 @@ export function PublishMobile({
     !!draft.date,
     !!draft.time,
     !!draft.seats,
-    fare > 0,
+    priceReady(quote, seats, fare, others),
     carProblem() === null,
     true,
     true,
@@ -1156,12 +1183,18 @@ export function PublishMobile({
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
       return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now())
+    if (hasDeparted(draft.date, draft.time))
       return draft.date < todayISO()
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     const car = carProblem();
-    return car ? { kind: "car", text: car } : null;
+    if (car) return { kind: "car", text: car };
+    const named = pickedCar(draft, savedCars);
+    const tooSmall = carCapacityText(quote, named?.make ?? "", named?.model ?? "", seats, others);
+    if (tooSmall) return { kind: "seats", text: tooSmall };
+    const carType = carTypeBlockText(quote, named?.make ?? "", named?.model ?? "");
+    if (carType) return { kind: "carType", text: carType };
+    return priceBlock ? { kind: "price", text: priceBlock } : null;
   }
 
   function fixBlock() {
@@ -1171,7 +1204,10 @@ export function PublishMobile({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
+    else if (kind === "seats") go(3);
+    else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
+    else if (kind === "phone") requirePhone(sendTrip);
     else publish();
   }
 
@@ -1197,7 +1233,9 @@ export function PublishMobile({
         departure_date: draft.date,
         departure_time: draft.time,
         seats_total: seats,
+        others_aboard: others,
         price_per_seat: fare,
+        vehicle_class: quote.status === "ready" ? quote.quote.vehicleClass : undefined,
         preferences: draft.prefs,
         vehicle_make: vehicle?.make.trim() || undefined,
         vehicle_model: vehicle?.model.trim() || undefined,
@@ -1320,8 +1358,7 @@ export function PublishMobile({
   }
 
   const calendar = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateFromISO(kenyaToday());
     const last = plusDays(today, DAYS_AHEAD - 1);
     const start = plusDays(today, -((today.getDay() + 6) % 7));
     const end = plusDays(last, 6 - ((last.getDay() + 6) % 7));
@@ -1343,7 +1380,7 @@ export function PublishMobile({
     return { cells, month, today: iso(today), tomorrow: iso(plusDays(today, 1)) };
   }, []);
 
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowMin = kenyaClock().minutes;
   const times = draft.date === calendar.today ? TIMES.filter((t) => minutesOf(t) > nowMin + 15) : TIMES;
 
   const ctaTone: "go" | "publish" | "off" = step === 7 ? "publish" : valid ? "go" : "off";
@@ -1533,27 +1570,17 @@ export function PublishMobile({
             {step === 4 && (
               <>
                 <Heading>Price per seat</Heading>
-                <Grid $cols={3}>
-                  {FARES.map((f) => (
-                    <Pick key={f} type="button" $on={fare === f} onClick={() => patch({ price: String(f) })}>
-                      {formatKes(f)}
-                    </Pick>
-                  ))}
-                </Grid>
-                <FieldLabel>
-                  <span className="soft">Or enter your own price</span>
-                  <Box $on={fare > 0 && !FARES.includes(fare)}>
-                    <span className="unit">KES</span>
-                    <input
-                      inputMode="numeric"
-                      value={FARES.includes(fare) || !fare ? "" : fare.toLocaleString("en-US")}
-                      placeholder="950"
-                      aria-label="Price per seat in Kenyan shillings"
-                      onChange={(e) => patch({ price: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-                      style={{ fontSize: 17, fontWeight: 700 }}
-                    />
-                  </Box>
-                </FieldLabel>
+                <PriceStep
+                  state={quote}
+                  seats={seats}
+                  others={others}
+                  price={draft.price}
+                  vehicleClass={draft.vehicleClass}
+                  onPrice={(price) => patch({ price })}
+                  onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
+                  onOthers={(count) => patch({ others: count })}
+                  onChangeSeats={() => go(3)}
+                />
               </>
             )}
 

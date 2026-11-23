@@ -266,7 +266,7 @@ export default function ChatPanel({
       const { data: id, error: rpcErr } = await supabase.rpc("booking_conversation", { p_booking_id: bookingId });
       if (!live) return;
       if (rpcErr || !id) {
-        setError(rpcErr?.code === "22023" ? "Messages open once the driver accepts." : "We couldn't open messages.");
+        setError(rpcErr?.code === "22023" ? rpcErr.message : "We couldn't open messages.");
         return;
       }
       setConv(id as string);
@@ -317,7 +317,7 @@ export default function ChatPanel({
       .single();
     setSending(false);
     if (err || !data) {
-      setError("That didn't send. Try again.");
+      setError(err?.code === "42501" ? "Chat is closed." : "That didn't send. Try again.");
       return;
     }
     if (!quick) setDraft("");

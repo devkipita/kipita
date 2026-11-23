@@ -14,7 +14,6 @@ import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { useConfirm } from "@/components/ui/ConfirmPop";
 import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
-import { releaseEscrowForAll } from "@/lib/escrow";
 import { SITE } from "@/lib/site";
 import { cancelTripAction } from "@/lib/trips/booking-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
@@ -323,7 +322,6 @@ export function PublishedTrips({
         setJob(null);
         return;
       }
-      await releaseEscrowForAll(result.bookingIds);
       setItems((prev) => prev.filter((t) => t.id !== trip.id));
       setBusy(null);
       setJob(null);

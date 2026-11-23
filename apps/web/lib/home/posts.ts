@@ -6,6 +6,7 @@ import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { postRequestSchema, postTripSchema } from "@/lib/validators/home";
 import type { PostRequestInput, PostTripInput } from "@/lib/validators/home";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
+import { checkTripPrice } from "@/lib/fare/quote.server";
 
 /**
  * Posting a trip or a ride request — the write half of the core Kipita loop.
@@ -19,7 +20,7 @@ import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
 export type PostResult =
   | { ok: true; kind: "trip" | "request"; id: string; awaiting?: boolean }
-  | { ok: false; error: string; fix?: "kyc" };
+  | { ok: false; error: string; fix?: "kyc" | "phone" };
 
 const PROFILE_NOT_READY =
   "Your profile isn't ready yet. Sign out and back in, then try again.";
@@ -151,6 +152,19 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       fix: "kyc",
     };
   }
+  // The database refuses this too (migration 075); asking here gives a clear message.
+  const { data: me } = await supabase
+    .from("users")
+    .select("phone_verified")
+    .eq("id", session.userId)
+    .maybeSingle();
+  if (!me?.phone_verified) {
+    return {
+      ok: false,
+      error: "Confirm your phone number to publish a ride.",
+      fix: "phone",
+    };
+  }
   let status: "posted" | "awaiting_approval" = "posted";
   if (kyc.status === "pending") {
     const { data: early } = await supabase.rpc("flag_enabled", {
@@ -164,6 +178,18 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (!Number.isFinite(leaves) || leaves <= Date.now()) {
     return { ok: false, error: "That departure time has already passed. Pick a later one." };
   }
+
+  const priceCheck = await checkTripPrice(supabase, {
+    from: trip.from_location,
+    to: trip.to_location,
+    seats: trip.seats_total,
+    priceKes: trip.price_per_seat,
+    vehicleClass: trip.vehicle_class,
+    vehicleMake: trip.vehicle_make,
+    vehicleModel: trip.vehicle_model,
+    othersAboard: trip.others_aboard,
+  });
+  if (!priceCheck.ok) return { ok: false, error: priceCheck.error };
 
   const vehicleId = await resolveVehicle(supabase, session.userId, trip);
 

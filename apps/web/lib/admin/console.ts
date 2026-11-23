@@ -140,12 +140,94 @@ export type ReportRow = {
   } | null;
 };
 
+export type AdminProblemKind =
+  | "never_picked_up"
+  | "not_dropped_off"
+  | "unsafe_driving"
+  | "asked_for_cash"
+  | "other"
+  | "manual_board";
+
+export type ProblemItem = {
+  id: string;
+  /** A passenger's report, or a driver marking a passenger on board by hand. */
+  source: "passenger" | "manual_board";
+  kind: AdminProblemKind;
+  note: string;
+  status: "open" | "resolved";
+  outcome: "clear" | "refund" | null;
+  resolved_note: string | null;
+  created_at: string;
+};
+
+/** One booking with everything open (or resolved) on it. Deciding resolves all of it at once. */
+export type ProblemRow = {
+  booking_id: string;
+  reference: string | null;
+  booking_status: string;
+  boarded_method: "code" | "manual" | "legacy" | null;
+  seats: number;
+  trip_id: string;
+  from: string;
+  to: string;
+  departure_date: string;
+  departure_time: string | null;
+  amount: number | null;
+  driver_earning: number | null;
+  escrow_status: string | null;
+  release_due_at: string | null;
+  passenger: { id: string; name: string | null; phone: string | null };
+  driver: { id: string; name: string | null; phone: string | null };
+  opened_at: string;
+  resolved_at: string | null;
+  problems: ProblemItem[];
+};
+
+/** One payment to make (migration 074). "request": money already taken from the wallet. "earnings": a driver's wallet balance. */
+export type PayoutLine = {
+  kind: "request" | "earnings";
+  withdrawal_id: string | null;
+  user_id: string;
+  name: string | null;
+  /** 2547XXXXXXXX, or null when the number on file is not usable. */
+  phone: string | null;
+  verified: boolean;
+  verified_via: string | null;
+  amount: number;
+  since: string | null;
+};
+
+export type PayoutWaitingReason = "account" | "phone";
+
+/** Owed money but cannot be paid yet. */
+export type PayoutWaiting = {
+  user_id: string;
+  name: string | null;
+  phone: string | null;
+  amount: number;
+  reason: PayoutWaitingReason;
+  since: string | null;
+};
+
+export type PayoutQueue = { lines: PayoutLine[]; waiting: PayoutWaiting[] };
+
+export type PayoutHistoryRow = {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  amount: number;
+  status: "paid" | "failed" | "cancelled";
+  receipt: string | null;
+  reason: string | null;
+  at: string | null;
+};
+
 export type AuditRow = {
   id: string;
   action: string;
   subject: string | null;
   subject_id: string | null;
-  detail: { from?: unknown; to?: unknown; petrol?: unknown; diesel?: unknown } | null;
+  detail: { from?: unknown; to?: unknown; petrol?: unknown; diesel?: unknown; amount?: unknown; receipt?: unknown; reason?: unknown } | null;
   created_at: string;
   actor: string | null;
   actor_avatar: string | null;
@@ -201,7 +283,13 @@ export const SETTING_LABELS: Record<string, string> = {
   fare_margin_percent: "Fare headroom (price cap)",
   fare_wear_per_km: "Wear and tear per km",
   fare_min_seat_price: "Lowest seat price",
+  fare_floor_percent: "Price floor (share of recommended)",
   fare_round_step: "Seat price rounding step",
+  cancel_free_hours: "Free cancellation closes before departure",
+  cancel_grace_minutes: "Free cancellation after paying",
+  cancel_late_refund_percent: "Late cancellation refund",
+  no_show_wait_minutes: "Wait before a no-show can be reported",
+  no_show_dispute_hours: "Time to dispute a no-show",
 };
 
 export function describeAction(row: AuditRow) {
@@ -225,6 +313,10 @@ export function describeAction(row: AuditRow) {
       return `Changed user status from ${String(from)} to ${String(to)}`;
     case "report.status":
       return `Moved case from ${String(from)} to ${String(to)}`;
+    case "payout.paid":
+      return `Marked KES ${String(row.detail?.amount ?? "")} paid, receipt ${String(row.detail?.receipt ?? "")}`;
+    case "payout.returned":
+      return `Returned KES ${String(row.detail?.amount ?? "")} to the wallet: ${String(row.detail?.reason ?? "")}`;
     default:
       return row.action;
   }

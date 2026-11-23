@@ -54,7 +54,6 @@ export default async function WalletPage() {
       transactions={wallet.transactions}
       withdrawals={wallet.withdrawals}
       mode={mode}
-      phone={profile.phone ?? null}
       payoutPhone={verifiedPayoutPhone(profile.phone, profile.phone_verified)}
     />
   );

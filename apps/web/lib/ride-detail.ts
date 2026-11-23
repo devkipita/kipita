@@ -1,3 +1,5 @@
+import { kenyaToday } from "@kipita/shared";
+
 /**
  * The ride a notification points at — either a driver's posted trip
  * (`ride_match`) or a passenger's open request (`request_match`).
@@ -85,17 +87,9 @@ export type RideDetail = TripDetail | RequestDetail;
 export function formatRideDate(date: string | null): string | null {
   if (!date) return null;
 
-  const iso = (d: Date) =>
-    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
-
-  const today = new Date();
-  if (date === iso(today)) return "Today";
-
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  if (date === iso(tomorrow)) return "Tomorrow";
+  // "Today" and "Tomorrow" are Kenya's days, whatever the device's clock says.
+  if (date === kenyaToday()) return "Today";
+  if (date === kenyaToday(1)) return "Tomorrow";
 
   return new Date(`${date}T00:00:00`).toLocaleDateString("en-KE", {
     weekday: "short",

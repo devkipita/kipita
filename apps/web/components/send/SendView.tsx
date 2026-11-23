@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import styled from "styled-components";
+import { kenyaToday } from "@kipita/shared";
 import {
   ArrowRight,
   CalendarBlank,
@@ -645,11 +646,9 @@ function initials(name: string | null): string {
 }
 
 function whenLabel(date: string, time: string | null): string {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = kenyaToday();
   const d = new Date(`${date}T00:00:00`);
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tom = tomorrow.toISOString().slice(0, 10);
+  const tom = kenyaToday(1);
 
   const day =
     date === today

@@ -19,7 +19,7 @@ const Art = styled.div`
   }
 `;
 
-const Title = styled.h3`
+export const Title = styled.h3`
   margin: 0;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 22px;
@@ -29,7 +29,7 @@ const Title = styled.h3`
   color: ${nocturne.cream};
 `;
 
-const Sub = styled.p`
+export const Sub = styled.p`
   margin: 6px 0 0;
   font-size: 15px;
   text-align: center;
@@ -37,20 +37,20 @@ const Sub = styled.p`
   font-variant-numeric: tabular-nums;
 `;
 
-const Label = styled.p`
+export const Label = styled.p`
   margin: 22px 0 8px;
   font-size: 13px;
   font-weight: 800;
   color: ${nocturne.muted};
 `;
 
-const Chips = styled.div`
+export const Chips = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
 `;
 
-const Chip = styled.button<{ $on: boolean }>`
+export const Chip = styled.button<{ $on: boolean }>`
   min-height: 36px;
   padding: 0 14px;
   border: 0;
@@ -75,14 +75,14 @@ const Chip = styled.button<{ $on: boolean }>`
   }
 `;
 
-const Err = styled.p`
+export const Err = styled.p`
   margin: 14px 0 0;
   font-weight: 700;
   text-align: center;
   color: ${nocturne.danger};
 `;
 
-const Btn = styled.button<{ $danger?: boolean }>`
+export const Btn = styled.button<{ $danger?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -113,8 +113,16 @@ const Btn = styled.button<{ $danger?: boolean }>`
   }
 `;
 
+const Detail = styled.p`
+  margin: 8px 0 0;
+  font-size: 14px;
+  text-align: center;
+  color: ${nocturne.muted};
+`;
+
 export function CancelPanel({
   money,
+  detail,
   refund,
   busy,
   error,
@@ -122,6 +130,8 @@ export function CancelPanel({
   onCancel,
 }: {
   money: string;
+  /** Second line under the amount: when free cancellation ended, where the rest goes. */
+  detail?: string | null;
   refund: boolean;
   busy: boolean;
   error: string;
@@ -138,6 +148,7 @@ export function CancelPanel({
         </Art>
         <Title>Cancel this ride?</Title>
         <Sub>{money}</Sub>
+        {detail && <Detail>{detail}</Detail>}
         <Label>Why are you cancelling?</Label>
         <Chips role="radiogroup" aria-label="Reason for cancelling">
           {REASONS.map((r) => (

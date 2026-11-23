@@ -1,4 +1,5 @@
 import "server-only";
+import { kenyaToday } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import type { Capacity } from "./types";
 
@@ -16,7 +17,7 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 export async function fetchOpenCapacity(limit = 12): Promise<Capacity[]> {
   try {
     const supabase = await createClient();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = kenyaToday();
     const { data, error } = await supabase
       .from("send_capacity")
       .select(CAPACITY_SELECT)

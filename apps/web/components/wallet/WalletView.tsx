@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -33,7 +33,6 @@ import { pressable } from "@/components/ui/interactions";
 import { dur, nocturne } from "@/lib/nocturne";
 import type { AppMode } from "@/lib/home/mode";
 import { LedgerArt } from "./LedgerArt";
-import { TopUpDrawer } from "./TopUpDrawer";
 import { WithdrawDrawer } from "./WithdrawDrawer";
 
 const ROLL_MS = parseInt(dur.max, 10);
@@ -120,13 +119,6 @@ const actionBase = `
   font: inherit;
   font-size: 1rem;
   font-weight: 700;
-`;
-
-const TopUp = styled.button`
-  ${actionBase}
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  ${pressable()}
 `;
 
 const Withdraw = styled.button`
@@ -349,23 +341,19 @@ export function WalletView({
   transactions,
   withdrawals,
   mode,
-  phone,
   payoutPhone,
 }: {
   summary: WalletSummary;
   transactions: WalletTransaction[];
   withdrawals: WalletWithdrawal[];
   mode: AppMode;
-  phone?: string | null;
   payoutPhone: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [topUpOpen, setTopUpOpen] = useState(false);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const refresh = useCallback(() => {
-    setTopUpOpen(false);
     setWithdrawOpen(false);
     startTransition(() => router.refresh());
   }, [router]);
@@ -398,10 +386,6 @@ export function WalletView({
             </div>
           </div>
           <Actions>
-            <TopUp type="button" onClick={() => setTopUpOpen(true)}>
-              <Plus size={20} weight="bold" />
-              Top up
-            </TopUp>
             <Withdraw type="button" onClick={() => setWithdrawOpen(true)}>
               <HandCoins size={20} />
               Withdraw
@@ -444,7 +428,7 @@ export function WalletView({
               <span className="value">
                 {formatKes(summary.pending_earnings)}
               </span>
-              <span className="note">Lands in your balance when you end the ride.</span>
+              <span className="note">Lands in your balance when there is no dispute.</span>
             </Tile>
           )}
 
@@ -470,7 +454,7 @@ export function WalletView({
           <Empty>
             <LedgerArt />
             <b>Nothing here yet</b>
-            <span>Top-ups, holds and payouts show up here.</span>
+            <span>Holds, refunds and payouts show up here.</span>
           </Empty>
         ) : (
           <Ledger>
@@ -501,12 +485,6 @@ export function WalletView({
         )}
       </Section>
 
-      <TopUpDrawer
-        open={topUpOpen}
-        defaultPhone={phone}
-        onClose={() => setTopUpOpen(false)}
-        onToppedUp={refresh}
-      />
       <WithdrawDrawer
         open={withdrawOpen}
         summary={summary}

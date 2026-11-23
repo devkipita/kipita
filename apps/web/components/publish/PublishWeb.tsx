@@ -3,7 +3,18 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { KENYAN_TOWNS, POPULAR_ROUTES, isEmptyDraft, putNearTownFirst, sameTown, searchTowns } from "@kipita/shared";
+import {
+  KENYAN_TOWNS,
+  POPULAR_ROUTES,
+  dateFromISO,
+  hasDeparted,
+  isEmptyDraft,
+  kenyaClock,
+  kenyaToday,
+  putNearTownFirst,
+  sameTown,
+  searchTowns,
+} from "@kipita/shared";
 import {
   ArrowRight,
   CalendarBlank,
@@ -28,6 +39,8 @@ import { clearDraft, loadDraft, saveDraft, withPrefill } from "./draft";
 import { DiscardDialog } from "./DiscardDialog";
 import { blockOf, PublishBlocker, type Block } from "./PublishBlocker";
 import { VerifyStatusCard } from "./VerifyStatus";
+import { PriceStep } from "./PriceStep";
+import { carCapacityText, carTypeBlockText, priceBlockText, priceReady, usePriceQuote } from "./price";
 
 type PrefKey = keyof RidePreferences;
 type Prefs = Record<PrefKey, boolean>;
@@ -40,13 +53,16 @@ type Draft = {
   date: string;
   time: string;
   seats: number | null;
+  /** people riding with the driver who are not booking a seat; they share the cost */
+  others: number;
   price: string;
+  /** the car type the price is worked out for; empty means the default */
+  vehicleClass: string;
   prefs: Prefs;
 };
 
 const STEPS = ["Destination", "Day", "Departure time", "Seats", "Price", "Car", "Ride details", "Review"] as const;
 const DAYS_AHEAD = 21;
-const FARES = [1000, 1500, 2000, 2500];
 const SEATS = [1, 2, 3, 4, 5, 6, 7, 8];
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MAJOR = ["Nairobi", "Nakuru", "Nyeri", "Nanyuki", "Naivasha", "Thika", "Eldoret", "Kisumu", "Mombasa", "Meru", "Machakos"];
@@ -98,7 +114,7 @@ function shortDay(value: string) {
 
 function dayPhrase(value: string) {
   if (!value) return "";
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   if (value === iso(today)) return "today";
   if (value === iso(plusDays(today, 1))) return "tomorrow";
   return `on ${shortDay(value)}`;
@@ -107,7 +123,7 @@ function dayPhrase(value: string) {
 function pillDay(value: string) {
   if (!value) return "";
   const d = new Date(`${value}T00:00:00`);
-  const today = new Date();
+  const today = dateFromISO(kenyaToday());
   const lead =
     value === iso(today)
       ? "Today"
@@ -152,7 +168,9 @@ function blankDraft(): Draft {
     date: "",
     time: "",
     seats: null,
+    others: 0,
     price: "",
+    vehicleClass: "",
     prefs: { no_smoking: true, pets: false, luggage: true, music: true, silent_ride: false },
   };
 }
@@ -857,50 +875,6 @@ const Solid = styled.button`
   ${ring}
 `;
 
-const Hollow = styled.button`
-  height: 46px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1.5px solid ${nocturne.line};
-  background: ${nocturne.surface};
-  color: ${nocturne.cream};
-  font: inherit;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  ${ring}
-`;
-
-const Money = styled.div`
-  display: flex;
-  align-items: stretch;
-  height: 56px;
-  border: 1.5px solid ${nocturne.green};
-  border-radius: 14px;
-  overflow: hidden;
-
-  .unit {
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    background: ${nocturne.surface3};
-    font-weight: 800;
-    color: ${nocturne.green};
-  }
-  input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    font: inherit;
-    font-size: 18px;
-    font-weight: 700;
-    padding: 0 16px;
-    color: ${nocturne.cream};
-  }
-`;
-
 const Review = styled.section`
   display: flex;
   flex-direction: column;
@@ -985,7 +959,6 @@ export function PublishWeb({
   userId,
   savedCars = [],
   publishBeforeApproval = false,
-  driverName = "",
   prefill = null,
 }: {
   userId: string;
@@ -994,10 +967,8 @@ export function PublishWeb({
   driverName?: string;
   prefill?: Prefill | null;
 }) {
-  const { kycStatus, requireKyc } = useAppMode();
-  const verified = kycStatus === "approved";
+  const { kycStatus, requireKyc, requirePhone } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
-  const [awaiting, setAwaiting] = useState(false);
 
   const initialCars: CarRow[] = savedCars.map((c) => ({ make: c.make, model: c.model, plate: c.plate, color: c.color ?? "" }));
   const savedPlates = savedCars.map((c) => c.plate).join(",");
@@ -1016,7 +987,6 @@ export function PublishWeb({
   const [adding, setAdding] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
   const [timeOpen, setTimeOpen] = useState(false);
-  const [fareOpen, setFareOpen] = useState(false);
   const [block, setBlock] = useState<Block | null>(null);
   const [pending, startTransition] = useTransition();
   const sentenceRef = useRef<HTMLParagraphElement>(null);
@@ -1036,7 +1006,9 @@ export function PublishWeb({
         date: saved.date ?? "",
         time: saved.time ?? "",
         seats: saved.seats ?? null,
+        others: saved.others ?? 0,
         price: saved.price ?? "",
+        vehicleClass: saved.vehicleClass ?? "",
         prefs: { ...base.prefs, ...saved.prefs },
       });
       if (saved.time) setPeriod(periodOf(saved.time));
@@ -1111,16 +1083,15 @@ export function PublishWeb({
   }, [step]);
 
   useEffect(() => {
-    if (!calOpen && !timeOpen && !fareOpen) return;
+    if (!calOpen && !timeOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       setCalOpen(false);
       setTimeOpen(false);
-      setFareOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [calOpen, timeOpen, fareOpen]);
+  }, [calOpen, timeOpen]);
 
   function patch(next: Partial<Draft>) {
     setDraft((d) => ({ ...d, ...next }));
@@ -1167,7 +1138,6 @@ export function PublishWeb({
     setAdding(false);
     setCalOpen(false);
     setTimeOpen(false);
-    setFareOpen(false);
     setDiscardOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
     window.setTimeout(() => sentenceRef.current?.focus({ preventScroll: true }), 0);
@@ -1175,14 +1145,19 @@ export function PublishWeb({
 
   const choosingFrom = editFrom || !draft.from;
   const seats = draft.seats ?? 1;
+  // Never more than a trip can list with the seats offered.
+  const others = Math.min(draft.others, Math.max(0, 8 - seats));
   const fare = Number(draft.price) || 0;
+  // Looked up as soon as the seats step is reached, so the price is ready when the driver gets to it.
+  const quote = usePriceQuote({ from: draft.from, to: draft.to, vehicleClass: draft.vehicleClass, seats, others, enabled: ready && step >= 3 });
+  const priceBlock = priceBlockText(quote, seats, fare, others);
 
   const valid = [
     !!draft.from && !!draft.to && draft.from.toLowerCase() !== draft.to.toLowerCase(),
     !!draft.date,
     !!draft.time,
     !!draft.seats,
-    fare > 0,
+    priceReady(quote, seats, fare, others),
     !adding,
     true,
     true,
@@ -1191,13 +1166,16 @@ export function PublishWeb({
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
       return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
-    if (new Date(`${draft.date}T${draft.time}:00`).getTime() <= Date.now()) {
-      const now = new Date();
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-      return draft.date < today
+    if (hasDeparted(draft.date, draft.time)) {
+      return draft.date < kenyaToday()
         ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
         : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
     }
+    const tooSmall = carCapacityText(quote, car?.make ?? "", car?.model ?? "", seats, others);
+    if (tooSmall) return { kind: "seats", text: tooSmall };
+    const carType = carTypeBlockText(quote, car?.make ?? "", car?.model ?? "");
+    if (carType) return { kind: "carType", text: carType };
+    if (priceBlock) return { kind: "price", text: priceBlock };
     return null;
   }
 
@@ -1208,7 +1186,10 @@ export function PublishWeb({
     else if (kind === "day") go(1);
     else if (kind === "time") go(2);
     else if (kind === "car") go(5);
+    else if (kind === "seats") go(3);
+    else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
+    else if (kind === "phone") requirePhone(sendTrip);
     else publish();
   }
 
@@ -1233,7 +1214,9 @@ export function PublishWeb({
         departure_date: draft.date,
         departure_time: draft.time,
         seats_total: seats,
+        others_aboard: others,
         price_per_seat: fare,
+        vehicle_class: quote.status === "ready" ? quote.quote.vehicleClass : undefined,
         preferences: draft.prefs,
         vehicle_make: car?.make.trim() || undefined,
         vehicle_model: car?.model.trim() || undefined,
@@ -1376,8 +1359,7 @@ export function PublishWeb({
   }
 
   const calendar = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dateFromISO(kenyaToday());
     const last = plusDays(today, DAYS_AHEAD - 1);
     const start = plusDays(today, -((today.getDay() + 6) % 7));
     const end = plusDays(last, 6 - ((last.getDay() + 6) % 7));
@@ -1396,7 +1378,7 @@ export function PublishWeb({
 
   const exact = draft.time || "07:30";
   const exactLabel = prettyTime(exact);
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
+  const nowMin = kenyaClock().minutes;
   const isToday = draft.date === calendar.today;
   const def = PERIODS.find((p) => p.key === period)!;
   const slots: string[] = [];
@@ -1409,13 +1391,12 @@ export function PublishWeb({
 
   const laterDay = !!draft.date && draft.date !== calendar.today && draft.date !== calendar.tomorrow;
   const quickHit = QUICK_TIMES.includes(draft.time);
-  const customFare = fare > 0 && !FARES.includes(fare);
   const reviewing = step === 7;
 
   // A chip answer moves the flow on by itself, so the button only earns its
   // place where there is nothing to tap, or where the driver is going back
   // over an answer they already gave.
-  const showCta = step === 5 || step === 6 || (valid && step < maxStep);
+  const showCta = step === 4 || step === 5 || step === 6 || (valid && step < maxStep);
   const ctaTone: "go" | "off" = valid ? "go" : "off";
 
 
@@ -1654,16 +1635,17 @@ export function PublishWeb({
                 <FieldHead>
                   <span>Price per seat</span>
                 </FieldHead>
-                <Row>
-                  {FARES.map((f) => (
-                    <Chip key={f} type="button" $on={fare === f} onClick={() => { patch({ price: String(f) }); go(5); }}>
-                      {formatKes(f)}
-                    </Chip>
-                  ))}
-                  <Chip type="button" $on={customFare} onClick={() => setFareOpen(true)}>
-                    {customFare ? formatKes(fare) : "Other amount"}
-                  </Chip>
-                </Row>
+                <PriceStep
+                  state={quote}
+                  seats={seats}
+                  others={others}
+                  price={draft.price}
+                  vehicleClass={draft.vehicleClass}
+                  onPrice={(price) => patch({ price })}
+                  onVehicleClass={(vehicleClass) => patch({ vehicleClass })}
+                  onOthers={(count) => patch({ others: count })}
+                  onChangeSeats={() => go(3)}
+                />
               </Field>
             )}
 
@@ -1821,42 +1803,6 @@ export function PublishWeb({
                 }}
               >
                 Done
-              </Solid>
-            </DialogFoot>
-          </Dialog>
-        </Backdrop>
-      )}
-
-      {fareOpen && (
-        <Backdrop onClick={() => setFareOpen(false)}>
-          <Dialog $w={380} role="dialog" aria-modal="true" aria-label="Your price per seat" onClick={(e) => e.stopPropagation()}>
-            <DialogHead>
-              <label htmlFor="fare">Your price per seat</label>
-            </DialogHead>
-            <Money>
-              <span className="unit">KES</span>
-              <input
-                id="fare"
-                autoFocus
-                inputMode="numeric"
-                placeholder="Enter amount"
-                value={fare > 0 ? fare.toLocaleString("en-US") : ""}
-                onChange={(e) => patch({ price: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-              />
-            </Money>
-            <DialogFoot style={{ justifyContent: "flex-end", borderTop: 0, paddingTop: 0 }}>
-              <Hollow type="button" onClick={() => setFareOpen(false)}>
-                Cancel
-              </Hollow>
-              <Solid
-                type="button"
-                onClick={() => {
-                  if (fare <= 0) return;
-                  setFareOpen(false);
-                  go(5);
-                }}
-              >
-                Use this price
               </Solid>
             </DialogFoot>
           </Dialog>

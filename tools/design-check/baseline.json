@@ -16,7 +16,7 @@
     "inline-style": 4
   },
   "apps/web/components/admin/FaqManager.tsx": {
-    "off-grid": 6,
+    "off-grid": 7,
     "tiny-text": 1,
     "uppercase": 1,
     "window-confirm": 1,
@@ -88,13 +88,27 @@
     "tiny-text": 1,
     "inline-style": 1
   },
+  "apps/web/components/admin/console/PayoutsView.tsx": {
+    "off-grid": 8,
+    "tiny-text": 2,
+    "uppercase": 1,
+    "inline-style": 14,
+    "raw-count": 5
+  },
   "apps/web/components/admin/console/PricingView.tsx": {
     "off-grid": 7,
     "tiny-text": 10,
     "uppercase": 1,
     "hex": 1,
-    "inline-style": 8,
-    "tiny-icon": 8
+    "inline-style": 9,
+    "tiny-icon": 11
+  },
+  "apps/web/components/admin/console/ProblemsView.tsx": {
+    "off-grid": 11,
+    "tiny-text": 2,
+    "uppercase": 1,
+    "tiny-icon": 1,
+    "raw-count": 1
   },
   "apps/web/components/admin/console/Shell.tsx": {
     "off-grid": 15,
@@ -163,9 +177,7 @@
     "state-press": 1
   },
   "apps/web/components/auth/SignInForm.tsx": {
-    "off-grid": 4,
-    "tiny-icon": 1,
-    "state-press": 1
+    "off-grid": 2
   },
   "apps/web/components/auth/SignUpForm.tsx": {
     "off-grid": 2,
@@ -209,6 +221,12 @@
     "tiny-icon": 5,
     "state-press": 6,
     "state-focus": 1
+  },
+  "apps/web/components/driver/PhoneGate.tsx": {
+    "rgb": 2,
+    "literal-motion": 2,
+    "off-grid": 2,
+    "state-press": 1
   },
   "apps/web/components/help/HelpContent.tsx": {
     "hex": 11,
@@ -255,7 +273,8 @@
     "state-press": 1
   },
   "apps/web/components/home/RequestRideDrawer.tsx": {
-    "off-grid": 5,
+    "off-grid": 10,
+    "uppercase": 1,
     "state-focus": 2,
     "state-press": 2
   },
@@ -472,6 +491,13 @@
     "off-grid": 2,
     "tiny-icon": 2
   },
+  "apps/web/components/profile/PhoneCard.tsx": {
+    "state-focus": 1,
+    "state-press": 1
+  },
+  "apps/web/components/profile/PhoneVerifyFlow.tsx": {
+    "tiny-icon": 1
+  },
   "apps/web/components/profile/ProfileSkeleton.tsx": {
     "off-grid": 10
   },
@@ -499,6 +525,13 @@
     "state-focus": 2,
     "state-press": 2
   },
+  "apps/web/components/publish/PriceStep.tsx": {
+    "off-grid": 11,
+    "uppercase": 2,
+    "chip-size": 2,
+    "state-focus": 3,
+    "state-press": 3
+  },
   "apps/web/components/publish/PublishArt.tsx": {
     "literal-motion": 3
   },
@@ -516,7 +549,7 @@
     "uppercase": 2,
     "rgb": 3,
     "layout-transition": 1,
-    "inline-style": 4,
+    "inline-style": 3,
     "tiny-icon": 1,
     "state-focus": 9,
     "state-press": 9,
@@ -534,11 +567,11 @@
     "uppercase": 1,
     "rgb": 5,
     "tiny-text": 1,
-    "inline-style": 2,
+    "inline-style": 1,
     "tiny-icon": 2,
     "chip-outline": 1,
-    "state-focus": 16,
-    "state-press": 15,
+    "state-focus": 15,
+    "state-press": 14,
     "chip-pill": 2,
     "chip-size": 4
   },
@@ -607,6 +640,12 @@
     "hover-ungated": 3,
     "state-focus": 2
   },
+  "apps/web/components/trips/Boarding.tsx": {
+    "off-grid": 9,
+    "tiny-icon": 3,
+    "state-focus": 2,
+    "state-press": 1
+  },
   "apps/web/components/trips/CancelArt.tsx": {
     "literal-motion": 4
   },
@@ -634,7 +673,11 @@
     "state-press": 1
   },
   "apps/web/components/trips/PayPanel.tsx": {
+    "off-grid": 1,
     "literal-motion": 1
+  },
+  "apps/web/components/trips/ProblemPanel.tsx": {
+    "off-grid": 1
   },
   "apps/web/components/trips/RateRide.tsx": {
     "off-grid": 7,

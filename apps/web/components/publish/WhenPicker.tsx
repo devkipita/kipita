@@ -11,6 +11,7 @@ import styled from "styled-components";
 import { CalendarBlank, CaretLeft, CaretRight, Minus, Plus } from "@/components/icons";
 import { MonthCalendar } from "@/components/home/MonthCalendar";
 import { RollingNumber } from "@/components/ui/Counter";
+import { kenyaToday } from "@kipita/shared";
 import { nocturne } from "@/lib/nocturne";
 import { Choice, Choices, RULE, TextAction } from "./controls";
 
@@ -19,15 +20,13 @@ const PRESETS = ["06:00", "07:30", "09:00", "12:00", "15:00", "18:00"];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/** Today in Kenya, whatever the device's own clock says (a ride's day is a Kenya day). */
 export function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return kenyaToday();
 }
 
 function isoFor(offset: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return kenyaToday(offset);
 }
 
 export function prettyTime(value: string) {

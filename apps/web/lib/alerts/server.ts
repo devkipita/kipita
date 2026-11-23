@@ -1,3 +1,4 @@
+import { alertStatus } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAlert, fetchAlertComments, fetchAlerts } from "./api";
 import type { Alert, AlertCategory, AlertComment } from "./types";
@@ -117,8 +118,11 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
       if (!road) continue;
 
       const category = (row.category as string) ?? "general";
-      const cleared = Number(row.cleared_count ?? 0);
-      if (cleared >= 3) continue;
+      const votes = {
+        confirms_count: Number(row.confirms_count ?? 0),
+        cleared_count: Number(row.cleared_count ?? 0),
+      };
+      if (alertStatus(votes) === "cleared") continue;
 
       const ageHours = Math.max(
         0,
@@ -126,7 +130,7 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
       );
       // Halve the weight roughly every 6 hours.
       const recency = 1 / (1 + ageHours / 6);
-      const corroboration = 1 + Number(row.confirms_count ?? 0) * 0.5;
+      const corroboration = 1 + votes.confirms_count * 0.5;
       const score = (WEIGHT[category] ?? 1) * recency * corroboration;
 
       const key = road.toLowerCase();

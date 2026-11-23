@@ -15,6 +15,7 @@ import { usePathname, useRouter } from "next/navigation";
 import type { KycStatus } from "@/lib/driver/kyc";
 import styled from "styled-components";
 import { DriverKycForm, readKycProgress } from "@/components/driver/DriverKycForm";
+import { PhoneGate } from "@/components/driver/PhoneGate";
 import { DriverInvite } from "@/components/driver/DriverInvite";
 import { SupportDock } from "@/components/support/SupportDock";
 import { SupportProvider } from "@/components/support/SupportProvider";
@@ -41,6 +42,7 @@ type ModeContext = {
   driverReady: boolean;
   kycStatus: KycStatus;
   requireKyc: (after?: () => void) => void;
+  requirePhone: (after?: () => void) => void;
 };
 
 const Ctx = createContext<ModeContext | null>(null);
@@ -136,6 +138,21 @@ export function AppShell({
     setDriverReady(initialKycStatus !== "not_submitted");
   }
   const [kycOpen, setKycOpen] = useState(false);
+  // Driver verification needs a verified phone number. The database enforces it;
+  // this asks for the number first so the form is never filled in for nothing.
+  const [phoneGateOpen, setPhoneGateOpen] = useState(false);
+  const [phoneVerifiedHere, setPhoneVerifiedHere] = useState(false);
+  const phoneVerified = Boolean(profile?.phone_verified) || phoneVerifiedHere;
+  // Set when only the number is wanted (an approved driver publishing), not the verification form after it.
+  const [phoneOnly, setPhoneOnly] = useState(false);
+  const afterPhone = useRef<(() => void) | null>(null);
+  const openKyc = useCallback(() => {
+    if (phoneVerified) setKycOpen(true);
+    else {
+      setPhoneOnly(false);
+      setPhoneGateOpen(true);
+    }
+  }, [phoneVerified]);
   const [inviteOpen, setInviteOpen] = useState(false);
   const afterKyc = useRef<(() => void) | null>(null);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -152,16 +169,32 @@ export function AppShell({
       window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
     }
     if (!canApply) return;
-    if (readKycProgress(profileId)?.open) setKycOpen(true);
+    if (readKycProgress(profileId)?.open) openKyc();
     else if (invited) setInviteOpen(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileId]);
 
   const closeInvite = useCallback(() => setInviteOpen(false), []);
-  const requireKyc = useCallback((after?: () => void) => {
-    afterKyc.current = typeof after === "function" ? after : null;
-    setKycOpen(true);
-  }, []);
+  const requireKyc = useCallback(
+    (after?: () => void) => {
+      afterKyc.current = typeof after === "function" ? after : null;
+      openKyc();
+    },
+    [openKyc],
+  );
+
+  const requirePhone = useCallback(
+    (after?: () => void) => {
+      if (phoneVerified) {
+        after?.();
+        return;
+      }
+      afterPhone.current = typeof after === "function" ? after : null;
+      setPhoneOnly(true);
+      setPhoneGateOpen(true);
+    },
+    [phoneVerified],
+  );
 
   const items = useMemo(
     () => primaryNavFor(mode, Boolean(profile)),
@@ -184,8 +217,8 @@ export function AppShell({
   }, []);
 
   const ctx = useMemo<ModeContext>(
-    () => ({ mode, setMode, driverReady, kycStatus, requireKyc }),
-    [mode, setMode, driverReady, kycStatus, requireKyc],
+    () => ({ mode, setMode, driverReady, kycStatus, requireKyc, requirePhone }),
+    [mode, setMode, driverReady, kycStatus, requireKyc, requirePhone],
   );
 
   const counts = useNavCounts(profile?.id ?? null, mode);
@@ -202,7 +235,7 @@ export function AppShell({
       collapsed={false}
       driverReady={driverReady}
       onModeChange={setMode}
-      onKycRequired={() => setKycOpen(true)}
+      onKycRequired={openKyc}
     />
   ) : null;
 
@@ -241,7 +274,32 @@ export function AppShell({
         onLater={closeInvite}
         onYes={() => {
           setInviteOpen(false);
+          openKyc();
+        }}
+      />
+
+      <PhoneGate
+        open={phoneGateOpen}
+        initialPhone={profile?.phone ?? null}
+        onClose={() => {
+          afterKyc.current = null;
+          afterPhone.current = null;
+          setPhoneOnly(false);
+          setPhoneGateOpen(false);
+        }}
+        onVerified={() => {
+          setPhoneVerifiedHere(true);
+          setPhoneGateOpen(false);
+          if (phoneOnly) {
+            const after = afterPhone.current;
+            afterPhone.current = null;
+            setPhoneOnly(false);
+            router.refresh();
+            after?.();
+            return;
+          }
           setKycOpen(true);
+          router.refresh();
         }}
       />
 

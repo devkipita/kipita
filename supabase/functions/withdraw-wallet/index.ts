@@ -32,14 +32,19 @@ serve(async (req) => {
 
     const { data: me } = await supabase
       .from('users')
-      .select('id, phone')
+      .select('id, phone, phone_verified')
       .eq('auth_id', authUid)
       .single();
     if (!me) return json({ error: 'Profile not found' }, 404);
 
     const body = await req.json();
     const value = Number(body?.amount);
-    const phone = normalisePhone(String(body?.phone ?? me.phone ?? ''));
+    // Payouts go only to the number verified on the account, never to a number sent in
+    // the request. A changed number must be verified again first.
+    if (!me.phone_verified) {
+      return json({ error: 'Verify your phone number in your profile before withdrawing.' }, 403);
+    }
+    const phone = normalisePhone(String(me.phone ?? ''));
 
     if (!Number.isFinite(value) || value < MIN_WITHDRAWAL) {
       return json({ error: `The smallest withdrawal is KES ${MIN_WITHDRAWAL}.` }, 400);
