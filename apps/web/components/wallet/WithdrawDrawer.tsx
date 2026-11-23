@@ -88,9 +88,11 @@ const PaidTo = styled.div`
 `;
 
 const Status = styled.div`
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
   gap: 14px;
   padding: 26px 24px 36px;
@@ -379,6 +381,7 @@ export function WithdrawDrawer({
       dismissible={!busy}
       initialFocusRef={payoutPhone && !belowMinimum ? amountRef : undefined}
       size="sm"
+      side
       title="Withdraw to M-Pesa"
       footer={footer()}
     >

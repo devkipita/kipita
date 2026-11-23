@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import {
@@ -12,12 +12,13 @@ import {
   type WalletTransaction,
   type WalletWithdrawal,
 } from "@kipita/shared";
-import { ArrowDownLeft, ArrowUpRight, Clock, HandCoins, Lock, ShieldCheck, TrendUp, Wallet } from "@/components/icons";
+import { ArrowDownLeft, ArrowUpRight, Clock, Lock, ShieldCheck, TrendUp, Wallet } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { RollingNumber } from "@/components/ui/Counter";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { AppMode } from "@/lib/home/mode";
 import { LedgerArt } from "./LedgerArt";
+import { TopUpDrawer } from "./TopUpDrawer";
 import { WithdrawDrawer } from "./WithdrawDrawer";
 
 const ROLL_MS = parseInt(dur.max, 10);
@@ -134,95 +135,54 @@ const Hero = styled.section`
   }
 `;
 
-const Split = styled.div`
+const Moves = styled.div`
+  display: flex;
+  gap: 24px;
+`;
+
+const Move = styled.button<{ $kind: "in" | "out" }>`
   display: grid;
-  gap: 12px;
-
-  .bar {
-    display: flex;
-    gap: 4px;
-    height: 10px;
-  }
-  .bar span {
-    min-width: 6px;
-    border-radius: 999px;
-  }
-  .legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px 24px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-  .legend li {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    color: ${nocturne.onGreenMuted};
-  }
-  .legend b {
-    font-weight: 800;
-    color: ${nocturne.onGreen};
-    font-variant-numeric: tabular-nums;
-  }
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-  .avail {
-    background: ${nocturne.lime};
-  }
-  .held {
-    background: ${({ theme }) => theme.tone.amber.bg};
-  }
-  .wait {
-    background: ${({ theme }) => theme.tone.blue.bg};
-  }
-`;
-
-const Seg = styled.span.attrs<{ $grow: number }>(({ $grow }) => ({
-  style: { flexGrow: $grow },
-}))`
-  flex-basis: 0;
-`;
-
-const Withdraw = styled.button`
-  display: inline-flex;
-  align-items: center;
-  justify-self: start;
+  justify-items: center;
   gap: 8px;
-  min-height: 52px;
-  padding: 0 24px;
+  padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
+  background: transparent;
+  color: ${nocturne.onGreen};
   font: inherit;
-  font-size: 16px;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  transition:
-    box-shadow ${dur.state} ${ease.standard},
-    transform ${dur.press} ${ease.standard};
+
+  .ring {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: ${({ $kind }) => ($kind === "in" ? nocturne.lime : nocturne.ctaBg)};
+    color: ${({ $kind }) => ($kind === "in" ? nocturne.greenDeep : nocturne.ctaFg)};
+    transition:
+      box-shadow ${dur.state} ${ease.standard},
+      transform ${dur.press} ${ease.standard};
+  }
 
   @media (hover: hover) and (pointer: fine) {
-    &:hover {
+    &:hover .ring {
       box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.ink} 10%, transparent);
     }
   }
-  &:active {
-    transform: scale(0.97);
+  &:active .ring {
+    transform: scale(0.94);
   }
   &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible .ring {
     outline: 3px solid ${nocturne.lime};
     outline-offset: 3px;
   }
   @media (prefers-reduced-motion: reduce) {
-    &:active {
+    &:active .ring {
       transform: none;
     }
   }
@@ -367,27 +327,28 @@ const Chip = styled.button<{ $on: boolean }>`
 
 const Ledger = styled.div`
   display: grid;
-  overflow: hidden;
-  border-radius: 24px;
-  background: ${nocturne.surface};
+  gap: 20px;
+`;
+
+const DayCard = styled.section`
+  display: grid;
+  gap: 8px;
 `;
 
 const Day = styled.h3`
   margin: 0;
-  padding: 16px 20px 8px;
+  padding: 0 4px;
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: ${nocturne.muted};
-
-  &:not(:first-child) {
-    box-shadow: inset 0 1px 0 ${nocturne.line};
-  }
 `;
 
 const Rows = styled.ul`
+  display: grid;
+  gap: 8px;
   margin: 0;
-  padding: 0 8px 8px;
+  padding: 0;
   list-style: none;
 `;
 
@@ -396,8 +357,9 @@ const Row = styled.li<{ $flow: Flow }>`
   align-items: center;
   gap: 16px;
   min-width: 0;
-  padding: 12px;
-  border-radius: 16px;
+  padding: 12px 16px;
+  border-radius: 20px;
+  background: ${nocturne.surface};
   transition: background-color ${dur.state} ${ease.standard};
 
   @media (hover: hover) and (pointer: fine) {
@@ -541,10 +503,12 @@ export function WalletView({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
 
   const refresh = useCallback(() => {
     setWithdrawOpen(false);
+    setDepositOpen(false);
     startTransition(() => router.refresh());
   }, [router]);
 
@@ -557,7 +521,6 @@ export function WalletView({
   const balance = Math.round(summary.balance);
   const held = Math.round(summary.in_escrow);
   const waiting = Math.round(summary.pending_earnings);
-  const total = balance + held + waiting;
   const showWaiting = isDriver || waiting > 0;
   const showEarned = isDriver || summary.lifetime_earnings > 0;
 
@@ -599,36 +562,20 @@ export function WalletView({
             </div>
           </div>
 
-          {total > 0 ? (
-            <Split>
-              <div className="bar" aria-hidden>
-                {balance > 0 ? <Seg className="avail" $grow={balance} /> : null}
-                {held > 0 ? <Seg className="held" $grow={held} /> : null}
-                {waiting > 0 ? <Seg className="wait" $grow={waiting} /> : null}
-              </div>
-              <ul className="legend">
-                <li>
-                  <span className="dot avail" aria-hidden />
-                  Available <b>{formatKes(balance)}</b>
-                </li>
-                <li>
-                  <span className="dot held" aria-hidden />
-                  Held <b>{formatKes(held)}</b>
-                </li>
-                {showWaiting ? (
-                  <li>
-                    <span className="dot wait" aria-hidden />
-                    Waiting <b>{formatKes(waiting)}</b>
-                  </li>
-                ) : null}
-              </ul>
-            </Split>
-          ) : null}
-
-          <Withdraw type="button" onClick={() => setWithdrawOpen(true)}>
-            <HandCoins size={20} />
-            Withdraw to M-Pesa
-          </Withdraw>
+          <Moves>
+            <Move type="button" $kind="in" onClick={() => setDepositOpen(true)}>
+              <span className="ring" aria-hidden>
+                <ArrowDownLeft size={24} weight="bold" />
+              </span>
+              Deposit
+            </Move>
+            <Move type="button" $kind="out" onClick={() => setWithdrawOpen(true)}>
+              <span className="ring" aria-hidden>
+                <ArrowUpRight size={24} weight="bold" />
+              </span>
+              Withdraw
+            </Move>
+          </Moves>
         </Hero>
 
         <Stack>
@@ -705,7 +652,7 @@ export function WalletView({
         ) : (
           <Ledger>
             {days.map((group) => (
-              <Fragment key={group.key}>
+              <DayCard key={group.key} aria-label={group.label}>
                 <Day>{group.label}</Day>
                 <Rows>
                   {group.items.map((txn) => {
@@ -733,12 +680,18 @@ export function WalletView({
                     );
                   })}
                 </Rows>
-              </Fragment>
+              </DayCard>
             ))}
           </Ledger>
         )}
       </Section>
 
+      <TopUpDrawer
+        open={depositOpen}
+        defaultPhone={payoutPhone}
+        onClose={() => setDepositOpen(false)}
+        onToppedUp={refresh}
+      />
       <WithdrawDrawer
         open={withdrawOpen}
         summary={summary}
