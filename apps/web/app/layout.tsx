@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { NetworkStatus } from "@/components/ui/NetworkStatus";
+import { AppUpdate } from "@/components/ui/AppUpdate";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.websiteUrl),
@@ -69,6 +70,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: nocturneLight["--n-bg"] },
     { media: "(prefers-color-scheme: dark)", color: nocturneDark["--n-bg"] },
@@ -84,6 +86,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={landingFonts}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <body>
@@ -92,6 +95,7 @@ export default function RootLayout({
           <ThemeProvider>
             {children}
             <NetworkStatus />
+            <AppUpdate />
             <ConsentBanner />
           </ThemeProvider>
         </StyledRegistry>

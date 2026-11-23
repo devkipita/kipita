@@ -2,67 +2,82 @@ import styled, { css, keyframes } from "styled-components";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export const HelpPanel = styled.div`
-  border-bottom: 1px solid ${nocturne.line2};
-
-  > * {
-    border-top: 1px solid ${nocturne.line2};
-  }
+  display: grid;
+  gap: 4px;
 `;
 
-export const rowLook = css`
+export const rowPress = css`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: 12px;
   width: 100%;
-  min-height: 76px;
-  padding: 18px 0;
+  min-height: 48px;
+  padding: 12px;
   border: 0;
-  background: transparent;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: clamp(18px, 2vw, 22px);
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.surfaceContainerLowest};
+  font: inherit;
+  font-size: 15px;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  line-height: 20px;
   text-align: left;
   text-decoration: none;
   color: ${nocturne.cream};
   cursor: pointer;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
   svg {
     flex: none;
-    color: ${nocturne.cream};
+    color: ${nocturne.muted};
     transition: transform ${dur.state} ${ease.standard};
   }
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      color: ${nocturne.green};
+      background-color: color-mix(in oklab, ${nocturne.cream} 6%, ${({ theme }) => theme.color.surfaceContainerLowest});
     }
-    &:hover svg {
-      color: ${nocturne.green};
-    }
+  }
+  &:active {
+    transform: scale(0.98);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 4px;
-    border-radius: 6px;
+    outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
     svg {
       transition: none;
     }
+    &:active {
+      transform: none;
+    }
   }
 `;
 
-const unfold = keyframes`
-  from { opacity: 0; transform: translateY(-6px); }
-  to { opacity: 1; transform: none; }
+export const Unfold = styled.div<{ $open: boolean }>`
+  display: grid;
+  grid-template-rows: ${({ $open }) => ($open ? "1fr" : "0fr")};
+  transition: grid-template-rows ${dur.state} ${ease.standard};
+
+  > div {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
-export const Unfold = styled.div`
-  padding: 0 0 24px;
-  max-width: 68ch;
-  animation: ${unfold} ${dur.enter} ${ease.enter};
+const fade = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+export const FadeIn = styled.div`
+  animation: ${fade} ${dur.enter} ${ease.enter};
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

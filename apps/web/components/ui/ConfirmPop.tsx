@@ -135,6 +135,7 @@ function ConfirmLayer({ open, onDone }: { open: Open; onDone: (ok: boolean) => v
   return createPortal(
     <Pop
       ref={ref}
+      data-overlay=""
       role="alertdialog"
       aria-modal="false"
       aria-labelledby="confirm-pop-title"

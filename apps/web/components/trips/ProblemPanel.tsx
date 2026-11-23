@@ -4,7 +4,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { nocturne } from "@/lib/nocturne";
-import { PROBLEM_KINDS, type ProblemKind } from "@/lib/trips/boarding-actions";
+import { PROBLEM_KINDS, type ProblemKind } from "@/lib/trips/problems";
 import { PanelBody, PanelFoot } from "./SidePanel";
 import { Btn, Chip, Chips, Err, Label, Sub, Title } from "./CancelPanel";
 
@@ -38,9 +38,11 @@ export function ProblemPanel({
   error,
   onBack,
   onSend,
+  held = true,
 }: {
   busy: boolean;
   error: string;
+  held?: boolean;
   onBack: () => void;
   onSend: (kind: ProblemKind, note: string) => void;
 }) {
@@ -52,7 +54,7 @@ export function ProblemPanel({
     <>
       <PanelBody>
         <Title>What went wrong?</Title>
-        <Sub>We hold the fare while we look into it.</Sub>
+        <Sub>{held ? "We hold the fare while we look into it." : "We look into every report and tell you what we decide."}</Sub>
         <Label>What happened?</Label>
         <Chips role="radiogroup" aria-label="What went wrong">
           {PROBLEM_KINDS.map((k) => (

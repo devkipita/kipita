@@ -177,6 +177,16 @@ export const ACCOUNT_NAV: NavItem[] = [
     owns: ["/trips", "/ride"],
   },
   {
+    key: "notifications",
+    href: "/notifications",
+    label: "Notifications",
+    shortLabel: "Inbox",
+    icon: Bell,
+    requiresAuth: true,
+    badge: "notifications",
+    owns: ["/notifications"],
+  },
+  {
     key: "alerts",
     href: "/alerts",
     label: "Road alerts",
@@ -212,7 +222,7 @@ export const ACCOUNT_NAV: NavItem[] = [
     requiresAuth: true,
     owns: ["/profile"],
   },
-  { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
+  { key: "help", href: "/help", label: "Help and support", shortLabel: "Help", icon: LifeBuoy },
   { key: "legal", href: "/legal", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 
@@ -235,7 +245,7 @@ export const SECONDARY_NAV: NavItem[] = [
     requiresAuth: true,
     owns: ["/referrals"],
   },
-  { key: "help", href: "/help", label: "Help & FAQ", shortLabel: "Help", icon: LifeBuoy },
+  { key: "help", href: "/help", label: "Help and support", shortLabel: "Help", icon: LifeBuoy },
   { key: "legal", href: "/legal", label: "Legal", shortLabel: "Legal", icon: Document },
 ];
 

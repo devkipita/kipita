@@ -5,98 +5,125 @@ import { formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { FinishArt } from "./FinishArt";
 
-const fade = keyframes`
+const rise = keyframes`
   from { opacity: 0; transform: translate3d(0, 8px, 0); }
   to { opacity: 1; transform: none; }
 `;
 
 const Wrap = styled.section`
-  position: relative;
+  --ink: ${({ theme }) => (theme.mode === "light" ? nocturne.greenDeep : nocturne.cream)};
   display: grid;
-  align-content: start;
-  justify-items: center;
-  gap: 6px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 24px;
   height: 100%;
-  padding: 44px 20px 16px;
-  background:
-    radial-gradient(120% 70% at 50% 0%, color-mix(in oklab, ${nocturne.lime} 38%, ${nocturne.surface}) 0%, ${nocturne.surface} 70%);
-  text-align: center;
-  overflow-y: auto;
+  padding: 48px 40px 32px;
+  background: ${nocturne.surface};
+  color: var(--ink);
 
-  @media (min-width: 900px) {
-    align-content: center;
-    gap: 16px;
-    padding: 72px 28px 32px;
+  @media (max-width: 899px) {
+    gap: 8px;
+    padding: 16px 16px 32px;
   }
 `;
 
-const Art = styled.div`
-  width: min(216px, 56%);
+const Window = styled.div`
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
 
-  @media (min-width: 900px) {
-    width: min(340px, 70%);
+  .art {
+    width: min(620px, 100%);
+  }
+
+  @media (max-width: 899px) {
+    .art {
+      width: auto;
+      height: 100%;
+      max-height: 170px;
+      aspect-ratio: 420 / 260;
+    }
+    .art svg {
+      width: 100%;
+      height: 100%;
+    }
   }
 `;
 
 const Copy = styled.div`
   display: grid;
-  gap: 4px;
-  animation: ${fade} ${dur.enter} ${ease.enter} 160ms both;
+  gap: 16px;
+  animation: ${rise} ${dur.enter} ${ease.enter} both;
 
   h2 {
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(22px, 3vw, 32px);
+    font-size: clamp(24px, 2.6vw, 32px);
     font-weight: 800;
-    letter-spacing: -0.03em;
     line-height: 1.15;
-    color: ${nocturne.cream};
+    letter-spacing: -0.03em;
+    text-wrap: balance;
   }
   p {
-    margin: 0;
-    font-size: 15px;
+    margin: -8px 0 0;
+    font-size: 16px;
+    font-weight: 600;
     color: ${nocturne.muted};
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
+  ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 32px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
-`;
-
-const Stats = styled.dl`
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 0;
-  animation: ${fade} ${dur.enter} ${ease.enter} 240ms both;
-
-  div {
-    display: grid;
-    gap: 1px;
-    min-width: 92px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: ${nocturne.surface};
-    box-shadow: ${nocturne.cardShadow};
-  }
-  dt {
-    order: 2;
-    font-size: 12px;
-    font-weight: 700;
+  li {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
     color: ${nocturne.muted};
   }
-  dd {
-    order: 1;
-    margin: 0;
+  b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 18px;
+    font-size: 28px;
     font-weight: 800;
+    line-height: 32px;
     letter-spacing: -0.02em;
-    color: ${nocturne.cream};
+    color: var(--ink);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
+  .money b {
+    color: ${nocturne.green};
+  }
 
+  @media (max-width: 899px) {
+    gap: 8px;
+
+    h2 {
+      font-size: 20px;
+      line-height: 24px;
+    }
+    p {
+      margin: 0;
+      font-size: 14px;
+    }
+    ul {
+      gap: 4px 16px;
+    }
+    li {
+      gap: 4px;
+      font-size: 14px;
+    }
+    b {
+      font-size: 20px;
+      line-height: 24px;
+    }
+  }
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
@@ -119,41 +146,56 @@ export function FinishScene({
   amount,
   seats,
   isDriver,
+  passengers,
+  passengerName,
 }: {
   destination: string;
   startedAt: string | null;
   completedAt: string | null;
-  amount: number;
+  amount: number | null;
   seats: number;
   isDriver: boolean;
+  passengers?: number;
+  passengerName?: string;
 }) {
   const time = duration(startedAt, completedAt);
+  const headline = !isDriver
+    ? `You made it to ${destination}`
+    : passengers != null && passengers !== 1
+      ? `You delivered ${passengers} passengers to ${destination}`
+      : `You delivered ${passengerName || "your passenger"} to ${destination}`;
 
   return (
     <Wrap aria-label="Trip complete">
-      <Art>
-        <FinishArt />
-      </Art>
       <Copy>
-        <h2>{isDriver ? `You delivered your passenger to ${destination}` : `You made it to ${destination}`}</h2>
+        <h2>{headline}</h2>
         <p>{isDriver ? "Paid when there is no dispute" : "Thanks for riding with Kipita"}</p>
+        <ul>
+          {amount != null ? (
+            <li className="money">
+              <b>{formatCurrency(amount)}</b>
+              {isDriver ? "to you" : "paid"}
+            </li>
+          ) : null}
+          {time ? (
+            <li>
+              <b>{time}</b>
+              on the road
+            </li>
+          ) : null}
+          {seats > 0 ? (
+            <li>
+              <b>{seats}</b>
+              {seats === 1 ? "seat" : "seats"}
+            </li>
+          ) : null}
+        </ul>
       </Copy>
-      <Stats>
-        <div>
-          <dt>{isDriver ? "to you" : "paid"}</dt>
-          <dd>{formatCurrency(amount)}</dd>
+      <Window>
+        <div className="art">
+          <FinishArt destination={destination} />
         </div>
-        {time ? (
-          <div>
-            <dt>on the road</dt>
-            <dd>{time}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt>{seats === 1 ? "seat" : "seats"}</dt>
-          <dd>{seats}</dd>
-        </div>
-      </Stats>
+      </Window>
     </Wrap>
   );
 }

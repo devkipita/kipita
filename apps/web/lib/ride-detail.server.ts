@@ -14,7 +14,7 @@ const PERSON_COLUMNS =
 const TRIP_SELECT = `
   id, from_location, to_location, departure_date, departure_time,
   seats_total, seats_available, price_per_seat, preferences, status,
-  description, pickup_point, dropoff_point,
+  description,
   driver:users!driver_id ( ${PERSON_COLUMNS} ),
   vehicle:vehicles!vehicle_id ( make, model, year, color, plate_number )
 `;
@@ -79,8 +79,6 @@ async function fetchTrip(supabase: Supabase, id: string): Promise<TripDetail | n
     preferences: (row.preferences as RidePreferences) ?? {},
     status: (row.status as string) ?? "posted",
     description: (row.description as string | null) ?? null,
-    pickup_point: (row.pickup_point as string | null) ?? null,
-    dropoff_point: (row.dropoff_point as string | null) ?? null,
     driver: one(row.driver as RidePerson | RidePerson[] | null),
     vehicle: one(row.vehicle as RideVehicle | RideVehicle[] | null),
   };

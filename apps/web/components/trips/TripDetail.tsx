@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { ArrowLeft, ChatCircle, Check, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareNetwork, Star, X } from "@/components/icons";
+import { ArrowLeft, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, Phone, SealCheck, ShareForward, Star, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
-import { reportProblemAction, type ProblemKind } from "@/lib/trips/boarding-actions";
+import { reportProblemAction } from "@/lib/trips/boarding-actions";
+import type { ProblemKind } from "@/lib/trips/problems";
 import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
 import { LiveStatus, useLiveEta } from "./LiveCard";
@@ -36,6 +37,9 @@ import { NoShowPanel } from "./NoShowPanel";
 import { ProblemPanel } from "./ProblemPanel";
 import { BoardingPanel, PickupCodeCard, SlideToComplete, earningsLine, useBoarding } from "./Boarding";
 import { FinishScene } from "./FinishScene";
+import { useSplitLayout } from "./MapSheet";
+import { PersonCard } from "@/components/rides/PersonCard";
+import { Drawer, DrawerBody, SIDE_PUSH, useRoomy } from "@/components/ui/Drawer";
 import { RateRide } from "./RateRide";
 import { PayPanel } from "./PayPanel";
 import { PANEL_IN, PANEL_IN_MS, PANEL_OUT, SidePanel, type PanelMode } from "./SidePanel";
@@ -44,10 +48,11 @@ import { useConfirm } from "@/components/ui/ConfirmPop";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { Chip, STATUS } from "./BookingCard";
 import { TripHelp } from "./TripHelp";
+import { StoppedTrip } from "./StoppedTrip";
 
 const DESK = "@media (min-width: 861px)";
 
-const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: boolean }>`
+const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: boolean; $split?: boolean }>`
   padding-block: 0 64px;
   padding-left: max(16px, var(--page-pad), env(safe-area-inset-left));
   padding-right: max(16px, var(--page-pad), env(safe-area-inset-right));
@@ -59,7 +64,7 @@ const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: b
     padding-bottom: calc(48px + var(--bottom-bar-space, 0px));
   }
 
-  ${({ $map, $side, $squeeze }) =>
+  ${({ $map, $side, $squeeze, $split }) =>
     $map &&
     css`
       @media (min-width: 900px) {
@@ -73,6 +78,9 @@ const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: b
       }
       @media (min-width: 900px) and (prefers-reduced-motion: reduce) {
         transition: none;
+      }
+      @media (min-width: 900px) {
+        ${$split ? "grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr) minmax(320px, 420px);" : ""}
       }
       @media (max-width: 899px) {
         min-height: calc(100dvh - var(--topbar-h, 56px) - var(--bottom-bar-space, 0px));
@@ -107,7 +115,12 @@ const Bar = styled.header<{ $map?: boolean }>`
   }
 
   @media (max-width: 960px) {
+    min-height: 0;
     padding-top: 0;
+
+    > a {
+      display: none;
+    }
   }
 `;
 
@@ -168,13 +181,13 @@ const Share = styled.button<{ $done: boolean }>`
 
 const Grid = styled.div<{ $single?: boolean }>`
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin-top: 18px;
 
   ${DESK} {
     grid-template-columns: ${({ $single }) => ($single ? "minmax(0, 1fr)" : "minmax(0, 1fr) 380px")};
     align-items: start;
-    gap: ${({ $single }) => ($single ? "14px" : "20px")};
+    gap: ${({ $single }) => ($single ? "16px" : "20px")};
   }
 `;
 
@@ -183,7 +196,7 @@ const Col = styled.div<{ $single?: boolean }>`
 
   ${DESK} {
     display: ${({ $single }) => ($single ? "contents" : "grid")};
-    gap: 14px;
+    gap: 16px;
   }
 `;
 
@@ -219,7 +232,7 @@ const MapTop = styled.div`
   left: 12px;
   right: 12px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   pointer-events: none;
 
   > * {
@@ -316,6 +329,116 @@ const SheetBody = styled.div<{ $map: boolean }>`
   }
 `;
 
+const Dock = styled.aside`
+  order: 3;
+  position: sticky;
+  top: calc(var(--topbar-h, 64px) + 16px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  max-height: calc(100dvh - var(--topbar-h, 64px) - 32px);
+  margin-top: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const TimelineRow = styled.button<{ $order?: number }>`
+  order: ${({ $order }) => $order ?? 0};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 16px 20px;
+  border: 0;
+  border-radius: 20px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  span {
+    display: grid;
+    gap: 2px;
+  }
+  b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+  }
+  small {
+    font-size: 14px;
+    color: ${nocturne.muted};
+  }
+  svg {
+    flex: none;
+    color: ${nocturne.muted};
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const FareCard = styled.section<{ $order?: number }>`
+  order: ${({ $order }) => $order ?? 0};
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: ${({ theme }) => theme.tone.amber.bg};
+  color: ${({ theme }) => theme.tone.amber.on};
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: inherit;
+  }
+  dl dt {
+    color: color-mix(in oklab, ${({ theme }) => theme.tone.amber.on} 78%, transparent);
+    font-weight: 600;
+  }
+  dl dd,
+  dl .total dt {
+    color: ${({ theme }) => theme.tone.amber.on};
+  }
+  dl .total {
+    border-top-color: color-mix(in oklab, ${({ theme }) => theme.tone.amber.on} 16%, transparent);
+  }
+
+  ${DESK} {
+    padding: 24px;
+  }
+`;
+
 const LiveWrap = styled.div`
   margin-top: 8px;
 `;
@@ -343,7 +466,6 @@ const Card = styled.section<{ $order?: number }>`
   }
 `;
 
-/** Places a card that has its own styling into the same ordered column as the local cards. */
 const Slot = styled.div<{ $order: number }>`
   order: ${({ $order }) => $order};
 `;
@@ -454,14 +576,30 @@ const Hint = styled.p<{ $warn?: boolean; $order?: number }>`
   margin: 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background: ${({ $warn }) => ($warn ? "color-mix(in oklab, var(--n-cta-bg) 14%, transparent)" : nocturne.green)};
-  color: ${({ $warn }) => ($warn ? nocturne.cream : nocturne.onGreen)};
+  background: ${({ $warn }) =>
+    $warn ? "color-mix(in oklab, var(--n-cta-bg) 14%, transparent)" : `color-mix(in oklab, ${nocturne.cream} 8%, transparent)`};
+  color: ${nocturne.cream};
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 
   svg {
     flex: none;
+  }
+`;
+
+const Settled = styled.p<{ $pending?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: inherit;
+
+  svg {
+    flex: none;
+    color: ${({ theme, $pending }) => ($pending ? "currentColor" : theme.color.success)};
   }
 `;
 
@@ -629,6 +767,10 @@ const Steps = styled.ol`
   li[data-state="done"] {
     color: ${nocturne.cream};
   }
+  li[data-state="next"] {
+    color: ${nocturne.muted2};
+    font-weight: 600;
+  }
   li[data-state="done"] .dot {
     border-color: ${nocturne.green};
     background: ${nocturne.green};
@@ -716,26 +858,16 @@ const RoundAct = styled.button`
   }
 `;
 
-function when(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const yesterday = new Date(now.getTime() - 86400000).toDateString() === d.toDateString();
-  if (sameDay) return d.toLocaleTimeString("en-KE", { hour: "numeric", minute: "2-digit" });
-  if (yesterday) return "Yesterday";
-  return d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-}
-
 const Booked = styled.p`
   display: flex;
   align-items: center;
   gap: 10px;
   margin: 14px 0 0;
   padding: 12px 16px;
-  border-radius: 14px;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
-  font-weight: 800;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.color.successContainer};
+  color: ${({ theme }) => theme.color.onSuccessContainer};
+  font-weight: 700;
 `;
 
 const Help = styled.div`
@@ -747,12 +879,23 @@ const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "comp
 const RIDER_STEPS = ["Request sent", "Driver accepted", "Paid", "On the way", "Arrived"];
 const DRIVER_STEPS = ["Request received", "You accepted", "Passenger paid", "On the way", "Arrived"];
 
-/** "Tue, 8:00 pm" in Nairobi time. */
 function whenLabel(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("en-KE", {
     weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi",
+  }).format(d);
+}
+
+function stampLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-KE", {
+    day: "numeric",
+    month: "short",
     hour: "numeric",
     minute: "2-digit",
     timeZone: "Africa/Nairobi",
@@ -778,6 +921,7 @@ export function TripDetail({
   walletBalance,
   cancelConfig,
   noShow,
+  cancelledBy,
   journey,
   route,
 }: {
@@ -786,9 +930,8 @@ export function TripDetail({
   viewerPhone?: string | null;
   walletBalance: number | null;
   cancelConfig: CancellationConfig;
-  /** Null when migration 063 has not run yet. */
   noShow: NoShowState | null;
-  /** Pickup code, boarding and problem report. Empty when migration 070 has not run. */
+  cancelledBy: string | null;
   journey: JourneyState;
   route: Promise<TripRoute | null>;
 }) {
@@ -808,7 +951,8 @@ export function TripDetail({
   const name = person?.full_name || "Kipita user";
   const origin = booking.trip?.from_location ?? "Pickup to confirm";
   const destination = booking.trip?.to_location ?? "Drop-off to confirm";
-  const status = STATUS[booking.status];
+  const status =
+    isDriver && booking.status === "confirmed" ? { ...STATUS.confirmed, label: "Passenger paid" } : STATUS[booking.status];
   const live = booking.status === "in_progress";
   const due = booking.status === "pending_payment";
   const paid = booking.status === "confirmed";
@@ -879,17 +1023,6 @@ export function TripDetail({
 
   const board = useBoarding(booking.trip_id, isDriver && (paid || live));
 
-  // Starting asks first. Ending is the slide, which is its own confirmation.
-  async function startRide(anchor: Element) {
-    const ok = await ask(anchor, {
-      title: `Start the trip to ${destination}?`,
-      yes: "Start trip",
-      no: "Not yet",
-    });
-    if (!ok) return;
-    runTrip(true);
-  }
-
   function runTrip(starting: boolean) {
     if (!booking.trip_id) return;
     setBusy("run");
@@ -941,6 +1074,10 @@ export function TripDetail({
   }
 
   const hasMap = !stopped;
+  const wide = useSplitLayout();
+  const split = wide && hasMap;
+  const roomy = useRoomy();
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const loc = useTripLocation(booking.trip_id, live && !isDriver);
   const eta = useLiveEta(loc, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
 
@@ -955,7 +1092,6 @@ export function TripDetail({
   const [lastSide, setLastSide] = useState<Side>("pay");
   const [payBusy, setPayBusy] = useState(false);
 
-  // ── Cancellation: what it costs now, and the no-show path ──
   const departsAt = (() => {
     const d = booking.trip?.departure_date;
     const t = booking.trip?.departure_time;
@@ -1143,14 +1279,30 @@ export function TripDetail({
     [],
   );
 
+  const pushing = hasMap && !mobile && roomy;
+
+  useEffect(() => {
+    if (!pushing || side === null) return;
+    const root = document.documentElement.style;
+    root.setProperty("--side-panel", `${SIDE_PUSH}px`);
+    root.setProperty("--dock-w", `${SIDE_PUSH - 32}px`);
+    root.setProperty("--dock-r", "16px");
+    return () => {
+      root.removeProperty("--side-panel");
+    };
+  }, [pushing, side]);
+
   const openSide = (s: Side) => {
-    if (!mobile && side === null) measure();
+    if (!mobile && !pushing && side === null) measure();
     setLastSide(s);
     setSide(s);
   };
 
+  // Chat opens when the driver accepts (the seat is waiting for payment) and stays open once it is paid.
+  const chatOpen = journey.contactOpen || booking.status === "pending_payment";
+
   const wantPanel: Side | null =
-    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" && journey.contactOpen ? "chat" : null;
+    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" && chatOpen ? "chat" : null;
 
   useEffect(() => {
     if (!wantPanel) return;
@@ -1159,9 +1311,9 @@ export function TripDetail({
       const allowed =
         wantPanel === "pay"
           ? due && !isDriver
-          : ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status);
+          : ["requested", "pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status);
       if (!allowed) return;
-      if (window.matchMedia("(min-width: 861px)").matches) measure();
+      if (window.matchMedia("(min-width: 861px) and (max-width: 1199px)").matches) measure();
       setLastSide(wantPanel);
       setSide(wantPanel);
     });
@@ -1174,8 +1326,8 @@ export function TripDetail({
 
   useEffect(() => {
     const page = pageRef.current;
-    if (page) page.dataset.side = side && !mobile ? "1" : "0";
-    if (!side || mobile) {
+    if (page) page.dataset.side = side && !mobile && !pushing ? "1" : "0";
+    if (!side || mobile || pushing) {
       const t = setTimeout(() => setSqueeze(false), side ? 0 : 300);
       return () => clearTimeout(t);
     }
@@ -1192,7 +1344,7 @@ export function TripDetail({
       clearTimeout(settle);
       window.removeEventListener("resize", onResize);
     };
-  }, [side, mobile, measure]);
+  }, [side, mobile, pushing, measure]);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 899px)");
@@ -1385,14 +1537,15 @@ export function TripDetail({
         <NoShowPanel busy={busy === "dispute"} error={disputeError} onBack={() => setSide(null)} onSend={sendDispute} />
       )}
       {shown === "problem" && (
-        <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} />
+        <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} held={journey.escrow === "held"} />
       )}
-      {shown === "chat" && journey.contactOpen && (
+      {shown === "chat" && chatOpen && (
         <ChatPanel
           open={side === "chat"}
           bookingId={booking.id}
           me={viewerId}
           otherName={name}
+          otherAvatar={person?.avatar_url ?? null}
           role={isDriver ? "driver" : "passenger"}
           status={booking.status}
         />
@@ -1415,6 +1568,21 @@ export function TripDetail({
   const labels = isDriver ? DRIVER_STEPS : RIDER_STEPS;
   const at = ORDER.indexOf(booking.status as (typeof ORDER)[number]);
 
+  const released = journey.escrow === "released";
+  const driverTake = journey.payout ?? subtotal;
+  const driverFee = journey.payout != null ? Math.max(0, subtotal - journey.payout) : 0;
+  const driverPayLine =
+    booking.status !== "completed"
+      ? "Paid when there is no dispute"
+      : released
+        ? "Paid to your Kipita wallet"
+        : journey.escrow === "refunded" || journey.escrow === "refund_pending"
+          ? `Refunded to ${firstName}`
+          : journey.escrow === "held"
+            ? journey.problem?.status === "open"
+              ? "On hold while we look into a reported problem"
+              : "Paid when there is no dispute"
+            : "Trip complete";
   const baseNote: string | null = due
     ? hold
       ? isDriver
@@ -1425,13 +1593,13 @@ export function TripDetail({
         : "Your hold ran out. Request the seat again if it's still free"
     : booking.status === "requested"
       ? isDriver
-        ? `${firstName} pays once you accept, then can message you and see your number`
+        ? `${firstName} can message you once you accept, and sees your number after paying`
         : "Nothing is charged until the driver accepts"
       : live
-        ? null // The slide-to-end line says what the driver will be paid.
+        ? null
         : paid || booking.status === "completed"
           ? isDriver
-            ? "Paid when there is no dispute"
+            ? driverPayLine
             : booking.status === "completed"
               ? "Trip complete"
               : null
@@ -1441,135 +1609,9 @@ export function TripDetail({
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
-  // A clock where the driver is waiting on a payment or a release, a lock for everything else.
-  const waiting = isDriver && (due || (!noShowNote && (paid || booking.status === "completed")));
+  const waiting = isDriver && (due || (!noShowNote && !released && (paid || booking.status === "completed")));
 
-  return (
-    <>
-    <Page
-      ref={pageRef}
-      $max={hasMap ? 1320 : 1060}
-      $map={hasMap}
-      $side={side !== null && panelMode === "map"}
-      $squeeze={squeeze}
-    >
-      {hasMap && (
-        <MapPane data-map-pane>
-          <MapTop>
-            <Back href="/trips" aria-label="Back to trips">
-              <ArrowLeft size={20} />
-            </Back>
-            <Share type="button" aria-label={copied ? "Link copied" : "Share ride"} onClick={share} $done={copied}>
-              {copied ? <Check size={20} weight="bold" /> : <ShareNetwork size={20} />}
-            </Share>
-          </MapTop>
-          {booking.status === "completed" ? (
-            <FinishScene
-              destination={destination}
-              startedAt={booking.started_at}
-              completedAt={booking.completed_at}
-              amount={isDriver ? subtotal : booking.total_price}
-              seats={booking.seats_booked}
-              isDriver={isDriver}
-            />
-          ) : (
-            <RouteMap
-              route={route}
-              car={loc}
-              etaSeconds={eta}
-              fromLabel={origin}
-              toLabel={destination}
-              follow={live}
-              padding={mapPad}
-              onboard={live && !isDriver}
-            />
-          )}
-        </MapPane>
-      )}
-      <Sheet ref={sheetRef} $map={hasMap} $snap={snap}>
-        {hasMap && (
-          <Handle
-            type="button"
-            aria-label={snap === "full" ? "Show the map" : "Show all trip details"}
-            aria-expanded={snap === "full"}
-            onPointerDown={dragStart}
-            onPointerMove={dragMove}
-            onPointerUp={dragEnd}
-            onPointerCancel={dragEnd}
-            onClick={() => {
-              if (!dragged.current) setSnap((s) => (s === "full" ? "half" : "full"));
-            }}
-          >
-            <i aria-hidden />
-          </Handle>
-        )}
-        <SheetBody ref={bodyRef} $map={hasMap}>
-      <Bar $map={hasMap}>
-        <Back href="/trips" aria-label="Back to trips">
-          <ArrowLeft size={20} />
-        </Back>
-        <h1>Trip</h1>
-        <Share
-          type="button"
-          aria-label={copied ? "Link copied" : "Share ride"}
-          onClick={share}
-          $done={copied}
-        >
-          {copied ? <Check size={20} weight="bold" /> : <ShareNetwork size={20} />}
-        </Share>
-      </Bar>
-
-      {justBooked && (
-        <Booked role="status">
-          <Check size={18} weight="bold" /> You&rsquo;re booked in
-        </Booked>
-      )}
-
-      {live && !isDriver && (
-        <LiveWrap>
-          <LiveStatus from={origin} to={destination} loc={loc} eta={eta} />
-        </LiveWrap>
-      )}
-
-      <Grid $single={hasMap}>
-        <Col $single={hasMap}>
-          {booking.status === "completed" && (
-            <Card $order={-1} aria-label={`Rate ${name}`}>
-              <RateRide
-                bookingId={booking.id}
-                name={name}
-                avatarUrl={person?.avatar_url ?? null}
-                isDriver={isDriver}
-                initial={booking.my_rating}
-              />
-            </Card>
-          )}
-          <Card $order={1} aria-label="Route">
-            <Top>
-              <Chip $tone={chip.tone}>
-                {live ? <i aria-hidden /> : <ChipIcon size={15} weight="bold" />}
-                {chip.label}
-              </Chip>
-              {booking.booking_reference && <span>{booking.booking_reference}</span>}
-            </Top>
-            <Route>
-              <li>
-                <b>{origin}</b>
-                <small>
-                  {date} · {time}
-                </small>
-              </li>
-              <li>
-                <b>{destination}</b>
-                <small>
-                  {booking.seats_booked} {seatWord}
-                </small>
-              </li>
-            </Route>
-          </Card>
-
-          <Card $order={5} aria-label="Progress">
-            <h2>Progress</h2>
+  const timeline = (
             <Steps>
               {stopped ? (
                 <>
@@ -1578,14 +1620,14 @@ export function TripDetail({
                       <Check size={13} weight="bold" />
                     </span>
                     {labels[0]}
-                    <time dateTime={booking.created_at}>{when(booking.created_at)}</time>
+                    <time dateTime={booking.created_at}>{stampLabel(booking.created_at)}</time>
                   </li>
                   <li data-state="stop">
                     <span className="dot">
                       <X size={12} weight="bold" />
                     </span>
                     {booking.status === "rejected" ? "Declined" : "Cancelled"}
-                    {booking.cancelled_at && <time dateTime={booking.cancelled_at}>{when(booking.cancelled_at)}</time>}
+                    {booking.cancelled_at && <time dateTime={booking.cancelled_at}>{stampLabel(booking.cancelled_at)}</time>}
                   </li>
                 </>
               ) : (
@@ -1596,16 +1638,16 @@ export function TripDetail({
                     <li key={label} data-state={state}>
                       <span className="dot">{state === "done" && <Check size={13} weight="bold" />}</span>
                       {label}
-                      {stamp && <time dateTime={stamp}>{when(stamp)}</time>}
+                      {stamp && <time dateTime={stamp}>{stampLabel(stamp)}</time>}
                     </li>
                   );
                 })
               )}
             </Steps>
-          </Card>
-        </Col>
+  );
 
-        <Col $single={hasMap}>
+  const right = (
+    <>
           {!isDriver && paid && journey.code && (
             <Slot $order={0}>
               <PickupCodeCard code={journey.code} />
@@ -1617,7 +1659,7 @@ export function TripDetail({
             </Slot>
           )}
 
-          <Card $order={2} aria-label="Fare">
+          <FareCard $order={2} aria-label="Fare">
             <h2>{isDriver ? receiveTitle : "What you pay"}</h2>
             <Lines>
               <div>
@@ -1634,19 +1676,34 @@ export function TripDetail({
                   <dd>{formatCurrency(fee)}</dd>
                 </div>
               )}
+              {isDriver && driverFee > 0 && (
+                <div>
+                  <dt>Kipita fee</dt>
+                  <dd>&minus;{formatCurrency(driverFee)}</dd>
+                </div>
+              )}
               <div className="total">
                 <dt>{isDriver ? receiveTotal : "Total"}</dt>
-                <dd style={stopped || lapsed ? { textDecoration: "line-through", color: "var(--n-muted)" } : undefined}>
-                  {formatCurrency(isDriver ? subtotal : booking.total_price)}
-                </dd>
+                <dd>{formatCurrency(isDriver ? driverTake : booking.total_price)}</dd>
               </div>
             </Lines>
-            {note && (
-              <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
-                {waiting ? <Clock size={18} /> : <Lock size={18} />}
-                {note}
-              </Hint>
-            )}
+            {note &&
+              (finished && journey.escrow === "released" ? (
+                <Settled>
+                  <CheckCircle size={20} weight="fill" aria-hidden />
+                  {note}
+                </Settled>
+              ) : isDriver && !finished ? (
+                <Settled $pending>
+                  <Clock size={20} aria-hidden />
+                  {note}
+                </Settled>
+              ) : (
+                <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
+                  {waiting ? <Clock size={18} /> : <Lock size={18} />}
+                  {note}
+                </Hint>
+              ))}
             {!isDriver && paid && freeEnds && (
               <Hint>
                 <Clock size={18} />
@@ -1659,21 +1716,19 @@ export function TripDetail({
             )}
             {runnable && paid && (
               <>
-                {board.summary.waiting > 0 && (
+                {board.summary.waiting > 0 ? (
                   <Hint $warn>
                     <Lock size={18} />
                     Check everyone in to start
                   </Hint>
+                ) : (
+                  <SlideToComplete
+                    label="Slide to start trip"
+                    busyLabel="Starting trip…"
+                    busy={busy === "run"}
+                    onComplete={() => runTrip(true)}
+                  />
                 )}
-                <Pay
-                  type="button"
-                  onClick={(e) => startRide(e.currentTarget)}
-                  disabled={busy !== null || board.summary.waiting > 0}
-                  aria-busy={busy === "run"}
-                >
-                  {busy === "run" ? <ButtonOrb job="committing" /> : <NavigationArrow size={18} weight="bold" />}
-                  Start trip
-                </Pay>
               </>
             )}
             {runnable && live && (
@@ -1701,8 +1756,13 @@ export function TripDetail({
                 {side === "pay" ? "Close payment" : `Pay ${formatCurrency(booking.total_price)}`}
               </Pay>
             )}
-          </Card>
+          </FareCard>
 
+          {finished && person ? (
+            <Slot $order={3}>
+              <PersonCard person={person} label={isDriver ? "Your passenger" : "Your driver"} role={isDriver ? "passenger" : "driver"} />
+            </Slot>
+          ) : (
           <Card $order={!isDriver && (live || paid) ? 0 : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
             <Who>
               <Avatar name={name} src={person?.avatar_url} size={48} />
@@ -1725,18 +1785,23 @@ export function TripDetail({
                 </small>
                 {!isDriver && carLine && <small>{carLine}</small>}
               </span>
-              {talkable && (
+              {(chatOpen || talkable) && (
                 <Talk>
-                  <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
-                    <ChatCircle size={20} />
-                  </RoundAct>
-                  <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
-                    <Phone size={20} />
-                  </RoundAct>
+                  {chatOpen && (
+                    <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
+                      <ChatCircle size={20} />
+                    </RoundAct>
+                  )}
+                  {talkable && (
+                    <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
+                      <Phone size={20} />
+                    </RoundAct>
+                  )}
                 </Talk>
               )}
             </Who>
           </Card>
+          )}
 
           <Acts $order={4}>
             {answerable ? (
@@ -1785,7 +1850,7 @@ export function TripDetail({
             ) : (
               <>
                 <Outline type="button" onClick={share}>
-                  {copied ? <Check size={18} weight="bold" /> : <ShareNetwork size={18} />}
+                  {copied ? <Check size={18} weight="bold" /> : <ShareForward size={18} />}
                   {copied ? "Link copied" : "Share ride"}
                 </Outline>
                 {canCancel && (
@@ -1832,20 +1897,181 @@ export function TripDetail({
               {error}
             </Hint>
           )}
+    </>
+  );
+
+  return (
+    <>
+    <Page
+      ref={pageRef}
+      $max={split ? 1600 : hasMap ? 1320 : 1060}
+      $map={hasMap}
+      $split={split}
+      $side={side !== null && panelMode === "map" && !pushing}
+      $squeeze={squeeze}
+    >
+      {hasMap && (
+        <MapPane data-map-pane>
+          {booking.status !== "completed" && (
+            <MapTop>
+              <Share type="button" aria-label={copied ? "Link copied" : "Share ride"} onClick={share} $done={copied}>
+                {copied ? <Check size={20} weight="bold" /> : <ShareForward size={20} />}
+              </Share>
+            </MapTop>
+          )}
+          {booking.status === "completed" ? (
+            <FinishScene
+              destination={destination}
+              startedAt={booking.started_at}
+              completedAt={booking.completed_at}
+              amount={isDriver ? driverTake : booking.total_price}
+              seats={booking.seats_booked}
+              isDriver={isDriver}
+              passengerName={isDriver ? firstName : undefined}
+            />
+          ) : (
+            <RouteMap
+              route={route}
+              car={loc}
+              etaSeconds={eta}
+              fromLabel={origin}
+              toLabel={destination}
+              follow={live}
+              padding={mapPad}
+              onboard={live && !isDriver}
+            />
+          )}
+        </MapPane>
+      )}
+      <Sheet ref={sheetRef} $map={hasMap} $snap={snap}>
+        {hasMap && (
+          <Handle
+            type="button"
+            aria-label={snap === "full" ? "Show the map" : "Show all trip details"}
+            aria-expanded={snap === "full"}
+            onPointerDown={dragStart}
+            onPointerMove={dragMove}
+            onPointerUp={dragEnd}
+            onPointerCancel={dragEnd}
+            onClick={() => {
+              if (!dragged.current) setSnap((s) => (s === "full" ? "half" : "full"));
+            }}
+          >
+            <i aria-hidden />
+          </Handle>
+        )}
+        <SheetBody ref={bodyRef} $map={hasMap}>
+      <Bar $map={hasMap}>
+        <Back href="/trips" aria-label="Back to trips">
+          <ArrowLeft size={20} />
+        </Back>
+        <h1 data-bar-title="">Trip</h1>
+        {!stopped && booking.status !== "completed" && (
+          <Share
+            type="button"
+            aria-label={copied ? "Link copied" : "Share ride"}
+            onClick={share}
+            $done={copied}
+          >
+            {copied ? <Check size={20} weight="bold" /> : <ShareForward size={20} />}
+          </Share>
+        )}
+      </Bar>
+
+      {justBooked && (
+        <Booked role="status">
+          <Check size={18} weight="bold" /> You&rsquo;re booked in
+        </Booked>
+      )}
+
+      {live && !isDriver && (
+        <LiveWrap>
+          <LiveStatus from={origin} to={destination} loc={loc} eta={eta} />
+        </LiveWrap>
+      )}
+
+      {stopped ? (
+        <StoppedTrip
+          booking={booking}
+          viewerId={viewerId}
+          cancelledBy={cancelledBy}
+          noShowTier={noShow?.tier ?? null}
+          moneyLine={note ?? "Nothing was charged"}
+        />
+      ) : (
+      <Grid $single={hasMap}>
+        <Col $single={hasMap}>
+          {booking.status === "completed" && (
+            <Card $order={-1} aria-label={`Rate ${name}`}>
+              <RateRide
+                bookingId={booking.id}
+                name={name}
+                avatarUrl={person?.avatar_url ?? null}
+                isDriver={isDriver}
+                initial={booking.my_rating}
+              />
+            </Card>
+          )}
+          <Card $order={1} aria-label="Route">
+            <Top>
+              <Chip $tone={chip.tone}>
+                {live ? <i aria-hidden /> : <ChipIcon size={15} weight="bold" />}
+                {chip.label}
+              </Chip>
+              {booking.booking_reference && <span>{booking.booking_reference}</span>}
+            </Top>
+            <Route>
+              <li>
+                <b>{origin}</b>
+                <small>
+                  {date} · {time}
+                </small>
+              </li>
+              <li>
+                <b>{destination}</b>
+                <small>
+                  {booking.seats_booked} {seatWord}
+                </small>
+              </li>
+            </Route>
+          </Card>
+
+          {booking.status === "completed" ? (
+            <TimelineRow $order={5} type="button" aria-haspopup="dialog" aria-expanded={timelineOpen} onClick={() => setTimelineOpen(true)}>
+              <span>
+                <b>Trip timeline</b>
+                {booking.completed_at ? <small>Completed {stampLabel(booking.completed_at)}</small> : null}
+              </span>
+              <CaretRight size={20} aria-hidden />
+            </TimelineRow>
+          ) : (
+            <Card $order={5} aria-label="Progress">
+              <h2>Progress</h2>
+              {timeline}
+            </Card>
+          )}
         </Col>
+
+        {!split && <Col $single={hasMap}>{right}</Col>}
       </Grid>
+      )}
 
       {!finished && <PushBanner />}
 
       <Help>
-        <TripHelp booking={booking} />
+        <TripHelp booking={booking} viewer={isDriver ? "driver" : "rider"} />
       </Help>
         </SheetBody>
       </Sheet>
 
+      {split ? <Dock aria-label="Trip money and people">{right}</Dock> : null}
+
       {confirmNode}
 
     </Page>
+    <Drawer open={timelineOpen} onClose={() => setTimelineOpen(false)} title="Trip timeline" side>
+      <DrawerBody>{timeline}</DrawerBody>
+    </Drawer>
     {sidePanel}
     </>
   );

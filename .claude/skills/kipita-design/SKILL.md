@@ -5,7 +5,7 @@ description: Kipita web visual rules - tokens, type, space, controls, copy and t
 
 # Kipita design
 
-The binding source is `docs/design/kipita-design-system.html` (v1.0, 11 Nov 2026). Its principle: web is the reference, with fixes marked. `apps/web/DESIGN.md` records the control vocabulary and illustration language. `apps/web/PRODUCT.md` says who it is for. Read the section you need; do not guess.
+The binding source is `docs/design/kipita-design-system.html` (v1.0, 11 Nov 2026). Its principle: web is the reference, with fixes marked. `docs/DESIGN.md` records the control vocabulary and illustration language, and its **Guards** section is the anti-slop contract: read all of it before building, every time. `docs/PRODUCT.md` says who it is for. Read the section you need; do not guess.
 
 Ask the `kipita` MCP for exact values: `design_tokens` returns every role with light and dark hex and its `nocturne` name.
 
@@ -47,7 +47,7 @@ Manrope names things: headings, amounts, times, route names, the wordmark (700, 
 
 ## Controls
 
-Reuse before inventing: `components/publish/controls.tsx` (`Choice`, `Choices`, `BareInput`, `BareField`, `TextAction`, `CommitAction`, `EditorRule`, `EditorLabel`), `components/ui` (`Drawer`, `ConfirmPop`, `Switch`, `AmountField`, `PhoneField`, `Shimmer`, `StatusPage`). Action weight, light to heavy: ruled option, ruled toggle, green commit pill, the single orange page action. Buttons must look finished at rest; no grey transparent text buttons.
+Reuse before inventing: `components/publish/controls.tsx` (`Choice`, `Choices`, `BareInput`, `BareField`, `TextAction`, `CommitAction`, `EditorRule`, `EditorLabel`), `components/ui` (`Drawer`, `ConfirmPop`, `Switch`, `AmountField`, `PhoneField`, `Shimmer`, `StatusPage`). Action weight, light to heavy: ruled option, ruled toggle, green commit pill, the single orange page action. Buttons must look finished at rest; no grey transparent text buttons. Chips pick a value and are small 8px-radius rectangles (`4px 12px`, 28-32px tall); buttons do a step and are pills. Spec table in `docs/DESIGN.md` › Guards › Chips are not buttons.
 
 ## Copy
 
@@ -64,6 +64,10 @@ Run every line before saying a surface is finished.
 - [ ] Loading, empty and error states exist and look designed
 - [ ] Worst-case data: long names, 0 and 999 counts, missing photo (`break-ui` skill)
 - [ ] Exactly one `ctaBg` on the screen
+- [ ] Every interactive element has every row of the Guards state table (rest, hover, focus-visible, active, selected, disabled, loading, error)
+- [ ] Every icon matches its Material Symbols meaning and stays full ink on hover
+- [ ] Loading shows the real page at once (title, tabs, headings, static copy); only data-bound sections shimmer, each in its own `<Suspense>`; swapping moves nothing
 - [ ] `node tools/design-check/index.mjs <files>` reports nothing new
+- [ ] A redesigned surface: `node tools/design-check/index.mjs --strict <dir>` is clean and the dir is in `tools/design-check/strict.json`
 
 For deeper critique load `impeccable` (audit, polish, distill) or `emil-design-eng` (interaction polish). For accessibility load `design:accessibility-review`.

@@ -92,6 +92,9 @@ Fill this from the live database (`pg_tables`, `pg_proc`), not from `supabase_mi
 |---|---|---|---|
 | 034–052 | — | unknown | — |
 | 053 trip journey | — | not applied | — |
+| 075, 077–082 | — | — | applied to the dev DB 23 Nov 2026; functions and settings checked live |
+| 083 chat from booking | — | — | applied to the dev DB 24 Nov 2026; `booking_conversation` and `conversation_open` accept unpaid seats, grants unchanged |
+| 084 pickup location | — | — | applied to the dev DB 24 Nov 2026; `pickup_locations` with RLS (passenger and driver read), `share_pickup_location` authenticated only, clear-on-board trigger, in `supabase_realtime` |
 
 ## Design drift
 

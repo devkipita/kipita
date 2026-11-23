@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -125,7 +125,7 @@ const Withdraw = styled.button`
   ${actionBase}
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
-  ${pressable(nocturne.green)}
+  ${pressable()}
 `;
 
 export const Tiles = styled.div`
@@ -371,7 +371,7 @@ export function WalletView({
 
   return (
     <Page>
-      <WalletTitle>Wallet</WalletTitle>
+      <WalletTitle data-bar-title="">Wallet</WalletTitle>
 
       <Band>
         <Balance aria-labelledby="wallet-balance-cap">

@@ -6,6 +6,7 @@ import { ContentWidth } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const WIDE = "@media (min-width: 900px)";
+const SPLIT_MIN = 1180;
 const MOB = "@media (max-width: 899px)";
 const PEEK = 132;
 const HALF = 0.42;
@@ -18,7 +19,7 @@ const SNAP_Y: Record<Snap, string> = {
   peek: `calc(100% - ${PEEK}px - var(--bottom-bar-space, 0px))`,
 };
 
-const Page = styled(ContentWidth)`
+const Page = styled(ContentWidth)<{ $split: boolean }>`
   padding-block: 0 64px;
   padding-left: max(16px, var(--page-pad), env(safe-area-inset-left));
   padding-right: max(16px, var(--page-pad), env(safe-area-inset-right));
@@ -29,6 +30,10 @@ const Page = styled(ContentWidth)`
     grid-template-columns: minmax(0, 540px) minmax(0, 1fr);
     align-items: start;
     gap: 24px;
+  }
+  ${WIDE} {
+    ${({ $split }) =>
+      $split ? "grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr) minmax(320px, 420px);" : ""}
   }
   ${MOB} {
     min-height: calc(100dvh - var(--topbar-h, 56px) - var(--bottom-bar-space, 0px));
@@ -73,6 +78,27 @@ const MapTop = styled.div`
   }
 
   ${WIDE} {
+    display: none;
+  }
+`;
+
+const Dock = styled.aside`
+  order: 3;
+  position: sticky;
+  top: calc(var(--topbar-h, 64px) + 16px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  max-height: calc(100dvh - var(--topbar-h, 64px) - 32px);
+  margin-top: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 20px;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
     display: none;
   }
 `;
@@ -148,17 +174,34 @@ function snapOffsets(height: number): Record<Snap, number> {
   return { full: 0, half: height * HALF, peek: height - PEEK - bar };
 }
 
+export function useSplitLayout(): boolean {
+  const [split, setSplit] = useState(false);
+  useEffect(() => {
+    const main = document.getElementById("main");
+    if (!main || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      setSplit(window.innerWidth >= 900 && entry.contentRect.width >= SPLIT_MIN);
+    });
+    observer.observe(main);
+    return () => observer.disconnect();
+  }, []);
+  return split;
+}
+
 export function MapSheet({
   map,
   mapTop,
+  aside,
   children,
   expandLabel = "Show all details",
 }: {
   map: (padding: google.maps.Padding | undefined) => ReactNode;
   mapTop?: ReactNode;
+  aside?: ReactNode;
   children: ReactNode;
   expandLabel?: string;
 }) {
+  const split = useSplitLayout();
   const [snap, setSnap] = useState<Snap>("half");
   const [mobile, setMobile] = useState(false);
   const [padding, setPadding] = useState<google.maps.Padding | undefined>(undefined);
@@ -193,6 +236,8 @@ export function MapSheet({
       window.removeEventListener("resize", sync);
     };
   }, [snap]);
+
+  const asideBeside = Boolean(aside) && split;
 
   useEffect(
     () => () => {
@@ -285,11 +330,12 @@ export function MapSheet({
   }, [mobile]);
 
   return (
-    <Page $max={1320}>
+    <Page $max={asideBeside ? 1600 : 1320} $split={asideBeside}>
       <MapPane data-map-pane>
         {mapTop ? <MapTop>{mapTop}</MapTop> : null}
         {map(padding)}
       </MapPane>
+      {asideBeside ? <Dock aria-label="Ride tasks">{aside}</Dock> : null}
       <Sheet ref={sheetRef} $snap={snap}>
         <Handle
           type="button"
@@ -312,7 +358,9 @@ export function MapSheet({
         >
           <i aria-hidden />
         </Handle>
-        <SheetBody ref={bodyRef}>{children}</SheetBody>
+        <SheetBody ref={bodyRef}>
+          {children}
+        </SheetBody>
       </Sheet>
     </Page>
   );

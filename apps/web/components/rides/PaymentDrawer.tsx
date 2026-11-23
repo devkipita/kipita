@@ -181,7 +181,7 @@ const SecondaryButton = styled.button`
   font: inherit;
   font-size: 15px;
   font-weight: 700;
-  ${pressable(nocturne.outline)}
+  ${pressable()}
 `;
 
 export function PaymentDrawer({

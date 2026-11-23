@@ -86,7 +86,7 @@ export function WalletSkeleton() {
     <Busy>
       <Page>
         <SrOnly>Loading your wallet</SrOnly>
-        <Title>Wallet</Title>
+        <Title data-bar-title="">Wallet</Title>
         <Band aria-hidden>
           <Balance>
             <div>

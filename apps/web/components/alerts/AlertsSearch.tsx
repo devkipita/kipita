@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { MagnifyingGlass as Search, X } from "@/components/icons";
-import { nocturne } from "@/lib/nocturne";
+import { IconAction } from "@/components/ui/Chip";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const Shell = styled.div`
   position: relative;
@@ -12,56 +13,57 @@ const Shell = styled.div`
 
   svg.lead {
     position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
+    left: 12px;
+    top: 12px;
     color: ${nocturne.muted};
     pointer-events: none;
   }
 `;
 
 const Input = styled.input`
+  display: block;
   width: 100%;
-  min-height: 46px;
-  padding: 0 48px 0 42px;
-  border-radius: ${({ theme }) => theme.radius.pill};
+  height: 44px;
+  padding: 0 44px;
+  border-radius: 12px;
   border: 1px solid ${nocturne.outline};
   background: ${nocturne.surface};
   color: ${nocturne.cream};
   font: inherit;
   font-size: 16px;
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
 
   &::placeholder {
-    color: ${nocturne.muted};
+    color: ${nocturne.muted2};
+  }
+  &::-webkit-search-cancel-button {
+    display: none;
   }
   &:focus {
-    border-color: ${nocturne.accent};
-  }
-  &:focus:not(:focus-visible) {
     outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 3px ${nocturne.ring};
   }
 `;
 
-const Clear = styled.button`
+const Clear = styled(IconAction)`
   position: absolute;
-  right: 1px;
-  top: 50%;
-  transform: translateY(-50%);
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  color: ${nocturne.muted};
-  cursor: pointer;
-
-  &:hover {
-    background: ${nocturne.surface2};
-    color: ${nocturne.cream};
-  }
+  top: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 0;
 `;
+
+export function AlertsSearchField() {
+  return (
+    <Shell>
+      <Search className="lead" size={20} aria-hidden="true" />
+      <Input type="search" readOnly placeholder="Search roads and alerts" aria-label="Search roads and alerts" />
+    </Shell>
+  );
+}
 
 export function AlertsSearch() {
   const router = useRouter();
@@ -70,6 +72,7 @@ export function AlertsSearch() {
   const initial = params.get("q") ?? "";
   const [value, setValue] = useState(initial);
   const first = useRef(true);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setValue(params.get("q") ?? "");
@@ -95,18 +98,32 @@ export function AlertsSearch() {
   }, [value]);
 
   return (
-    <Shell>
-      <Search className="lead" size={17} aria-hidden="true" />
+    <Shell role="search">
+      <Search className="lead" size={20} aria-hidden="true" />
       <Input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && value) {
+            e.preventDefault();
+            setValue("");
+          }
+        }}
         placeholder="Search roads and alerts"
         aria-label="Search roads and alerts"
       />
       {value && (
-        <Clear type="button" onClick={() => setValue("")} aria-label="Clear search">
-          <X size={16} />
+        <Clear
+          type="button"
+          onClick={() => {
+            setValue("");
+            inputRef.current?.focus();
+          }}
+          aria-label="Clear search"
+        >
+          <X size={20} />
         </Clear>
       )}
     </Shell>

@@ -17,16 +17,18 @@ const Bar = styled.nav`
   transform: translateX(-50%);
   bottom: max(8px, env(safe-area-inset-bottom));
   z-index: ${Z.bottomTabBar};
-  width: min(360px, calc(100% - 20px));
-  height: 56px;
+  width: min(400px, calc(100% - 24px));
+  height: 60px;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   align-items: center;
-  padding: 0 4px;
+  gap: 4px;
+  padding: 4px;
   border-radius: ${({ theme }) => theme.radius.pill};
-  box-shadow: ${({ theme }) => theme.shadow.card};
-  border: 1px solid ${nocturne.line2};
+  box-shadow:
+    inset 0 0 0 1px ${nocturne.line},
+    ${nocturne.popoverShadow};
   background: ${nocturne.surface};
   transition: translate ${dur.enter} ${ease.enter};
 
@@ -44,67 +46,81 @@ const Bar = styled.nav`
   }
 `;
 
+const pillTone = (mode: "light" | "dark") => (mode === "light" ? nocturne.greenDeep : nocturne.green);
+
 const Item = styled(Link)`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  height: 48px;
-  border-radius: 16px;
-  color: ${nocturne.muted2};
+  position: relative;
+  display: grid;
+  height: 52px;
+  border-radius: 999px;
+  color: ${({ theme }) => (theme.mode === "light" ? nocturne.greenDeep : nocturne.cream)};
+  text-decoration: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-  position: relative;
-  transition: color ${dur.state} ${ease.standard};
+  user-select: none;
+  -webkit-user-select: none;
 
   .well {
     position: relative;
-    display: grid;
-    place-items: center;
-    width: 100%;
-    max-width: 50px;
-    height: 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 100%;
     border-radius: 999px;
     transition:
-      background ${dur.state} ${ease.standard},
+      background-color ${dur.state} ${ease.standard},
       transform ${dur.press} ${ease.standard};
   }
 
   .glyph {
     position: relative;
+    z-index: 1;
     display: grid;
     place-items: center;
+    width: 24px;
+    height: 24px;
   }
 
   .label {
+    position: relative;
+    z-index: 1;
     font-size: 12px;
-    font-weight: 600;
-    line-height: 1.3;
-    letter-spacing: 0.01em;
+    font-weight: 800;
+    line-height: 16px;
+    white-space: nowrap;
   }
 
   &[data-active="true"] {
-    color: ${nocturne.greenDeep};
+    color: ${nocturne.onGreen};
 
     .label {
-      font-weight: 800;
-    }
-  }
-
-  @media (hover: hover) {
-    &[data-active="false"]:hover .well {
-      background: color-mix(in oklab, ${nocturne.lime} 40%, transparent);
+      font-weight: 900;
     }
   }
 
   &:focus-visible {
-    outline: 2px solid ${nocturne.accent};
-    outline-offset: 1px;
+    color: ${nocturne.onGreen};
+
+    .well {
+      background-color: ${({ theme }) => pillTone(theme.mode)};
+    }
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &[data-active="false"]:hover .well {
+      background-color: ${({ theme }) => theme.color.surfaceContainerHigh};
+    }
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 
   &:active .well {
-    transform: scale(0.92);
+    transform: scale(0.97);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -124,7 +140,7 @@ const WellFill = styled(m.span)`
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: ${nocturne.lime};
+  background: ${({ theme }) => pillTone(theme.mode)};
 `;
 
 export function BottomTabBar({
@@ -154,19 +170,15 @@ export function BottomTabBar({
             <span className="well" aria-hidden="true">
               {active ? <WellFill layoutId="bottom-tab-well" transition={spring.morph} /> : null}
               <span className="glyph">
-                <Icon
-                  size={25}
-                  weight={active ? "bold" : "regular"}
-                  {...(active ? {} : { strokeWidth: 1.7 })}
-                />
+                <Icon size={24} weight={active ? "fill" : "regular"} />
                 {count ? (
                   <CountBadge count={count} ring={nocturne.surface} max={9} />
                 ) : fresh ? (
                   <NewDot ring={nocturne.surface} label="" />
                 ) : null}
               </span>
+              <span className="label">{item.shortLabel}</span>
             </span>
-            <span className="label">{item.shortLabel}</span>
           </Item>
         );
       })}

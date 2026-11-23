@@ -148,11 +148,41 @@ export async function deleteAlertAction(alertId: string): Promise<CommentResult>
   return { ok: true };
 }
 
+export async function deleteCommentAction(commentId: string): Promise<CommentResult> {
+  if (!/^[0-9a-f-]{36}$/i.test(commentId)) return { ok: false, error: "That reply no longer exists." };
+  const supabase = await createClient();
+  const session = await resolveUserId(supabase);
+  if ("error" in session) return { ok: false, error: session.error };
+
+  const { data, error } = await supabase
+    .from("alert_comments")
+    .delete()
+    .eq("id", commentId)
+    .select("id, alert_id");
+
+  if (error) {
+    return { ok: false, error: "We couldn't delete that reply. It's back in the list." };
+  }
+  if (!data || data.length === 0) {
+    return { ok: false, error: "That reply can't be deleted. It's back in the list." };
+  }
+
+  revalidatePath(`/alerts/${data[0].alert_id as string}`);
+  return { ok: true };
+}
+
 export async function addCommentAction(
   alertId: string,
   content: string,
+  imageUrl: string | null = null,
+  parentId: string | null = null,
 ): Promise<CommentResult> {
-  const parsed = commentSchema.safeParse({ alert_id: alertId, content });
+  const parsed = commentSchema.safeParse({
+    alert_id: alertId,
+    content,
+    image_url: imageUrl,
+    parent_id: parentId,
+  });
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Check your comment" };
   }
@@ -172,10 +202,12 @@ export async function addCommentAction(
     alert_id: parsed.data.alert_id,
     user_id: session.userId,
     content: parsed.data.content,
+    image_url: parsed.data.image_url ?? null,
+    ...(parsed.data.parent_id ? { parent_id: parsed.data.parent_id } : {}),
   });
 
   if (error) {
-    return { ok: false, error: "We couldn't post that comment. Please try again." };
+    return { ok: false, error: "We couldn't post that reply. Please try again." };
   }
 
   revalidatePath(`/alerts/${alertId}`);

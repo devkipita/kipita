@@ -879,20 +879,6 @@ const Solid = styled.button`
   ${ring}
 `;
 
-const Hollow = styled.button`
-  height: 46px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1.5px solid ${nocturne.line};
-  background: ${nocturne.surface};
-  color: ${nocturne.cream};
-  font: inherit;
-  font-weight: 700;
-  font-size: 15px;
-  cursor: pointer;
-  ${ring}
-`;
-
 const Review = styled.section`
   display: flex;
   flex-direction: column;
@@ -977,7 +963,6 @@ export function PublishWeb({
   userId,
   savedCars = [],
   publishBeforeApproval = false,
-  driverName = "",
   prefill = null,
 }: {
   userId: string;
@@ -987,9 +972,7 @@ export function PublishWeb({
   prefill?: Prefill | null;
 }) {
   const { kycStatus, requireKyc, requirePhone } = useAppMode();
-  const verified = kycStatus === "approved";
   const submitted = kycStatus === "approved" || kycStatus === "pending";
-  const [awaiting, setAwaiting] = useState(false);
 
   const initialCars: CarRow[] = savedCars.map((c) => ({ make: c.make, model: c.model, plate: c.plate, color: c.color ?? "", seats: c.seats ?? null }));
   const savedPlates = savedCars.map((c) => c.plate).join(",");

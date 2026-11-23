@@ -20,7 +20,7 @@ import {
   Copy,
   Envelope,
   Gift,
-  ShareNetwork,
+  ShareForward,
   Users,
 } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
@@ -426,7 +426,7 @@ export function ReferralView({
             </CodeRow>
 
             <Cta type="button" onClick={share}>
-              <ShareNetwork size={20} />
+              <ShareForward size={20} />
               Invite friends
             </Cta>
           </>
