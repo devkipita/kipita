@@ -2,7 +2,32 @@
   "apps/web/app/(app)/home/loading.tsx": {
     "skeleton-source": 1
   },
+  "apps/web/app/(app)/profile/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/publish/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/referrals/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/ride/[id]/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/send/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/trips/[id]/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/trips/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/(app)/wallet/page.tsx": {
+    "page-waits": 1
+  },
   "apps/web/app/(site)/help/page.tsx": {
+    "page-waits": 1,
     "site-dynamic": 1
   },
   "apps/web/app/(site)/legal/layout.tsx": {
@@ -11,9 +36,39 @@
   "apps/web/app/(site)/page.tsx": {
     "site-dynamic": 1
   },
+  "apps/web/app/admin/(console)/disputes/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/payments/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/payouts/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/pricing/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/problems/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/support/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/trips/page.tsx": {
+    "page-waits": 1
+  },
+  "apps/web/app/admin/(console)/users/page.tsx": {
+    "page-waits": 1
+  },
   "apps/web/app/admin/login/page.tsx": {
     "off-grid": 1,
     "inline-style": 4
+  },
+  "apps/web/app/auth/set-password/page.tsx": {
+    "page-waits": 1
   },
   "apps/web/components/admin/FaqManager.tsx": {
     "off-grid": 7,
@@ -729,9 +784,7 @@
     "accent-stripe": 1,
     "literal-motion": 3,
     "tiny-icon": 5,
-    "strikethrough": 1,
-    "state-press": 2,
-    "status-as-button": 1
+    "state-press": 2
   },
   "apps/web/components/trips/TripDetailSkeleton.tsx": {
     "off-grid": 7

@@ -26,6 +26,14 @@ description: How apps/web reads and writes data - server components, parallel fe
 - Money figures shown before booking come from `bookingBreakdown` in `lib/platform.ts`, which mirrors the database's `bookings_set_price`. The database is the authority.
 - Maps and Routes API calls that cost money run on the server with a server-only key and a cache, not per viewer in the browser.
 
+## Streaming a page
+
+- `page.tsx` awaits only identity. It starts every other read without `await` and renders the real shell at once.
+- Each section that needs data is an async server component (or a client component calling `use()` on a promise) inside its own `<Suspense fallback={<SectionSkeleton />}>`. Sections stream in independently.
+- `loading.tsx` renders the same shell components as the page plus the section skeletons. It never hand-draws or shimmers a heading.
+- Wrap shared reads in React `cache()` so two sections asking for the same row share one query.
+- Every awaited query has an index matching its `where` and `order by`, a `limit` on lists, and a select list that names only shown columns. Confirm with `explain` through the Supabase MCP.
+
 ## Before you finish
 
 - `yarn workspace @kipita/web typecheck` is green.

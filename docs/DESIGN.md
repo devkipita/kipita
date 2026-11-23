@@ -183,19 +183,44 @@ skills, applied to Kipita's tokens:
 
 ### Loading
 
-- **A skeleton is the final layout with the content removed.** It uses the
-  same boxes, gaps and line heights: a 40px avatar circle, text bars at real
-  line height (60% and 85% wide), and 20px squares for the action icons.
-  Swapping it for content moves nothing.
-- **Chrome is never a skeleton.** Tabs, headings, the composer and the search
-  field render for real at once. Only the data area shimmers.
-- **Before writing a skeleton, list what is fixed and what is loaded.**
-  Fixed: page title, tab labels, section headings that always show, and
-  static copy like FAQs. These render for real, using the same exported
-  components as the page, so nothing moves on swap. Loaded: rows, counts,
-  names, money. Only these shimmer, in the exact geometry of the real row.
-  Source: "why is content which is not changing loading with the skeletons",
-  `/trips`, 2026-11-22.
+- **A loading page is the real page, not a picture of it.** The moment the
+  user taps, the new page renders: its title, back arrow, tabs, section
+  headings, static copy, FAQs, forms and every button that does not need
+  data, all real and usable. Only the parts still waiting for data show a
+  skeleton, in place, shaped exactly like what replaces them: a 40px avatar
+  circle, text bars at real line height, the real row height. When the data
+  lands, only those parts change. Nothing else moves.
+  Source: "skeleton should be full component how it looks like if somthing
+  in that component doesnt change it remains as is ... the title doesnt need
+  to wait for data to load", 2026-11-23, and "why is content which is not
+  changing loading with the skeletons", `/trips`, 2026-11-22.
+- **One skeleton per data dependency, never one per page.** Each section
+  that waits on its own query sits in its own `<Suspense>` with its own
+  skeleton, and streams in on its own, fastest first. A slow ledger never
+  holds back a balance that is already loaded.
+- **Never hold the old page while the new one loads.** A tap changes the
+  page at once, so the user always sees that their action worked.
+- **`page.tsx` never awaits data at the top.** Identity (`getProfile`,
+  `cache()`d, needed for the sign-in redirect) is the only top-level await.
+  Every other read starts at the top without `await`
+  (`const trips = fetchTrips(id)`). The promise goes down to the section
+  that needs it, which awaits it inside its `<Suspense>`, or calls `use()`
+  in a client component. Reads that do not depend on each other run
+  together. One exception: a single `cache()`d read whose only job is to
+  decide `notFound()` or `redirect()` may run first, because the page cannot
+  start until that answer is known. `[check: page-waits]`
+- **`loading.tsx` renders the page's real shell**, made from the same
+  exported components as the page (`Head`, tabs, section headings), plus the
+  section skeletons. It covers only the moment before the server answers;
+  after that the page streams. It never redraws a heading by hand, and never
+  shimmers a heading.
+- **A section that fails shows its own error, with a retry, and the rest of
+  the page stays.** Never sample data.
+- **Every query a page waits on has an index that matches its filter and
+  its order.** For example, `where passenger_id = $1 order by created_at desc`
+  needs `(passenger_id, created_at desc)`. Lists take a `limit`. Selects
+  name only the columns the page shows. Check the plan with `explain`
+  through the Supabase MCP before calling a page fast.
 - **Actions follow the state and the clock.** A ride's "Start ride" appears
   only from 2 hours before departure. Before that the row says "Leaves in …".
   "Cancel ride" is a visible button among the card's actions, filled in the

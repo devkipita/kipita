@@ -389,6 +389,24 @@ function checkFile(rel) {
   });
   const mixins = stateMixins(text);
   for (const match of text.matchAll(TEMPLATE_START)) checkTemplate(rel, text, match, push, mixins);
+  if (/\/page\.tsx$/.test(rel) && !/<Suspense\b/.test(text)) {
+    const start = text.search(/export\s+default\s+async\s+function\b/);
+    if (start >= 0) {
+      const body = text.slice(start);
+      const waits = [...body.matchAll(/\bawait\s+([^;\n]*)/g)].filter(
+        ([match, what], _, all) => {
+          if (/^(?:\(?\s*)?(?:props\.)?(?:params|searchParams)\b|^getProfile\(|^getAuthUser\(|^requireProfile\(|^createClient\(|^headers\(|^cookies\(/.test(what.trim())) return false;
+          const after = body.slice(body.indexOf(match), body.indexOf(match) + match.length + 120);
+          const gate = !/^Promise\.all/.test(what.trim()) && /\n[^\n]*(?:notFound\(\)|redirect\()/.test(after.split("\n").slice(0, 3).join("\n"));
+          return !gate;
+        },
+      );
+      if (waits.length) {
+        const at = text.slice(0, start + waits[0].index).split(/\r?\n/).length;
+        push(at, "page-waits", "Page awaits data before rendering anything. Render the real shell now and stream each data section through its own <Suspense>.");
+      }
+    }
+  }
   if (/(?:Skeleton\w*\.tsx|\/loading\.tsx)$/.test(rel) && !/Shimmer|Skeleton["']/.test(text)) {
     push(1, "skeleton-source", "Skeleton not built from ui/Shimmer or a surface skeleton.");
   }

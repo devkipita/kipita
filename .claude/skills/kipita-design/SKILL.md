@@ -66,7 +66,7 @@ Run every line before saying a surface is finished.
 - [ ] Exactly one `ctaBg` on the screen
 - [ ] Every interactive element has every row of the Guards state table (rest, hover, focus-visible, active, selected, disabled, loading, error)
 - [ ] Every icon matches its Material Symbols meaning and stays full ink on hover
-- [ ] Skeleton is the final layout minus content; swapping moves nothing
+- [ ] Loading shows the real page at once (title, tabs, headings, static copy); only data-bound sections shimmer, each in its own `<Suspense>`; swapping moves nothing
 - [ ] `node tools/design-check/index.mjs <files>` reports nothing new
 - [ ] A redesigned surface: `node tools/design-check/index.mjs --strict <dir>` is clean and the dir is in `tools/design-check/strict.json`
 
