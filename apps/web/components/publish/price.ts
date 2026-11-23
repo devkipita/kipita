@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   DEFAULT_VEHICLE_CLASSES,
+  carSeatsText,
   carryLimitText,
   classForCar,
   classHolds,
   className,
+  isCarSeats,
   judgePrice,
   maxOthersFor,
   pickVehicleClass,
@@ -48,11 +50,13 @@ export function classFor(
 
 /**
  * How many people can ride with the driver without booking a seat: what the car type the trip is priced as
- * carries, less the seats offered. Works before a quote has loaded, from the built-in car types.
+ * carries, or what the car's own seats allow if that is fewer, less the seats offered. Works before a quote
+ * has loaded, from the built-in car types. `carSeats` is the car's seats with the driver's in them, when the
+ * driver has said.
  */
-export function othersRoom(state: QuoteState, picked: string, seats: number): number {
+export function othersRoom(state: QuoteState, picked: string, seats: number, carSeats?: number | null): number {
   const classes = state.status === "ready" ? state.quote.classes : state.status === "loading" ? state.classes : undefined;
-  return maxOthersFor(classFor(classes, picked, seats), seats);
+  return maxOthersFor(classFor(classes, picked, seats), seats, carSeats);
 }
 
 /**
@@ -162,9 +166,10 @@ export function carTypeBlockText(state: QuoteState, make: string, model: string)
 
 /**
  * Why the car the driver named cannot carry the seats offered and the people riding along, in words for the
- * driver, or null if it can or the model is not one we recognise. `kind` says what to change: the seats when
- * they alone are too many, otherwise the people riding along. This needs no quote: it uses the built-in car
- * types when there is none.
+ * driver, or null if it can. Two limits: the car's own seats, when the driver has said them (`carSeats`, the
+ * driver's seat included), and the car type of a model we recognise. `kind` says what to change: the seats
+ * when they alone are too many, otherwise the people riding along. This needs no quote: it uses the built-in
+ * car types when there is none.
  */
 export function carCapacityBlock(
   state: QuoteState,
@@ -172,7 +177,14 @@ export function carCapacityBlock(
   model: string,
   seats: number,
   others = 0,
+  carSeats?: number | null,
 ): { kind: "seats" | "others"; text: string } | null {
+  if (isCarSeats(carSeats) && seats + others > carSeats - 1) {
+    return {
+      kind: seats > carSeats - 1 ? "seats" : "others",
+      text: carSeatsText(carSeats, seats, others),
+    };
+  }
   const classes = state.status === "ready" ? state.quote.classes : BUILT_IN_CLASSES;
   const listed = classForCar(make, model, classes);
   if (!listed || classHolds(listed.code, seats + others)) return null;

@@ -6,8 +6,10 @@ import {
   className,
   classHolds,
   fillOutcomes,
+  isCarSeats,
   judgePrice,
   maxOthersFor,
+  maxPassengersFor,
   smallestClassThatHolds,
   wholeShillings,
   type PriceChoiceKey,
@@ -304,13 +306,15 @@ type Props = {
   /** people riding with the driver who are not booking a seat */
   others: number;
   onOthers: (count: number) => void;
+  /** seats in the picked car with the driver's seat in them, when the driver has said; it can only tighten the car type's room */
+  carSeats?: number | null;
 };
 
 /**
  * The Price step of Publish a ride, shared by the desktop and phone layouts. It suggests an even split
  * of the trip cost, lets the driver pick within a range, and shows what they would receive.
  */
-export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, onVehicleClass, onOthers }: Props) {
+export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, onVehicleClass, onOthers, carSeats }: Props) {
   const fare = Number(price) || 0;
   // What is in the amount box while typing. Null means it shows the chosen price when that is not a quick pick.
   const [typed, setTyped] = useState<string | null>(null);
@@ -321,8 +325,9 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
   const activeClass = quote?.vehicleClass ?? classFor(classes, vehicleClass, seats);
   const range = quote ? rangeFor(quote, seats, others) : null;
   // The seats offered pick the car type. People riding along share what room it has left and never change it:
-  // for more of them the driver picks a bigger type.
-  const maxOthers = maxOthersFor(activeClass, seats);
+  // for more of them the driver picks a bigger type, unless the car itself is what is full.
+  const maxOthers = maxOthersFor(activeClass, seats, carSeats);
+  const carRoom = isCarSeats(carSeats) && carSeats - 1 < maxPassengersFor(activeClass) ? carSeats - 1 : null;
   const people = seats + others;
   // The type the driver picked, when it is too small for the seats and the price moved to a bigger one.
   const pickedLabel = vehicleClass && vehicleClass !== activeClass ? classes?.find((c) => c.code === vehicleClass)?.label : undefined;
@@ -426,7 +431,11 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
   const noRoomNote =
     maxOthers > 0
       ? null
-      : smallestClassThatHolds(quote.classes, seats + 1)
+      : carRoom !== null
+        ? seats > carRoom
+          ? `Your car carries ${carRoom}. Offer fewer seats.`
+          : `Your car has ${carRoom + 1} seats. ${seats === 1 ? "1 seat fills" : `${seats} seats fill`} it.`
+        : smallestClassThatHolds(quote.classes, seats + 1)
         ? `${activeLabel ? className(activeLabel) : "This car type"} is full with ${seats} ${seats === 1 ? "seat" : "seats"}. Pick a bigger car type to bring others.`
         : `${seats} seats fill the car.`;
   const othersControl = (

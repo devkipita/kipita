@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { CAR_SEATS_MISSING, isCarSeats } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { postRequestSchema, postTripSchema } from "@/lib/validators/home";
@@ -119,6 +120,29 @@ async function resolveVehicle(
   }
 }
 
+/**
+ * The seats the driver said the trip's car has, with the driver's seat in them. null when the trip names no
+ * car, the car is not saved yet, or the lookup fails (the type's limit still applies then, as it does when
+ * no price can be worked out). A saved car whose seats were never answered is refused: the Publish screen
+ * asks for them, so this only stops a client that skipped the question.
+ */
+async function carSeatsFor(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  plate: string | undefined,
+): Promise<{ seats: number | null } | { error: string }> {
+  if (!plate) return { seats: null };
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("seat_capacity, seats_confirmed_at")
+    .eq("driver_id", userId)
+    .eq("plate_number", plate.trim().toUpperCase())
+    .maybeSingle();
+  if (error || !data) return { seats: null };
+  if (!data.seats_confirmed_at || !isCarSeats(data.seat_capacity)) return { error: CAR_SEATS_MISSING };
+  return { seats: data.seat_capacity };
+}
+
 export async function createTripAction(input: PostTripInput): Promise<PostResult> {
   const parsed = postTripSchema.safeParse(input);
   if (!parsed.success) {
@@ -166,6 +190,9 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
     return { ok: false, error: "That departure time has already passed. Pick a later one." };
   }
 
+  const car = await carSeatsFor(supabase, session.userId, trip.vehicle_plate);
+  if ("error" in car) return { ok: false, error: car.error };
+
   const priceCheck = await checkTripPrice(supabase, {
     from: trip.from_location,
     to: trip.to_location,
@@ -175,6 +202,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
     vehicleMake: trip.vehicle_make,
     vehicleModel: trip.vehicle_model,
     othersAboard: trip.others_aboard,
+    carSeats: car.seats,
   });
   if (!priceCheck.ok) return { ok: false, error: priceCheck.error };
 

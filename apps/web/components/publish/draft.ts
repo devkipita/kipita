@@ -17,6 +17,8 @@ export type StoredDraft = {
   model: string;
   plate: string;
   color: string;
+  /** the car's seats with the driver's seat in them, when known */
+  carSeats?: number | null;
   /** the car type the price was worked out for; empty means the default */
   vehicleClass?: string;
   carMode?: "saved" | "new" | "none";
@@ -94,4 +96,6 @@ export type SavedCar = {
   model: string;
   plate: string;
   color?: string;
+  /** the car's seats with the driver's seat in them, or null until the driver has said */
+  seats?: number | null;
 };
