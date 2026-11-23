@@ -44,6 +44,12 @@ const Card = styled.article`
   }
 `;
 
+const Corner = styled.span`
+  display: inline-flex;
+  flex: none;
+  align-self: flex-start;
+`;
+
 const Band = styled.div<{ $running: boolean }>`
   grid-area: band;
   display: grid;
@@ -456,10 +462,10 @@ export function RideHero({
             <span className="time">{formatTripTime(trip.departure_time) || "Time to confirm"}</span>
             <span className="day">
               {formatTripDate(trip.departure_date) || "Date to confirm"}
-              {status}
+              {countdown ? status : null}
             </span>
           </When>
-          {countdown && <Countdown {...countdown} />}
+          {countdown ? <Countdown {...countdown} /> : status ? <Corner>{status}</Corner> : null}
         </Top>
 
         <Route>

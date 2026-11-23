@@ -12,6 +12,7 @@ import { useShareLocation } from "@/lib/trips/live";
 import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { useConfirm } from "@/components/ui/ConfirmPop";
+import { ConfirmSheet } from "@/components/ui/ConfirmSheet";
 import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { SITE } from "@/lib/site";
@@ -22,6 +23,7 @@ import type { PublishedTrip, SeatRider } from "@/lib/trips/types";
 import { Act, Acts, Count, Depart, Meta, Road, Row, SeatTrack, SectionHead, Tag, fs } from "./RideRow";
 import { assignSeats } from "./SeatMap";
 import { RideHero } from "./RideHero";
+import { CancelRideArt } from "./TripsArt";
 
 const SHOWN = 4;
 const START_WINDOW_MS = 2 * 60 * 60 * 1000;
@@ -141,6 +143,27 @@ function leavesIn(ms: number): string {
 
 
 
+function cancelLead(trip: PublishedTrip): string {
+  const riders = trip.riders ?? [];
+  const people = riders.length;
+  const paid = riders.filter((r) => r.state === "paid").length;
+  if (people === 0) return "No one has booked a seat yet, so the ride just comes off Kipita.";
+  const who =
+    people === 1
+      ? "Your 1 passenger loses their seat and gets a message."
+      : `All ${people} passengers lose their seats and get a message.`;
+  if (paid === 0) return who;
+  const back =
+    paid === people
+      ? people === 1
+        ? "They get their full fare back."
+        : "Each one gets their full fare back."
+      : paid === 1
+        ? "The 1 who paid gets their full fare back."
+        : `The ${paid} who paid get their full fare back.`;
+  return `${who} ${back}`;
+}
+
 function riderNews(trip: PublishedTrip, rider: SeatRider): string {
   const first = rider.name.split(/\s+/)[0] || "A passenger";
   const slots = assignSeats(
@@ -198,6 +221,9 @@ export function PublishedTrips({
   const [copied, setCopied] = useState(false);
   const [, startTransition] = useTransition();
   const { ask, confirmNode } = useConfirm();
+  const [cancelling, setCancelling] = useState<PublishedTrip | null>(null);
+  const [asked, setAsked] = useState<PublishedTrip | null>(null);
+  if (cancelling && cancelling !== asked) setAsked(cancelling);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -245,15 +271,8 @@ export function PublishedTrips({
   const shown = expanded ? others : others.slice(0, SHOWN);
   const hidden = others.length - shown.length;
 
-  async function cancel(trip: PublishedTrip, anchor: Element) {
-    const ok = await ask(anchor, {
-      title: "Cancel ride?",
-      yes: "Cancel ride",
-      no: "Keep ride",
-      danger: true,
-    });
-    if (!ok) return;
-
+  function cancel(trip: PublishedTrip) {
+    setCancelling(null);
     setBusy(trip.id);
     setJob("cancel");
     setError("");
@@ -432,6 +451,20 @@ export function PublishedTrips({
         )}
       </SectionHead>
       {confirmNode}
+      {asked ? (
+        <ConfirmSheet
+          open={cancelling !== null}
+          title="Cancel this ride?"
+          lead={cancelLead(asked)}
+          art={<CancelRideArt />}
+          quote={`${asked.from_location} to ${asked.to_location} · ${formatTripDate(asked.departure_date)}, ${formatTripTime(asked.departure_time)}`}
+          yes="Cancel ride"
+          no="Keep ride"
+          danger
+          onClose={() => setCancelling(null)}
+          onConfirm={() => cancel(asked)}
+        />
+      ) : null}
 
       {error && (
         <Err role="alert">
@@ -478,7 +511,7 @@ export function PublishedTrips({
             {!running && (
               <CancelAct
                 type="button"
-                onClick={(e) => void cancel(hero, e.currentTarget)}
+                onClick={() => setCancelling(hero)}
                 disabled={working}
                 aria-busy={working && job === "cancel"}
               >
@@ -588,7 +621,7 @@ export function PublishedTrips({
                   {!going && (
                     <CancelAct
                       type="button"
-                      onClick={(e) => void cancel(trip, e.currentTarget)}
+                      onClick={() => setCancelling(trip)}
                       disabled={doing}
                       aria-label={`Cancel ride, ${label}`}
                     >

@@ -112,10 +112,10 @@ function emptyCopy(kind: EmptyKind, driver: boolean): EmptyCopy {
 }
 const SkelRow = styled.div`
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 8px;
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  padding: 16px 12px;
+  padding: 16px;
   border-radius: 16px;
   background: ${({ theme }) => theme.color.surfaceContainerLowest};
 
@@ -125,18 +125,19 @@ const SkelRow = styled.div`
 
   .lines {
     display: grid;
-    gap: 2px;
+    gap: 4px;
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 24px;
   }
   .line {
     display: flex;
     align-items: center;
     height: 20px;
-  }
-  .meta {
-    display: flex;
-    align-items: center;
-    height: 16px;
-    margin-top: 2px;
   }
 `;
 
@@ -145,16 +146,14 @@ export function ActivitySkeletonRows({ rows = 5 }: { rows?: number }) {
     <div aria-hidden="true">
       {Array.from({ length: rows }, (_, i) => (
         <SkelRow key={i}>
-          <Shimmer $w="40px" $h="40px" $r="50%" />
+          <Shimmer $w="44px" $h="44px" $r="50%" />
           <span className="lines">
-            <span className="line">
-              <Shimmer $w={i % 2 ? "60%" : "72%"} $h="14px" $r="6px" />
+            <span className="top">
+              <Shimmer $w={i % 2 ? "52%" : "64%"} $h="16px" $r="6px" />
+              <Shimmer $w="28px" $h="12px" $r="6px" />
             </span>
             <span className="line">
               <Shimmer $w={i % 3 ? "85%" : "64%"} $h="12px" $r="6px" />
-            </span>
-            <span className="meta">
-              <Shimmer $w="32px" $h="12px" $r="6px" />
             </span>
           </span>
         </SkelRow>

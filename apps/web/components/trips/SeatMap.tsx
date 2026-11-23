@@ -6,7 +6,7 @@ import styled, { css } from "styled-components";
 import { m, useAnimate, useReducedMotion } from "motion/react";
 import { Check } from "@/components/icons";
 import { RollingNumber } from "@/components/ui/Counter";
-import { spring, tween } from "@/lib/motion";
+import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { SeatRider } from "@/lib/trips/types";
 
@@ -264,7 +264,7 @@ function Seat({ n, slot, index, fillOrder }: { n: number; slot: SeatSlot; index:
     if (previous.current === state) return;
     previous.current = state;
     if (reduce || !scope.current) return;
-    void animate(scope.current, { scale: [1, 1.12, 1] }, spring.success);
+    void animate(scope.current, { scale: [1, 1.12, 1] }, { ...tween.enter, times: [0, 0.4, 1] });
   }, [state, reduce, animate, scope]);
 
   const label = rider ? `Seat ${n}: ${LABEL[state]}, ${rider.name}` : `Seat ${n}: ${LABEL[state]}`;

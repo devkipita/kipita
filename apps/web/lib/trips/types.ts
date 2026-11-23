@@ -133,6 +133,7 @@ export type JourneyState = {
   boardedMethod: "code" | "manual" | "legacy" | null;
   escrow: string | null;
   releaseDueAt: string | null;
+  payout: number | null;
   problem: { kind: string; status: "open" | "resolved"; outcome: "clear" | "refund" | null } | null;
   contactOpen: boolean;
 };
@@ -143,6 +144,7 @@ export const NO_JOURNEY: JourneyState = {
   boardedMethod: null,
   escrow: null,
   releaseDueAt: null,
+  payout: null,
   problem: null,
   contactOpen: false,
 };

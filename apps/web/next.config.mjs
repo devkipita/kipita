@@ -1,8 +1,25 @@
+import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { withSentryConfig } from "@sentry/nextjs";
+
+const release = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")).version;
+
+function buildStamp() {
+  if (process.env.VERCEL_GIT_COMMIT_SHA) return process.env.VERCEL_GIT_COMMIT_SHA;
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return String(Date.now());
+  }
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_RELEASE: release,
+    NEXT_PUBLIC_BUILD: buildStamp(),
+  },
   eslint: { ignoreDuringBuilds: true },
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   // Compile the shared workspace package (ships raw TS, no build step).

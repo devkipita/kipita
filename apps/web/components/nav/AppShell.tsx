@@ -95,10 +95,13 @@ export const Main = styled.main`
   min-width: 0;
   flex: 1;
   padding-bottom: var(--bottom-bar-space);
-  /* Lets a full-bleed band run past this column without adding a horizontal
-     scrollbar. Clip rather than hidden: hidden would make this a scroll
-     container. */
+  padding-right: var(--side-panel, 0px);
   overflow-x: clip;
+  transition: padding-right ${dur.enter} ${ease.enter};
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `;
 
 export const ContentWidth = styled.div<{ $max?: number }>`

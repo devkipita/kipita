@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import styled from "styled-components";
-import { CaretRight } from "@/components/icons";
+import { departureInstant } from "@kipita/shared";
+import { Car, CaretRight, CheckCircle, Clock, NavigationArrow, XCircle } from "@/components/icons";
 import { Chip as Toggle } from "@/components/ui/Chip";
 import { RollingNumber } from "@/components/ui/Counter";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency } from "@/lib/trips/format";
-import type { Booking } from "@/lib/trips/types";
+import type { Booking, TripLeg } from "@/lib/trips/types";
 import { Chip, STATUS, StatusTile } from "./BookingCard";
 import { fs } from "./RideRow";
 
@@ -192,25 +193,72 @@ function money(b: Booking, rode: boolean) {
   return { amount: formatCurrency(b.total_price), note: rode ? "You paid" : "Passenger paid" };
 }
 
+type Entry =
+  | { kind: "seat"; key: string; day: Date; booking: Booking }
+  | { kind: "ride"; key: string; day: Date; tripId: string; trip: TripLeg | null; bookings: Booking[] };
+
+export function pastEntries(bookings: Booking[], viewerId: string): Entry[] {
+  const sorted = [...bookings].sort((a, b) => dayOf(b).getTime() - dayOf(a).getTime());
+  const entries: Entry[] = [];
+  const rides = new Map<string, Extract<Entry, { kind: "ride" }>>();
+  for (const b of sorted) {
+    if (b.passenger_id === viewerId) {
+      entries.push({ kind: "seat", key: b.id, day: dayOf(b), booking: b });
+      continue;
+    }
+    const ride = rides.get(b.trip_id);
+    if (ride) {
+      ride.bookings.push(b);
+      continue;
+    }
+    const next = { kind: "ride" as const, key: `ride-${b.trip_id}`, day: dayOf(b), tripId: b.trip_id, trip: b.trip, bookings: [b] };
+    rides.set(b.trip_id, next);
+    entries.push(next);
+  }
+  return entries;
+}
+
+function rideState(trip: TripLeg | null, bookings: Booking[]) {
+  const leaves = departureInstant(trip?.departure_date, trip?.departure_time);
+  const ahead = leaves ? leaves.getTime() > Date.now() : false;
+  if (trip?.status === "cancelled") return { label: "Ride cancelled", tone: "off" as const, icon: XCircle, ahead: false };
+  if (trip?.status === "in_progress") return { label: "On the way", tone: "live" as const, icon: NavigationArrow, ahead: false };
+  if (trip?.status === "completed" || bookings.some((b) => b.status === "completed"))
+    return { label: "Ride completed", tone: "done" as const, icon: CheckCircle, ahead: false };
+  if (ahead) return { label: "Ride still on", tone: "go" as const, icon: Car, ahead: true };
+  return { label: "Ride over", tone: "off" as const, icon: Clock, ahead: false };
+}
+
+function seatSummary(bookings: Booking[]): string {
+  const rode = bookings.filter((b) => b.status === "completed").length;
+  const cancelled = bookings.filter((b) => b.status === "cancelled").length;
+  const declined = bookings.filter((b) => b.status === "rejected").length;
+  const who = (n: number) => (n === 1 ? "1 passenger" : `${n} passengers`);
+  const parts: string[] = [];
+  if (rode) parts.push(`${who(rode)} rode`);
+  if (cancelled) parts.push(`${parts.length ? cancelled : who(cancelled)} cancelled`);
+  if (declined) parts.push(`${parts.length ? declined : who(declined)} declined`);
+  return parts.join(", ");
+}
+
 export function PastTrips({ bookings, viewerId }: { bookings: Booking[]; viewerId: string }) {
   const [all, setAll] = useState(false);
 
   if (bookings.length === 0) return <Empty>No past trips yet.</Empty>;
 
-  const sorted = [...bookings].sort((a, b) => dayOf(b).getTime() - dayOf(a).getTime());
-  const shown = all ? sorted : sorted.slice(0, LIMIT);
+  const entries = pastEntries(bookings, viewerId);
+  const shown = all ? entries : entries.slice(0, LIMIT);
 
-  const months: { key: string; label: string; items: Booking[] }[] = [];
-  for (const b of shown) {
-    const d = dayOf(b);
-    const key = monthKey(d);
+  const months: { key: string; label: string; items: Entry[] }[] = [];
+  for (const e of shown) {
+    const key = monthKey(e.day);
     const last = months[months.length - 1];
-    if (last && last.key === key) last.items.push(b);
+    if (last && last.key === key) last.items.push(e);
     else
       months.push({
         key,
-        label: d.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
-        items: [b],
+        label: e.day.toLocaleDateString("en-GB", { month: "long", year: "numeric" }),
+        items: [e],
       });
   }
 
@@ -220,23 +268,55 @@ export function PastTrips({ bookings, viewerId }: { bookings: Booking[]; viewerI
         <Month key={m.key} aria-label={m.label}>
           <h3>{m.label}</h3>
           <Rows>
-            {m.items.map((b) => {
-              const rode = b.passenger_id === viewerId;
-              const status = STATUS[b.status];
-              const from = b.trip?.from_location ?? "Pickup";
-              const to = b.trip?.to_location ?? "Drop-off";
-              const { amount, note } = money(b, rode);
-              const day = dayOf(b).toLocaleDateString("en-GB", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-              });
+            {m.items.map((e) => {
+              const day = e.day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+              if (e.kind === "seat") {
+                const b = e.booking;
+                const status = STATUS[b.status];
+                const from = b.trip?.from_location ?? "Pickup";
+                const to = b.trip?.to_location ?? "Drop-off";
+                const { amount, note } = money(b, true);
+                return (
+                  <li key={e.key}>
+                    <RowLink href={`/trips/${b.id}`} aria-label={`${day}, ${from} to ${to}, ${status.label}`}>
+                      <span className="date">
+                        <StatusTile $tone={status.tone} $small aria-hidden>
+                          <status.icon size={16} weight="bold" />
+                        </StatusTile>
+                        {day}
+                      </span>
+                      <span className="trip">
+                        <b>
+                          {from} → {to}
+                        </b>
+                        <span>You rode</span>
+                      </span>
+                      <span className="badge">
+                        <Chip $tone={status.tone}>{status.label}</Chip>
+                      </span>
+                      <span className="money">
+                        {amount && <b>{amount}</b>}
+                        <span>{note}</span>
+                      </span>
+                      <CaretRight size={16} aria-hidden />
+                    </RowLink>
+                  </li>
+                );
+              }
+              const first = e.bookings[0];
+              const state = rideState(e.trip, e.bookings);
+              const from = e.trip?.from_location ?? "Pickup";
+              const to = e.trip?.to_location ?? "Drop-off";
+              const summary = seatSummary(e.bookings);
+              const lead = state.ahead ? "Your ride" : "You drove";
+              const earned = e.bookings.filter((b) => b.status === "completed").reduce((sum, b) => sum + b.total_price, 0);
+              const href = e.bookings.length === 1 ? `/trips/${first.id}` : `/ride/${e.tripId}`;
               return (
-                <li key={b.id}>
-                  <RowLink href={`/trips/${b.id}`} aria-label={`${day}, ${from} to ${to}, ${status.label}`}>
+                <li key={e.key}>
+                  <RowLink href={href} aria-label={`${day}, ${from} to ${to}, ${state.label}${summary ? `, ${summary}` : ""}`}>
                     <span className="date">
-                      <StatusTile $tone={status.tone} $small aria-hidden>
-                        <status.icon size={16} weight="bold" />
+                      <StatusTile $tone={state.tone} $small aria-hidden>
+                        <state.icon size={16} weight="bold" />
                       </StatusTile>
                       {day}
                     </span>
@@ -244,14 +324,14 @@ export function PastTrips({ bookings, viewerId }: { bookings: Booking[]; viewerI
                       <b>
                         {from} → {to}
                       </b>
-                      <span>{rode ? "You rode" : "You drove"}</span>
+                      <span>{summary ? `${lead} · ${summary}` : lead}</span>
                     </span>
                     <span className="badge">
-                      <Chip $tone={status.tone}>{status.label}</Chip>
+                      <Chip $tone={state.tone}>{state.label}</Chip>
                     </span>
                     <span className="money">
-                      {amount && <b>{amount}</b>}
-                      <span>{note}</span>
+                      {earned > 0 ? <b>{formatCurrency(earned)}</b> : null}
+                      <span>{earned > 0 ? "Passengers paid" : "Nothing charged"}</span>
                     </span>
                     <CaretRight size={16} aria-hidden />
                   </RowLink>
@@ -261,14 +341,14 @@ export function PastTrips({ bookings, viewerId }: { bookings: Booking[]; viewerI
           </Rows>
         </Month>
       ))}
-      {sorted.length > LIMIT && (
+      {entries.length > LIMIT && (
         <More>
           <Toggle type="button" onClick={() => setAll((v) => !v)} aria-expanded={all}>
             {all ? (
               "Show fewer trips"
             ) : (
               <>
-                Show all <RollingNumber value={sorted.length} /> past trips
+                Show all <RollingNumber value={entries.length} /> past trips
               </>
             )}
           </Toggle>

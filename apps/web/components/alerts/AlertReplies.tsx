@@ -832,6 +832,7 @@ export function AlertReplies({
                 <CommentRow
                   comment={comment}
                   viewerId={viewerId}
+                  replyCount={kids.length}
                   onRequireAuth={() => router.push(signIn)}
                   onReply={threaded && !mine ? startReply : undefined}
                   onDelete={!mine && viewerId === comment.user_id ? (c) => void removeReply(c) : undefined}

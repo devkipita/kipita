@@ -7,6 +7,7 @@ import { Avatar } from "@/components/profile/Avatar";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
 import { VerifiedMark } from "@/components/alerts/VerifiedMark";
 import { nocturne } from "@/lib/nocturne";
+import { departureInstant } from "@kipita/shared";
 import { formatCurrency, formatTripDate, formatTripTime, nairobiToday } from "@/lib/trips/format";
 import type { Booking, TripPerson } from "@/lib/trips/types";
 import { Chip, STATUS } from "./BookingCard";
@@ -86,6 +87,14 @@ const HeroText = styled.div`
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: ${nocturne.muted};
+  }
+  .still {
+    margin: 4px 0 0;
+    max-width: 48ch;
+    font-size: ${fs.meta};
+    font-weight: 600;
+    line-height: 20px;
+    color: ${nocturne.cream};
   }
   .reason {
     display: inline-flex;
@@ -423,6 +432,7 @@ export function StoppedTrip({
         .join(", ")
     : "";
   const noShow = noShowTier === "no_show";
+  const lapsed = booking.cancel_reason?.trim() === "Payment hold expired";
 
   const headline = declined
     ? isDriver
@@ -432,6 +442,10 @@ export function StoppedTrip({
       ? isDriver
         ? `${passenger} didn't show up`
         : "You were marked as a no-show"
+      : lapsed
+        ? isDriver
+          ? `${passenger} didn't pay in time`
+          : "Your seat hold ran out"
       : cancelledBy === viewerId
         ? isDriver
           ? `You cancelled ${passenger}'s seat`
@@ -444,8 +458,15 @@ export function StoppedTrip({
 
   const stoppedAt = moment(booking.cancelled_at);
   const whenLine = stoppedAt ? `${declined ? "Declined" : "Cancelled"} ${stoppedAt}` : null;
-  const reason = !noShow && booking.cancel_reason?.trim() ? booking.cancel_reason.trim() : null;
-  const tripOpen = booking.trip && !["cancelled", "completed", "expired"].includes(booking.trip.status);
+  const reason = !noShow && !lapsed && booking.cancel_reason?.trim() ? booking.cancel_reason.trim() : null;
+  const leaves = departureInstant(booking.trip?.departure_date, booking.trip?.departure_time);
+  const tripOpen =
+    !!booking.trip &&
+    !["cancelled", "completed", "expired", "in_progress"].includes(booking.trip.status) &&
+    (!leaves || leaves.getTime() > Date.now());
+  const stillOn = booking.accepted_at
+    ? `Your ride to ${destination} is still on, and the seat is back on sale.`
+    : `Your ride to ${destination} is still open for booking.`;
   const search = new URLSearchParams({ from: origin, to: destination }).toString();
 
   const steps: { label: string; at: string; stop?: boolean }[] = [
@@ -492,10 +513,13 @@ export function StoppedTrip({
               Find another ride to {destination}
             </HeroAct>
           ) : tripOpen ? (
-            <HeroAct as={Link} href={`/ride/${booking.trip_id}`}>
-              <Car size={20} aria-hidden />
-              Open ride
-            </HeroAct>
+            <>
+              <p className="still">{stillOn}</p>
+              <HeroAct as={Link} href={`/ride/${booking.trip_id}`}>
+                <Car size={20} aria-hidden />
+                Manage your ride
+              </HeroAct>
+            </>
           ) : null}
         </HeroText>
       </Hero>

@@ -8,7 +8,8 @@ import { ArrowClockwise, Check, Copy, DotsThree, HeartSmall, ShareForward, TextS
 import { Avatar } from "@/components/profile/Avatar";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { IconAction } from "@/components/ui/Chip";
-import { useConfirm } from "@/components/ui/ConfirmPop";
+import { ConfirmSheet } from "@/components/ui/ConfirmSheet";
+import { DeleteReplyArt } from "./DeleteReplyArt";
 import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { SITE } from "@/lib/site";
 import { RollingNumber } from "@/components/ui/Counter";
@@ -184,17 +185,19 @@ function ReplyMenu({
   comment,
   author,
   textRef,
+  replyCount,
   onDelete,
 }: {
   comment: AlertComment;
   author: string;
   textRef: React.RefObject<HTMLParagraphElement | null>;
+  replyCount: number;
   onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<"copied" | "linked" | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { ask, confirmNode } = useConfirm();
   const link = `${SITE.websiteUrl}/alerts/${comment.alert_id}#reply-${comment.id}`;
 
   function flash(kind: "copied" | "linked") {
@@ -243,16 +246,11 @@ function ReplyMenu({
     }
   }
 
-  async function remove() {
-    setOpen(false);
-    const ok = await ask(triggerRef.current, {
-      title: "Delete this reply?",
-      yes: "Delete reply",
-      no: "Keep reply",
-      danger: true,
-    });
-    if (ok) onDelete?.();
-  }
+  const under = replyCount === 1 ? "the 1 reply under it" : `the ${replyCount} replies under it`;
+  const lead =
+    replyCount > 0
+      ? `It disappears from this alert for everyone, with ${under}. You can't undo this.`
+      : "It disappears from this alert for everyone. You can't undo this.";
 
   return (
     <>
@@ -286,13 +284,37 @@ function ReplyMenu({
           {done === "linked" ? "Link copied" : "Share reply"}
         </MenuItem>
         {onDelete && (
-          <MenuItem type="button" role="menuitem" data-tone="danger" onClick={() => void remove()}>
+          <MenuItem
+            type="button"
+            role="menuitem"
+            data-tone="danger"
+            onClick={() => {
+              setOpen(false);
+              setConfirming(true);
+            }}
+          >
             <Trash size={20} aria-hidden />
             Delete reply
           </MenuItem>
         )}
       </Popover>
-      {confirmNode}
+      {onDelete && (
+        <ConfirmSheet
+          open={confirming}
+          title="Delete your reply?"
+          lead={lead}
+          art={<DeleteReplyArt />}
+          quote={comment.content || "Your photo"}
+          yes="Delete reply"
+          no="Keep reply"
+          danger
+          onClose={() => setConfirming(false)}
+          onConfirm={() => {
+            setConfirming(false);
+            onDelete();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -305,6 +327,7 @@ export function CommentRow({
   comment,
   viewerId,
   nested = false,
+  replyCount = 0,
   onRequireAuth,
   onReply,
   onDelete,
@@ -313,6 +336,7 @@ export function CommentRow({
   comment: AlertComment;
   viewerId: string | null;
   nested?: boolean;
+  replyCount?: number;
   onRequireAuth?: () => void;
   onReply?: (comment: AlertComment) => void;
   onDelete?: (comment: AlertComment) => void;
@@ -432,6 +456,7 @@ export function CommentRow({
               comment={comment}
               author={author}
               textRef={textRef}
+              replyCount={replyCount}
               onDelete={onDelete ? () => onDelete(comment) : undefined}
             />
           )}

@@ -31,10 +31,10 @@ const Wrap = styled.section`
 `;
 
 const Art = styled.div`
-  width: min(216px, 56%);
+  width: min(260px, 72%);
 
   @media (min-width: 900px) {
-    width: min(340px, 70%);
+    width: min(440px, 88%);
   }
 `;
 
@@ -65,34 +65,46 @@ const Copy = styled.div`
 
 const Stats = styled.dl`
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin: 0;
+  margin: 8px 0 0;
   animation: ${fade} ${dur.enter} ${ease.enter} 240ms both;
 
   div {
     display: grid;
-    gap: 1px;
-    min-width: 92px;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: ${nocturne.surface};
-    box-shadow: ${nocturne.cardShadow};
+    gap: 2px;
+    min-width: 104px;
+    padding: 12px 16px;
+    border-radius: 16px;
+    text-align: left;
+  }
+  .money {
+    background: ${({ theme }) => theme.tone.amber.bg};
+    color: ${({ theme }) => theme.tone.amber.on};
+  }
+  .time {
+    background: ${({ theme }) => theme.tone.blue.bg};
+    color: ${({ theme }) => theme.tone.blue.on};
+  }
+  .seats {
+    background: ${({ theme }) => theme.tone.green.bg};
+    color: ${({ theme }) => theme.tone.green.on};
   }
   dt {
     order: 2;
-    font-size: 12px;
-    font-weight: 700;
-    color: ${nocturne.muted};
+    font-size: 13px;
+    font-weight: 600;
+    color: inherit;
   }
   dd {
     order: 1;
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.02em;
-    color: ${nocturne.cream};
+    color: inherit;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
@@ -132,24 +144,24 @@ export function FinishScene({
   return (
     <Wrap aria-label="Trip complete">
       <Art>
-        <FinishArt />
+        <FinishArt destination={destination} />
       </Art>
       <Copy>
         <h2>{isDriver ? `You delivered your passenger to ${destination}` : `You made it to ${destination}`}</h2>
-        <p>{isDriver ? "Paid when there is no dispute" : "Thanks for riding with Kipita"}</p>
+        {isDriver ? null : <p>Thanks for riding with Kipita</p>}
       </Copy>
       <Stats>
-        <div>
+        <div className="money">
           <dt>{isDriver ? "to you" : "paid"}</dt>
           <dd>{formatCurrency(amount)}</dd>
         </div>
         {time ? (
-          <div>
+          <div className="time">
             <dt>on the road</dt>
             <dd>{time}</dd>
           </div>
         ) : null}
-        <div>
+        <div className="seats">
           <dt>{seats === 1 ? "seat" : "seats"}</dt>
           <dd>{seats}</dd>
         </div>

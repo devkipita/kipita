@@ -8,7 +8,6 @@ const Shell = styled.div`
   display: grid;
   gap: 12px;
   padding: 16px;
-  border: 1px solid ${nocturne.line};
   border-radius: 16px;
   background: ${nocturne.surface};
 `;
@@ -34,9 +33,8 @@ const Line = styled.div<{ $h: string }>`
 `;
 
 const Foot = styled(Row)`
-  padding-top: 12px;
-  border-top: 1px solid ${nocturne.line};
-  min-height: 52px;
+  padding-top: 16px;
+  min-height: 56px;
 `;
 
 export function AlertCardSkeleton() {

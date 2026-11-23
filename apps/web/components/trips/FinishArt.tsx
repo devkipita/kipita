@@ -1,7 +1,7 @@
 "use client";
 
 import styled, { keyframes } from "styled-components";
-import { nocturne } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const stepIn = keyframes`
   from { opacity: 0; transform: translateY(14px); }
@@ -26,14 +26,14 @@ const drop = keyframes`
 `;
 
 const BITS: [number, number, string, number, number, number][] = [
-  [160, 70, "cta", -70, -46, 160],
-  [160, 70, "lime", -42, -64, -120],
-  [160, 70, "accent", 0, -72, 200],
-  [160, 70, "cta", 44, -62, -160],
-  [160, 70, "lime", 72, -40, 120],
-  [160, 70, "accent", -86, -12, 90],
-  [160, 70, "cta", 90, -8, -90],
-  [160, 70, "lime", 24, -84, 240],
+  [160, 84, "cta", -70, -46, 160],
+  [160, 84, "lime", -42, -64, -120],
+  [160, 84, "accent", 0, -72, 200],
+  [160, 84, "cta", 44, -62, -160],
+  [160, 84, "lime", 72, -40, 120],
+  [160, 84, "accent", -86, -12, 90],
+  [160, 84, "cta", 90, -8, -90],
+  [160, 84, "lime", 24, -84, 240],
 ];
 
 const Svg = styled.svg`
@@ -51,6 +51,13 @@ const Svg = styled.svg`
   .surface { fill: ${nocturne.surface2}; }
   .paper { fill: ${nocturne.surface}; }
   .ground { fill: ${nocturne.cream}; }
+  .board { fill: ${nocturne.greenDeep}; }
+  .sign-text {
+    fill: ${nocturne.onGreen};
+    font-family: var(--font-manrope), sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+  }
 
   .left,
   .right {
@@ -60,6 +67,7 @@ const Svg = styled.svg`
   .right { animation-delay: 90ms; }
   .car { animation: ${stepIn} 380ms cubic-bezier(0.23, 1, 0.32, 1) both; }
   .flag { transform-box: fill-box; transform-origin: bottom center; animation: ${drop} 420ms cubic-bezier(0.34, 1.56, 0.64, 1) 220ms both; }
+  .sign { transform-box: fill-box; transform-origin: bottom center; animation: ${drop} ${dur.enter} ${ease.enter} both; }
 
   .arm {
     transform-box: fill-box;
@@ -77,18 +85,35 @@ const Svg = styled.svg`
   ${BITS.map(([, , , dx, dy, r], i) => `.bit-${i} { --x: ${dx}px; --y: ${dy}px; --r: ${r}deg; animation-delay: ${300 + i * 35}ms; }`).join("\n")}
 
   @media (prefers-reduced-motion: reduce) {
-    .left, .right, .car, .flag, .arm { animation: none; }
+    .left, .right, .car, .flag, .sign, .arm { animation: none; }
     .bit { animation: none; opacity: 0; }
   }
 `;
 
 
 
-export function FinishArt() {
+function signName(name: string | undefined): string {
+  const town = (name ?? "").split(",")[0].trim();
+  return town.length > 12 ? `${town.slice(0, 11)}…` : town;
+}
+
+export function FinishArt({ destination }: { destination?: string }) {
+  const town = signName(destination);
   return (
     <Svg viewBox="0 0 320 190" aria-hidden="true" focusable="false">
       <ellipse className="ground" cx="160" cy="172" rx="148" ry="10" opacity="0.07" />
       <rect className="surface" x="18" y="160" width="284" height="8" rx="4" />
+
+      {town ? (
+        <g className="sign">
+          <path className="ink" d="M124 54 V108 M196 54 V108" fill="none" strokeWidth="2.6" strokeLinecap="round" />
+          <rect className="board" x="106" y="20" width="108" height="34" rx="6" />
+          <rect className="ink" x="106" y="20" width="108" height="34" rx="6" fill="none" strokeWidth="2.6" />
+          <text className="sign-text" x="160" y="42.5" textAnchor="middle">
+            {town}
+          </text>
+        </g>
+      ) : null}
 
       <g className="car">
         <path className="paper" d="M104 150 v-18 a10 10 0 0 1 10 -10 h14 l14 -18 h40 l16 18 h10 a10 10 0 0 1 10 10 v18 z" />

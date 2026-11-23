@@ -18,7 +18,7 @@ import { Count, fs } from "./RideRow";
 import { RollingNumber } from "@/components/ui/Counter";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { tween } from "@/lib/motion";
-import { PastTrips } from "./PastTrips";
+import { PastTrips, pastEntries } from "./PastTrips";
 import { TripsHelp } from "./TripsHelp";
 import { NoPastArt, NoRequestsArt, NoTripsArt } from "./TripsArt";
 import { SeatRequests } from "./SeatRequests";
@@ -533,7 +533,7 @@ export function TripsView({
                 {(
                   [
                     { key: "current", label: "Upcoming", n: current.length },
-                    { key: "previous", label: "Past", n: previous.length },
+                    { key: "previous", label: "Past", n: pastEntries(previous, viewerId).length },
                     ...(isDriver ? [{ key: "incoming", label: "Requests", n: incoming }] : []),
                   ] as { key: Tab; label: string; n: number }[]
                 ).map((t) => {

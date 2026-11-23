@@ -36,9 +36,7 @@ export function token(name: string, fallback: string) {
   return v || fallback;
 }
 
-export function mapStyle(): google.maps.MapTypeStyle[] {
-  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches &&
-    document.documentElement.dataset.theme !== "light";
+export function mapStyle(dark: boolean): google.maps.MapTypeStyle[] {
   const ground = dark ? "#1f2623" : "#f2f3f0";
   const road = dark ? "#2e3733" : "#ffffff";
   const ink = dark ? "#a7b0ab" : "#5f6a64";

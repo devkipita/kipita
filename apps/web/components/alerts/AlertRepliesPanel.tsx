@@ -119,7 +119,8 @@ export function AlertRepliesPanel({
     if (!isOpen || sheet) return;
     returnTo.current = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") latest.current.onClose();
+      if (e.key !== "Escape" || document.querySelector('[role="dialog"]')) return;
+      latest.current.onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => {

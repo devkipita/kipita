@@ -160,3 +160,41 @@ export function NoRequestsArt() {
     </SceneSvg>
   );
 }
+
+export function CancelRideArt() {
+  return (
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <circle className="ink-fill" cx="200" cy="105" r="3" />
+      <circle className="ink-fill" cx="214" cy="105" r="3" />
+      <path className="ink" strokeWidth="2.6" d="M203 118c2.7-2.7 5.7-2.7 9 0" />
+      <path
+        className="tint ink"
+        strokeWidth="2.6"
+        d="M244 34h48a8 8 0 0 1 8 8v8a6 6 0 0 0 0 12v8a8 8 0 0 1-8 8h-48a8 8 0 0 1-8-8v-8a6 6 0 0 0 0-12v-8a8 8 0 0 1 8-8Z"
+      />
+      <circle className="ink-fill" cx="252" cy="56" r="3" />
+      <path className="ink" strokeWidth="2.6" strokeDasharray="4 5" d="M259 56h20" />
+      <circle className="ink-fill" cx="286" cy="56" r="3" />
+      <circle className="cta-fill ink" strokeWidth="2.6" cx="300" cy="34" r="18" />
+      <path className="on-cta" strokeWidth="3" d="m294 28 12 12M306 28l-12 12" />
+    </SceneSvg>
+  );
+}
+
+export function NoReviewsArt() {
+  return (
+    <SceneSvg viewBox="0 0 320 180" fill="none" aria-hidden="true" focusable="false">
+      <Mascot />
+      <OpenEyes />
+      <path className="ink flow" strokeWidth="2.6" strokeDasharray="6 8" d="M236 146h40" />
+      <path className="ink" strokeWidth="2.6" d="M276 78v68" />
+      <circle className="cta-fill ink" strokeWidth="2.6" cx="276" cy="52" r="24" />
+      <path
+        className="on-cta"
+        strokeWidth="2.6"
+        d="M276 41l2.5 7.5h8l-6 5 2 7.5-6.5-4.5-6.5 4.5 2-7.5-6-5h8Z"
+      />
+    </SceneSvg>
+  );
+}

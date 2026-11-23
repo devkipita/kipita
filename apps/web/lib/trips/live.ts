@@ -30,7 +30,7 @@ function write(tripId: string, on: boolean) {
   } catch {}
 }
 
-export type ShareState = "off" | "on" | "denied" | "unsupported";
+export type ShareState = "off" | "on" | "denied" | "unsupported" | "failed";
 
 export function useShareLocation(tripId: string, running: boolean) {
   const [state, setState] = useState<ShareState>("off");
@@ -48,22 +48,29 @@ export function useShareLocation(tripId: string, running: boolean) {
       return;
     }
     stop();
+    setState((s) => (s === "failed" ? "off" : s));
     const supabase = createClient();
     watch.current = navigator.geolocation.watchPosition(
       (pos) => {
-        setState("on");
+        setState((s) => (s === "failed" ? s : "on"));
         write(tripId, true);
         const now = Date.now();
         if (now - last.current < 8000) return;
         last.current = now;
         const { latitude, longitude, heading, speed } = pos.coords;
-        void supabase.rpc("share_trip_location", {
-          p_trip_id: tripId,
-          p_lat: latitude,
-          p_lng: longitude,
-          p_heading: heading != null && Number.isFinite(heading) ? heading : null,
-          p_speed_kmh: speed != null && Number.isFinite(speed) ? speed * 3.6 : null,
-        });
+        void supabase
+          .rpc("share_trip_location", {
+            p_trip_id: tripId,
+            p_lat: latitude,
+            p_lng: longitude,
+            p_heading: heading != null && Number.isFinite(heading) ? heading : null,
+            p_speed_kmh: speed != null && Number.isFinite(speed) ? speed * 3.6 : null,
+          })
+          .then(({ error }) => {
+            if (!error) return;
+            last.current = 0;
+            setState("failed");
+          });
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {

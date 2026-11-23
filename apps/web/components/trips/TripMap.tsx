@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { useTheme } from "styled-components";
 import { Crosshair, Minus, Plus } from "@/components/icons";
 import { loadGoogleMaps, mapStyle, token } from "@/lib/maps/google";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { TripLocation } from "@/lib/trips/live";
+
+const INK_FALLBACK = "#14231d";
+const HALO_FALLBACK = "#ffffff";
 
 const Frame = styled.div`
   position: relative;
@@ -193,6 +196,16 @@ export default function TripMap({
   const [locating, setLocating] = useState(false);
   const padRef = useRef(padding);
   padRef.current = padding;
+  const dark = useTheme().mode === "dark";
+  const darkRef = useRef(dark);
+  darkRef.current = dark;
+  const paintRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!ready) return;
+    const frame = requestAnimationFrame(() => paintRef.current?.());
+    return () => cancelAnimationFrame(frame);
+  }, [dark, ready]);
 
   const followRef = useRef(follow);
   followRef.current = follow;
@@ -226,11 +239,11 @@ export default function TripMap({
         const path = g.maps.geometry.encoding.decodePath(polyline);
         if (path.length < 2) return;
 
-        const ink = token("--n-ink", "#14231d");
-        const halo = token("--n-surface", "#ffffff");
+        const ink = token("--n-ink", INK_FALLBACK);
+        const halo = token("--n-surface", HALO_FALLBACK);
 
         const map = new g.maps.Map(hostRef.current, {
-          styles: mapStyle(),
+          styles: mapStyle(darkRef.current),
           disableDefaultUI: true,
           gestureHandling: "greedy",
           clickableIcons: false,
@@ -238,22 +251,46 @@ export default function TripMap({
         });
         mapRef.current = map;
 
-        new g.maps.Polyline({ map, path, strokeColor: halo, strokeWeight: 8, zIndex: 1 });
-        new g.maps.Polyline({ map, path, strokeColor: ink, strokeWeight: 4, zIndex: 2 });
-        new g.maps.Marker({
+        const haloLine = new g.maps.Polyline({ map, path, strokeColor: halo, strokeWeight: 8, zIndex: 1 });
+        const inkLine = new g.maps.Polyline({ map, path, strokeColor: ink, strokeWeight: 4, zIndex: 2 });
+        const startIcon = (fill: string, edge: string): google.maps.Symbol => ({
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 6,
+          fillColor: fill,
+          fillOpacity: 1,
+          strokeColor: edge,
+          strokeWeight: 4,
+        });
+        const endIcon = (fill: string, edge: string): google.maps.Symbol => ({
+          path: "M -6 -6 L 6 -6 L 6 6 L -6 6 Z",
+          fillColor: fill,
+          fillOpacity: 1,
+          strokeColor: edge,
+          strokeWeight: 3,
+        });
+        const startMark = new g.maps.Marker({
           map,
           position: path[0],
           zIndex: 3,
           clickable: false,
-          icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: halo, fillOpacity: 1, strokeColor: ink, strokeWeight: 4 },
+          icon: startIcon(halo, ink),
         });
-        new g.maps.Marker({
+        const endMark = new g.maps.Marker({
           map,
           position: path[path.length - 1],
           zIndex: 3,
           clickable: false,
-          icon: { path: "M -6 -6 L 6 -6 L 6 6 L -6 6 Z", fillColor: ink, fillOpacity: 1, strokeColor: halo, strokeWeight: 3 },
+          icon: endIcon(ink, halo),
         });
+        paintRef.current = () => {
+          const nextInk = token("--n-ink", INK_FALLBACK);
+          const nextHalo = token("--n-surface", HALO_FALLBACK);
+          map.setOptions({ styles: mapStyle(darkRef.current) });
+          haloLine.setOptions({ strokeColor: nextHalo });
+          inkLine.setOptions({ strokeColor: nextInk });
+          startMark.setIcon(startIcon(nextHalo, nextInk));
+          endMark.setIcon(endIcon(nextInk, nextHalo));
+        };
 
         class Html extends g.maps.OverlayView {
           constructor(public el: HTMLElement, public pos: google.maps.LatLng | null, public pane: "floatPane" | "overlayMouseTarget") {

@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { ArrowLeft, ChatCircle, Check, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareNetwork, Star, X } from "@/components/icons";
+import { ArrowLeft, CaretRight, ChatCircle, Check, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareNetwork, Star, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
-import { reportProblemAction, type ProblemKind } from "@/lib/trips/boarding-actions";
+import { reportProblemAction } from "@/lib/trips/boarding-actions";
+import type { ProblemKind } from "@/lib/trips/problems";
 import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
 import { LiveStatus, useLiveEta } from "./LiveCard";
@@ -36,6 +37,9 @@ import { NoShowPanel } from "./NoShowPanel";
 import { ProblemPanel } from "./ProblemPanel";
 import { BoardingPanel, PickupCodeCard, SlideToComplete, earningsLine, useBoarding } from "./Boarding";
 import { FinishScene } from "./FinishScene";
+import { useSplitLayout } from "./MapSheet";
+import { PersonCard } from "@/components/rides/PersonCard";
+import { Drawer, DrawerBody } from "@/components/ui/Drawer";
 import { RateRide } from "./RateRide";
 import { PayPanel } from "./PayPanel";
 import { PANEL_IN, PANEL_IN_MS, PANEL_OUT, SidePanel, type PanelMode } from "./SidePanel";
@@ -48,7 +52,7 @@ import { StoppedTrip } from "./StoppedTrip";
 
 const DESK = "@media (min-width: 861px)";
 
-const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: boolean }>`
+const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: boolean; $split?: boolean }>`
   padding-block: 0 64px;
   padding-left: max(16px, var(--page-pad), env(safe-area-inset-left));
   padding-right: max(16px, var(--page-pad), env(safe-area-inset-right));
@@ -60,7 +64,7 @@ const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: b
     padding-bottom: calc(48px + var(--bottom-bar-space, 0px));
   }
 
-  ${({ $map, $side, $squeeze }) =>
+  ${({ $map, $side, $squeeze, $split }) =>
     $map &&
     css`
       @media (min-width: 900px) {
@@ -74,6 +78,9 @@ const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: b
       }
       @media (min-width: 900px) and (prefers-reduced-motion: reduce) {
         transition: none;
+      }
+      @media (min-width: 900px) {
+        ${$split ? "grid-template-columns: minmax(320px, 440px) minmax(360px, 1fr) minmax(320px, 420px);" : ""}
       }
       @media (max-width: 899px) {
         min-height: calc(100dvh - var(--topbar-h, 56px) - var(--bottom-bar-space, 0px));
@@ -174,13 +181,13 @@ const Share = styled.button<{ $done: boolean }>`
 
 const Grid = styled.div<{ $single?: boolean }>`
   display: grid;
-  gap: 14px;
+  gap: 16px;
   margin-top: 18px;
 
   ${DESK} {
     grid-template-columns: ${({ $single }) => ($single ? "minmax(0, 1fr)" : "minmax(0, 1fr) 380px")};
     align-items: start;
-    gap: ${({ $single }) => ($single ? "14px" : "20px")};
+    gap: ${({ $single }) => ($single ? "16px" : "20px")};
   }
 `;
 
@@ -189,7 +196,7 @@ const Col = styled.div<{ $single?: boolean }>`
 
   ${DESK} {
     display: ${({ $single }) => ($single ? "contents" : "grid")};
-    gap: 14px;
+    gap: 16px;
   }
 `;
 
@@ -319,6 +326,109 @@ const SheetBody = styled.div<{ $map: boolean }>`
         touch-action: pan-y;
         padding: 0 16px calc(24px + var(--bottom-bar-space, 0px));
       `}
+  }
+`;
+
+const Dock = styled.aside`
+  order: 3;
+  position: sticky;
+  top: calc(var(--topbar-h, 64px) + 16px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  max-height: calc(100dvh - var(--topbar-h, 64px) - 32px);
+  margin-top: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const TimelineRow = styled.button<{ $order?: number }>`
+  order: ${({ $order }) => $order ?? 0};
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 16px 20px;
+  border: 0;
+  border-radius: 20px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  span {
+    display: grid;
+    gap: 2px;
+  }
+  b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+  }
+  small {
+    font-size: 14px;
+    color: ${nocturne.muted};
+  }
+  svg {
+    flex: none;
+    color: ${nocturne.muted};
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const FareCard = styled.section<{ $order?: number }>`
+  order: ${({ $order }) => $order ?? 0};
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: ${({ theme }) => theme.tone.amber.bg};
+  color: ${({ theme }) => theme.tone.amber.on};
+
+  h2 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: inherit;
+  }
+  dt,
+  dd {
+    color: inherit;
+  }
+
+  ${DESK} {
+    padding: 24px;
   }
 `;
 
@@ -459,8 +569,9 @@ const Hint = styled.p<{ $warn?: boolean; $order?: number }>`
   margin: 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background: ${({ $warn }) => ($warn ? "color-mix(in oklab, var(--n-cta-bg) 14%, transparent)" : nocturne.green)};
-  color: ${({ $warn }) => ($warn ? nocturne.cream : nocturne.onGreen)};
+  background: ${({ $warn }) =>
+    $warn ? "color-mix(in oklab, var(--n-cta-bg) 14%, transparent)" : `color-mix(in oklab, ${nocturne.cream} 8%, transparent)`};
+  color: ${nocturne.cream};
   font-size: 14px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -721,16 +832,6 @@ const RoundAct = styled.button`
   }
 `;
 
-function when(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  const sameDay = d.toDateString() === now.toDateString();
-  const yesterday = new Date(now.getTime() - 86400000).toDateString() === d.toDateString();
-  if (sameDay) return d.toLocaleTimeString("en-KE", { hour: "numeric", minute: "2-digit" });
-  if (yesterday) return "Yesterday";
-  return d.toLocaleDateString("en-KE", { day: "numeric", month: "short" });
-}
-
 const Booked = styled.p`
   display: flex;
   align-items: center;
@@ -757,6 +858,20 @@ function whenLabel(iso: string): string {
   if (Number.isNaN(d.getTime())) return "";
   return new Intl.DateTimeFormat("en-KE", {
     weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi",
+  }).format(d);
+}
+
+const REPORT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function stampLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("en-KE", {
+    day: "numeric",
+    month: "short",
     hour: "numeric",
     minute: "2-digit",
     timeZone: "Africa/Nairobi",
@@ -944,6 +1059,9 @@ export function TripDetail({
   }
 
   const hasMap = !stopped;
+  const wide = useSplitLayout();
+  const split = wide && hasMap;
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const loc = useTripLocation(booking.trip_id, live && !isDriver);
   const eta = useLiveEta(loc, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
 
@@ -1096,11 +1214,13 @@ export function TripDetail({
     });
   }
 
-  const releaseMs = journey.releaseDueAt ? new Date(journey.releaseDueAt).getTime() : null;
   const problemOpen =
     !isDriver &&
     !journey.problem &&
-    (live || (booking.status === "completed" && journey.escrow === "held" && releaseMs != null && nowMs <= releaseMs));
+    (live ||
+      (booking.status === "completed" &&
+        booking.completed_at != null &&
+        nowMs <= new Date(booking.completed_at).getTime() + REPORT_WINDOW_MS));
   const problemNote: string | null = journey.problem
     ? journey.problem.status === "open"
       ? "We're looking into your report. The fare is on hold"
@@ -1386,7 +1506,7 @@ export function TripDetail({
         <NoShowPanel busy={busy === "dispute"} error={disputeError} onBack={() => setSide(null)} onSend={sendDispute} />
       )}
       {shown === "problem" && (
-        <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} />
+        <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} held={journey.escrow === "held"} />
       )}
       {shown === "chat" && journey.contactOpen && (
         <ChatPanel
@@ -1416,6 +1536,21 @@ export function TripDetail({
   const labels = isDriver ? DRIVER_STEPS : RIDER_STEPS;
   const at = ORDER.indexOf(booking.status as (typeof ORDER)[number]);
 
+  const released = journey.escrow === "released";
+  const driverTake = journey.payout ?? subtotal;
+  const driverFee = journey.payout != null ? Math.max(0, subtotal - journey.payout) : 0;
+  const driverPayLine =
+    booking.status !== "completed"
+      ? "Paid to your wallet after the trip, if no one reports a problem"
+      : released
+        ? "Paid to your Kipita wallet"
+        : journey.escrow === "refunded" || journey.escrow === "refund_pending"
+          ? `Refunded to ${firstName}`
+          : journey.escrow === "held"
+            ? journey.problem?.status === "open"
+              ? "On hold while we look into a reported problem"
+              : "Paying out to your wallet now"
+            : "Trip complete";
   const baseNote: string | null = due
     ? hold
       ? isDriver
@@ -1432,7 +1567,7 @@ export function TripDetail({
         ? null
         : paid || booking.status === "completed"
           ? isDriver
-            ? "Paid when there is no dispute"
+            ? driverPayLine
             : booking.status === "completed"
               ? "Trip complete"
               : null
@@ -1442,14 +1577,291 @@ export function TripDetail({
               ? "Refund on its way to your Kipita wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
-  const waiting = isDriver && (due || (!noShowNote && (paid || booking.status === "completed")));
+  const waiting = isDriver && (due || (!noShowNote && !released && (paid || booking.status === "completed")));
+
+  const timeline = (
+            <Steps>
+              {stopped ? (
+                <>
+                  <li data-state="done">
+                    <span className="dot">
+                      <Check size={13} weight="bold" />
+                    </span>
+                    {labels[0]}
+                    <time dateTime={booking.created_at}>{stampLabel(booking.created_at)}</time>
+                  </li>
+                  <li data-state="stop">
+                    <span className="dot">
+                      <X size={12} weight="bold" />
+                    </span>
+                    {booking.status === "rejected" ? "Declined" : "Cancelled"}
+                    {booking.cancelled_at && <time dateTime={booking.cancelled_at}>{stampLabel(booking.cancelled_at)}</time>}
+                  </li>
+                </>
+              ) : (
+                labels.map((label, i) => {
+                  const state = i < at || booking.status === "completed" ? "done" : i === at ? "now" : "next";
+                  const stamp = state !== "next" ? stamps[i] : null;
+                  return (
+                    <li key={label} data-state={state}>
+                      <span className="dot">{state === "done" && <Check size={13} weight="bold" />}</span>
+                      {label}
+                      {stamp && <time dateTime={stamp}>{stampLabel(stamp)}</time>}
+                    </li>
+                  );
+                })
+              )}
+            </Steps>
+  );
+
+  const right = (
+    <>
+          {!isDriver && paid && journey.code && (
+            <Slot $order={0}>
+              <PickupCodeCard code={journey.code} />
+            </Slot>
+          )}
+          {isDriver && paid && booking.trip_id && (
+            <Slot $order={2}>
+              <BoardingPanel tripId={booking.trip_id} board={board} />
+            </Slot>
+          )}
+
+          <FareCard $order={2} aria-label="Fare">
+            <h2>{isDriver ? receiveTitle : "What you pay"}</h2>
+            <Lines>
+              <div>
+                <dt>
+                  {seatLine
+                    ? `${booking.seats_booked} ${seatWord} at ${formatCurrency(perSeat)}`
+                    : `${booking.seats_booked} ${seatWord}`}
+                </dt>
+                <dd>{formatCurrency(subtotal)}</dd>
+              </div>
+              {fee != null && !isDriver && (
+                <div>
+                  <dt>Kipita service fee{feePct != null ? ` (${feePct}%)` : ""}</dt>
+                  <dd>{formatCurrency(fee)}</dd>
+                </div>
+              )}
+              {isDriver && driverFee > 0 && (
+                <div>
+                  <dt>Kipita fee</dt>
+                  <dd>&minus;{formatCurrency(driverFee)}</dd>
+                </div>
+              )}
+              <div className="total">
+                <dt>{isDriver ? receiveTotal : "Total"}</dt>
+                <dd>{formatCurrency(isDriver ? driverTake : booking.total_price)}</dd>
+              </div>
+            </Lines>
+            {note && (
+              <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
+                {waiting ? <Clock size={18} /> : <Lock size={18} />}
+                {note}
+              </Hint>
+            )}
+            {!isDriver && paid && freeEnds && (
+              <Hint>
+                <Clock size={18} />
+                {freeNow
+                  ? `Free cancellation until ${whenLabel(freeEnds.toISOString())}`
+                  : cancelConfig.latePercent > 0
+                    ? `Free cancellation has ended. Cancelling now returns ${cancelConfig.latePercent}% of the seat price`
+                    : "Free cancellation has ended. Cancelling now returns nothing"}
+              </Hint>
+            )}
+            {runnable && paid && (
+              <>
+                {board.summary.waiting > 0 && (
+                  <Hint $warn>
+                    <Lock size={18} />
+                    Check everyone in to start
+                  </Hint>
+                )}
+                <Pay
+                  type="button"
+                  onClick={(e) => startRide(e.currentTarget)}
+                  disabled={busy !== null || board.summary.waiting > 0}
+                  aria-busy={busy === "run"}
+                >
+                  {busy === "run" ? <ButtonOrb job="committing" /> : <NavigationArrow size={18} weight="bold" />}
+                  Start trip
+                </Pay>
+              </>
+            )}
+            {runnable && live && (
+              <>
+                <Hint>
+                  <Clock size={18} />
+                  {earningsLine(board.summary)}
+                </Hint>
+                <SlideToComplete
+                  label="Slide to end trip"
+                  busyLabel="Ending trip…"
+                  busy={busy === "run"}
+                  onComplete={() => runTrip(false)}
+                />
+              </>
+            )}
+            {due && !isDriver && (
+              <Pay
+                type="button"
+                $quiet={side === "pay"}
+                onClick={() => (side === "pay" ? setSide(null) : openSide("pay"))}
+                disabled={busy !== null}
+                aria-expanded={side === "pay"}
+              >
+                {side === "pay" ? "Close payment" : `Pay ${formatCurrency(booking.total_price)}`}
+              </Pay>
+            )}
+          </FareCard>
+
+          {finished && person ? (
+            <Slot $order={3}>
+              <PersonCard person={person} label={isDriver ? "Your passenger" : "Your driver"} role={isDriver ? "passenger" : "driver"} />
+            </Slot>
+          ) : (
+          <Card $order={!isDriver && (live || paid) ? 0 : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
+            <Who>
+              <Avatar name={name} src={person?.avatar_url} size={48} />
+              <span>
+                <b>
+                  {name}
+                  {person?.is_verified && <SealCheck size={16} weight="fill" role="img" aria-label="Verified" />}
+                </b>
+                <small>
+                  {rating ? (
+                    <>
+                      <Star size={13} weight="fill" /> {rating}
+                      {person?.total_trips ? ` · ${person.total_trips} trips` : ""}
+                    </>
+                  ) : isDriver ? (
+                    "Passenger"
+                  ) : (
+                    "Driver"
+                  )}
+                </small>
+                {!isDriver && carLine && <small>{carLine}</small>}
+              </span>
+              {talkable && (
+                <Talk>
+                  <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
+                    <ChatCircle size={20} />
+                  </RoundAct>
+                  <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
+                    <Phone size={20} />
+                  </RoundAct>
+                </Talk>
+              )}
+            </Who>
+          </Card>
+          )}
+
+          <Acts $order={4}>
+            {answerable ? (
+              <>
+                <Outline
+                  type="button"
+                  onClick={(e) => answer("decline", e.currentTarget)}
+                  disabled={busy !== null}
+                >
+                  {busy === "decline" ? <ButtonOrb job="committing" /> : null}
+                  Decline request
+                </Outline>
+                <Solid
+                  type="button"
+                  onClick={(e) => answer("accept", e.currentTarget)}
+                  disabled={busy !== null}
+                  aria-busy={busy === "accept"}
+                >
+                  {busy === "accept" ? <ButtonOrb job="committing" /> : null}
+                  Accept request
+                </Solid>
+              </>
+            ) : finished ? (
+              !isDriver && (
+                <>
+                  {noShow?.tier === "no_show" && disputeOpen && (
+                    <Outline
+                      type="button"
+                      onClick={() => openSide("dispute")}
+                      aria-expanded={side === "dispute"}
+                      disabled={busy !== null}
+                    >
+                      This isn't right
+                    </Outline>
+                  )}
+                  {problemOpen && (
+                    <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
+                      Report a problem
+                    </Outline>
+                  )}
+                  <Outline as={Link} href="/home">
+                    Find another ride
+                  </Outline>
+                </>
+              )
+            ) : (
+              <>
+                <Outline type="button" onClick={share}>
+                  {copied ? <Check size={18} weight="bold" /> : <ShareNetwork size={18} />}
+                  {copied ? "Link copied" : "Share ride"}
+                </Outline>
+                {canCancel && (
+                  <Outline
+                    type="button"
+                    onClick={() => openSide("cancel")}
+                    aria-expanded={side === "cancel"}
+                    disabled={busy !== null}
+                    aria-busy={busy === "cancel"}
+                  >
+                    {busy === "cancel" ? <ButtonOrb job="committing" /> : null}
+                    Cancel ride
+                  </Outline>
+                )}
+                {problemOpen && (
+                  <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
+                    Report a problem
+                  </Outline>
+                )}
+                {canReportNoShow && (
+                  <Outline
+                    type="button"
+                    onClick={(e) => reportNoShow(e.currentTarget)}
+                    disabled={busy !== null}
+                    aria-busy={busy === "noshow"}
+                  >
+                    {busy === "noshow" ? <ButtonOrb job="committing" /> : null}
+                    Passenger didn't show up
+                  </Outline>
+                )}
+              </>
+            )}
+          </Acts>
+
+          {!isDriver && problemNote && (
+            <Hint $order={4}>
+              <Flag size={18} />
+              {problemNote}
+            </Hint>
+          )}
+
+          {error && (
+            <Hint $warn $order={4} role="alert">
+              {error}
+            </Hint>
+          )}
+    </>
+  );
 
   return (
     <>
     <Page
       ref={pageRef}
-      $max={hasMap ? 1320 : 1060}
+      $max={split ? 1600 : hasMap ? 1320 : 1060}
       $map={hasMap}
+      $split={split}
       $side={side !== null && panelMode === "map"}
       $squeeze={squeeze}
     >
@@ -1465,7 +1877,7 @@ export function TripDetail({
               destination={destination}
               startedAt={booking.started_at}
               completedAt={booking.completed_at}
-              amount={isDriver ? subtotal : booking.total_price}
+              amount={isDriver ? driverTake : booking.total_price}
               seats={booking.seats_booked}
               isDriver={isDriver}
             />
@@ -1576,269 +1988,23 @@ export function TripDetail({
             </Route>
           </Card>
 
-          <Card $order={5} aria-label="Progress">
-            <h2>Progress</h2>
-            <Steps>
-              {stopped ? (
-                <>
-                  <li data-state="done">
-                    <span className="dot">
-                      <Check size={13} weight="bold" />
-                    </span>
-                    {labels[0]}
-                    <time dateTime={booking.created_at}>{when(booking.created_at)}</time>
-                  </li>
-                  <li data-state="stop">
-                    <span className="dot">
-                      <X size={12} weight="bold" />
-                    </span>
-                    {booking.status === "rejected" ? "Declined" : "Cancelled"}
-                    {booking.cancelled_at && <time dateTime={booking.cancelled_at}>{when(booking.cancelled_at)}</time>}
-                  </li>
-                </>
-              ) : (
-                labels.map((label, i) => {
-                  const state = i < at || booking.status === "completed" ? "done" : i === at ? "now" : "next";
-                  const stamp = state !== "next" ? stamps[i] : null;
-                  return (
-                    <li key={label} data-state={state}>
-                      <span className="dot">{state === "done" && <Check size={13} weight="bold" />}</span>
-                      {label}
-                      {stamp && <time dateTime={stamp}>{when(stamp)}</time>}
-                    </li>
-                  );
-                })
-              )}
-            </Steps>
-          </Card>
-        </Col>
-
-        <Col $single={hasMap}>
-          {!isDriver && paid && journey.code && (
-            <Slot $order={0}>
-              <PickupCodeCard code={journey.code} />
-            </Slot>
-          )}
-          {isDriver && paid && booking.trip_id && (
-            <Slot $order={2}>
-              <BoardingPanel tripId={booking.trip_id} board={board} />
-            </Slot>
-          )}
-
-          <Card $order={2} aria-label="Fare">
-            <h2>{isDriver ? receiveTitle : "What you pay"}</h2>
-            <Lines>
-              <div>
-                <dt>
-                  {seatLine
-                    ? `${booking.seats_booked} ${seatWord} at ${formatCurrency(perSeat)}`
-                    : `${booking.seats_booked} ${seatWord}`}
-                </dt>
-                <dd>{formatCurrency(subtotal)}</dd>
-              </div>
-              {fee != null && !isDriver && (
-                <div>
-                  <dt>Kipita service fee{feePct != null ? ` (${feePct}%)` : ""}</dt>
-                  <dd>{formatCurrency(fee)}</dd>
-                </div>
-              )}
-              <div className="total">
-                <dt>{isDriver ? receiveTotal : "Total"}</dt>
-                <dd>{formatCurrency(isDriver ? subtotal : booking.total_price)}</dd>
-              </div>
-            </Lines>
-            {note && (
-              <Hint $warn={due || (stopped && booking.refunded_amount == null && !!booking.paid_at)}>
-                {waiting ? <Clock size={18} /> : <Lock size={18} />}
-                {note}
-              </Hint>
-            )}
-            {!isDriver && paid && freeEnds && (
-              <Hint>
-                <Clock size={18} />
-                {freeNow
-                  ? `Free cancellation until ${whenLabel(freeEnds.toISOString())}`
-                  : cancelConfig.latePercent > 0
-                    ? `Free cancellation has ended. Cancelling now returns ${cancelConfig.latePercent}% of the seat price`
-                    : "Free cancellation has ended. Cancelling now returns nothing"}
-              </Hint>
-            )}
-            {runnable && paid && (
-              <>
-                {board.summary.waiting > 0 && (
-                  <Hint $warn>
-                    <Lock size={18} />
-                    Check everyone in to start
-                  </Hint>
-                )}
-                <Pay
-                  type="button"
-                  onClick={(e) => startRide(e.currentTarget)}
-                  disabled={busy !== null || board.summary.waiting > 0}
-                  aria-busy={busy === "run"}
-                >
-                  {busy === "run" ? <ButtonOrb job="committing" /> : <NavigationArrow size={18} weight="bold" />}
-                  Start trip
-                </Pay>
-              </>
-            )}
-            {runnable && live && (
-              <>
-                <Hint>
-                  <Clock size={18} />
-                  {earningsLine(board.summary)}
-                </Hint>
-                <SlideToComplete
-                  label="Slide to end trip"
-                  busyLabel="Ending trip…"
-                  busy={busy === "run"}
-                  onComplete={() => runTrip(false)}
-                />
-              </>
-            )}
-            {due && !isDriver && (
-              <Pay
-                type="button"
-                $quiet={side === "pay"}
-                onClick={() => (side === "pay" ? setSide(null) : openSide("pay"))}
-                disabled={busy !== null}
-                aria-expanded={side === "pay"}
-              >
-                {side === "pay" ? "Close payment" : `Pay ${formatCurrency(booking.total_price)}`}
-              </Pay>
-            )}
-          </Card>
-
-          <Card $order={!isDriver && (live || paid) ? 0 : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
-            <Who>
-              <Avatar name={name} src={person?.avatar_url} size={48} />
+          {booking.status === "completed" ? (
+            <TimelineRow $order={5} type="button" aria-haspopup="dialog" aria-expanded={timelineOpen} onClick={() => setTimelineOpen(true)}>
               <span>
-                <b>
-                  {name}
-                  {person?.is_verified && <SealCheck size={16} weight="fill" role="img" aria-label="Verified" />}
-                </b>
-                <small>
-                  {rating ? (
-                    <>
-                      <Star size={13} weight="fill" /> {rating}
-                      {person?.total_trips ? ` · ${person.total_trips} trips` : ""}
-                    </>
-                  ) : isDriver ? (
-                    "Passenger"
-                  ) : (
-                    "Driver"
-                  )}
-                </small>
-                {!isDriver && carLine && <small>{carLine}</small>}
+                <b>Trip timeline</b>
+                {booking.completed_at ? <small>Completed {stampLabel(booking.completed_at)}</small> : null}
               </span>
-              {talkable && (
-                <Talk>
-                  <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
-                    <ChatCircle size={20} />
-                  </RoundAct>
-                  <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
-                    <Phone size={20} />
-                  </RoundAct>
-                </Talk>
-              )}
-            </Who>
-          </Card>
-
-          <Acts $order={4}>
-            {answerable ? (
-              <>
-                <Outline
-                  type="button"
-                  onClick={(e) => answer("decline", e.currentTarget)}
-                  disabled={busy !== null}
-                >
-                  {busy === "decline" ? <ButtonOrb job="committing" /> : null}
-                  Decline request
-                </Outline>
-                <Solid
-                  type="button"
-                  onClick={(e) => answer("accept", e.currentTarget)}
-                  disabled={busy !== null}
-                  aria-busy={busy === "accept"}
-                >
-                  {busy === "accept" ? <ButtonOrb job="committing" /> : null}
-                  Accept request
-                </Solid>
-              </>
-            ) : finished ? (
-              !isDriver && (
-                <>
-                  {noShow?.tier === "no_show" && disputeOpen && (
-                    <Outline
-                      type="button"
-                      onClick={() => openSide("dispute")}
-                      aria-expanded={side === "dispute"}
-                      disabled={busy !== null}
-                    >
-                      This isn't right
-                    </Outline>
-                  )}
-                  {problemOpen && (
-                    <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
-                      Report a problem
-                    </Outline>
-                  )}
-                  <Outline as={Link} href="/home">
-                    Find another ride
-                  </Outline>
-                </>
-              )
-            ) : (
-              <>
-                <Outline type="button" onClick={share}>
-                  {copied ? <Check size={18} weight="bold" /> : <ShareNetwork size={18} />}
-                  {copied ? "Link copied" : "Share ride"}
-                </Outline>
-                {canCancel && (
-                  <Outline
-                    type="button"
-                    onClick={() => openSide("cancel")}
-                    aria-expanded={side === "cancel"}
-                    disabled={busy !== null}
-                    aria-busy={busy === "cancel"}
-                  >
-                    {busy === "cancel" ? <ButtonOrb job="committing" /> : null}
-                    Cancel ride
-                  </Outline>
-                )}
-                {problemOpen && (
-                  <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
-                    Report a problem
-                  </Outline>
-                )}
-                {canReportNoShow && (
-                  <Outline
-                    type="button"
-                    onClick={(e) => reportNoShow(e.currentTarget)}
-                    disabled={busy !== null}
-                    aria-busy={busy === "noshow"}
-                  >
-                    {busy === "noshow" ? <ButtonOrb job="committing" /> : null}
-                    Passenger didn't show up
-                  </Outline>
-                )}
-              </>
-            )}
-          </Acts>
-
-          {!isDriver && problemNote && (
-            <Hint $order={4}>
-              <Flag size={18} />
-              {problemNote}
-            </Hint>
-          )}
-
-          {error && (
-            <Hint $warn $order={4} role="alert">
-              {error}
-            </Hint>
+              <CaretRight size={20} aria-hidden />
+            </TimelineRow>
+          ) : (
+            <Card $order={5} aria-label="Progress">
+              <h2>Progress</h2>
+              {timeline}
+            </Card>
           )}
         </Col>
+
+        {!split && <Col $single={hasMap}>{right}</Col>}
       </Grid>
       )}
 
@@ -1850,9 +2016,14 @@ export function TripDetail({
         </SheetBody>
       </Sheet>
 
+      {split ? <Dock aria-label="Trip money and people">{right}</Dock> : null}
+
       {confirmNode}
 
     </Page>
+    <Drawer open={timelineOpen} onClose={() => setTimelineOpen(false)} title="Trip timeline" side>
+      <DrawerBody>{timeline}</DrawerBody>
+    </Drawer>
     {sidePanel}
     </>
   );

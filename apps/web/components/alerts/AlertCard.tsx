@@ -26,16 +26,15 @@ import { alertStatus } from "@/lib/alerts/status";
 const Shell = styled.article`
   position: relative;
   overflow: clip;
-  border: 1px solid ${nocturne.line};
   border-radius: 16px;
   background: ${nocturne.surface};
   transition:
-    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
   @media (hover: hover) and (pointer: fine) {
     &:has(.title:hover) {
-      border-color: ${nocturne.outline};
+      box-shadow: inset 0 0 0 999px color-mix(in oklab, ${nocturne.cream} 4%, transparent);
     }
   }
   &:has(.title:active) {
@@ -195,8 +194,7 @@ const Author = styled.div`
 const Foot = styled.div`
   position: relative;
   z-index: 1;
-  padding-top: 12px;
-  border-top: 1px solid ${nocturne.line};
+  padding-top: 16px;
 `;
 
 

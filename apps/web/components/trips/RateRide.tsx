@@ -203,24 +203,31 @@ const Send = styled.button`
 `;
 
 const Thanks = styled.div`
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 6px 0 2px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
 
   .icon {
-    color: ${nocturne.green};
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.color.successContainer};
+    color: ${({ theme }) => theme.color.onSuccessContainer};
+  }
+  .copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
   }
   b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 800;
     color: ${nocturne.cream};
-  }
-  span {
-    font-size: 14px;
-    color: ${nocturne.muted};
   }
 `;
 
@@ -288,16 +295,17 @@ export function RateRide({
     <Swap id={done ? "done" : "ask"}>
       {done ? (
         <Thanks role="status">
-          <m.span className="icon" initial={{ scale: 0.6, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={spring.success}>
-            <CheckCircle size={44} weight="fill" />
+          <m.span className="icon" initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={spring.success}>
+            <CheckCircle size={24} weight="fill" />
           </m.span>
-          <b>Thanks for rating {first}</b>
-          <Mini aria-label={`${score} out of 5 stars`}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Star key={n} size={18} weight={n <= score ? "fill" : "regular"} />
-            ))}
-          </Mini>
-          <span>{isDriver ? "It helps other drivers know who they're riding with." : "It helps the next passenger pick a good driver."}</span>
+          <span className="copy">
+            <b>You rated {first}</b>
+            <Mini aria-label={`${score} out of 5 stars`} role="img">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} size={20} weight={n <= score ? "fill" : "regular"} aria-hidden />
+              ))}
+            </Mini>
+          </span>
         </Thanks>
       ) : (
         <Wrap>

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 async function loadJourney(bookingId: string, viewerId: string): Promise<JourneyState> {
   const supabase = await createClient();
-  const [boarded, payment, problem, contact] = await Promise.all([
+  const [boarded, payment, problem, contact, payout] = await Promise.all([
     supabase.from("bookings").select("boarded_at, boarded_method, passenger_id, status").eq("id", bookingId).maybeSingle(),
     supabase
       .from("payments")
@@ -36,7 +36,15 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
       .limit(1)
       .maybeSingle(),
     supabase.rpc("booking_contact_open", { p_booking_id: bookingId }),
+    supabase
+      .from("wallet_transactions")
+      .select("amount")
+      .eq("booking_id", bookingId)
+      .eq("type", "payout")
+      .limit(1)
+      .maybeSingle(),
   ]);
+  const paidOut = payout.error || !payout.data ? null : Number(payout.data.amount);
 
   const row = boarded.error ? null : boarded.data;
   const isPassenger = row?.passenger_id === viewerId;
@@ -52,7 +60,8 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
     code,
     boardedAt: (row?.boarded_at as string | null) ?? null,
     boardedMethod: (row?.boarded_method as JourneyState["boardedMethod"]) ?? null,
-    escrow: payment.error ? null : ((payment.data?.escrow_status as string | null) ?? null),
+    escrow: (payment.error ? null : ((payment.data?.escrow_status as string | null) ?? null)) ?? (paidOut != null ? "released" : null),
+    payout: paidOut,
     releaseDueAt: payment.error ? null : ((payment.data?.release_due_at as string | null) ?? null),
     contactOpen: contact.error ? row?.status === "confirmed" || row?.status === "in_progress" : contact.data === true,
     problem:

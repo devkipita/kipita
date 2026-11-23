@@ -44,10 +44,10 @@ export const RowList = styled.ul`
 const Row = styled.li<{ $role: ActivityRole; $unread: boolean; $i: number }>`
   position: relative;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 8px;
+  grid-template-columns: 44px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  padding: 16px 12px;
+  padding: 16px;
   border-radius: 16px;
   background-color: ${({ theme, $role, $unread }) => cardTone(theme, $role, $unread)};
   transition:
@@ -113,8 +113,8 @@ const Tile = styled.span<{ $role: ActivityRole }>`
   z-index: 1;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   pointer-events: none;
   background: ${({ theme, $role }) => roleColors(theme, $role).bg};
@@ -126,13 +126,23 @@ const Body = styled.div<{ $lines: number }>`
   position: relative;
   z-index: 1;
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   pointer-events: none;
 
+  .top {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-height: 24px;
+  }
   .title {
-    font-size: 15px;
-    line-height: 20px;
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 16px;
+    line-height: 24px;
+    letter-spacing: -0.01em;
     color: ${nocturne.cream};
     overflow-wrap: anywhere;
   }
@@ -149,46 +159,40 @@ const Body = styled.div<{ $lines: number }>`
 `;
 
 const Title = styled.span<{ $unread: boolean }>`
-  font-weight: ${({ $unread }) => ($unread ? 700 : 500)};
+  font-weight: ${({ $unread }) => ($unread ? 800 : 700)};
 `;
 
-const Meta = styled.span`
-  display: flex;
-  flex-wrap: wrap;
+const Meta = styled.span<{ $unread: boolean }>`
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 4px 8px;
-  margin-top: 2px;
+  gap: 8px;
   font-size: 13px;
   line-height: 16px;
-  font-weight: 600;
-  color: ${nocturne.muted2};
+  font-weight: ${({ $unread }) => ($unread ? 700 : 600)};
+  color: ${({ theme, $unread }) => ($unread ? theme.color.primary : nocturne.muted2)};
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+
+  &[data-unread="true"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+  }
 `;
 
 const Hold = styled.span<{ $live: boolean }>`
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  margin-top: 2px;
+  font-size: 13px;
+  line-height: 16px;
   font-weight: 700;
   color: ${({ theme, $live }) => ($live ? theme.color.warning : nocturne.muted2)};
-`;
-
-const Dot = styled.span`
-  position: relative;
-  z-index: 1;
-  display: grid;
-  place-items: center;
-  width: 8px;
-  height: 20px;
-  pointer-events: none;
-
-  &::before {
-    content: "";
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${({ theme }) => theme.color.primary};
-  }
+  font-variant-numeric: tabular-nums;
 `;
 
 const Answer = styled.div`
@@ -427,7 +431,8 @@ export const ActivityRow = memo(function ActivityRow({
     onNavigate?.();
   };
 
-  const labelled = [`${id}-title`, item.body ? `${id}-text` : null, `${id}-meta`]
+  const holding = Boolean(a.expiresAt && !settled);
+  const labelled = [`${id}-title`, item.body ? `${id}-text` : null, `${id}-meta`, holding ? `${id}-hold` : null]
     .filter(Boolean)
     .join(" ");
 
@@ -439,34 +444,35 @@ export const ActivityRow = memo(function ActivityRow({
         <RowButton type="button" data-row-link="" aria-labelledby={labelled} onClick={open} />
       )}
       <Tile $role={a.role} aria-hidden="true">
-        <Icon size={20} />
+        <Icon size={24} />
       </Tile>
       <Body $lines={lines}>
-        <span className="title" id={`${id}-title`}>
-          <Title $unread={unread}>{item.title}</Title>
+        <span className="top">
+          <span className="title" id={`${id}-title`}>
+            <Title $unread={unread}>{item.title}</Title>
+          </span>
+          <Meta id={`${id}-meta`} $unread={unread} data-unread={unread}>
+            <time dateTime={item.created_at} title={stamp}>
+              {shortRelativeTime(item.created_at, clock)}
+            </time>
+            {unread ? <SrOnly>Unread</SrOnly> : null}
+          </Meta>
         </span>
         {item.body ? (
           <span className="text" id={`${id}-text`}>
             {item.body}
           </span>
         ) : null}
-        <Meta id={`${id}-meta`}>
-          <time dateTime={item.created_at} title={stamp}>
-            {shortRelativeTime(item.created_at, clock)}
-          </time>
-          {a.expiresAt && !settled ? (
-            <Hold $live={live}>
-              <Clock size={16} />
-              {live ? `${minutesLeft(a.expiresAt, clock)} min left to pay` : "Seat hold ran out"}
-            </Hold>
-          ) : null}
-          {unread ? <SrOnly>Unread</SrOnly> : null}
-        </Meta>
+        {holding ? (
+          <Hold id={`${id}-hold`} $live={live}>
+            <Clock size={16} />
+            {live && a.expiresAt ? `${minutesLeft(a.expiresAt, clock)} min left to pay` : "Seat hold ran out"}
+          </Hold>
+        ) : null}
         {(seatOpen || outcome) && bookingId ? (
           <SeatAnswer item={item} bookingId={bookingId} seats={a.seats ?? 1} outcome={outcome} />
         ) : null}
       </Body>
-      {unread ? <Dot aria-hidden="true" /> : null}
     </Row>
   );
 });

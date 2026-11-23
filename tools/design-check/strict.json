@@ -23,6 +23,11 @@
     "apps/web/app/(app)/notifications",
     "apps/web/components/nav/ActivityButton.tsx",
     "apps/web/components/nav/AccountMenu.tsx",
-    "apps/web/components/ui/MorphMenu.tsx"
+    "apps/web/components/ui/MorphMenu.tsx",
+    "apps/web/components/ui/NewDot.tsx",
+    "apps/web/components/ui/AppUpdate.tsx",
+    "apps/web/components/nav/BottomTabBar.tsx",
+    "apps/web/components/ui/ConfirmSheet.tsx",
+    "apps/web/components/rides/RideRiders.tsx"
   ]
 }

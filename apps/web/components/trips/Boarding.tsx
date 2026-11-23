@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import styled, { css } from "styled-components";
 import { Check, Clock, Lock } from "@/components/icons";
+import { Avatar } from "@/components/profile/Avatar";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { RollingNumber } from "@/components/ui/Counter";
+import { Shimmer } from "@/components/ui/Shimmer";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency } from "@/lib/trips/format";
 import { markNoShowAction } from "@/lib/trips/booking-actions";
@@ -18,8 +21,10 @@ import {
 
 const Card = styled.section`
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
   border-radius: 20px;
   background: ${nocturne.surface};
 
@@ -148,7 +153,9 @@ export function useBoarding(tripId: string | null | undefined, enabled: boolean)
 
 const List = styled.ul`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -156,10 +163,28 @@ const List = styled.ul`
 
 const Person = styled.li`
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
   border-radius: 16px;
-  background: ${nocturne.surface2};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
+`;
+
+const PanelHead = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+
+  .count {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: ${nocturne.muted};
+    font-variant-numeric: tabular-nums;
+  }
 `;
 
 const Head = styled.div`
@@ -167,6 +192,21 @@ const Head = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+
+  > span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    > span {
+      min-width: 0;
+    }
+  }
 
   b {
     display: block;
@@ -184,30 +224,43 @@ const Head = styled.div`
 const State = styled.span<{ $tone: "go" | "wait" | "off" }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex: none;
-  padding: 5px 10px;
-  border-radius: 999px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 800;
-  background: ${({ $tone }) => ($tone === "go" ? nocturne.green : "transparent")};
-  color: ${({ $tone }) => ($tone === "go" ? nocturne.onGreen : $tone === "off" ? nocturne.muted : nocturne.cream)};
-  border: 2px solid ${({ $tone }) => ($tone === "go" ? "transparent" : $tone === "off" ? nocturne.muted : nocturne.cream)};
+  font-weight: 700;
+  line-height: 20px;
+  background: ${({ theme, $tone }) =>
+    $tone === "go"
+      ? theme.color.successContainer
+      : $tone === "wait"
+        ? theme.color.warningContainer
+        : theme.color.surfaceContainerHighest};
+  color: ${({ theme, $tone }) =>
+    $tone === "go"
+      ? theme.color.onSuccessContainer
+      : $tone === "wait"
+        ? theme.color.onWarningContainer
+        : nocturne.muted};
 `;
 
 const Row = styled.form`
   display: flex;
   gap: 8px;
+  min-width: 0;
 `;
 
 const CodeInput = styled.input`
   flex: 1;
+  width: 100%;
   min-width: 0;
   min-height: 48px;
-  padding: 0 14px;
-  border: 2px solid ${nocturne.surface};
-  border-radius: 14px;
-  background: ${nocturne.surface};
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
   color: ${nocturne.cream};
   font: inherit;
   font-size: 20px;
@@ -238,23 +291,42 @@ const Go = styled.button`
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  padding: 0 18px;
-  border: 2px solid transparent;
+  padding: 0 20px;
+  border: 0;
   border-radius: 999px;
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
   font: inherit;
   font-size: 15px;
   font-weight: 800;
+  white-space: nowrap;
   cursor: pointer;
-  transition: transform ${dur.press} ${ease.standard};
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      background-color: ${nocturne.greenDeep};
+    }
+  }
   &:active:not(:disabled) {
     transform: scale(0.97);
   }
   &:disabled {
-    opacity: 0.55;
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    color: ${nocturne.muted};
+    cursor: not-allowed;
+  }
+  &[aria-busy="true"] {
+    background: ${nocturne.green};
+    color: ${nocturne.onGreen};
     cursor: progress;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
   ${focusRing}
 `;
@@ -411,42 +483,86 @@ function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; on
  * The driver checks each paid passenger in with the code on their booking. Start is locked by the database until
  * everyone is on board or reported as a no-show; this panel is how the driver gets there.
  */
-export function BoardingPanel({ tripId, board }: { tripId: string; board: Boarding }) {
+export function BoardingPanel({
+  tripId,
+  board,
+  always = false,
+}: {
+  tripId: string;
+  board: Boarding;
+  always?: boolean;
+}) {
   const { rows, summary, error, reload } = board;
-  if (!summary.loaded && !error) return null;
-  // Nothing to check in: no paid passengers (or the list could not load, which the driver cannot fix).
-  if (rows.length === 0) return null;
+  if (!always && ((!summary.loaded && !error) || rows.length === 0)) return null;
+
+  if (!summary.loaded && !error) {
+    return (
+      <Card aria-label="Check passengers in" aria-busy="true">
+        <PanelHead>
+          <h2>Check passengers in</h2>
+        </PanelHead>
+        <List aria-hidden>
+          {[0, 1].map((i) => (
+            <Person key={i}>
+              <Shimmer $w="55%" $h="16px" $r="6px" />
+              <Shimmer $w="100%" $h="48px" $r="12px" />
+            </Person>
+          ))}
+        </List>
+      </Card>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <Card aria-label="Check passengers in">
+        <PanelHead>
+          <h2>Check passengers in</h2>
+        </PanelHead>
+        <p>Passengers show up here once they pay. When each one gets in, ask for their 4-digit pickup code.</p>
+        {error && <Problem role="alert">{error}</Problem>}
+      </Card>
+    );
+  }
 
   return (
     <Card aria-label="Check passengers in">
-      <h2>Check passengers in</h2>
+      <PanelHead>
+        <h2>Check passengers in</h2>
+        <span className="count">
+          <RollingNumber value={summary.boarded} /> of {rows.length} on board
+        </span>
+      </PanelHead>
       <p>{summary.waiting > 0 ? "Ask each passenger for their code." : "Everyone is on board."}</p>
       <List>
         {rows.map((row) => (
           <Person key={row.bookingId}>
             <Head>
-              <span>
-                <b>{row.passengerName}</b>
-                <small>
-                  {row.seats} {row.seats === 1 ? "seat" : "seats"}
-                  {row.pickup ? ` · ${row.pickup}` : ""}
-                </small>
+              <span className="who">
+                <Avatar name={row.passengerName} src={row.avatarUrl} size={40} />
+                <span>
+                  <b>{row.passengerName}</b>
+                  <small>
+                    {row.seats} {row.seats === 1 ? "seat" : "seats"}
+                    {row.pickup ? ` · ${row.pickup}` : ""}
+                  </small>
+                </span>
               </span>
               {row.state === "boarded" ? (
                 <State $tone="go">
-                  <Check size={14} weight="bold" /> On board
+                  <Check size={16} weight="bold" /> On board
                 </State>
               ) : row.state === "no_show" ? (
                 <State $tone="off">No-show</State>
               ) : (
                 <State $tone="wait">
-                  <Clock size={14} /> Waiting
+                  <Clock size={16} /> Waiting
                 </State>
               )}
             </Head>
             {row.state === "boarded" && row.method === "manual" && (
               <p>
-                <Lock size={14} /> Marked by hand. Held for review.
+                <Lock size={16} /> Marked by hand. Held for review.
               </p>
             )}
             {row.state === "waiting" && <CheckIn row={row} tripId={tripId} onDone={reload} />}
@@ -461,7 +577,7 @@ export function BoardingPanel({ tripId, board }: { tripId: string; board: Boardi
 /** The check-in list for a ride page that is not showing a single booking (the driver's own ride page). */
 export function OwnerBoarding({ tripId }: { tripId: string }) {
   const board = useBoarding(tripId, true);
-  return <BoardingPanel tripId={tripId} board={board} />;
+  return <BoardingPanel tripId={tripId} board={board} always />;
 }
 
 /* ── Driver: slide to end the trip ───────────────────────────────────────────── */

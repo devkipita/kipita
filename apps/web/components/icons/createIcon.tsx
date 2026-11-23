@@ -1,4 +1,4 @@
-import type { ReactNode, SVGProps } from "react";
+import { useId, type ReactNode, type SVGProps } from "react";
 
 export type IconWeight = "regular" | "bold" | "fill";
 
@@ -19,11 +19,13 @@ const STROKE: Record<IconWeight, number> = {
 export function createIcon(
   name: string,
   draw: (filled: boolean) => ReactNode,
-  opts: { viewBox?: string } = {},
+  opts: { viewBox?: string; cut?: () => ReactNode; over?: () => ReactNode } = {},
 ): KipitaIcon {
   const viewBox = opts.viewBox ?? "0 0 24 24";
   const span = Number(viewBox.split(/\s+/)[2]) || 24;
   const scale = span / 24;
+  const cut = opts.cut;
+  const over = opts.over;
 
   function Glyph({
     size = 24,
@@ -31,7 +33,24 @@ export function createIcon(
     color = "currentColor",
     ...rest
   }: IconProps) {
+    const maskId = useId();
     const labelled = rest["aria-label"] != null || rest.role === "img";
+    const filled = weight === "fill";
+    const body =
+      filled && cut ? (
+        <>
+          <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={span} height={span}>
+            <rect width={span} height={span} fill="white" stroke="none" />
+            <g stroke="black" fill="none">
+              {cut()}
+            </g>
+          </mask>
+          <g mask={`url(#${maskId})`}>{draw(true)}</g>
+          {over?.()}
+        </>
+      ) : (
+        draw(filled)
+      );
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -47,7 +66,7 @@ export function createIcon(
         focusable="false"
         {...rest}
       >
-        {draw(weight === "fill")}
+        {body}
       </svg>
     );
   }
@@ -56,3 +75,4 @@ export function createIcon(
 }
 
 export const SOLID = { fill: "currentColor", stroke: "none" } as const;
+export const HOLE = { fill: "black", stroke: "none" } as const;

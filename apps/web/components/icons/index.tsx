@@ -1,11 +1,12 @@
-import { createIcon, SOLID } from "./createIcon";
+import type { ReactNode } from "react";
+import { createIcon, HOLE, SOLID } from "./createIcon";
 
 export type { IconProps, IconWeight, KipitaIcon } from "./createIcon";
 
 const HOUSE =
-  "M1.2 8.8 8.44 3.37a2.6 2.6 0 0 1 3.12 0L18.8 8.8V16a2 2 0 0 1-2 2H3.2a2 2 0 0 1-2-2V8.8Z";
+  "M3.4 8.2 8.8 3.9a1.9 1.9 0 0 1 2.4 0l5.4 4.3V16a1.6 1.6 0 0 1-1.6 1.6H5A1.6 1.6 0 0 1 3.4 16V8.2Z";
 const HOUSE_DOOR =
-  "M7.6 18v-4.8a1.4 1.4 0 0 1 1.4-1.4h2a1.4 1.4 0 0 1 1.4 1.4V18";
+  "M8 17.6v-3.8a1.2 1.2 0 0 1 1.2-1.2h1.6a1.2 1.2 0 0 1 1.2 1.2v3.8";
 
 const SPEECH =
   "M6.2 1h7.6a4.6 4.6 0 0 1 4.6 4.6v4.4a4.6 4.6 0 0 1-4.6 4.6H6.6L1.6 18.6V5.6A4.6 4.6 0 0 1 6.2 1Z";
@@ -140,12 +141,21 @@ export const MagnifyingGlass = createIcon("MagnifyingGlass", () => (
   </>
 ));
 
-export const PlusCircle = createIcon("PlusCircle", (f) => (
-  <>
-    <circle cx="12" cy="12" r="9.6" {...(f ? SOLID : {})} />
-    <path d="M12 7.6v8.8M7.6 12h8.8" {...(f ? { stroke: "var(--icon-knockout, var(--n-surface))" } : {})} />
-  </>
-));
+const PLUS = "M12 7.6v8.8M7.6 12h8.8";
+
+export const PlusCircle = createIcon(
+  "PlusCircle",
+  (f) =>
+    f ? (
+      <circle cx="12" cy="12" r="9.6" {...SOLID} />
+    ) : (
+      <>
+        <circle cx="12" cy="12" r="9.6" />
+        <path d={PLUS} />
+      </>
+    ),
+  { cut: () => <path d={PLUS} /> },
+);
 
 export const Bell = createIcon("Bell", (f) => (
   <>
@@ -243,7 +253,7 @@ export const UserFocus = createIcon("UserFocus", () => (
 ));
 
 export const Star = createIcon("Star", (f) =>
-  f ? <path d={STAR} {...SOLID} /> : <path d={STAR} />,
+  f ? <path d={STAR} fill="currentColor" stroke="currentColor" strokeWidth={2.25} strokeLinejoin="round" /> : <path d={STAR} />,
 );
 
 export const MapPin = createIcon("MapPin", (f) => (
@@ -350,13 +360,27 @@ export const Ticket = createIcon("Ticket", (f) => (
   </>
 ));
 
-export const Warning = createIcon("Warning", (f) => (
-  <>
-    <path d={WARN} {...(f ? SOLID : {})} />
-    <path d="M12 9.4v4.4" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
-    {f ? <circle cx={12} cy={17.1} r={1.1} fill="var(--icon-knockout, var(--n-surface))" stroke="none" /> : dot(12, 17.1)}
-  </>
-));
+export const Warning = createIcon(
+  "Warning",
+  (f) =>
+    f ? (
+      <path d={WARN} {...SOLID} />
+    ) : (
+      <>
+        <path d={WARN} />
+        <path d="M12 9.4v4.4" />
+        {dot(12, 17.1)}
+      </>
+    ),
+  {
+    cut: () => (
+      <>
+        <path d="M12 9.4v4.4" />
+        <circle cx={12} cy={17.1} r={1.1} {...HOLE} />
+      </>
+    ),
+  },
+);
 
 export const Lightning = createIcon("Lightning", (f) =>
   f ? <path d={BOLT} {...SOLID} /> : <path d={BOLT} />,
@@ -370,13 +394,27 @@ export const Shield = createIcon("Shield", (f) =>
   f ? <path d={SHIELD} {...SOLID} /> : <path d={SHIELD} />,
 );
 
-export const ShieldWarning = createIcon("ShieldWarning", (f) => (
-  <>
-    <path d={SHIELD} {...(f ? SOLID : {})} />
-    <path d="M12 7.8v4.6" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
-    <circle cx={12} cy={15.6} r={1.1} fill={f ? "var(--icon-knockout, var(--n-surface))" : "currentColor"} stroke="none" />
-  </>
-));
+export const ShieldWarning = createIcon(
+  "ShieldWarning",
+  (f) =>
+    f ? (
+      <path d={SHIELD} {...SOLID} />
+    ) : (
+      <>
+        <path d={SHIELD} />
+        <path d="M12 7.8v4.6" />
+        <circle cx={12} cy={15.6} r={1.1} fill="currentColor" stroke="none" />
+      </>
+    ),
+  {
+    cut: () => (
+      <>
+        <path d="M12 7.8v4.6" />
+        <circle cx={12} cy={15.6} r={1.1} {...HOLE} />
+      </>
+    ),
+  },
+);
 
 export const ShieldCheck = createIcon("ShieldCheck", () => (
   <>
@@ -385,12 +423,21 @@ export const ShieldCheck = createIcon("ShieldCheck", () => (
   </>
 ));
 
-export const SealCheck = createIcon("SealCheck", (f) => (
-  <>
-    <path d={SEAL} {...(f ? SOLID : {})} />
-    <path d="m8.4 12.2 2.5 2.5 4.7-5.2" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
-  </>
-));
+const SEAL_TICK = "m8.4 12.2 2.5 2.5 4.7-5.2";
+
+export const SealCheck = createIcon(
+  "SealCheck",
+  (f) =>
+    f ? (
+      <path d={SEAL} {...SOLID} />
+    ) : (
+      <>
+        <path d={SEAL} />
+        <path d={SEAL_TICK} />
+      </>
+    ),
+  { cut: () => <path d={SEAL_TICK} /> },
+);
 
 export const VerifiedBadge = createIcon("VerifiedBadge", () => (
   <>
@@ -454,13 +501,24 @@ export const Cloud = createIcon("Cloud", (f) => (
   <path d={CLOUD} {...(f ? SOLID : {})} />
 ));
 
-export const CloudOffline = createIcon("CloudOffline", (f) => (
-  <>
-    <path d={CLOUD} {...(f ? SOLID : {})} />
-    <path d="M3.6 3.6 20.4 20.4" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} strokeWidth={f ? 3.5 : undefined} />
-    <path d="M3.6 3.6 20.4 20.4" />
-  </>
-));
+const SLASH = "M3.6 3.6 20.4 20.4";
+
+export const CloudOffline = createIcon(
+  "CloudOffline",
+  (f) =>
+    f ? (
+      <path d={CLOUD} {...SOLID} />
+    ) : (
+      <>
+        <path d={CLOUD} />
+        <path d={SLASH} />
+      </>
+    ),
+  {
+    cut: () => <path d={SLASH} strokeWidth={5.25} />,
+    over: () => <path d={SLASH} />,
+  },
+);
 
 export const CloudSun = createIcon("CloudSun", () => (
   <>
@@ -586,12 +644,21 @@ export const CalendarDots = createIcon("CalendarDots", () => (
   </>
 ));
 
-export const Clock = createIcon("Clock", (f) => (
-  <>
-    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
-    <path d="M12 6.8V12l3.6 2.2" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
-  </>
-));
+const HANDS = "M12 6.8V12l3.6 2.2";
+
+export const Clock = createIcon(
+  "Clock",
+  (f) =>
+    f ? (
+      <circle cx="12" cy="12" r="9.2" {...SOLID} />
+    ) : (
+      <>
+        <circle cx="12" cy="12" r="9.2" />
+        <path d={HANDS} />
+      </>
+    ),
+  { cut: () => <path d={HANDS} /> },
+);
 
 export const CalendarSolid = createIcon("CalendarSolid", () => (
   <path
@@ -638,33 +705,39 @@ export const Square = createIcon("Square", (f) => (
   <rect x="3.4" y="3.4" width="17.2" height="17.2" rx="2.6" {...(f ? SOLID : {})} />
 ));
 
-export const CheckCircle = createIcon("CheckCircle", (f) => (
+const INK = { fill: "currentColor", stroke: "none" } as const;
+
+function ringIcon(name: string, mark: (dot: typeof INK | typeof HOLE) => ReactNode) {
+  return createIcon(
+    name,
+    (f) =>
+      f ? (
+        <circle cx="12" cy="12" r="9.2" {...SOLID} />
+      ) : (
+        <>
+          <circle cx="12" cy="12" r="9.2" />
+          {mark(INK)}
+        </>
+      ),
+    { cut: () => mark(HOLE) },
+  );
+}
+
+export const CheckCircle = ringIcon("CheckCircle", () => <path d="m8.2 12.2 2.7 2.7 4.9-5.6" />);
+
+export const XCircle = ringIcon("XCircle", () => <path d="m9 9 6 6M15 9l-6 6" />);
+
+export const Info = ringIcon("Info", (dot) => (
   <>
-    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
-    <path d="m8.2 12.2 2.7 2.7 4.9-5.6" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
+    <path d="M12 11.2v5" />
+    <circle cx="12" cy="7.9" r="1.1" {...dot} />
   </>
 ));
 
-export const XCircle = createIcon("XCircle", (f) => (
+export const Question = ringIcon("Question", (dot) => (
   <>
-    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
-    <path d="m9 9 6 6M15 9l-6 6" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
-  </>
-));
-
-export const Info = createIcon("Info", (f) => (
-  <>
-    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
-    <path d="M12 11.2v5" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
-    <circle cx="12" cy="7.9" r="1.1" fill={f ? "var(--icon-knockout, #fff)" : "currentColor"} stroke="none" />
-  </>
-));
-
-export const Question = createIcon("Question", (f) => (
-  <>
-    <circle cx="12" cy="12" r="9.2" {...(f ? SOLID : {})} />
-    <path d="M9.4 9.5a2.65 2.65 0 0 1 5.16.9c0 1.75-2.58 2.6-2.58 2.6" stroke={f ? "var(--icon-knockout, var(--n-surface))" : undefined} />
-    <circle cx={12} cy={16.9} r={1.1} fill={f ? "var(--icon-knockout, var(--n-surface))" : "currentColor"} stroke="none" />
+    <path d="M9.4 9.5a2.65 2.65 0 0 1 5.16.9c0 1.75-2.58 2.6-2.58 2.6" />
+    <circle cx={12} cy={16.9} r={1.1} {...dot} />
   </>
 ));
 
@@ -932,16 +1005,25 @@ const CONE_BASE =
 const TRIP_PIN =
   "M20.9 14.8c0 3-3.3 5.9-4.05 6.5a.55.55 0 0 1-.7 0c-.75-.6-4.05-3.5-4.05-6.5a4.4 4.4 0 0 1 8.8 0Z";
 
-export const TrafficCone = createIcon("TrafficCone", (f) => (
-  <>
-    <path d={CONE} {...(f ? SOLID : {})} />
-    <path
-      d="M9.85 9.9h4.3M8.6 13.6h6.8"
-      stroke={f ? "var(--icon-knockout, #fff)" : undefined}
-    />
-    <path d={CONE_BASE} {...(f ? SOLID : {})} />
-  </>
-));
+const CONE_STRIPES = "M9.85 9.9h4.3M8.6 13.6h6.8";
+
+export const TrafficCone = createIcon(
+  "TrafficCone",
+  (f) =>
+    f ? (
+      <>
+        <path d={CONE} {...SOLID} />
+        <path d={CONE_BASE} {...SOLID} />
+      </>
+    ) : (
+      <>
+        <path d={CONE} />
+        <path d={CONE_STRIPES} />
+        <path d={CONE_BASE} />
+      </>
+    ),
+  { cut: () => <path d={CONE_STRIPES} /> },
+);
 
 export const RouteTrip = createIcon("RouteTrip", (f) => (
   <>

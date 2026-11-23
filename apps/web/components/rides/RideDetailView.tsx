@@ -8,17 +8,12 @@ import {
   ArrowClockwise,
   ArrowLeft,
   CalendarBlank,
-  SealCheck as BadgeCheck,
   Briefcase,
   CarProfile,
   CheckCircle as CheckCircle2,
-  Clock,
   Copy,
-  FacebookLogo,
   ShareNetwork,
   Ticket as TicketIcon,
-  WhatsappLogo,
-  XLogo,
   Lightning,
   Lock,
   MapPin,
@@ -26,12 +21,10 @@ import {
   MusicNote as Music,
   PawPrint,
   Plus,
-  Star,
   Users,
   SpeakerSimpleX as VolumeX,
   Warning,
 } from "@/components/icons";
-import { Avatar } from "@/components/profile/Avatar";
 import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
@@ -47,8 +40,10 @@ import type { Profile } from "@/lib/auth/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
 import { useMorphNavigate } from "@/lib/ui/viewTransition";
-import { Chip } from "@/components/ui/Chip";
-import { MapSheet } from "@/components/trips/MapSheet";
+import { MapSheet, useSplitLayout } from "@/components/trips/MapSheet";
+import { PersonCard } from "./PersonCard";
+import { RideRiders } from "./RideRiders";
+import { useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "@/components/trips/RouteMap";
 import type { TripRoute } from "@/lib/maps/types";
 import { BookPanel, RULE } from "./RideLayout";
@@ -72,74 +67,6 @@ const Facts = styled.ul`
   svg {
     flex: none;
     color: ${nocturne.accent};
-  }
-`;
-
-const Person = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 20px;
-
-  > .avatar {
-    flex: none;
-    box-shadow: 0 0 0 1.5px ${RULE};
-  }
-  .who {
-    flex: 1;
-    min-width: 0;
-  }
-  h2 {
-    margin: 0 0 9px;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(22px, 2.4vw, 29px);
-    font-weight: 800;
-    line-height: 1.1;
-    letter-spacing: -0.028em;
-    overflow-wrap: anywhere;
-    color: ${nocturne.cream};
-  }
-
-  @media (max-width: 560px) {
-    gap: 16px;
-  }
-`;
-
-const Creds = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  font-size: 15px;
-  color: ${nocturne.muted};
-`;
-
-const Verified = styled.span<{ $on: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-weight: 700;
-  color: ${({ $on }) => ($on ? nocturne.accent : nocturne.muted)};
-
-  svg {
-    flex: none;
-  }
-`;
-
-const Rating = styled.span`
-  display: inline-flex;
-  align-items: baseline;
-  gap: 7px;
-
-  b {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: ${nocturne.cream};
-  }
-  svg {
-    color: ${nocturne.star};
   }
 `;
 
@@ -225,10 +152,6 @@ const greenPill = css`
       transform: none;
     }
   }
-`;
-
-const GreenLink = styled(Link)`
-  ${greenPill}
 `;
 
 const GreenButton = styled.button`
@@ -474,9 +397,6 @@ const primaryCta = css`
     }
     &:hover:not(:disabled) {
       color: ${nocturne.onGreen};
-      transform: translateY(-2px);
-      box-shadow: 0 12px 24px -10px
-        color-mix(in oklab, var(--n-green) 80%, transparent);
     }
   }
   &:active:not(:disabled)::before {
@@ -503,7 +423,6 @@ const primaryCta = css`
     &:hover:not(:disabled)::before {
       clip-path: circle(100% at 50% 50%);
     }
-    &:hover:not(:disabled),
     &:active:not(:disabled) {
       transform: none;
     }
@@ -730,6 +649,15 @@ const Card = styled.section`
 const Ticket = styled(Card)`
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
+  background: ${({ theme }) => theme.tone.amber.bg};
+  color: ${({ theme }) => theme.tone.amber.on};
+
+  && small,
+  && b,
+  && .seats,
+  && .seats strong {
+    color: inherit;
+  }
 
   small {
     display: block;
@@ -763,51 +691,92 @@ const Ticket = styled(Card)`
   }
 `;
 
-const ShareHead = styled.div`
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+const actButton = css`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  .well {
-    display: grid;
-    place-items: center;
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: ${nocturne.lime};
-    color: ${nocturne.greenDeep};
+  @media (pointer: coarse) {
+    min-height: 48px;
   }
-  h2 {
-    margin: 0;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${nocturne.cream};
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 8%, transparent);
+    }
   }
-  p {
-    margin: 4px 0 0;
-    font-size: 14.5px;
-    line-height: 1.5;
-    color: ${nocturne.muted};
+  &:active {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 `;
 
-const Channels = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+const OwnerActs = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
   gap: 8px;
 
-  a,
-  button {
-    text-decoration: none;
+  > :first-child {
+    grid-column: 1 / -1;
   }
 `;
 
-const ManageLink = styled(Chip)`
-  justify-self: start;
-  text-decoration: none;
+const ShareCta = styled.button`
+  ${actButton}
+  background: ${nocturne.ctaBg};
+  color: ${nocturne.ctaFg};
+`;
+
+const ManageLink = styled(Link)`
+  ${actButton}
+  background: ${({ theme }) => theme.tone.green.bg};
+  color: ${({ theme }) => theme.tone.green.on};
+`;
+
+const CopyButton = styled.button`
+  ${actButton}
+  background: ${({ theme }) => theme.tone.surface.bg};
+  color: ${({ theme }) => theme.tone.surface.on};
+
+  > * {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+`;
+
+const CarCard = styled(Card)`
+  background: ${({ theme }) => theme.tone.blue.bg};
+  color: ${({ theme }) => theme.tone.blue.on};
+
+  h2.label,
+  .colour,
+  svg,
+  b {
+    color: inherit;
+  }
 `;
 
 type NavigationLike = {
@@ -872,6 +841,7 @@ export function RideDetailView({
   const morphTo = useMorphNavigate();
   const reserveRef = useRef<HTMLButtonElement>(null);
   const isTrip = ride.kind === "trip";
+  const split = useSplitLayout();
   const person = isTrip ? ride.driver : ride.passenger;
   const maxSeats = isTrip ? Math.max(1, ride.seats_available) : ride.seats_needed;
 
@@ -904,7 +874,31 @@ export function RideDetailView({
   const breakdown = isTrip && fareConfig ? bookingBreakdown(ride.price_per_seat, seats, fareConfig) : null;
   const searchHref = routeSearch(ride.from_location, ride.to_location, isTrip ? undefined : ride.seats_needed);
 
-  const lead = ownerView
+  const ended = isTrip && closed ? ride.status : null;
+  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && ride.status === "in_progress");
+  const endedLabel =
+    ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
+  const endedLead = !ended
+    ? null
+    : isOwn
+      ? ended === "completed"
+        ? `You drove this ride${date ? ` on ${date}` : ""}.`
+        : ended === "cancelled"
+          ? "You cancelled this ride, so it no longer takes bookings."
+          : ended === "in_progress"
+            ? "You are driving this ride now."
+            : "This ride no longer takes bookings."
+      : ended === "completed"
+        ? "This ride has already happened."
+        : ended === "cancelled"
+          ? "The driver cancelled this ride."
+          : ended === "in_progress"
+            ? "This ride is already on the road."
+            : "This ride no longer takes bookings.";
+
+  const lead = endedLead
+    ? endedLead
+    : ownerView
     ? awaiting
       ? "Your ride is saved. It goes live for passengers as soon as your verification clears."
       : `Your ride is posted. Anyone heading to ${ride.to_location} can find it and book a seat now.`
@@ -914,7 +908,7 @@ export function RideDetailView({
         ? "This is how drivers see your request."
         : "Driving this route? Post your ride and they can request a seat.";
 
-  const backHref = ownerView ? "/trips" : "/home";
+  const backHref = isOwn ? "/trips" : "/home";
 
   function goBack(event: MouseEvent<HTMLAnchorElement>) {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -949,7 +943,9 @@ export function RideDetailView({
       ? "Saved · waiting on verification"
       : "Posted · open for booking"
     : closed
-      ? "Closed"
+      ? isTrip
+        ? endedLabel
+        : "Closed"
       : isTrip
         ? soldOut
           ? "Full"
@@ -957,14 +953,22 @@ export function RideDetailView({
             ? `Only ${ride.seats_available} ${seatWord(ride.seats_available)} left`
             : "Seats available"
         : "Passenger looking for a ride";
-  const statusTone: StatusTone = ownerView ? (awaiting ? "wait" : "live") : closed || soldOut ? "off" : "live";
+  const statusTone: StatusTone = ownerView
+    ? awaiting
+      ? "wait"
+      : "live"
+    : ended === "completed" || ended === "in_progress"
+      ? "live"
+      : closed || soldOut
+        ? "off"
+        : "live";
   const meta = [
     ...(date || time
-      ? [{ icon: <CalendarBlank size={19} />, label: [date, time].filter(Boolean).join(" at ") }]
+      ? [{ icon: <CalendarBlank size={18} />, label: [date, time].filter(Boolean).join(" at ") }]
       : []),
-    ...(isTrip && ride.pickup_point ? [{ icon: <MapPin size={19} />, label: `Pickup: ${ride.pickup_point}` }] : []),
-    ...(isTrip && ride.dropoff_point ? [{ icon: <MapPin size={19} />, label: `Drop-off: ${ride.dropoff_point}` }] : []),
-    ...(!isTrip ? [{ icon: <Users size={19} />, label: `${ride.seats_needed} ${seatWord(ride.seats_needed)} needed` }] : []),
+    ...(isTrip && ride.pickup_point ? [{ icon: <MapPin size={18} />, label: `Pickup: ${ride.pickup_point}` }] : []),
+    ...(isTrip && ride.dropoff_point ? [{ icon: <MapPin size={18} />, label: `Drop-off: ${ride.dropoff_point}` }] : []),
+    ...(!isTrip ? [{ icon: <Users size={18} />, label: `${ride.seats_needed} ${seatWord(ride.seats_needed)} needed` }] : []),
   ];
   const back = (
     <BackLink href={backHref} aria-label="Back" onClick={goBack}>
@@ -972,12 +976,79 @@ export function RideDetailView({
     </BackLink>
   );
 
+  const docked = ownerView && !awaiting && split;
+  const ownDone = isOwn && isTrip && ended === "completed" && !!profile;
+  const doneDocked = ownDone && split;
+  const ownLive = isOwn && isTrip && ended === "in_progress" && !!profile;
+  const liveDocked = ownLive && split;
+  const priceTile =
+    isTrip && !bookable ? (
+      <Ticket aria-label="Price and seats">
+        <div>
+          <small>Per seat</small>
+          <b>{formatKes(ride.price_per_seat)}</b>
+        </div>
+        {isOwn ? (
+          <p className="seats">
+            <strong>
+              {Math.max(0, ride.seats_total - ride.seats_available)} of {ride.seats_total}
+            </strong>
+            seats booked
+          </p>
+        ) : (
+          <p className="seats">
+            <strong>
+              {ride.seats_available} of {ride.seats_total}
+            </strong>
+            seats left
+          </p>
+        )}
+      </Ticket>
+    ) : null;
+  const carTile =
+    isTrip && ride.vehicle && vehicleName ? (
+      <CarCard aria-label="Car">
+        <h2 className="label">Car</h2>
+        <Vehicle>
+          <CarProfile size={24} aria-hidden />
+          <b>{vehicleName}</b>
+          {ride.vehicle.color && <span className="colour">{ride.vehicle.color}</span>}
+          {plate && <Plate>{plate.toUpperCase()}</Plate>}
+        </Vehicle>
+      </CarCard>
+    ) : null;
+
   return (
-    <MapSheet
-      map={(padding) => (
-        <RouteMap route={route} fromLabel={ride.from_location} toLabel={ride.to_location} padding={padding} />
+    <MapSheet      map={(padding) => (
+        <RouteMap
+          route={route}
+          fromLabel={ride.from_location}
+          toLabel={ride.to_location}
+          padding={padding}
+          car={carLoc}
+          follow={carLoc != null}
+        />
       )}
       mapTop={back}
+      aside={
+        docked ? (
+          <>
+            <OwnerBoarding tripId={ride.id} />
+            {priceTile}
+            {carTile}
+          </>
+        ) : liveDocked && profile ? (
+          <>
+            <RideRiders tripId={ride.id} viewerId={profile.id} live />
+            {carTile}
+          </>
+        ) : doneDocked && profile ? (
+          <>
+            <RideRiders tripId={ride.id} viewerId={profile.id} />
+            {carTile}
+          </>
+        ) : undefined
+      }
       expandLabel="Show all ride details"
     >
       <Top>
@@ -994,7 +1065,7 @@ export function RideDetailView({
           <i className="leg" aria-hidden />
           <span>{ride.to_location}</span>
         </h1>
-        <p>{lead}</p>
+        {lead ? <p>{lead}</p> : null}
       </Head>
 
       {meta.length > 0 && (
@@ -1009,6 +1080,8 @@ export function RideDetailView({
       )}
 
       <Stack>
+        {ownerView && !awaiting && !split && <OwnerBoarding tripId={ride.id} />}
+
         {ownerView && !awaiting && (
           <ShareRide
             rideId={ride.id}
@@ -1018,101 +1091,28 @@ export function RideDetailView({
           />
         )}
 
-        {ownerView && !awaiting && ride.seats_total - ride.seats_available > 0 && <OwnerBoarding tripId={ride.id} />}
-
         {ownerView && awaiting && <VerifyStatusCard compact context="ride" stage="pending" />}
 
-        {isTrip && !bookable && (
-          <Ticket aria-label="Price and seats">
-            <div>
-              <small>Per seat</small>
-              <b>{formatKes(ride.price_per_seat)}</b>
-            </div>
-            {ownerView ? (
-              <p className="seats">
-                <strong>
-                  {Math.max(0, ride.seats_total - ride.seats_available)} of {ride.seats_total}
-                </strong>
-                seats booked
-              </p>
-            ) : (
-              <p className="seats">
-                <strong>
-                  {ride.seats_available} of {ride.seats_total}
-                </strong>
-                seats left
-              </p>
-            )}
-          </Ticket>
-        )}
+        {ownDone && !split && profile ? <RideRiders tripId={ride.id} viewerId={profile.id} /> : null}
+        {ownLive && !split && profile ? <RideRiders tripId={ride.id} viewerId={profile.id} live /> : null}
+        {!docked && !ownDone && !ownLive && priceTile}
 
-        {ownerView && (
-          <ManageLink as={Link} href="/trips">
-            <TicketIcon size={18} /> Manage in your trips
-          </ManageLink>
-        )}
+
 
         {bookable && renderBookPanel()}
 
         {!bookable && !ownerView && renderSideAction()}
 
           {person && (
-            <Card aria-label={isTrip ? "Driver" : "Passenger"}>
-              <h2 className="label">{isTrip ? (ownerView ? "You, driving" : "Your driver") : "Passenger"}</h2>
-              <Person>
-                <Avatar
-                  className="avatar"
-                  name={person.full_name ?? "Kipita user"}
-                  src={person.avatar_url}
-                  size={64}
-                />
-                <div className="who">
-                  <h2>
-                    {person.full_name?.trim() ||
-                      (isTrip ? "Kipita driver" : "Kipita passenger")}
-                  </h2>
-                  <Creds>
-                    <Verified $on={!!person.is_verified}>
-                      <BadgeCheck
-                        size={18}
-                        weight={person.is_verified ? "fill" : "regular"}
-                      />
-                      {person.is_verified
-                        ? isTrip
-                          ? "Verified driver"
-                          : "Verified"
-                        : "Not yet verified"}
-                    </Verified>
-                    <Rating>
-                      <b>
-                        <Star size={16} weight="fill" />
-                        {Number(person.rating ?? 0) > 0
-                          ? Number(person.rating).toFixed(1)
-                          : "New"}
-                      </b>
-                      {person.total_trips
-                        ? `${person.total_trips} trip${person.total_trips === 1 ? "" : "s"}`
-                        : "no trips yet"}
-                    </Rating>
-                  </Creds>
-                </div>
-              </Person>
-            </Card>
+            <PersonCard
+              person={person}
+              label={isTrip ? (isOwn ? (ended === "completed" ? "You drove" : "You, driving") : "Your driver") : "Passenger"}
+              role={isTrip ? "driver" : "passenger"}
+            />
           )}
 
-          {isTrip && ride.vehicle && vehicleName && (
-            <Card aria-label="Car">
-              <h2 className="label">Car</h2>
-              <Vehicle>
-                <CarProfile size={22} aria-hidden />
-                <b>{vehicleName}</b>
-                {ride.vehicle.color && (
-                  <span className="colour">{ride.vehicle.color}</span>
-                )}
-                {plate && <Plate>{plate.toUpperCase()}</Plate>}
-              </Vehicle>
-            </Card>
-          )}
+          {!docked && !doneDocked && !liveDocked && carTile}
+
 
           {prefs.length > 0 && (
             <Card aria-label="On this ride">
@@ -1120,7 +1120,7 @@ export function RideDetailView({
               <Facts>
                 {prefs.map(({ icon: Icon, label }) => (
                   <li key={label}>
-                    <Icon size={19} /> {label}
+                    <Icon size={18} /> {label}
                   </li>
                 ))}
               </Facts>
@@ -1260,22 +1260,14 @@ export function RideDetailView({
 
   function renderSideAction() {
     if (closed) {
-      return (
-        <>
-          <Banner $tone="info">
-            <Clock size={20} />
-            <div>
-              <b>{isTrip ? "This ride has closed" : "This request has closed"}</b>
-            </div>
-          </Banner>
-          {isOwn && isTrip ? (
-            <GreenLink href="/trips">See your trips</GreenLink>
-          ) : (
-            <PrimaryLink href={searchHref}>
-              Find rides from {ride.from_location} to {ride.to_location}
-            </PrimaryLink>
-          )}
-        </>
+      return isOwn && isTrip ? (
+        <ManageLink href="/trips">
+          <TicketIcon size={20} /> See your trips
+        </ManageLink>
+      ) : (
+        <PrimaryLink href={searchHref}>
+          Find rides from {ride.from_location} to {ride.to_location}
+        </PrimaryLink>
       );
     }
 
@@ -1382,7 +1374,17 @@ export function RideDetailView({
   }
 }
 
-function ShareRide({ rideId, from, to, when }: { rideId: string; from: string; to: string; when: string }) {
+function ShareRide({
+  rideId,
+  from,
+  to,
+  when,
+}: {
+  rideId: string;
+  from: string;
+  to: string;
+  when: string;
+}) {
   const [origin, setOrigin] = useState("");
   const [native, setNative] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1417,50 +1419,29 @@ function ShareRide({ rideId, from, to, when }: { rideId: string; from: string; t
     }
   }
 
-  const channels = origin
-    ? [
-        { key: "whatsapp", label: "WhatsApp", icon: WhatsappLogo, href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}` },
-        { key: "facebook", label: "Facebook", icon: FacebookLogo, href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
-        { key: "x", label: "X", icon: XLogo, href: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
-      ]
-    : [];
-
   return (
     <Card aria-label="Share your ride">
-      <ShareHead>
-        <span className="well" aria-hidden>
-          <ShareNetwork size={24} />
-        </span>
-        <div>
-          <h2>Fill your seats faster</h2>
-          <p>Post the link where your passengers already are: family chats, work groups, your page.</p>
-        </div>
-      </ShareHead>
-      <Primary type="button" onClick={() => void share()}>
-        <Swap id={copied ? "copied" : "idle"}>
-          {copied ? (
-            <>
-              <CheckCircle2 size={20} weight="bold" /> Link copied
-            </>
-          ) : (
-            <>
-              <ShareNetwork size={20} /> {native ? "Share your ride" : "Copy ride link"}
-            </>
-          )}
-        </Swap>
-      </Primary>
-      <Channels>
-        {channels.map(({ key, label, icon: Icon, href }) => (
-          <Chip key={key} as="a" href={href} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${label}`}>
-            <Icon size={18} /> {label}
-          </Chip>
-        ))}
-        {native && origin ? (
-          <Chip type="button" onClick={() => void copy()}>
-            <Copy size={18} /> {copied ? "Copied" : "Copy link"}
-          </Chip>
-        ) : null}
-      </Channels>
+      <OwnerActs>
+        <ShareCta type="button" onClick={() => void share()}>
+          <ShareNetwork size={20} /> Share your ride
+        </ShareCta>
+        <ManageLink href="/trips">
+          <TicketIcon size={20} /> Manage in your trips
+        </ManageLink>
+        <CopyButton type="button" onClick={() => void copy()}>
+          <Swap id={copied ? "copied" : "idle"}>
+            {copied ? (
+              <>
+                <CheckCircle2 size={20} weight="bold" /> Link copied
+              </>
+            ) : (
+              <>
+                <Copy size={20} /> Copy link
+              </>
+            )}
+          </Swap>
+        </CopyButton>
+      </OwnerActs>
     </Card>
   );
 }

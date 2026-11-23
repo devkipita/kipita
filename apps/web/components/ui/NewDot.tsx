@@ -1,34 +1,45 @@
 "use client";
 
 import styled from "styled-components";
-import { dur, ease, nocturne, pulse } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const Dot = styled.span<{ $ring: string }>`
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: -6px;
+  left: calc(100% - 10px);
   z-index: 1;
-  width: 12px;
-  height: 12px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: ${nocturne.signal};
   box-shadow: 0 0 0 2px ${({ $ring }) => $ring};
   pointer-events: none;
+  transition:
+    transform ${dur.enter} ${ease.enter},
+    opacity ${dur.enter} ${ease.enter};
+
+  @starting-style {
+    transform: scale(0.6);
+    opacity: 0;
+  }
 
   &::after {
     content: "";
-    position: absolute;
-    inset: -4px;
-    z-index: -1;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
-    background: color-mix(in oklab, ${nocturne.signal} 55%, transparent);
-    animation: ${pulse} calc(${dur.max} * 4) ${ease.standard} infinite;
+    background: ${nocturne.onSignal};
+  }
+
+  [aria-expanded="true"] & {
+    box-shadow: 0 0 0 2px ${nocturne.greenDeep};
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &::after {
-      animation: none;
-      opacity: 0.5;
+    @starting-style {
+      transform: none;
     }
   }
 
