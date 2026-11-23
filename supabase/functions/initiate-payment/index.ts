@@ -91,6 +91,16 @@ serve(async (req) => {
       });
     }
 
+    // A failed attempt keeps its key and the key is unique, so a retry on the same booking, method
+    // and amount would fail on the insert below. Give the failed row's key up first; it stays as
+    // history, and a late callback still finds it by its id.
+    if (existingPayment) {
+      await supabase
+        .from('payments')
+        .update({ idempotency_key: `${idempotencyKey}:${existingPayment.id}` })
+        .eq('id', existingPayment.id);
+    }
+
     // Create payment record
     const { data: payment, error: paymentErr } = await supabase
       .from('payments')
