@@ -975,7 +975,7 @@ export function PublishMobile({
   publishBeforeApproval?: boolean;
   prefill?: Prefill | null;
 }) {
-  const { kycStatus, requireKyc } = useAppMode();
+  const { kycStatus, requireKyc, requirePhone } = useAppMode();
   const submitted = kycStatus === "approved" || kycStatus === "pending";
   const willWait = kycStatus !== "approved" && !publishBeforeApproval;
 
@@ -1207,6 +1207,7 @@ export function PublishMobile({
     else if (kind === "seats") go(3);
     else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
+    else if (kind === "phone") requirePhone(sendTrip);
     else publish();
   }
 
