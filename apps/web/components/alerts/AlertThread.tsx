@@ -316,7 +316,6 @@ export function AlertThread({
 
         <Focused>
           <Who>
-            <Avatar name={author} src={alert.user?.avatar_url} size={44} />
             <div className="who-copy">
               <div className="name">{author}</div>
               <div className="where">

@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 import { MapPin } from "@/components/icons";
-import { Avatar } from "@/components/profile/Avatar";
 import { shortName } from "@kipita/shared";
 import { Swap } from "@/components/anim/Swap";
 import { Notice } from "@/components/ui/primitives";
@@ -340,7 +339,6 @@ export function AlertCard({
         {ownerMenu}
         <Body href={href} $owned={mine}>
           <Head>
-            <Avatar name={author} src={alert.user?.avatar_url} size={38} />
             <div className="who">
               <div className="name" title={author}>
                 {author}
