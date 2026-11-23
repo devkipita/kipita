@@ -66,8 +66,8 @@ function synthesize(user: User): Profile {
     id: user.id,
     auth_id: user.id,
     full_name: displayName(null, user),
-    email: user.email ?? null,
-    phone: user.phone ?? null,
+    email: user.email || null,
+    phone: user.phone || null,
     avatar_url: authAvatarUrl(user),
     date_of_birth: null,
     gender: null,
@@ -95,8 +95,11 @@ export const getProfile = cache(async function getProfile(): Promise<Profile | n
   const merge = (row: Profile): Profile => ({
     ...row,
     full_name: displayName(row.full_name, user),
-    email: user.email ?? row.email ?? null,
-    phone: user.phone ?? row.phone ?? null,
+    // The auth server answers "" (not null) for an account with no email or no
+    // phone, and `??` keeps an empty string, which hid the number saved on the
+    // `users` row ("Phone: Not set", and no payout phone on the wallet).
+    email: user.email || row.email || null,
+    phone: user.phone || row.phone || null,
     avatar_url: mergedAvatarUrl(row.avatar_url, user),
   });
 
@@ -122,8 +125,8 @@ export const getProfile = cache(async function getProfile(): Promise<Profile | n
     .insert({
       auth_id: user.id,
       full_name: (user.user_metadata?.full_name as string | undefined) ?? "",
-      email: user.email ?? null,
-      phone: user.phone ?? null,
+      email: user.email || null,
+      phone: user.phone || null,
     })
     .select("id, auth_id")
     .maybeSingle();

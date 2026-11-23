@@ -4,7 +4,7 @@ export const SITE = {
   tagline: "Carpooling, made for Kenya.",
   description:
     "Kipita connects drivers with empty seats to passengers heading the same way, safer, cheaper journeys across Kenya, paid securely with M-Pesa.",
-  supportEmail: "support@kipita.app",
+  supportEmail: "support@kipita.co.ke",
   websiteUrl:
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
     "https://www.kipita.co.ke",

@@ -105,13 +105,22 @@ serve(async (req) => {
     }
 
     if (booking.status === 'cancelled') {
-      await supabase
-        .from('payments')
-        .update({ status: 'failed', updated_at: new Date().toISOString() })
-        .eq('id', payment_id);
+      // The hold ended (or the passenger cancelled) before the payment settled. mpesa-callback
+      // stores the M-Pesa receipt before it calls this function, so a stored receipt means the
+      // money has already arrived: refund_late_payment (migration 079) sends it back to the
+      // passenger's wallet. With no receipt it marks the payment failed. It is safe to call again.
+      // If the call itself fails the payment is left as it is, and the sweep
+      // (sweep_stuck_payments, every 5 minutes) finishes the refund.
+      const { data: outcome, error: refundErr } = await supabase.rpc('refund_late_payment', {
+        p_payment_id: payment_id,
+      });
+      if (refundErr) throw refundErr;
 
       return new Response(
-        JSON.stringify({ error: 'This hold expired before payment completed' }),
+        JSON.stringify({
+          error: 'This hold expired before payment completed',
+          refunded: outcome === 'refunded' || outcome === 'already_refunded',
+        }),
         {
           status: 409,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
