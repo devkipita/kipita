@@ -1,17 +1,11 @@
 "use client";
 
-import styled, { css } from "styled-components";
+import styled from "styled-components";
 import { LEAST_CAR_SEATS, MOST_CAR_SEATS } from "@kipita/shared";
+import { Chip } from "@/components/ui/Chip";
 import { nocturne } from "@/lib/nocturne";
 
 const COUNTS = Array.from({ length: MOST_CAR_SEATS - LEAST_CAR_SEATS + 1 }, (_, i) => LEAST_CAR_SEATS + i);
-
-const ring = css`
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
-  }
-`;
 
 const Wrap = styled.div`
   display: flex;
@@ -36,24 +30,10 @@ const Wrap = styled.div`
   }
 `;
 
-const Chip = styled.button<{ $on: boolean }>`
+const Count = styled(Chip)`
+  justify-content: center;
   min-width: 44px;
-  height: 44px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1.5px solid ${({ $on }) => ($on ? nocturne.green : nocturne.line)};
-  background: ${({ $on }) => ($on ? nocturne.surface2 : nocturne.surface)};
-  font: inherit;
-  font-size: 16px;
-  font-weight: 800;
-  color: ${nocturne.cream};
-  cursor: pointer;
-  ${ring}
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: progress;
-  }
+  font-variant-numeric: tabular-nums;
 `;
 
 /**
@@ -81,18 +61,18 @@ export function CarSeatsPicker({
       <p className="hint">Count yours too.</p>
       <div className="row" role="radiogroup" aria-labelledby={id}>
         {COUNTS.map((n) => (
-          <Chip
+          <Count
             key={n}
             type="button"
             role="radio"
             aria-checked={value === n}
             aria-label={`${n} seats`}
-            $on={value === n}
+            $selected={value === n}
             disabled={disabled}
             onClick={() => onChange(n)}
           >
             {n}
-          </Chip>
+          </Count>
         ))}
       </div>
     </Wrap>
