@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { ArrowRight, Check, Clock, Lock } from "@/components/icons";
+import { ArrowRight, ChatCircle, Check, Clock, Lock } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { RollingNumber } from "@/components/ui/Counter";
@@ -218,6 +218,52 @@ const Head = styled.div`
     margin-top: 2px;
     font-size: 13px;
     color: ${nocturne.muted};
+  }
+`;
+
+const Side = styled.span`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Talk = styled.button`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: ${({ theme }) => theme.tone.green.bg};
+  color: ${({ theme }) => theme.tone.green.on};
+  cursor: pointer;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${({ theme }) => theme.tone.green.bg} 85%, ${nocturne.green});
+    }
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  ${focusRing}
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 `;
 
@@ -487,10 +533,12 @@ export function BoardingPanel({
   tripId,
   board,
   always = false,
+  onMessage,
 }: {
   tripId: string;
   board: Boarding;
   always?: boolean;
+  onMessage?: (row: BoardingRow) => void;
 }) {
   const { rows, summary, error, reload } = board;
   if (!always && ((!summary.loaded && !error) || rows.length === 0)) return null;
@@ -548,17 +596,24 @@ export function BoardingPanel({
                   </small>
                 </span>
               </span>
-              {row.state === "boarded" ? (
-                <State $tone="go">
-                  <Check size={16} weight="bold" /> On board
-                </State>
-              ) : row.state === "no_show" ? (
-                <State $tone="off">No-show</State>
-              ) : (
-                <State $tone="wait">
-                  <Clock size={16} /> Waiting
-                </State>
-              )}
+              <Side>
+                {onMessage && row.state !== "no_show" ? (
+                  <Talk type="button" aria-label={`Message ${row.passengerName}`} onClick={() => onMessage(row)}>
+                    <ChatCircle size={20} aria-hidden />
+                  </Talk>
+                ) : null}
+                {row.state === "boarded" ? (
+                  <State $tone="go">
+                    <Check size={16} weight="bold" /> On board
+                  </State>
+                ) : row.state === "no_show" ? (
+                  <State $tone="off">No-show</State>
+                ) : (
+                  <State $tone="wait">
+                    <Clock size={16} /> Waiting
+                  </State>
+                )}
+              </Side>
             </Head>
             {row.state === "boarded" && row.method === "manual" && (
               <p>

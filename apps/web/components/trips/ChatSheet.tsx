@@ -106,7 +106,7 @@ const Empty = styled.li`
 
 const Foot = styled.div`
   border-top: 1px solid ${nocturne.line};
-  background: ${nocturne.bg};
+  background: ${nocturne.surface};
 `;
 
 const Compose = styled.form`
@@ -189,8 +189,8 @@ const QuickBtn = styled.button`
   padding: 4px 12px;
   border: 0;
   border-radius: 8px;
-  background: ${({ theme }) => theme.color.surfaceContainerHigh};
-  color: ${nocturne.cream};
+  background: ${({ theme }) => theme.tone.blue.bg};
+  color: ${({ theme }) => theme.tone.blue.on};
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -209,7 +209,7 @@ const QuickBtn = styled.button`
   }
   @media (hover: hover) and (pointer: fine) {
     &:hover:not(:disabled) {
-      background: color-mix(in oklab, ${({ theme }) => theme.color.surfaceContainerHigh} 88%, ${nocturne.cream});
+      background: color-mix(in oklab, ${({ theme }) => theme.tone.blue.bg} 86%, ${({ theme }) => theme.tone.blue.on});
     }
   }
   &:active:not(:disabled) {

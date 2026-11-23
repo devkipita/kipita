@@ -84,6 +84,37 @@ const Frame = styled.div`
     filter: drop-shadow(0 3px 4px color-mix(in oklab, ${nocturne.ink} 35%, transparent));
     transition: rotate 600ms ${ease.standard};
   }
+  .kp-rider {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .kp-rider > i {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: ${nocturne.ctaBg};
+    border: 3px solid ${nocturne.surface};
+    box-shadow: 0 0 0 8px color-mix(in oklab, ${nocturne.ctaBg} 24%, transparent);
+  }
+  .kp-rider > span {
+    margin: -8px 0 0 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: ${nocturne.surface};
+    color: ${nocturne.cream};
+    font-family: var(--font-dm-sans), sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: ${nocturne.panelShadow};
+  }
   .kp-me {
     position: absolute;
     left: 0;
@@ -152,7 +183,14 @@ const Locate = styled(Ctl)`
   box-shadow: ${nocturne.panelShadow};
 `;
 
+export type MapPerson = { id: string; lat: number; lng: number; name: string };
+
 type Mover = { move: (p: google.maps.LatLngLiteral, heading: number | null) => void };
+type Crowd = { sync: (list: MapPerson[]) => void };
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
 type Spot = { set: (p: google.maps.LatLngLiteral) => void };
 
 function bearing(a: google.maps.LatLng, b: google.maps.LatLng) {
@@ -181,6 +219,7 @@ export default function TripMap({
   shift = 0,
   onboard = false,
   bare = false,
+  people,
 }: {
   polyline: string;
   car?: TripLocation | null;
@@ -193,7 +232,9 @@ export default function TripMap({
   shift?: number;
   onboard?: boolean;
   bare?: boolean;
+  people?: MapPerson[];
 }) {
+  const crowdRef = useRef<Crowd | null>(null);
   const onboardRef = useRef(onboard);
   onboardRef.current = onboard;
   const driverSeen = useRef(false);
@@ -385,6 +426,33 @@ export default function TripMap({
           },
         };
 
+        const pins = new Map<string, { view: Html; el: HTMLDivElement }>();
+        crowdRef.current = {
+          sync(list) {
+            const seen = new Set<string>();
+            for (const p of list) {
+              seen.add(p.id);
+              let hit = pins.get(p.id);
+              if (!hit) {
+                const el = document.createElement("div");
+                el.className = "kp-rider";
+                const view = new Html(el, null, "floatPane");
+                view.setMap(map);
+                hit = { view, el };
+                pins.set(p.id, hit);
+              }
+              hit.el.innerHTML = `<i></i><span>${escapeHtml(p.name)}</span>`;
+              hit.view.pos = new g.maps.LatLng(p.lat, p.lng);
+              hit.view.draw();
+            }
+            for (const [id, hit] of pins) {
+              if (seen.has(id)) continue;
+              hit.view.setMap(null);
+              pins.delete(id);
+            }
+          },
+        };
+
         const bounds = new g.maps.LatLngBounds();
         path.forEach((p) => bounds.extend(p));
         const fit = () => map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
@@ -416,6 +484,7 @@ export default function TripMap({
       watchRef.current = null;
       carRef.current = null;
       meRef.current = null;
+      crowdRef.current = null;
       mapRef.current = null;
       setReady(false);
     };
@@ -426,6 +495,11 @@ export default function TripMap({
     if (fromPin.current) fromPin.current.innerHTML = pinHtml(fromLead ?? null, `From ${fromLabel}`);
     if (toPin.current) toPin.current.innerHTML = pinHtml(toLead ?? null, `To ${toLabel}`);
   }, [ready, fromLabel, toLabel, fromLead, toLead]);
+
+  useEffect(() => {
+    if (!ready) return;
+    crowdRef.current?.sync(people ?? []);
+  }, [ready, people]);
 
   useEffect(() => {
     if (!car || !ready) return;

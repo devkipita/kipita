@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition, type MouseEvent, type ReactNode } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled, { css } from "styled-components";
@@ -29,6 +30,8 @@ import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
 import { reserveSeatAction, type BookingResult } from "@/lib/bookings";
 import { BoardingPanel, SlideToComplete, useBoarding } from "@/components/trips/Boarding";
+import type { BoardingRow } from "@/lib/trips/boarding-actions";
+import { Drawer } from "@/components/ui/Drawer";
 import { formatRideDate, formatRideTime, type RideDetail } from "@/lib/ride-detail";
 import { formatKes } from "@/lib/rides";
 import { bookingBreakdown } from "@/lib/platform";
@@ -45,10 +48,13 @@ import { MapSheet, useSplitLayout } from "@/components/trips/MapSheet";
 import { PersonCard } from "./PersonCard";
 import { RideRiders } from "./RideRiders";
 import { RideFinish } from "./RideFinish";
-import { useTripLocation } from "@/lib/trips/live";
+import { usePickupLocations, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "@/components/trips/RouteMap";
 import type { TripRoute } from "@/lib/maps/types";
 import { BookPanel, RULE } from "./RideLayout";
+
+const ChatPanel = dynamic(() => import("@/components/trips/ChatSheet"), { ssr: false });
+const AS_DRIVER = "driver" as const;
 
 const Facts = styled.ul`
   display: flex;
@@ -919,6 +925,18 @@ export function RideDetailView({
   const ended = isTrip && closed ? ride.status : null;
   const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && ride.status === "in_progress");
   const board = useBoarding(isTrip ? ride.id : null, ownerView && !awaiting);
+  const pickups = usePickupLocations(isTrip ? ride.id : null, ownerView && !awaiting);
+  const people = board.rows
+    .filter((r) => r.state === "waiting" && pickups[r.bookingId])
+    .map((r) => ({
+      id: r.bookingId,
+      lat: pickups[r.bookingId].lat,
+      lng: pickups[r.bookingId].lng,
+      name: r.passengerName.split(" ")[0] || r.passengerName,
+    }));
+  const [chatWith, setChatWith] = useState<BoardingRow | null>(null);
+  const [shownChat, setShownChat] = useState<BoardingRow | null>(null);
+  if (chatWith && chatWith !== shownChat) setShownChat(chatWith);
   const ready = ownerView && !awaiting && board.summary.loaded && board.rows.length > 0 && board.summary.waiting === 0;
   const endedLabel =
     ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
@@ -1075,6 +1093,7 @@ export function RideDetailView({
             padding={padding}
             car={carLoc}
             follow={carLoc != null}
+            people={people}
           />
         )
       }
@@ -1082,7 +1101,7 @@ export function RideDetailView({
       aside={
         docked ? (
           <>
-            <BoardingPanel tripId={ride.id} board={board} always />
+            <BoardingPanel tripId={ride.id} board={board} always onMessage={setChatWith} />
             {priceTile}
             {carTile}
           </>
@@ -1129,7 +1148,9 @@ export function RideDetailView({
       )}
 
       <Stack>
-        {ownerView && !awaiting && !split && <BoardingPanel tripId={ride.id} board={board} always />}
+        {ownerView && !awaiting && !split && (
+          <BoardingPanel tripId={ride.id} board={board} always onMessage={setChatWith} />
+        )}
 
         {ownerView && !awaiting && (
           <ShareRide
@@ -1184,6 +1205,28 @@ export function RideDetailView({
             </Card>
           )}
       </Stack>
+      {ownerView && profile ? (
+        <Drawer
+          open={chatWith !== null}
+          onClose={() => setChatWith(null)}
+          title={chatWith ? chatWith.passengerName : "Messages"}
+          side
+          fill
+        >
+          {shownChat ? (
+            <ChatPanel
+              key={shownChat.bookingId}
+              open={chatWith !== null}
+              bookingId={shownChat.bookingId}
+              me={profile.id}
+              otherName={shownChat.passengerName}
+              otherAvatar={shownChat.avatarUrl}
+              role={AS_DRIVER}
+              status="confirmed"
+            />
+          ) : null}
+        </Drawer>
+      ) : null}
     </MapSheet>
   );
 

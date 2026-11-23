@@ -77,6 +77,112 @@ export function useShareLocation(tripId: string, running: boolean) {
   return { state, retry };
 }
 
+export type PickupLocation = {
+  booking_id: string;
+  trip_id: string;
+  passenger_id: string;
+  lat: number;
+  lng: number;
+  accuracy_m: number | null;
+  updated_at: string;
+};
+
+export function useSharePickup(bookingId: string, active: boolean) {
+  const [state, setState] = useState<ShareState>("off");
+  const watch = useRef<number | null>(null);
+  const last = useRef(0);
+
+  const stop = useCallback(() => {
+    if (watch.current != null) navigator.geolocation.clearWatch(watch.current);
+    watch.current = null;
+  }, []);
+
+  const start = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      setState("unsupported");
+      return;
+    }
+    stop();
+    setState((s) => (s === "failed" ? "off" : s));
+    const supabase = createClient();
+    watch.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        setState((s) => (s === "failed" ? s : "on"));
+        const now = Date.now();
+        if (now - last.current < 10000) return;
+        last.current = now;
+        const { latitude, longitude, accuracy } = pos.coords;
+        void supabase
+          .rpc("share_pickup_location", {
+            p_booking_id: bookingId,
+            p_lat: latitude,
+            p_lng: longitude,
+            p_accuracy_m: Number.isFinite(accuracy) ? accuracy : null,
+          })
+          .then(({ error }) => {
+            if (!error) return;
+            last.current = 0;
+            setState("failed");
+          });
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setState("denied");
+          stop();
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+    );
+  }, [bookingId, stop]);
+
+  useEffect(() => {
+    if (active) start();
+    else {
+      stop();
+      setState("off");
+    }
+    return stop;
+  }, [active, start, stop]);
+
+  return { state, retry: start };
+}
+
+export function usePickupLocations(tripId: string | null, enabled: boolean) {
+  const [spots, setSpots] = useState<Record<string, PickupLocation>>({});
+
+  useEffect(() => {
+    if (!tripId || !enabled) return;
+    let live = true;
+    const load = () =>
+      void createClient()
+        .from("pickup_locations")
+        .select("booking_id, trip_id, passenger_id, lat, lng, accuracy_m, updated_at")
+        .eq("trip_id", tripId)
+        .then(({ data }) => {
+          if (!live || !data) return;
+          setSpots(Object.fromEntries((data as PickupLocation[]).map((row) => [row.booking_id, row])));
+        });
+    load();
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") load();
+    }, 30000);
+    return () => {
+      live = false;
+      window.clearInterval(poll);
+    };
+  }, [tripId, enabled]);
+
+  const receive = useCallback((row: PickupLocation) => setSpots((prev) => ({ ...prev, [row.booking_id]: row })), []);
+  useRowStream<PickupLocation>(
+    `pickup-locations:${tripId}`,
+    "pickup_locations",
+    tripId && enabled ? `trip_id=eq.${tripId}` : null,
+    receive,
+  );
+
+  return spots;
+}
+
 export function useTripLocation(tripId: string | null, enabled: boolean) {
   const [loc, setLoc] = useState<TripLocation | null>(null);
 

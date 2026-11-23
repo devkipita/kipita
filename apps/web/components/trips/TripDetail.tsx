@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
-import { ArrowLeft, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, Phone, SealCheck, ShareForward, Star, X } from "@/components/icons";
+import { ArrowLeft, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareForward, Star, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { reportProblemAction } from "@/lib/trips/boarding-actions";
@@ -13,7 +13,7 @@ import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
 import { LiveStatus, useLiveEta } from "./LiveCard";
 import { placeKey } from "@/lib/maps/types";
-import { useTripLocation } from "@/lib/trips/live";
+import { useSharePickup, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "./RouteMap";
 
 const ChatPanel = dynamic(() => import("./ChatSheet"), { ssr: false });
@@ -1109,6 +1109,10 @@ export function TripDetail({
     return () => clearInterval(timer);
   }, [paid, live, booking.status]);
 
+  const pickupSoon =
+    !isDriver && paid && !!journey.code && departsAt != null && nowMs >= departsAt.getTime() - 30 * 60 * 1000;
+  const pickupShare = useSharePickup(booking.id, pickupSoon);
+
   const paidAtDate = booking.paid_at ? new Date(booking.paid_at) : null;
   const freeEnds = departsAt && paidAtDate ? freeUntil(departsAt, paidAtDate, cancelConfig) : null;
   const freeNow = freeEnds ? nowMs <= freeEnds.getTime() : false;
@@ -1301,8 +1305,11 @@ export function TripDetail({
     setSide(s);
   };
 
+  const chatOpen =
+    journey.contactOpen || booking.status === "requested" || booking.status === "pending_payment";
+
   const wantPanel: Side | null =
-    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" && journey.contactOpen ? "chat" : null;
+    params?.get("pay") === "1" ? "pay" : params?.get("chat") === "1" && chatOpen ? "chat" : null;
 
   useEffect(() => {
     if (!wantPanel) return;
@@ -1311,7 +1318,7 @@ export function TripDetail({
       const allowed =
         wantPanel === "pay"
           ? due && !isDriver
-          : ["pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status);
+          : ["requested", "pending_payment", "confirmed", "in_progress", "completed"].includes(booking.status);
       if (!allowed) return;
       if (window.matchMedia("(min-width: 861px) and (max-width: 1199px)").matches) measure();
       setLastSide(wantPanel);
@@ -1539,7 +1546,7 @@ export function TripDetail({
       {shown === "problem" && (
         <ProblemPanel busy={busy === "problem"} error={problemError} onBack={() => setSide(null)} onSend={sendProblem} held={journey.escrow === "held"} />
       )}
-      {shown === "chat" && journey.contactOpen && (
+      {shown === "chat" && chatOpen && (
         <ChatPanel
           open={side === "chat"}
           bookingId={booking.id}
@@ -1651,6 +1658,29 @@ export function TripDetail({
           {!isDriver && paid && journey.code && (
             <Slot $order={0}>
               <PickupCodeCard code={journey.code} />
+            </Slot>
+          )}
+          {!isDriver && paid && journey.code && (
+            <Slot $order={0}>
+            {pickupShare.state === "denied" || pickupShare.state === "failed" ? (
+              <Outline type="button" onClick={pickupShare.retry}>
+                <NavigationArrow size={18} weight="bold" />
+                {pickupShare.state === "denied"
+                  ? `Allow location so ${firstName} can find you`
+                  : "Location didn't send. Try again"}
+              </Outline>
+            ) : (
+              <Settled $pending={!pickupSoon || pickupShare.state !== "on"}>
+                <NavigationArrow size={20} weight="fill" aria-hidden />
+                {!pickupSoon
+                  ? `${firstName} sees where you are from 30 minutes before the ride`
+                  : pickupShare.state === "on"
+                    ? `${firstName} can see where you are`
+                    : pickupShare.state === "unsupported"
+                      ? "This browser can't share your location"
+                      : "Finding your location"}
+              </Settled>
+            )}
             </Slot>
           )}
           {isDriver && paid && booking.trip_id && (
@@ -1785,14 +1815,18 @@ export function TripDetail({
                 </small>
                 {!isDriver && carLine && <small>{carLine}</small>}
               </span>
-              {talkable && (
+              {(chatOpen || talkable) && (
                 <Talk>
-                  <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
-                    <ChatCircle size={20} />
-                  </RoundAct>
-                  <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
-                    <Phone size={20} />
-                  </RoundAct>
+                  {chatOpen && (
+                    <RoundAct type="button" aria-label={`Message ${name}`} onClick={() => openSide("chat")} aria-expanded={side === "chat"}>
+                      <ChatCircle size={20} />
+                    </RoundAct>
+                  )}
+                  {talkable && (
+                    <RoundAct type="button" aria-label={`Call ${name}`} onClick={call} disabled={calling}>
+                      <Phone size={20} />
+                    </RoundAct>
+                  )}
                 </Talk>
               )}
             </Who>
