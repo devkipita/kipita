@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import styled from "styled-components";
 import { MapPin } from "@/components/icons";
-import { Avatar } from "@/components/profile/Avatar";
+import { shortName } from "@kipita/shared";
 import { Swap } from "@/components/anim/Swap";
 import { Notice } from "@/components/ui/primitives";
 import { shortRelativeTime } from "@/lib/notifications/meta";
@@ -256,7 +256,7 @@ export function AlertCard({
   const [menuError, setMenuError] = useState<string | null>(null);
   const { body, truncated } = truncateWords(alert.content);
   const href = `/alerts/${alert.id}`;
-  const author = alert.user?.full_name?.trim() || "Kipita user";
+  const author = shortName(alert.user?.full_name);
   const hasImage = isDisplayableImage(alert.image_url);
   const mine = viewerId != null && alert.user_id === viewerId;
   const edited = wasEdited(alert);
@@ -339,7 +339,6 @@ export function AlertCard({
         {ownerMenu}
         <Body href={href} $owned={mine}>
           <Head>
-            <Avatar name={author} src={alert.user?.avatar_url} size={38} />
             <div className="who">
               <div className="name" title={author}>
                 {author}

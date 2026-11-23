@@ -3,7 +3,6 @@ import { AlertsView } from "@/components/alerts/AlertsView";
 import { getProfile } from "@/lib/auth/session";
 import {
   fetchAlertsServer,
-  fetchFollowingServer,
   fetchRouteTownsServer,
 } from "@/lib/alerts/server";
 
@@ -20,19 +19,13 @@ export default async function AlertsPage() {
     getProfile(),
   ]);
 
-  const [followingIds, routeTowns] = profile
-    ? await Promise.all([
-        fetchFollowingServer(profile.id),
-        fetchRouteTownsServer(profile.id),
-      ])
-    : [[], []];
+  const routeTowns = profile ? await fetchRouteTownsServer(profile.id) : [];
 
   return (
     <AlertsView
       initialAlerts={alerts ?? []}
       initialFailed={alerts === null}
       profile={profile}
-      followingIds={followingIds}
       routeTowns={routeTowns}
     />
   );

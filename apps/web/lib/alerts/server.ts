@@ -195,20 +195,6 @@ export async function fetchAlertFaqs(limit = 4): Promise<AsideFaq[]> {
   }
 }
 
-export async function fetchFollowingServer(viewerId: string): Promise<string[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("user_follows")
-      .select("following_id")
-      .eq("follower_id", viewerId);
-    if (error || !data) return [];
-    return data.map((row) => row.following_id as string);
-  } catch {
-    return [];
-  }
-}
-
 export async function fetchRouteTownsServer(viewerId: string): Promise<string[]> {
   try {
     const supabase = await createClient();
