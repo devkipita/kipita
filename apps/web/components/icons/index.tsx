@@ -1081,6 +1081,13 @@ export const ArrowUpRight = createIcon("ArrowUpRight", () => (
   </>
 ));
 
+export const ArrowDownLeft = createIcon("ArrowDownLeft", () => (
+  <>
+    <path d="M17.4 6.6 6.6 17.4" />
+    <path d="M15.4 17.4H6.6V8.6" />
+  </>
+));
+
 export const ArrowUUpLeft = createIcon("ArrowUUpLeft", () => (
   <>
     <path d="M9.2 14.4 4.4 9.6 9.2 4.8" />
