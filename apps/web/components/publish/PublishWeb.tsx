@@ -982,7 +982,7 @@ export function PublishWeb({
   driverName?: string;
   prefill?: Prefill | null;
 }) {
-  const { kycStatus, requireKyc } = useAppMode();
+  const { kycStatus, requireKyc, requirePhone } = useAppMode();
   const verified = kycStatus === "approved";
   const submitted = kycStatus === "approved" || kycStatus === "pending";
   const [awaiting, setAwaiting] = useState(false);
@@ -1206,6 +1206,7 @@ export function PublishWeb({
     else if (kind === "seats") go(3);
     else if (kind === "price" || kind === "carType") go(4);
     else if (kind === "kyc") requireKyc(sendTrip);
+    else if (kind === "phone") requirePhone(sendTrip);
     else publish();
   }
 
