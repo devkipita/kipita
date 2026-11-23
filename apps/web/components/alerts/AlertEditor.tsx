@@ -2,117 +2,110 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import styled from "styled-components";
-import { MapPin } from "@/components/icons";
+import { CheckSmall as Check, MapPin } from "@/components/icons";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-import { DrawnCheck } from "@/components/ui/DrawnCheck";
+import { Chip } from "@/components/ui/Chip";
 import { updateAlertAction } from "@/lib/alerts/actions";
-import { ALERT_CATEGORIES, ALERT_META } from "@/lib/alerts/meta";
+import { ALERT_CATEGORIES, ALERT_META, CATEGORY_ROLE } from "@/lib/alerts/meta";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Alert, AlertCategory } from "@/lib/alerts/types";
-import type { AccentName, AccentStep } from "@/lib/theme";
 
 const MAX = 1000;
 
 const Shell = styled.div`
   display: grid;
-  gap: 10px;
+  gap: 12px;
   padding: 12px;
-  border-radius: ${({ theme }) => theme.radius.sm};
-  background: ${({ theme }) => theme.color.surfaceContainer};
+  border-radius: 12px;
+  background: ${nocturne.surface2};
+`;
+
+const field = `
+  border: 1px solid ${nocturne.outline};
+  border-radius: 8px;
+  background: ${nocturne.surface};
 `;
 
 const Body = styled.textarea`
+  ${field}
   width: 100%;
-  min-height: 90px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.xs};
-  padding: 10px 12px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  color: ${({ theme }) => theme.color.onSurface};
+  min-height: 96px;
+  padding: 8px 12px;
+  color: ${nocturne.cream};
+  caret-color: ${nocturne.accent};
   font: inherit;
-  font-size: 1rem;
+  font-size: 16px;
   line-height: 1.5;
   resize: vertical;
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
 
   &:focus-visible {
-    outline: 2px solid ${({ theme }) => theme.color.primary};
-    outline-offset: 1px;
+    outline: none;
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 3px ${nocturne.ring};
   }
 `;
 
 const Where = styled.label`
+  ${field}
   display: flex;
   align-items: center;
   gap: 8px;
-  border-radius: ${({ theme }) => theme.radius.xs};
+  min-height: 44px;
   padding: 0 12px;
-  min-height: 42px;
-  background: ${({ theme }) => theme.color.surfaceContainerLowest};
-  color: ${({ theme }) => theme.color.onSurfaceVariant};
+  color: ${nocturne.accent};
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard};
 
+  svg {
+    flex: none;
+  }
   input {
     flex: 1;
     min-width: 0;
     border: none;
     background: transparent;
     font: inherit;
-    font-size: 0.95rem;
-    color: ${({ theme }) => theme.color.onSurface};
+    font-size: 16px;
+    color: ${nocturne.cream};
   }
   input:focus {
     outline: none;
+  }
+  &:focus-within {
+    border-color: ${nocturne.accent};
+    box-shadow: 0 0 0 3px ${nocturne.ring};
   }
 `;
 
 const Types = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-`;
-
-const TypeChip = styled.button<{
-  $accent: AccentName;
-  $step: AccentStep;
-  $active: boolean;
-}>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border: none;
-  border-radius: 999px;
-  font: inherit;
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-
-  background: ${({ theme, $accent, $step, $active }) =>
-    $active ? theme.accent[$accent][$step].bg : theme.color.surfaceContainerHigh};
-  color: ${({ theme, $accent, $step, $active }) =>
-    $active ? theme.accent[$accent][$step].on : theme.color.onSurfaceVariant};
-  opacity: ${({ $active }) => ($active ? 1 : 0.85)};
-
-  --icon-knockout: ${({ theme, $accent, $step, $active }) =>
-    $active ? theme.accent[$accent][$step].bg : theme.color.surfaceContainerHigh};
-
-  svg {
-    flex: none;
-  }
+  gap: 8px;
 `;
 
 const Foot = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 
   .spacer {
     flex: 1;
   }
   .count {
-    font-size: 0.78rem;
+    font-size: 13px;
     font-weight: 600;
-    color: ${({ theme }) => theme.color.onSurfaceVariant};
+    font-variant-numeric: tabular-nums;
+    color: ${nocturne.muted2};
+  }
+  .why {
+    font-size: 13px;
+    color: ${nocturne.muted};
   }
 `;
 
@@ -142,6 +135,13 @@ export function AlertEditor({
     content.trim() !== alert.content;
   const valid = content.trim().length >= 3 && location.trim().length >= 2;
   const remaining = MAX - content.length;
+  const why = !valid
+    ? location.trim().length < 2
+      ? "Add where this is to save"
+      : "Write at least 3 characters to save"
+    : !dirty
+      ? "Nothing changed yet"
+      : "";
 
   function save() {
     if (!valid || !dirty || pending) return;
@@ -184,11 +184,12 @@ export function AlertEditor({
       />
 
       <Where>
-        <MapPin size={16} weight="fill" />
+        <MapPin size={20} weight="fill" aria-hidden />
         <input
           value={location}
           onChange={(e) => setLocation(e.target.value)}
           maxLength={120}
+          placeholder="Road, town or landmark"
           aria-label="Where is this?"
         />
       </Where>
@@ -197,28 +198,29 @@ export function AlertEditor({
         {ALERT_CATEGORIES.map((key) => {
           const m = ALERT_META[key];
           const Icon = m.icon;
+          const on = category === key;
           return (
-            <TypeChip
+            <Chip
               key={key}
               type="button"
-              $accent={m.accent}
-              $step={m.step}
-              $active={category === key}
-              aria-pressed={category === key}
+              $tone={CATEGORY_ROLE[key]}
+              $selected={on}
+              aria-pressed={on}
               onClick={() => setCategory(key)}
             >
-              <Icon size={14} weight="fill" />
+              {on ? <Check size={16} aria-hidden /> : <Icon size={16} weight="fill" aria-hidden />}
               {m.label}
-            </TypeChip>
+            </Chip>
           );
         })}
       </Types>
 
       <Foot>
         {remaining <= 100 && <span className="count">{remaining}</span>}
+        {why && <span className="why">{why}</span>}
         <span className="spacer" />
         <ButtonEl type="button" $compact $variant="ghost" onClick={onCancel}>
-          Cancel
+          Discard changes
         </ButtonEl>
         <ButtonEl
           type="button"
@@ -227,7 +229,13 @@ export function AlertEditor({
           disabled={!valid || !dirty || pending}
           aria-busy={pending}
         >
-          {pending ? <><ButtonOrb job="committing" /> Saving…</> : <>Save changes <DrawnCheck size={18} /></>}
+          {pending ? (
+            <>
+              <ButtonOrb job="committing" /> Saving changes
+            </>
+          ) : (
+            "Save changes"
+          )}
         </ButtonEl>
       </Foot>
     </Shell>

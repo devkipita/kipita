@@ -166,29 +166,6 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
   }
 }
 
-export type AsideFaq = { id: string; question: string; answer: string };
-
-export async function fetchAlertFaqs(limit = 4): Promise<AsideFaq[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("faqs")
-      .select("id, question, answer")
-      .eq("is_published", true)
-      .order("sort_order", { ascending: true })
-      .limit(limit);
-
-    if (error || !data) return [];
-    return data.map((row) => ({
-      id: row.id as string,
-      question: row.question as string,
-      answer: row.answer as string,
-    }));
-  } catch {
-    return [];
-  }
-}
-
 export async function fetchFollowingServer(viewerId: string): Promise<string[]> {
   try {
     const supabase = await createClient();

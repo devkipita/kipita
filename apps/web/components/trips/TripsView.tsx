@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { MagnifyingGlass, X } from "@/components/icons";
+import { IconAction } from "@/components/ui/Chip";
+import { PageTitle } from "@/components/nav/PageTitle";
 import { ContentWidth } from "@/components/nav/AppShell";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatTripDate } from "@/lib/trips/format";
@@ -12,14 +14,19 @@ import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking, PublishedTrip } from "@/lib/trips/types";
 import { BookingCard, STATUS } from "./BookingCard";
 import { PublishedTrips } from "./PublishedTrips";
-import { SectionHead, fs } from "./RideRow";
+import { AnimatePresence, m } from "motion/react";
+import { Count, fs } from "./RideRow";
+import { RollingNumber } from "@/components/ui/Counter";
+import { TabIndicator } from "@/components/ui/TabIndicator";
+import { tween } from "@/lib/motion";
+import { PastTrips } from "./PastTrips";
+import { TripsHelp } from "./TripsHelp";
+import { NoPastArt, NoRequestsArt, NoTripsArt } from "./TripsArt";
 import { SeatRequests } from "./SeatRequests";
-import { SupportPanel } from "./SupportPanel";
-import { TripFaqs } from "./TripFaqs";
 
 type Tab = "current" | "previous" | "incoming";
 
-const Page = styled(ContentWidth)`
+export const Page = styled(ContentWidth)`
   padding-block: 0 72px;
   padding-left: max(16px, var(--page-pad), env(safe-area-inset-left));
   padding-right: max(16px, var(--page-pad), env(safe-area-inset-right));
@@ -33,83 +40,64 @@ const Page = styled(ContentWidth)`
   }
 
   @media (max-width: 960px) {
-    padding-bottom: calc(56px + var(--bottom-bar-space, 0px));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: calc(24px + var(--bottom-bar-space, 0px));
   }
 `;
 
-const Head = styled.header`
-  padding-top: clamp(20px, 4vh, 40px);
+export const Head = styled.header`
+  padding-top: 32px;
 
   @media (max-width: 960px) {
-    padding-top: 0;
+    padding-top: 12px;
   }
 `;
 
-const HeadRow = styled.div<{ $open: boolean }>`
-  position: relative;
+export const HeadRow = styled.div<{ $open?: boolean }>`
   display: flex;
   align-items: center;
-  min-height: 50px;
+  gap: 16px;
+  min-height: 48px;
 
   h1 {
+    flex: 1;
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(30px, 4vw, 40px);
+    font-size: 40px;
     font-weight: 800;
     letter-spacing: -0.035em;
-    line-height: 1.1;
+    line-height: 48px;
     color: ${nocturne.cream};
-    opacity: ${({ $open }) => ($open ? 0 : 1)};
-    transition: opacity ${dur.state} ${ease.standard};
   }
 
-  @media (min-width: 721px) {
+  @media (max-width: 960px) {
+    min-height: 0;
+
     h1 {
-      opacity: 1;
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
     }
   }
 `;
 
-const Grow = styled.div<{ $open: boolean }>`
-  position: absolute;
-  top: 50%;
-  right: 0;
+const Search = styled.label`
   display: flex;
   align-items: center;
   gap: 8px;
-  width: min(100%, 520px);
+  width: min(100%, 360px);
   height: 48px;
-  padding-left: 16px;
+  padding: 0 4px 0 16px;
   border-radius: 24px;
-  background: ${nocturne.surface};
-  transform: translateY(-50%);
-  clip-path: ${({ $open }) => ($open ? "inset(0 round 24px)" : "inset(0 0 0 calc(100% - 48px) round 24px)")};
-  transition: clip-path ${({ $open }) => ($open ? `${dur.enter} ${ease.enter}` : `${dur.exit} ${ease.exit}`)};
-
-  @media (min-width: 721px) {
-    width: min(calc(100% - 200px), 520px);
-  }
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
+  color: ${nocturne.muted};
+  transition: box-shadow ${dur.state} ${ease.standard};
 
   > svg {
     flex: none;
-    color: ${nocturne.muted};
-  }
-  > button {
-    display: grid;
-    place-items: center;
-    flex: none;
-    width: 48px;
-    height: 48px;
-    padding: 0;
-    border: 0;
-    border-radius: 50%;
-    background: transparent;
-    color: ${nocturne.cream};
-    cursor: pointer;
-  }
-  > button:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: -3px;
   }
   input {
     flex: 1;
@@ -123,21 +111,24 @@ const Grow = styled.div<{ $open: boolean }>`
     color: ${nocturne.cream};
     caret-color: ${nocturne.accent};
   }
-  input:focus {
+  input:focus-visible {
     outline: none;
   }
   input::placeholder {
     color: ${nocturne.muted2};
   }
+  input::-webkit-search-cancel-button {
+    display: none;
+  }
   &:focus-within {
-    background: ${nocturne.surface};
+    box-shadow: inset 0 0 0 2px ${nocturne.accent};
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
+  @media (max-width: 960px) {
+    width: 100%;
+    height: 44px;
   }
 `;
-
 const Found = styled.p`
   margin: 16px 0 0;
   font-size: 14px;
@@ -145,16 +136,16 @@ const Found = styled.p`
   color: ${nocturne.muted};
 `;
 
-const Booked = styled.section<{ $first: boolean }>`
+export const Booked = styled.section<{ $first: boolean }>`
   margin-top: ${({ $first }) => ($first ? "4px" : "clamp(28px, 5vh, 56px)")};
 `;
 
-const Controls = styled.div`
+export const Controls = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px 24px;
-  margin-top: 18px;
+  margin-top: 16px;
 
   @media (max-width: 720px) {
     flex-direction: column;
@@ -162,131 +153,146 @@ const Controls = styled.div`
   }
 `;
 
-const Tabs = styled.div<{ $n: number }>`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  background: ${nocturne.surface2};
-
-  @media (min-width: 721px) {
-    width: ${({ $n }) => $n * 150}px;
-  }
+export const Tabs = styled.div`
+  display: flex;
+  width: 100%;
+  border-bottom: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
 `;
 
-const Badge = styled.span`
-  display: inline-grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  margin-left: 6px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
-  font-size: 12px;
-  font-weight: 800;
-`;
-
-const TabButton = styled.button<{ $active: boolean }>`
-  min-height: 42px;
+export const TabButton = styled.button<{ $active: boolean }>`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
   padding: 0 16px;
   border: none;
-  border-radius: 999px;
-  background: ${({ $active }) => ($active ? nocturne.surface : "transparent")};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  background: transparent;
+  font: inherit;
   font-size: 15px;
-  font-weight: ${({ $active }) => ($active ? 800 : 600)};
-  cursor: pointer;
+  font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
-  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  white-space: nowrap;
   transition:
     color ${dur.state} ${ease.standard},
     background-color ${dur.state} ${ease.standard};
 
-  @media (hover: hover) {
+  .text,
+  .count {
+    position: relative;
+    z-index: 1;
+  }
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       color: ${nocturne.cream};
+      background-color: color-mix(in oklab, ${nocturne.cream} 4%, transparent);
     }
+  }
+  &:active {
+    background-color: color-mix(in oklab, ${nocturne.cream} 8%, transparent);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
+    outline-offset: -3px;
   }
 `;
 
+const Needs = styled(Count)`
+  background: ${({ theme }) => theme.color.warningContainer};
+  color: ${({ theme }) => theme.color.onWarningContainer};
+`;
 const Rows = styled.div`
   display: grid;
-  gap: 14px;
-  padding-top: 18px;
+  gap: 12px;
+  padding-top: 16px;
 `;
 
 const Empty = styled.div`
-  padding: clamp(40px, 7vh, 72px) 0;
-  max-width: 48ch;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  margin-top: 16px;
+  padding: 24px;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.color.surfaceContainerLowest};
 
+  .art svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
   b {
     display: block;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     font-size: ${fs.route};
     font-weight: 800;
-    letter-spacing: -0.03em;
+    line-height: 28px;
+    letter-spacing: -0.02em;
     color: ${nocturne.cream};
   }
   p {
-    margin: 10px 0 0;
+    margin: 4px 0 0;
+    max-width: 48ch;
     font-size: ${fs.body};
-    line-height: 1.55;
+    line-height: 24px;
     color: ${nocturne.muted};
+  }
+
+  @media (max-width: 600px) {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+    padding: 16px 12px;
+
+    b {
+      font-size: 17px;
+      line-height: 24px;
+    }
+    p {
+      font-size: 14px;
+      line-height: 20px;
+    }
   }
 `;
 
-const Find = styled(Link)`
+const Find = styled(Link)<{ $tonal?: boolean }>`
   display: inline-flex;
   align-items: center;
-  min-height: 52px;
-  margin-top: 22px;
-  padding: 0 26px;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 0 24px;
   border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: ${fs.body};
-  font-weight: 800;
+  background: ${({ $tonal, theme }) => ($tonal ? theme.tone.lav.bg : nocturne.ctaBg)};
+  color: ${({ $tonal, theme }) => ($tonal ? theme.tone.lav.on : nocturne.ctaFg)};
+  font-size: 15px;
+  font-weight: 700;
   text-decoration: none;
   transition:
-    background-color ${dur.state} ${ease.standard},
-    color ${dur.state} ${ease.standard},
+    filter ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background: ${nocturne.green};
-      color: ${nocturne.onGreen};
-      transform: translateY(-2px);
+      filter: brightness(0.95);
     }
   }
   &:active {
-    background: ${nocturne.greenDeep};
-    color: ${nocturne.onGreen};
-    transform: translateY(1px);
+    filter: brightness(0.9);
+    transform: scale(0.97);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover,
     &:active {
       transform: none;
     }
   }
 `;
-
-const Section = styled.section`
+export const Section = styled.section`
   margin-top: clamp(36px, 5vh, 56px);
 
   > h2 {
@@ -294,7 +300,7 @@ const Section = styled.section`
   }
 `;
 
-const HelpGrid = styled.div`
+export const HelpGrid = styled.div`
   display: grid;
   gap: 40px;
 
@@ -307,6 +313,42 @@ const HelpGrid = styled.div`
 
   @media (max-width: 860px) {
     grid-template-columns: minmax(0, 1fr);
+  }
+`;
+
+const Layout = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 32px;
+  margin-top: 24px;
+
+  @media (max-width: 960px) {
+    gap: 20px;
+    margin-top: 12px;
+  }
+`;
+
+const MainCol = styled.div`
+  flex: 999 1 600px;
+  min-width: 0;
+  display: grid;
+  gap: 32px;
+
+  @media (max-width: 960px) {
+    gap: 20px;
+  }
+`;
+
+const Aside = styled.aside`
+  flex: 1 1 300px;
+  max-width: 360px;
+  position: sticky;
+  top: calc(var(--sticky-top, 0px) + 16px);
+
+  @media (max-width: 1023px) {
+    position: static;
+    max-width: none;
   }
 `;
 
@@ -366,6 +408,11 @@ export function TripsView({
     if (pending.current) clearTimeout(pending.current);
   }, []);
   useBookingStream(
+    `my-drives:${viewerId}`,
+    viewerId && published.length > 0 ? `driver_id=eq.${viewerId}` : null,
+    refresh,
+  );
+  useBookingStream(
     `my-trips:${viewerId}`,
     viewerId ? `passenger_id=eq.${viewerId}` : null,
     refresh,
@@ -389,134 +436,190 @@ export function TripsView({
 
   const searchable = everything.length > 0;
 
-  const [searching, setSearching] = useState(false);
-  const searchRef = useRef<HTMLInputElement>(null);
+  const closeSearch = () => setQuery("");
 
-  useEffect(() => {
-    if (searching) searchRef.current?.focus({ preventScroll: true });
-  }, [searching]);
 
-  const closeSearch = () => {
-    setQuery("");
-    setSearching(false);
-  };
+  const isDriver = published.length > 0 || requests.length > 0;
+  const upcomingEmpty = (
+    <EmptyState
+      art={<NoTripsArt />}
+      title="No trips booked"
+      line="Seats you book show up here with the driver, pickup time and what you paid."
+      action={<Find href="/home" $tonal={isDriver}>Find a ride</Find>}
+    />
+  );
 
-  const driving = requests.length > 0 || published.length > 0;
-
-  return (
-    <Page $max={1080}>
-      <Head>
-        <HeadRow $open={searching}>
-          <h1>Trips</h1>
-          {searchable && (
-            <Grow $open={searching}>
-              <MagnifyingGlass size={20} aria-hidden />
-              <input
-                ref={searchRef}
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") closeSearch();
-                }}
-                tabIndex={searching ? 0 : -1}
-                aria-hidden={!searching}
-                placeholder="Town, person or reference"
-                aria-label="Search trips"
-              />
-              <button
-                type="button"
-                aria-label={searching ? "Close search" : "Search trips"}
-                aria-expanded={searching}
-                onClick={() => (searching ? closeSearch() : setSearching(true))}
-              >
-                {searching ? <X size={18} weight="bold" /> : <MagnifyingGlass size={20} />}
-              </button>
-            </Grow>
-          )}
-        </HeadRow>
-      </Head>
-
-      <Booked $first>
-      <Controls>
-        <Tabs role="group" aria-label="Which trips" $n={driving ? 3 : 2}>
-          <TabButton
-            type="button"
-            $active={tab === "current"}
-            aria-pressed={tab === "current"}
-            onClick={() => setTab("current")}
-          >
-            Current
-            {current.length > 0 ? ` ${current.length}` : ""}
-          </TabButton>
-          <TabButton
-            type="button"
-            $active={tab === "previous"}
-            aria-pressed={tab === "previous"}
-            onClick={() => setTab("previous")}
-          >
-            Previous
-            {previous.length > 0 ? ` ${previous.length}` : ""}
-          </TabButton>
-          {driving && (
-            <TabButton
-              type="button"
-              $active={tab === "incoming"}
-              aria-pressed={tab === "incoming"}
-              onClick={() => setTab("incoming")}
-            >
-              Incoming
-              {incoming > 0 && <Badge>{incoming}</Badge>}
-            </TabButton>
-          )}
-        </Tabs>
-      </Controls>
-
-      {words.length > 0 && (
-        <Found role="status">
-          {shown.length} {shown.length === 1 ? "trip" : "trips"} match &ldquo;{query.trim()}&rdquo;
-        </Found>
-      )}
-
-      {tab === "incoming" && words.length === 0 ? (
-        <SeatRequests initial={requests} viewerId={viewerId} onCount={setIncoming} />
-      ) : shown.length > 0 ? (
+  let body: React.ReactNode;
+  if (words.length > 0) {
+    body =
+      shown.length > 0 ? (
         <Rows>
           {shown.map((booking) => (
             <BookingCard key={booking.id} booking={booking} viewerId={viewerId} />
           ))}
         </Rows>
       ) : (
-        <Empty>
-          {words.length > 0 ? (
-            <b>Try a town, a name, a date or a booking reference</b>
-          ) : tab === "current" ? (
-            <>
-              <b>No trips yet</b>
-              <Find href="/home">Find a ride</Find>
-            </>
-          ) : (
-            <b>No past trips</b>
+        <EmptyState
+          art={<NoTripsArt />}
+          title={`No trips match "${query.trim()}"`}
+          line="Try a town, a name, a date or a booking reference."
+        />
+      );
+  } else if (tab === "incoming") {
+    body = (
+      <SeatRequests
+        initial={requests}
+        viewerId={viewerId}
+        onCount={setIncoming}
+        empty={
+          <EmptyState
+            art={<NoRequestsArt />}
+            title="No seat requests right now"
+            line="When someone asks for a seat on your ride, it lands here for you to accept or decline."
+          />
+        }
+      />
+    );
+  } else if (tab === "previous") {
+    body =
+      previous.length > 0 ? (
+        <PastTrips bookings={previous} viewerId={viewerId} />
+      ) : (
+        <EmptyState
+          art={<NoPastArt />}
+          title="No past trips yet"
+          line="Finished and cancelled trips stay here with their receipts."
+        />
+      );
+  } else {
+    body =
+      current.length > 0 ? (
+        <Rows>
+          {current.map((booking) => (
+            <BookingCard key={booking.id} booking={booking} viewerId={viewerId} />
+          ))}
+        </Rows>
+      ) : (
+        upcomingEmpty
+      );
+  }
+
+  return (
+    <Page $max={1200}>
+      <PageTitle title="Trips" back="/home" />
+      <Head>
+        <HeadRow>
+          <h1>Trips</h1>
+          {searchable && (
+            <Search>
+              <MagnifyingGlass size={20} aria-hidden />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") closeSearch();
+                }}
+                placeholder="Search a town, person or booking ref"
+                aria-label="Search trips"
+              />
+              {query && (
+                <IconAction type="button" aria-label="Clear search" title="Clear search" onClick={closeSearch}>
+                  <X size={20} aria-hidden />
+                </IconAction>
+              )}
+            </Search>
           )}
-        </Empty>
-      )}
-      </Booked>
+        </HeadRow>
+      </Head>
 
-      <PublishedTrips initial={published} />
+      <Layout>
+        <MainCol>
+          <PublishedTrips initial={published} onAnswer={() => setTab("incoming")} />
 
-      <Section id="help">
-        <SectionHead>Need help?</SectionHead>
-        <HelpGrid>
-          <div>
-            <h3>Common questions</h3>
-            <TripFaqs />
-          </div>
-          <div>
-            <h3>Report a problem</h3>
-            <SupportPanel trips={[...current, ...previous]} />
-          </div>
-        </HelpGrid>
-      </Section>
+          <Booked $first={published.length === 0}>
+            <Controls>
+              <Tabs role="tablist" aria-label="Which trips">
+                {(
+                  [
+                    { key: "current", label: "Upcoming", n: current.length },
+                    { key: "previous", label: "Past", n: previous.length },
+                    ...(isDriver ? [{ key: "incoming", label: "Requests", n: incoming }] : []),
+                  ] as { key: Tab; label: string; n: number }[]
+                ).map((t) => {
+                  const active = tab === t.key && words.length === 0;
+                  const Badge = t.key === "incoming" ? Needs : Count;
+                  return (
+                    <TabButton
+                      key={t.key}
+                      type="button"
+                      role="tab"
+                      $active={active}
+                      aria-selected={active}
+                      onClick={() => {
+                        setTab(t.key);
+                        if (words.length > 0) closeSearch();
+                      }}
+                    >
+                      {active && <TabIndicator group="trips" tone="underline" />}
+                      <span className="text">{t.label}</span>
+                      {t.n > 0 && (
+                        <Badge className="count">
+                          <RollingNumber value={t.n} />
+                        </Badge>
+                      )}
+                    </TabButton>
+                  );
+                })}
+              </Tabs>
+            </Controls>
+
+            {words.length > 0 && (
+              <Found role="status">
+                <RollingNumber value={shown.length} /> {shown.length === 1 ? "trip" : "trips"} match &ldquo;{query.trim()}&rdquo;
+              </Found>
+            )}
+
+            <AnimatePresence mode="wait" initial={false}>
+              <m.div
+                key={words.length > 0 ? "search" : tab}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: tween.enter }}
+                exit={{ opacity: 0, transition: tween.exit }}
+              >
+                {body}
+              </m.div>
+            </AnimatePresence>
+          </Booked>
+        </MainCol>
+
+        <Aside aria-label="Help with trips">
+          <TripsHelp trips={[...current, ...previous]} />
+        </Aside>
+      </Layout>
     </Page>
+  );
+}
+
+function EmptyState({
+  art,
+  title,
+  line,
+  action,
+}: {
+  art: React.ReactNode;
+  title: string;
+  line: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <Empty>
+      <div className="art">{art}</div>
+      <div>
+        <b>{title}</b>
+        <p>{line}</p>
+        {action}
+      </div>
+    </Empty>
   );
 }

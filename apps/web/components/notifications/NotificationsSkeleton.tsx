@@ -1,15 +1,8 @@
 "use client";
 
-import styled from "styled-components";
 import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
 import { ActivitySkeletonRows } from "./ActivityStates";
-import { Head, INBOX_MAX, Page, Tabs } from "./NotificationsView";
-
-const TabSkel = styled.span`
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-`;
+import { FILTERS, Head, INBOX_MAX, Page, Sub, Tab, Tabs } from "./NotificationsView";
 
 export function NotificationsSkeleton() {
   return (
@@ -18,16 +11,17 @@ export function NotificationsSkeleton() {
       <Page $max={INBOX_MAX} aria-hidden="true">
         <Head>
           <div>
-            <Shimmer $w="160px" $h="44px" $r="12px" />
-            <Shimmer $w="110px" $h="16px" $r="8px" $mb="2px" />
+            <h1>Activity</h1>
+            <Sub>
+              <Shimmer $w="96px" $h="14px" $r="6px" />
+            </Sub>
           </div>
-          <Shimmer $w="164px" $h="44px" $r="999px" />
         </Head>
         <Tabs>
-          {[58, 70, 98, 74].map((w) => (
-            <TabSkel key={w}>
-              <Shimmer $w={`${w}px`} $h="36px" $r="999px" />
-            </TabSkel>
+          {FILTERS.map((f, i) => (
+            <Tab key={f.key} as="span" $on={i === 0} $selected={i === 0}>
+              <span className="t">{f.label}</span>
+            </Tab>
           ))}
         </Tabs>
         <ActivitySkeletonRows rows={7} />

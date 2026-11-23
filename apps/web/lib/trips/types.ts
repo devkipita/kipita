@@ -37,6 +37,17 @@ export interface PublishedTrip {
   awaiting_payment: number;
   /** Seats paid for, or already riding. */
   paid_seats: number;
+  vehicle?: TripCar | null;
+  riders?: SeatRider[];
+}
+
+export interface SeatRider {
+  booking_id: string;
+  name: string;
+  avatar_url: string | null;
+  seats: number;
+  state: "paid" | "booked" | "requested";
+  created_at: string;
 }
 
 export interface TripPerson {

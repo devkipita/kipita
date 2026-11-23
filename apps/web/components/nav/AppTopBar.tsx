@@ -6,12 +6,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import { m } from "motion/react";
-import { CaretDown, CircleNotch, SignOut, X } from "@/components/icons";
+import { ArrowLeft, CaretDown, CircleNotch, SignOut, X } from "@/components/icons";
+import { usePageTitle } from "@/lib/nav/page-title";
 import { spring } from "@/lib/motion";
 import { signOutAction } from "@/lib/auth/actions";
 import { Avatar } from "@/components/profile/Avatar";
 import { Brand } from "@/components/ui/Brand";
-import { MorphMenu } from "@/components/ui/MorphMenu";
+import { MorphMenu, morphHead } from "@/components/ui/MorphMenu";
 import { Drawer, DrawerBody, DrawerFooter, useIsSheet } from "@/components/ui/Drawer";
 import { ActivityButton } from "./ActivityButton";
 import { NewDot } from "@/components/ui/NewDot";
@@ -53,10 +54,68 @@ const Bar = styled.header`
   }
 `;
 
-const BrandSlot = styled.div`
+const PhoneTitle = styled.div`
+  display: none;
+
+  @media (max-width: 960px) {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    margin-left: -8px;
+
+    .title {
+      overflow: hidden;
+      font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+`;
+
+const BackLink = styled(Link)`
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  color: ${nocturne.onGreen};
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${nocturne.onGreen} 10%, transparent);
+    }
+  }
+  &:active {
+    background: color-mix(in oklab, ${nocturne.onGreen} 16%, transparent);
+    transform: scale(0.96);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.lime};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const BrandSlot = styled.div<{ $hideOnPhone?: boolean }>`
   flex: none;
   display: flex;
   align-items: center;
+
+  @media (max-width: 960px) {
+    display: ${({ $hideOnPhone }) => ($hideOnPhone ? "none" : "flex")};
+  }
 
   a {
     display: flex;
@@ -371,6 +430,11 @@ const Trigger = styled.button`
   }
 `;
 
+const AccountHead = styled(Trigger)`
+  position: relative;
+  ${morphHead(".face", ".who, .chev", 23)}
+`;
+
 const shimmer = keyframes`
   0%, 100% { opacity: 0.5; }
   50%      { opacity: 1; }
@@ -393,6 +457,10 @@ const MenuA = styled(Link)`
     flex: none;
     color: ${nocturne.muted2};
     transition: color 0.16s ease;
+  }
+  .label {
+    flex: 1;
+    min-width: 0;
   }
 
   &:hover,
@@ -500,7 +568,7 @@ const HIDDEN_X = { opacity: 0, scale: 0.5, rotate: -90 };
 function AccountFace({ profile, closing = false }: { profile: Profile; closing?: boolean }) {
   return (
     <>
-      <FaceSwap>
+      <FaceSwap className="face">
         <m.span initial={false} animate={closing ? HIDDEN_FACE : SHOWN} transition={spring.morph}>
           <Avatar name={profile.full_name} src={profile.avatar_url} size={36} />
         </m.span>
@@ -703,18 +771,29 @@ export function AppTopBar({
   counts?: NavCounts;
 }) {
   const pathname = usePathname() ?? "/";
+  const pageTitle = usePageTitle();
   const sheet = useIsSheet();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => setOpen(false), [pathname]);
 
-  const accountLinks = ACCOUNT_NAV.map((item) => (
-    <MenuA key={item.key} href={item.href} role="menuitem" onClick={() => setOpen(false)}>
-      <NavGlyph icon={item.icon} size={21} />
-      {item.label}
-    </MenuA>
-  ));
+  const accountLinks = ACCOUNT_NAV.map((item) => {
+    const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
+    return (
+      <MenuA
+        key={item.key}
+        href={item.href}
+        role="menuitem"
+        aria-label={count ? `${item.label}, ${count} new` : undefined}
+        onClick={() => setOpen(false)}
+      >
+        <NavGlyph icon={item.icon} size={21} />
+        <span className="label">{item.label}</span>
+        {count ? <NavCount aria-hidden="true">{count > 99 ? "99+" : count}</NavCount> : null}
+      </MenuA>
+    );
+  });
 
   const sheetLinks = [...SHEET_LEAD_NAV, ...ACCOUNT_NAV].map((item) => {
     const active = isNavItemActive(item, pathname);
@@ -738,22 +817,31 @@ export function AppTopBar({
 
   return (
     <Bar data-chrome-bar="">
-      <BrandSlot>
+      <BrandSlot $hideOnPhone={Boolean(pageTitle)}>
         <Brand href="/" light priority />
       </BrandSlot>
+      {pageTitle && (
+        <PhoneTitle>
+          <BackLink href={pageTitle.back} aria-label="Back">
+            <ArrowLeft size={24} aria-hidden />
+          </BackLink>
+          <span className="title">{pageTitle.title}</span>
+        </PhoneTitle>
+      )}
 
       <Links aria-label="Main">
         {items.map((item) => {
           const active = isNavItemActive(item, pathname);
           const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
-          const fresh = !active && item.dot ? (counts?.[item.dot] ?? 0) > 0 : false;
+          const freshCount = !active && item.dot ? (counts?.[item.dot] ?? 0) : 0;
+          const fresh = freshCount > 0;
           return (
             <NavA
               key={item.key}
               href={item.href}
               $active={active}
               aria-current={active ? "page" : undefined}
-              aria-label={count ? `${item.label}, ${count} new` : fresh ? `${item.label}, new since your last visit` : undefined}
+              aria-label={count ? `${item.label}, ${count} new` : fresh ? `${item.label}, ${freshCount} new since your last visit` : undefined}
             >
               {active ? <NavActive layoutId="topnav-active" transition={spring.morph} aria-hidden="true" /> : null}
               <span className="well" aria-hidden="true">
@@ -822,15 +910,16 @@ export function AppTopBar({
                   triggerRef={triggerRef}
                   label="Account"
                   head={(close, isOpen) => (
-                    <Trigger
+                    <AccountHead
                       type="button"
+                      data-morph={isOpen ? "open" : "closed"}
                       aria-expanded="true"
                       aria-label="Close account menu"
                       tabIndex={-1}
                       onClick={close}
                     >
                       <AccountFace profile={profile} closing={isOpen} />
-                    </Trigger>
+                    </AccountHead>
                   )}
                 >
                   {accountLinks}

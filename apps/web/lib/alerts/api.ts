@@ -3,12 +3,14 @@ import {
   ALERT_SELECT,
   ALERT_SELECT_LEGACY,
   COMMENT_SELECT,
+  COMMENT_SELECT_THREADED,
   type Alert,
   type AlertAuthor,
   type AlertCategory,
   type AlertComment,
   type ConfirmKind,
 } from "./types";
+import { deviceId } from "./device";
 
 /**
  * Road-alert reads and the two optimistic toggles.
@@ -30,6 +32,12 @@ const PAGE_SIZE = 20;
  * picks the column up on its own once 023 lands — no redeploy.
  */
 let viewsColumn = true;
+
+let threadColumn = true;
+
+export function commentThreadsReady(): boolean {
+  return threadColumn;
+}
 
 export function alertSelect(): string {
   return viewsColumn ? ALERT_SELECT : ALERT_SELECT_LEGACY;
@@ -104,6 +112,7 @@ function toComment(raw: unknown, liked = false): AlertComment {
     id: row.id as string,
     alert_id: row.alert_id as string,
     user_id: row.user_id as string,
+    parent_id: (row.parent_id as string | null) ?? null,
     content: (row.content as string) ?? "",
     image_url: (row.image_url as string | null) ?? null,
     likes_count: Number(row.likes_count ?? 0),
@@ -289,6 +298,43 @@ export async function recordAlertView(
   return typeof data === "number" ? data : null;
 }
 
+export async function recordAlertImpressions(
+  supabase: SupabaseClient,
+  alertIds: string[],
+): Promise<Map<string, number>> {
+  if (alertIds.length === 0) return new Map();
+  const ids = alertIds.slice(0, 50);
+  if (impressionsReady) {
+    const { data, error } = await supabase.rpc("record_alert_impressions", {
+      p_alert_ids: ids,
+      p_device_id: deviceId(),
+    });
+    if (!error) {
+      const rows = (data ?? []) as { alert_id: string; views_count: number }[];
+      return new Map(rows.map((r) => [r.alert_id, Number(r.views_count ?? 0)]));
+    }
+    if (error.code === "PGRST202" || error.code === "42883") impressionsReady = false;
+  }
+
+  const totals = await Promise.all(ids.map((id) => recordAlertView(supabase, id)));
+  const counts = new Map<string, number>();
+  ids.forEach((id, i) => {
+    const total = totals[i];
+    if (total != null) counts.set(id, total);
+  });
+  return counts;
+}
+
+let impressionsReady = true;
+
+export async function recordOneView(
+  supabase: SupabaseClient,
+  alertId: string,
+): Promise<number | null> {
+  const counts = await recordAlertImpressions(supabase, [alertId]);
+  return counts.get(alertId) ?? null;
+}
+
 export async function fetchFollowing(
   supabase: SupabaseClient,
   viewerId: string,
@@ -367,12 +413,19 @@ export async function fetchAlertComments(
   viewerId?: string | null,
   limit = 200,
 ): Promise<AlertComment[]> {
-  const { data, error } = await supabase
-    .from("alert_comments")
-    .select(COMMENT_SELECT)
-    .eq("alert_id", alertId)
-    .order("created_at", { ascending: true })
-    .limit(limit);
+  const run = (select: string) =>
+    supabase
+      .from("alert_comments")
+      .select(select)
+      .eq("alert_id", alertId)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+  let { data, error } = await run(threadColumn ? COMMENT_SELECT_THREADED : COMMENT_SELECT);
+  if (error?.code === "42703" && /parent_id/i.test(error.message ?? "")) {
+    threadColumn = false;
+    ({ data, error } = await run(COMMENT_SELECT));
+  }
 
   if (error) throw error;
 

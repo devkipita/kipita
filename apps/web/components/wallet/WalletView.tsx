@@ -132,7 +132,7 @@ const Withdraw = styled.button`
   ${actionBase}
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
-  ${pressable(nocturne.green)}
+  ${pressable()}
 `;
 
 export const Tiles = styled.div`

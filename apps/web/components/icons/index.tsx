@@ -355,7 +355,7 @@ export const Warning = createIcon("Warning", (f) => (
   <>
     <path d={WARN} {...(f ? SOLID : {})} />
     <path d="M12 9.4v4.4" stroke={f ? "var(--icon-knockout, #fff)" : undefined} />
-    {dot(12, 17.1)}
+    {f ? <circle cx={12} cy={17.1} r={1.1} fill="var(--icon-knockout, var(--n-surface))" stroke="none" /> : dot(12, 17.1)}
   </>
 ));
 
@@ -675,6 +675,26 @@ export const SmileySad = createIcon("SmileySad", () => (
     {dot(9.2, 9.8, 1.15)}
     {dot(14.8, 9.8, 1.15)}
   </>
+));
+
+export const Smiley = createIcon("Smiley", () => (
+  <>
+    <circle cx="12" cy="12" r="9.2" />
+    <path d="M8.2 14.2a4.7 4.7 0 0 0 7.6 0" />
+    {dot(9.2, 9.8, 1.15)}
+    {dot(14.8, 9.8, 1.15)}
+  </>
+));
+
+export const ShareForward = createIcon("ShareForward", () => (
+  <path
+    d="M13.2 4.6a.9.9 0 0 1 1.5-.66l6.6 6.1a1.3 1.3 0 0 1 0 1.92l-6.6 6.1a.9.9 0 0 1-1.5-.66v-3.2c-4.3.1-7.3 1.5-9.4 4.4-.4.55-1.25.2-1.15-.47C3.4 12 7.1 8.6 13.2 8.1V4.6Z"
+    {...SOLID}
+  />
+));
+
+export const TextSelect = createIcon("TextSelect", () => (
+  <path d="M12 5v14M9.6 5h4.8M9.6 19h4.8M4 9h3.6M4 15h3.6M16.4 9H20M16.4 15H20" />
 ));
 
 export const Check = createIcon("Check", () => <path d="m4.6 12.6 5 5 9.8-11.2" />);

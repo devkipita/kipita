@@ -14,11 +14,6 @@
       "count": 1
     }
   },
-  "components/alerts/AlertThread.tsx": {
-    "@typescript-eslint/no-unused-vars": {
-      "count": 1
-    }
-  },
   "components/auth/SignUpForm.tsx": {
     "@typescript-eslint/no-unused-vars": {
       "count": 1

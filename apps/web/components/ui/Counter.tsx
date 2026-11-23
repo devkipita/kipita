@@ -17,7 +17,9 @@ const CounterRoot = styled.span`
   min-width: 0;
   max-width: 100%;
   min-height: ${DIGIT_HEIGHT};
+  margin-block: -0.15em;
   padding-inline: ${DIGIT_TRIM};
+  vertical-align: middle;
   white-space: nowrap;
   font-variant-numeric: tabular-nums lining-nums;
 `;

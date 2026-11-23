@@ -2,6 +2,7 @@
 
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { activityOf } from "./activity";
 import {
   PAGE_SIZE,
   fetchNotifications,
@@ -9,32 +10,15 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "./api";
-import { notificationRoute } from "./route";
 import { ping } from "./ping";
 import type { AppNotification } from "./types";
-
-/**
- * One live notification feed shared by every consumer on the page.
- *
- * The bell sits in the header and the inbox is a separate route, so a React
- * context would mean threading a provider through layouts that don't exist yet.
- * Instead this module owns a single store: one fetch, one realtime channel,
- * read through `useSyncExternalStore`. Mounting a second consumer is free.
- *
- * `notifications` is already in the `supabase_realtime` publication (migration
- * 001), so INSERTs from the broadcast triggers (008) reach an open tab the
- * moment a driver posts a trip or a passenger posts a request — the web
- * counterpart of the Expo push that migration 007 sends to devices.
- */
 
 export type NotificationsStatus = "idle" | "loading" | "ready" | "error";
 
 export interface NotificationsState {
   status: NotificationsStatus;
   items: AppNotification[];
-  /** Unread across *all* rows, not just the fetched page. */
   unread: number;
-  /** Newest realtime arrival, surfaced as a toast until dismissed. */
   incoming: AppNotification | null;
   hasMore: boolean;
   loadingMore: boolean;
@@ -70,8 +54,6 @@ function set(patch: Partial<NotificationsState>) {
   emit();
 }
 
-/* ── Store contract for useSyncExternalStore ── */
-
 export function subscribe(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
@@ -81,18 +63,10 @@ export function getSnapshot(): NotificationsState {
   return state;
 }
 
-/** SSR has no session-scoped feed — render the empty shell, hydrate after. */
 export function getServerSnapshot(): NotificationsState {
   return EMPTY;
 }
 
-/* ── Lifecycle ── */
-
-/**
- * Attach the feed to `userId`. Idempotent: calling it again for the same user
- * is a no-op, so re-mounting the bell on every client navigation costs nothing.
- * Switching users tears the old channel down first.
- */
 export function connectNotifications(userId: string): void {
   if (!userId) {
     if (activeUserId !== null) resetNotifications();
@@ -108,7 +82,6 @@ export function connectNotifications(userId: string): void {
   void openChannel(userId);
 }
 
-/** Drop the channel and clear the feed — call on sign-out. */
 export function resetNotifications(): void {
   if (channel) {
     void supabase().removeChannel(channel);
@@ -119,18 +92,31 @@ export function resetNotifications(): void {
   emit();
 }
 
+function mergeFirstPage(fresh: AppNotification[]): AppNotification[] {
+  if (state.items.length <= fresh.length || fresh.length < PAGE_SIZE) return fresh;
+  const oldest = fresh[fresh.length - 1].created_at;
+  const ids = new Set(fresh.map((n) => n.id));
+  const older = state.items.filter((n) => !ids.has(n.id) && n.created_at < oldest);
+  return [...fresh, ...older];
+}
+
 async function load(userId: string): Promise<void> {
   try {
     const [items, unread] = await Promise.all([
       fetchNotifications(supabase(), userId),
       fetchUnreadCount(supabase(), userId),
     ]);
-    // A user switch may have landed while we were awaiting — discard stale data.
     if (activeUserId !== userId) return;
-    set({ status: "ready", items, unread, hasMore: items.length === PAGE_SIZE });
+    const merged = mergeFirstPage(items);
+    set({
+      status: "ready",
+      items: merged,
+      unread,
+      hasMore: merged.length > items.length ? state.hasMore : items.length === PAGE_SIZE,
+    });
   } catch {
     if (activeUserId !== userId) return;
-    set({ status: "error" });
+    if (state.status !== "ready") set({ status: "error" });
   }
 }
 
@@ -155,7 +141,6 @@ export async function loadOlder(): Promise<boolean> {
   }
 }
 
-/** Re-fetch the current feed (used after reconnecting, and by pull-to-refresh). */
 export function refreshNotifications(): void {
   if (!activeUserId) return;
   if (state.status === "error") set({ status: "loading" });
@@ -165,20 +150,15 @@ export function refreshNotifications(): void {
 async function openChannel(userId: string): Promise<void> {
   const client = supabase();
 
-  // `notifications` is RLS'd to the owner, and Realtime evaluates those policies
-  // against the socket's token. The browser client hydrates its session from
-  // cookies asynchronously, so hand Realtime the access token before
-  // subscribing — otherwise the socket authenticates as anon and no row ever
-  // arrives.
   try {
     const {
       data: { session },
     } = await client.auth.getSession();
     if (session?.access_token) client.realtime.setAuth(session.access_token);
   } catch {
-    // Fall through — a failed handshake degrades to fetch-on-load.
+    if (activeUserId !== userId) return;
   }
-  if (activeUserId !== userId) return; // user switched while awaiting
+  if (activeUserId !== userId) return;
 
   const filter = `user_id=eq.${userId}`;
   let subscribed = false;
@@ -197,14 +177,10 @@ async function openChannel(userId: string): Promise<void> {
     )
     .subscribe((status) => {
       if (status !== "SUBSCRIBED") return;
-      // A dropped socket can miss rows; re-sync once it comes back. The first
-      // SUBSCRIBED races the initial load, so skip that one.
       if (subscribed) refreshNotifications();
       subscribed = true;
     });
 }
-
-/* ── Realtime handlers ── */
 
 function receive(row: AppNotification): void {
   if (state.items.some((n) => n.id === row.id)) return;
@@ -217,7 +193,6 @@ function receive(row: AppNotification): void {
   announce(row);
 }
 
-/** Keep read-state in sync when another tab (or the phone) marks a row read. */
 function reconcile(row: AppNotification): void {
   const previous = state.items.find((n) => n.id === row.id);
   if (!previous) return;
@@ -231,27 +206,28 @@ function reconcile(row: AppNotification): void {
 
 function announce(row: AppNotification): void {
   if (row.read) return;
-  ping({ title: row.title, body: row.body, tag: row.id, href: notificationRoute(row.data) });
+  ping({ title: row.title, body: row.body, tag: row.id, href: activityOf(row).href });
 }
 
-/* ── Mutations (optimistic, reverted on failure) ── */
+function setRead(ids: Set<string>, read: boolean): number {
+  let changed = 0;
+  const items = state.items.map((n) => {
+    if (!ids.has(n.id) || n.read === read) return n;
+    changed += 1;
+    return { ...n, read };
+  });
+  if (changed) set({ items, unread: Math.max(0, state.unread + (read ? -changed : changed)) });
+  return changed;
+}
 
 export async function markRead(id: string): Promise<void> {
-  const target = state.items.find((n) => n.id === id);
-  if (!target || target.read) return;
-
-  set({
-    items: state.items.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    unread: Math.max(0, state.unread - 1),
-  });
+  const ids = new Set([id]);
+  if (!setRead(ids, true)) return;
 
   try {
     await markNotificationRead(supabase(), id);
   } catch {
-    set({
-      items: state.items.map((n) => (n.id === id ? { ...n, read: false } : n)),
-      unread: state.unread + 1,
-    });
+    setRead(ids, false);
   }
 }
 
@@ -259,18 +235,20 @@ export async function markAllRead(): Promise<void> {
   const userId = activeUserId;
   if (!userId || state.unread === 0) return;
 
-  const previous = state.items;
+  const ids = new Set(state.items.filter((n) => !n.read).map((n) => n.id));
   const previousUnread = state.unread;
-  set({ items: previous.map((n) => ({ ...n, read: true })), unread: 0 });
+  setRead(ids, true);
+  const hidden = Math.max(0, previousUnread - ids.size);
+  if (hidden) set({ unread: Math.max(0, state.unread - hidden) });
 
   try {
     await markAllNotificationsRead(supabase(), userId);
   } catch {
-    set({ items: previous, unread: previousUnread });
+    setRead(ids, false);
+    if (hidden) set({ unread: state.unread + hidden });
   }
 }
 
-/** Dismiss the toast without touching read state. */
 export function dismissIncoming(): void {
   if (state.incoming) set({ incoming: null });
 }

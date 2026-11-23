@@ -1,20 +1,15 @@
 "use client";
 
 import styled from "styled-components";
-import {
-  Busy,
-  Shimmer,
-  SkeletonCard,
-  SkeletonStack,
-  SrOnly,
-} from "@/components/ui/Shimmer";
+import { AlertCardSkeleton } from "@/components/alerts/AlertCardSkeleton";
+import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
 import { ALERT_TABS } from "@/lib/alerts/status";
 import { nocturne } from "@/lib/nocturne";
 
 const Tabs = styled.div`
   display: flex;
   overflow: hidden;
-  border-bottom: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
+  border-bottom: 1px solid ${nocturne.line};
 `;
 
 const Tab = styled.span<{ $active: boolean }>`
@@ -23,8 +18,8 @@ const Tab = styled.span<{ $active: boolean }>`
   display: grid;
   place-items: center;
   min-height: 48px;
-  padding: 0 18px;
-  font-size: 0.875rem;
+  padding: 0 16px;
+  font-size: 14px;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   white-space: nowrap;
   color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
@@ -41,20 +36,48 @@ const Tab = styled.span<{ $active: boolean }>`
   }
 `;
 
+const Composer = styled.div`
+  display: grid;
+  gap: 12px;
+  padding: 16px 12px 12px;
+  border-bottom: 1px solid ${nocturne.line};
+
+  .top {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+  }
+  .foot {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 52px;
+  }
+  .push {
+    margin-left: auto;
+  }
+`;
+
 const Toolbar = styled.div`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 10px;
-  padding: 18px 2px 10px;
+  gap: 12px;
+  padding: 16px 0 12px;
 
   h1 {
-    margin: 0 0 6px;
-    font-size: 1.28rem;
+    margin: 0 0 8px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.025em;
-    color: ${({ theme }) => theme.color.text};
+    color: ${nocturne.cream};
   }
+`;
+
+const Feed = styled.div`
+  display: grid;
+  gap: 12px;
 `;
 
 export default function Loading() {
@@ -68,18 +91,31 @@ export default function Loading() {
           </Tab>
         ))}
       </Tabs>
+      <Composer aria-hidden>
+        <div className="top">
+          <Shimmer $w="40px" $h="40px" $r="999px" />
+          <Shimmer $w="60%" $h="28px" $r="8px" />
+        </div>
+        <div className="foot">
+          <Shimmer $w="96px" $h="32px" $r="8px" />
+          <Shimmer $w="112px" $h="32px" $r="8px" />
+          <span className="push">
+            <Shimmer $w="112px" $h="40px" $r="999px" />
+          </span>
+        </div>
+      </Composer>
       <Toolbar aria-hidden>
         <div>
           <h1>Road alerts</h1>
-          <Shimmer $w="72px" $h="12px" />
+          <Shimmer $w="72px" $h="12px" $r="4px" />
         </div>
-        <Shimmer $w="112px" $h="44px" $r="999px" />
+        <Shimmer $w="104px" $h="32px" $r="8px" />
       </Toolbar>
-      <SkeletonStack $gap="12px" aria-hidden>
-        <SkeletonCard $h="176px" />
-        <SkeletonCard $h="290px" />
-        <SkeletonCard $h="176px" />
-      </SkeletonStack>
+      <Feed aria-hidden>
+        <AlertCardSkeleton />
+        <AlertCardSkeleton />
+        <AlertCardSkeleton />
+      </Feed>
     </Busy>
   );
 }

@@ -1,0 +1,26 @@
+{
+  "paths": [
+    "apps/web/components/alerts",
+    "apps/web/app/(app)/alerts",
+    "apps/web/components/ui/Chip.tsx",
+    "apps/web/components/ui/interactions.ts",
+    "apps/web/components/trips/TripsView.tsx",
+    "apps/web/components/trips/PublishedTrips.tsx",
+    "apps/web/components/trips/RideRow.tsx",
+    "apps/web/components/trips/TripsSkeleton.tsx",
+    "apps/web/components/trips/SeatMap.tsx",
+    "apps/web/components/trips/RideHero.tsx",
+    "apps/web/components/trips/TripsArt.tsx",
+    "apps/web/components/trips/BookingCard.tsx",
+    "apps/web/components/trips/PastTrips.tsx",
+    "apps/web/components/trips/SeatRequests.tsx",
+    "apps/web/components/trips/TripsHelp.tsx",
+    "apps/web/components/trips/TripFaqs.tsx",
+    "apps/web/components/trips/SupportPanel.tsx",
+    "apps/web/components/trips/helpRows.ts",
+    "apps/web/components/notifications",
+    "apps/web/app/(app)/notifications",
+    "apps/web/components/nav/ActivityButton.tsx",
+    "apps/web/components/ui/MorphMenu.tsx"
+  ]
+}

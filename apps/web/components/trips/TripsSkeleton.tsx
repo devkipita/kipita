@@ -3,54 +3,30 @@
 import styled from "styled-components";
 import { nocturne } from "@/lib/nocturne";
 import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
+import { TabIndicator } from "@/components/ui/TabIndicator";
+import { SectionHead } from "./RideRow";
+import { TripFaqs } from "./TripFaqs";
+import {
+  Booked,
+  Controls,
+  Head,
+  HeadRow,
+  HelpGrid,
+  Page,
+  Section,
+  TabButton,
+  Tabs,
+} from "./TripsView";
 
 const DESK = "@media (min-width: 861px)";
 
-export const skeletonCard = `
-  border-radius: 20px;
-  background: ${nocturne.surface};
-`;
-
-const Wrap = styled.div`
-  width: min(1080px, 100%);
-  margin: 0 auto;
-  padding: clamp(20px, 4vh, 40px) max(16px, var(--page-pad, 20px)) 64px;
-  background: ${nocturne.bg};
-
-  @media (max-width: 960px) {
-    padding-top: 0;
-  }
-`;
-
-const Head = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 50px;
-`;
-
-const Tabs = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  margin-top: 18px;
-  padding: 4px;
-  border-radius: 999px;
-  background: ${nocturne.surface2};
-
-  ${DESK} {
-    width: 300px;
-  }
-`;
-
 const Rows = styled.div`
   display: grid;
-  gap: 14px;
-  padding-top: 18px;
+  gap: 12px;
+  padding-top: 16px;
 `;
 
 const Card = styled.div`
-  ${skeletonCard}
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
@@ -58,7 +34,9 @@ const Card = styled.div`
     "route route"
     "person money";
   gap: 16px 12px;
-  padding: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background: ${nocturne.surface};
 
   ${DESK} {
     grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) auto;
@@ -66,8 +44,8 @@ const Card = styled.div`
       "top top top"
       "route person money";
     align-items: center;
-    gap: 18px 32px;
-    padding: 22px 26px;
+    gap: 16px 32px;
+    padding: 24px;
   }
 `;
 
@@ -81,7 +59,7 @@ const Top = styled.div`
 const Route = styled.div`
   grid-area: route;
   display: grid;
-  gap: 14px;
+  gap: 12px;
 
   ${DESK} {
     grid-template-columns: 1fr 1fr;
@@ -91,71 +69,90 @@ const Route = styled.div`
 
 const Stop = styled.div`
   display: grid;
-  gap: 6px;
+  gap: 8px;
 `;
 
 const Person = styled.div`
   grid-area: person;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 `;
 
 const Money = styled.div`
   grid-area: money;
   display: grid;
   justify-items: end;
-  gap: 6px;
+  gap: 8px;
 `;
 
 export function TripsSkeleton() {
   return (
-    <Busy>
-      <Wrap>
-        <SrOnly>Loading your trips</SrOnly>
+    <Page $max={1080}>
+      <Head>
+        <HeadRow $open={false}>
+          <h1>Trips</h1>
+        </HeadRow>
+      </Head>
 
-        <Head aria-hidden>
-          <Shimmer $w="120px" $h="38px" $r="10px" />
-          <Shimmer $w="46px" $h="46px" $r="999px" />
-        </Head>
+      <Booked $first>
+        <Controls>
+          <Tabs aria-hidden>
+            <TabButton as="span" $active>
+              <TabIndicator group="trips-skeleton" tone="underline" />
+              <span className="text">Current</span>
+            </TabButton>
+            <TabButton as="span" $active={false}>
+              <span className="text">Previous</span>
+            </TabButton>
+          </Tabs>
+        </Controls>
 
-        <Tabs aria-hidden>
-          <Shimmer $h="42px" $r="999px" />
-          <span />
-        </Tabs>
+        <Busy>
+          <SrOnly>Loading your trips</SrOnly>
+          <Rows aria-hidden>
+            {[0, 1].map((i) => (
+              <Card key={i}>
+                <Top>
+                  <Shimmer $w="104px" $h="28px" $r="6px" />
+                  <Shimmer $w="88px" $h="12px" />
+                </Top>
+                <Route>
+                  <Stop>
+                    <Shimmer $w="70%" $h="20px" />
+                    <Shimmer $w="44%" $h="12px" />
+                  </Stop>
+                  <Stop>
+                    <Shimmer $w="60%" $h="20px" />
+                    <Shimmer $w="24%" $h="12px" />
+                  </Stop>
+                </Route>
+                <Person>
+                  <Shimmer $w="36px" $h="36px" $r="999px" />
+                  <Stop>
+                    <Shimmer $w="112px" $h="14px" />
+                    <Shimmer $w="48px" $h="12px" />
+                  </Stop>
+                </Person>
+                <Money>
+                  <Shimmer $w="96px" $h="20px" />
+                  <Shimmer $w="80px" $h="12px" />
+                </Money>
+              </Card>
+            ))}
+          </Rows>
+        </Busy>
+      </Booked>
 
-        <Rows aria-hidden>
-          {[0, 1].map((i) => (
-            <Card key={i}>
-              <Top>
-                <Shimmer $w="104px" $h="30px" $r="999px" />
-                <Shimmer $w="90px" $h="13px" />
-              </Top>
-              <Route>
-                <Stop>
-                  <Shimmer $w="70%" $h="20px" />
-                  <Shimmer $w="45%" $h="13px" />
-                </Stop>
-                <Stop>
-                  <Shimmer $w="60%" $h="20px" />
-                  <Shimmer $w="25%" $h="13px" />
-                </Stop>
-              </Route>
-              <Person>
-                <Shimmer $w="36px" $h="36px" $r="999px" />
-                <Stop>
-                  <Shimmer $w="110px" $h="14px" />
-                  <Shimmer $w="50px" $h="12px" />
-                </Stop>
-              </Person>
-              <Money>
-                <Shimmer $w="96px" $h="19px" />
-                <Shimmer $w="80px" $h="12px" />
-              </Money>
-            </Card>
-          ))}
-        </Rows>
-      </Wrap>
-    </Busy>
+      <Section id="help">
+        <SectionHead>Need help?</SectionHead>
+        <HelpGrid>
+          <div>
+            <h3>Common questions</h3>
+            <TripFaqs />
+          </div>
+        </HelpGrid>
+      </Section>
+    </Page>
   );
 }

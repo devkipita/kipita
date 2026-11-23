@@ -1,207 +1,211 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import styled from "styled-components";
-import { MapPin } from "@/components/icons";
+import { AnimatePresence, m } from "motion/react";
+import { ArrowClockwise, MapPin, SealCheck, X } from "@/components/icons";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { Chip, IconAction } from "@/components/ui/Chip";
 import { Avatar } from "@/components/profile/Avatar";
-import { Swap } from "@/components/anim/Swap";
-import { Notice } from "@/components/ui/primitives";
 import { shortRelativeTime } from "@/lib/notifications/meta";
+import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
-import {
-  isDisplayableImage,
-  truncateWords,
-  wasEdited,
-} from "@/lib/alerts/meta";
+import { isDisplayableImage, truncateWords, wasEdited } from "@/lib/alerts/meta";
 import type { Alert } from "@/lib/alerts/types";
 import { CategoryBadge } from "./CategoryBadge";
 import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
+import { VerifiedMark } from "./VerifiedMark";
 
 const Shell = styled.article`
   position: relative;
+  overflow: clip;
+  border: 1px solid ${nocturne.line};
   border-radius: 16px;
-  background-color: ${({ theme }) => theme.color.surface};
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  box-shadow: ${({ theme }) =>
-    theme.mode === "dark" ? "none" : "0 1px 2px rgba(18,48,31,0.08), 0 6px 16px rgba(18,48,31,0.08)"};
-  overflow: hidden;
+  background: ${nocturne.surface};
   transition:
-    box-shadow ${dur.state} ${ease.standard},
     border-color ${dur.state} ${ease.standard},
-    transform ${dur.state} ${ease.standard};
+    transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
-    &:hover {
-      border-color: ${({ theme }) => theme.color.outline};
-      box-shadow: ${({ theme }) =>
-        theme.mode === "dark"
-          ? "none"
-          : "0 2px 4px rgba(18,48,31,0.1), 0 12px 28px rgba(18,48,31,0.14)"};
-      transform: translateY(-1px);
+  @media (hover: hover) and (pointer: fine) {
+    &:has(.title:hover) {
+      border-color: ${nocturne.outline};
     }
+  }
+  &:has(.title:active) {
+    transform: scale(0.98);
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &:hover {
+    &:has(.title:active) {
       transform: none;
     }
   }
 `;
 
-const Body = styled(Link)<{ $owned?: boolean }>`
-  display: block;
-  padding: ${({ theme, $owned }) =>
-    $owned
-      ? `${theme.space.lg} 56px ${theme.space.md} ${theme.space.lg}`
-      : `${theme.space.lg} ${theme.space.lg} ${theme.space.md}`};
-  text-decoration: none;
+const Media = styled.div`
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-height: 320px;
+  width: 100%;
+  background: ${nocturne.surface3};
+
+  img {
+    object-fit: cover;
+  }
+`;
+
+const Inner = styled.div`
+  display: grid;
+  gap: 12px;
+  padding: 16px;
 `;
 
 const Head = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  gap: 8px;
+  min-height: 32px;
 
-  .who {
+  .meta {
     flex: 1;
     min-width: 0;
-  }
-  .name {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.text};
+    font-size: 13px;
+    font-weight: 500;
+    color: ${nocturne.muted};
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  .where {
+  .owner {
+    position: relative;
+    z-index: 1;
+    margin: -4px -8px -4px 0;
+  }
+`;
+
+const Place = styled.div`
+  display: grid;
+  gap: 4px;
+
+  h3 {
+    margin: 0;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 24px;
+    letter-spacing: -0.02em;
+    color: ${nocturne.cream};
+    overflow-wrap: anywhere;
+  }
+  .road {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    margin-top: 1px;
-    font-size: 0.8rem;
-    color: ${({ theme }) => theme.color.muted};
+    font-size: 13px;
+    font-weight: 500;
+    color: ${nocturne.muted};
+
+    svg {
+      flex: none;
+    }
+  }
+`;
+
+const TitleLink = styled(Link)`
+  color: inherit;
+  text-decoration: none;
+  border-radius: 4px;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    transition: background-color ${dur.state} ${ease.standard};
+  }
+  &:focus-visible {
+    outline: none;
+  }
+  &:focus-visible::after {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: -3px;
+  }
+  &:active::after {
+    background-color: color-mix(in oklab, ${nocturne.cream} 4%, transparent);
   }
 `;
 
 const Text = styled.p`
   margin: 0;
-  font-size: 0.93rem;
-  line-height: 1.55;
-  color: ${({ theme }) => theme.color.textSoft};
+  font-size: 15px;
+  line-height: 22px;
+  color: ${nocturne.cream};
   overflow-wrap: anywhere;
+  white-space: pre-line;
+`;
 
-  em {
-    font-style: normal;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.primary};
+const Author = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: ${nocturne.muted};
+
+  .name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  svg {
+    flex: none;
+    color: ${nocturne.accent};
   }
 `;
 
 const Foot = styled.div`
-  padding: 0 16px 14px;
-`;
-
-const MediaFrame = styled.div`
   position: relative;
-  display: flex;
-  flex-direction: column;
-  min-height: 290px;
-  isolation: isolate;
-
-  .photo {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .scrim {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.45) 0%,
-      rgba(0, 0, 0, 0.05) 42%,
-      rgba(0, 0, 0, 0.78) 100%
-    );
-  }
+  z-index: 1;
+  padding-top: 12px;
+  border-top: 1px solid ${nocturne.line};
 `;
 
-const MediaLink = styled(Link)`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 14px 14px 6px;
-  color: ${nocturne.onGreen};
-  text-decoration: none;
 
-  .top {
-    display: block;
-  }
-  .bottom {
-    display: block;
-  }
-  .where {
+const Outgoing = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  color: ${nocturne.muted};
+
+  .sending {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-    opacity: 0.9;
+    gap: 8px;
   }
-  .body {
-    display: block;
-    margin-top: 4px;
-    font-size: 0.95rem;
-    line-height: 1.5;
+  .failed {
+    flex: 1;
+    min-width: 0;
     font-weight: 600;
-    overflow-wrap: anywhere;
-    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+    color: ${nocturne.danger};
   }
 `;
 
-const MediaFoot = styled.div`
-  padding: 0 14px 12px;
-`;
+function splitPlace(location: string) {
+  const [place, ...rest] = location.split(",");
+  return { place: place.trim() || location, road: rest.join(",").trim() };
+}
 
-const Stamp = styled.span`
-  flex: none;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.muted};
-`;
-
-const Edited = styled.span`
-  flex: none;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.color.muted};
-`;
-
-const OwnerSlot = styled.div<{ $onMedia?: boolean }>`
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
-  border-radius: 999px;
-  background: ${({ $onMedia }) => ($onMedia ? nocturne.surface : "transparent")};
-`;
-
-const EditWrap = styled.div`
-  padding: 14px 14px 10px;
-`;
-
-const MenuError = styled(Notice)`
-  margin: 0 16px 14px;
-`;
+function storageHosted(url: string) {
+  return /^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//.test(url);
+}
 
 export function AlertCard({
   alert,
@@ -209,130 +213,189 @@ export function AlertCard({
   onChange,
   onRequireAuth,
   onDeleted,
+  onDeleteFailed,
+  onReply,
+  onSeen,
+  outgoing,
 }: {
   alert: Alert;
   viewerId: string | null;
   onChange?: (next: Alert) => void;
   onRequireAuth?: () => void;
   onDeleted?: (id: string) => void;
+  onDeleteFailed?: (alert: Alert, message: string) => void;
+  onReply?: (alert: Alert) => void;
+  onSeen?: (id: string) => void;
+  outgoing?: {
+    state: "sending" | "failed";
+    error?: string;
+    preview: string | null;
+    onRetry: () => void;
+    onDiscard: () => void;
+  };
 }) {
   const [editing, setEditing] = useState(false);
-  const [menuError, setMenuError] = useState<string | null>(null);
-  const { body, truncated } = truncateWords(alert.content);
+  const shellRef = useRef<HTMLElement>(null);
+  const seenRef = useRef(onSeen);
+
+  useEffect(() => {
+    seenRef.current = onSeen;
+  });
+
+  useEffect(() => {
+    const el = shellRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((e) => e.isIntersecting)) return;
+        seenRef.current?.(alert.id);
+        observer.disconnect();
+      },
+      { threshold: 0.5 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [alert.id]);
+  const { body } = truncateWords(alert.content);
   const href = `/alerts/${alert.id}`;
   const author = alert.user?.full_name?.trim() || "Kipita user";
-  const hasImage = isDisplayableImage(alert.image_url);
+  const image = outgoing?.preview ?? (isDisplayableImage(alert.image_url) ? alert.image_url : null);
   const mine = viewerId != null && alert.user_id === viewerId;
   const edited = wasEdited(alert);
+  const { place, road } = splitPlace(alert.location);
 
-  const ownerMenu = mine ? (
-    <OwnerSlot $onMedia={hasImage}>
-      <AlertOwnerMenu
-        alertId={alert.id}
-        createdAt={alert.created_at}
-        onEdit={() => {
-          setMenuError(null);
-          setEditing(true);
+  const view = editing ? (
+    <Inner>
+      <AlertEditor
+        alert={alert}
+        onCancel={() => setEditing(false)}
+        onSaved={(next) => {
+          onChange?.(next);
+          setEditing(false);
         }}
-        onDeleted={() => onDeleted?.(alert.id)}
-        onError={setMenuError}
       />
-    </OwnerSlot>
-  ) : null;
-
-  const errorNote = menuError ? <MenuError role="alert">{menuError}</MenuError> : null;
-
-  let view;
-  if (editing) {
-    view = (
-      <EditWrap>
-        <AlertEditor
-          alert={alert}
-          onCancel={() => setEditing(false)}
-          onSaved={(next) => {
-            onChange?.(next);
-            setEditing(false);
-          }}
-        />
-      </EditWrap>
-    );
-  } else if (hasImage) {
-    view = (
-      <>
-        {ownerMenu}
-        <MediaFrame>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="photo" src={alert.image_url as string} alt="" />
-          <span className="scrim" />
-          <MediaLink href={href}>
-            <span className="top">
-              <CategoryBadge category={alert.category} solid />
+    </Inner>
+  ) : (
+    <>
+      {image && (
+        <Media>
+          <Image
+            src={image}
+            alt=""
+            fill
+            sizes="(max-width: 640px) 100vw, 600px"
+            unoptimized={Boolean(outgoing?.preview) || !storageHosted(image)}
+          />
+        </Media>
+      )}
+      <Inner>
+        <Head>
+          <CategoryBadge category={alert.category} />
+          <span className="meta">
+            <time dateTime={alert.created_at}>{shortRelativeTime(alert.created_at)}</time>
+            {edited && " · Edited"}
+          </span>
+          {mine && !outgoing && (
+            <span className="owner">
+              <AlertOwnerMenu
+                alertId={alert.id}
+                createdAt={alert.created_at}
+                onEdit={() => {
+                  setEditing(true);
+                }}
+                onDeleted={() => onDeleted?.(alert.id)}
+                onDeleteFailed={(message) => onDeleteFailed?.(alert, message)}
+              />
             </span>
-            <span className="bottom">
-              <span className="where">
-                <MapPin size={12} /> {alert.location} ·{" "}
-                {shortRelativeTime(alert.created_at)}
-                {edited && " · Edited"}
-              </span>
-              <span className="body">
-                {body}
-                {truncated && " Read more"}
-              </span>
+          )}
+        </Head>
+
+        <Place>
+          <h3>
+            {outgoing ? (
+              place
+            ) : (
+            <TitleLink
+              className="title"
+              href={href}
+              onClick={(e) => {
+                if (!onReply || e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                onReply(alert);
+              }}
+            >
+              {place}
+            </TitleLink>
+            )}
+          </h3>
+          {road && (
+            <span className="road">
+              <MapPin size={16} aria-hidden />
+              {road}
             </span>
-          </MediaLink>
-          <MediaFoot>
+          )}
+        </Place>
+
+        <Text>{body}</Text>
+
+        <Author>
+          <Avatar name={author} src={alert.user?.avatar_url} size={24} />
+          <span className="name">{author}</span>
+          <VerifiedMark verified={alert.user?.is_verified} />
+          {alert.user?.trusted_reporter && (
+            <SealCheck size={16} weight="fill" aria-label="Trusted reporter" />
+          )}
+        </Author>
+
+
+        <Foot>
+          {outgoing ? (
+            <Outgoing>
+              {outgoing.state === "sending" ? (
+                <span className="sending" role="status">
+                  <ButtonOrb job="committing" on="surface" /> Posting
+                </span>
+              ) : (
+                <>
+                  <span className="failed" role="alert">
+                    {outgoing.error ?? "Not posted"}
+                  </span>
+                  <Chip type="button" $tone="primary" onClick={outgoing.onRetry}>
+                    <ArrowClockwise size={16} aria-hidden />
+                    Retry posting
+                  </Chip>
+                  <IconAction type="button" onClick={outgoing.onDiscard} aria-label="Discard alert" title="Discard alert">
+                    <X size={20} aria-hidden />
+                  </IconAction>
+                </>
+              )}
+            </Outgoing>
+          ) : (
             <AlertActions
               alert={alert}
               viewerId={viewerId}
-              onMedia
               onChange={onChange}
               onRequireAuth={onRequireAuth}
+              onComment={onReply ? () => onReply(alert) : undefined}
             />
-          </MediaFoot>
-        </MediaFrame>
-        {errorNote}
-      </>
-    );
-  } else {
-    view = (
-      <>
-        {ownerMenu}
-        <Body href={href} $owned={mine}>
-          <Head>
-            <Avatar name={author} src={alert.user?.avatar_url} size={38} />
-            <div className="who">
-              <div className="name" title={author}>
-                {author}
-              </div>
-              <div className="where">
-                <MapPin size={12} /> {alert.location}
-              </div>
-            </div>
-            <CategoryBadge category={alert.category} />
-            <Stamp>{shortRelativeTime(alert.created_at)}</Stamp>
-            {edited && <Edited>· Edited</Edited>}
-          </Head>
-          <Text>
-            {body}
-            {truncated && <em> Read more</em>}
-          </Text>
-        </Body>
-        <Foot>
-          <AlertActions
-            alert={alert}
-            viewerId={viewerId}
-            onChange={onChange}
-            onRequireAuth={onRequireAuth}
-          />
+          )}
         </Foot>
-        {errorNote}
-      </>
-    );
-  }
+      </Inner>
+    </>
+  );
 
   return (
-    <Shell>
-      <Swap id={editing ? "edit" : "view"}>{view}</Swap>
+    <Shell ref={shellRef}>
+      <AnimatePresence mode="wait" initial={false}>
+        <m.div
+          key={editing ? "edit" : "view"}
+          initial={{ opacity: 0, filter: "blur(2px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)", transition: tween.enter }}
+          exit={{ opacity: 0, transition: tween.exit }}
+        >
+          {view}
+        </m.div>
+      </AnimatePresence>
     </Shell>
   );
 }

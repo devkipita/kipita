@@ -8,8 +8,8 @@ Kipita sells the empty seats in cars already driving between Kenyan towns, and h
 
 | Question | Source |
 |---|---|
-| What we build and for whom | `apps/web/PRODUCT.md` |
-| Colour, type, space, motion, icons | `docs/design/kipita-design-system.html` (binding), then `apps/web/DESIGN.md` |
+| What we build and for whom | `docs/PRODUCT.md` |
+| Colour, type, space, motion, icons | `docs/design/kipita-design-system.html` (binding), then `docs/DESIGN.md` (read its Guards section before any UI work) |
 | Token values in code | `apps/web/lib/nocturne.ts` |
 | Launch status, gates, open defects | `docs/LAUNCH.md` |
 | Live schema, RLS, functions | the Supabase MCP, never the migration history alone |
@@ -25,7 +25,8 @@ yarn web                      # dev server
 yarn workspace @kipita/web typecheck
 yarn workspace @kipita/web lint
 yarn workspace @kipita/web build
-node tools/design-check/index.mjs [files...]   # design rules; no args = whole app vs baseline
+node tools/design-check/index.mjs [files|dirs...]   # design rules; no args = whole app vs baseline
+node tools/design-check/index.mjs --strict <dir>   # zero findings allowed; required for any redesign
 supabase db push --linked     # staging first, always
 ```
 
@@ -45,12 +46,15 @@ supabase db push --linked     # staging first, always
 10. Buttons name the action: "Cancel ride", not "Cancel". No `window.confirm`; use `useConfirm` from `components/ui/ConfirmPop.tsx`.
 11. Commits carry no AI attribution. Author is Dennis.
 12. Fix the cause at the narrowest layer. No speculative abstraction, no duplicate component for a job one already does.
+13. UI obeys `docs/DESIGN.md` › Guards: no edge stripes, chips are not pills, icons stay visible on hover, every interaction state ships. A redesigned surface passes `--strict` and goes into `tools/design-check/strict.json`.
 
 ## Skills to load
 
 | Job | Skill |
 |---|---|
-| Any UI work | `kipita-design`, then `impeccable` or `emil-design-eng` for depth |
+| Any UI work | `kipita-design` and `docs/DESIGN.md` › Guards, then `emil-design-eng` (polish), `impeccable` (critique) |
+| Marketing pages only (`app/(site)`, `components/landing`) | `design-taste-frontend` for composition and copy. Guards win on conflict: no card lift, no stock photos, no invented facts |
+| Turning a design correction into a rule | `learn-taste` |
 | Any motion | `kipita-motion`, then `animate` / `choreograph` / `animation-performance` |
 | Drawing an icon or illustration | `kipita-illustration` |
 | Fetching, caching, realtime, server actions | `kipita-data`, then `vercel-react-best-practices` |

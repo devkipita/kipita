@@ -4,9 +4,10 @@ import Link from "next/link";
 import styled, { css } from "styled-components";
 import { ArrowRight, ArrowClockwise } from "@/components/icons";
 import { Shimmer } from "@/components/ui/Shimmer";
-import { dur, ease, float, nocturne } from "@/lib/nocturne";
+import { BreakArt } from "@/components/ui/StatusArt";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
-const Art = styled.svg<{ $stopped: boolean }>`
+const Art = styled.svg`
   width: 100%;
   max-width: 180px;
   height: auto;
@@ -15,13 +16,13 @@ const Art = styled.svg<{ $stopped: boolean }>`
     stroke: ${nocturne.cream};
   }
   .accent {
-    stroke: ${({ $stopped }) => ($stopped ? nocturne.muted2 : nocturne.accent)};
+    stroke: ${nocturne.accent};
   }
   .accent-fill {
-    fill: ${({ $stopped }) => ($stopped ? nocturne.muted2 : nocturne.accent)};
+    fill: ${nocturne.accent};
   }
   .cta-fill {
-    fill: ${({ $stopped }) => ($stopped ? nocturne.muted2 : nocturne.ctaBg)};
+    fill: ${nocturne.ctaBg};
   }
   .surface {
     fill: ${nocturne.surface2};
@@ -29,27 +30,11 @@ const Art = styled.svg<{ $stopped: boolean }>`
   .ground {
     fill: ${nocturne.cream};
   }
-  .car {
-    transform-box: fill-box;
-    transform-origin: center;
-    ${({ $stopped }) =>
-      $stopped
-        ? ""
-        : css`
-            animation: ${float} 3.2s ${ease.standard} infinite;
-          `}
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .car {
-      animation: none;
-    }
-  }
 `;
 
-export function ActivityArt({ stopped = false }: { stopped?: boolean }) {
+export function ActivityArt() {
   return (
-    <Art $stopped={stopped} viewBox="0 0 180 128" aria-hidden="true" focusable="false">
+    <Art viewBox="0 0 180 128" aria-hidden="true" focusable="false">
       <ellipse className="ground" cx="90" cy="114" rx="72" ry="8" opacity="0.07" />
       <path
         className="ink"
@@ -75,7 +60,7 @@ export function ActivityArt({ stopped = false }: { stopped?: boolean }) {
         opacity="0.9"
       />
       <circle className="surface" cx="160" cy="18.5" r="4.5" />
-      <g className="car">
+      <g>
         <rect className="surface" x="80" y="52" width="34" height="16" rx="6" />
         <rect className="ink" x="80" y="52" width="34" height="16" rx="6" fill="none" strokeWidth="2.6" />
         <path className="ink" d="M86 52 l5 -7 h13 l5 7" fill="none" strokeWidth="2" strokeLinejoin="round" />
@@ -90,15 +75,31 @@ export function ActivityArt({ stopped = false }: { stopped?: boolean }) {
 
 const SkelRow = styled.div`
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) 28px;
+  grid-template-columns: 40px minmax(0, 1fr) 8px;
   gap: 12px;
   align-items: start;
-  padding: 12px;
+  padding: 16px 12px;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.color.surfaceContainerLowest};
+
+  & + & {
+    margin-top: 8px;
+  }
 
   .lines {
     display: grid;
-    gap: 7px;
-    padding-top: 1px;
+    gap: 2px;
+  }
+  .line {
+    display: flex;
+    align-items: center;
+    height: 20px;
+  }
+  .meta {
+    display: flex;
+    align-items: center;
+    height: 16px;
+    margin-top: 2px;
   }
 `;
 
@@ -109,11 +110,16 @@ export function ActivitySkeletonRows({ rows = 5 }: { rows?: number }) {
         <SkelRow key={i}>
           <Shimmer $w="40px" $h="40px" $r="50%" />
           <span className="lines">
-            <Shimmer $w="64px" $h="10px" $r="5px" />
-            <Shimmer $w={i % 2 ? "72%" : "86%"} $h="14px" $r="6px" />
-            <Shimmer $w={i % 3 ? "94%" : "60%"} $h="12px" $r="6px" />
+            <span className="line">
+              <Shimmer $w={i % 2 ? "60%" : "72%"} $h="14px" $r="6px" />
+            </span>
+            <span className="line">
+              <Shimmer $w={i % 3 ? "85%" : "64%"} $h="12px" $r="6px" />
+            </span>
+            <span className="meta">
+              <Shimmer $w="32px" $h="12px" $r="6px" />
+            </span>
           </span>
-          <Shimmer $w="28px" $h="10px" $r="5px" />
         </SkelRow>
       ))}
     </div>
@@ -123,7 +129,7 @@ export function ActivitySkeletonRows({ rows = 5 }: { rows?: number }) {
 const StateBox = styled.div<{ $compact: boolean }>`
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: ${({ $compact }) => ($compact ? "20px 16px 24px" : "40px 16px 48px")};
   text-align: center;
 
@@ -139,22 +145,28 @@ const StateBox = styled.div<{ $compact: boolean }>`
     margin: 0;
     max-width: 30ch;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 20px;
     color: ${nocturne.muted};
   }
 `;
 
-const action = `
+const ErrorArt = styled.div`
+  width: 100%;
+  max-width: 200px;
+  color: ${nocturne.cream};
+`;
+
+const actionInteractive = css`
   display: inline-flex;
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  margin-top: 6px;
-  padding: 0 18px;
+  margin-top: 8px;
+  padding: 0 20px;
   border-radius: 999px;
   font: inherit;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -168,15 +180,20 @@ const action = `
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
 `;
 
 const GoLink = styled(Link)`
-  ${action}
+  ${actionInteractive}
   border: 0;
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       background: ${nocturne.greenDeep};
     }
@@ -184,12 +201,12 @@ const GoLink = styled(Link)`
 `;
 
 const RetryButton = styled.button`
-  ${action}
+  ${actionInteractive}
   border: 2px solid ${nocturne.green};
   background: ${nocturne.surface};
   color: ${nocturne.green};
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       background: ${nocturne.surface2};
     }
@@ -208,16 +225,16 @@ export function ActivityEmpty({
   onNavigate?: () => void;
 }) {
   const go = driver
-    ? { href: "/publish", label: "Publish a ride", lead: "When passengers request a seat, pay or rate a trip, it shows up here." }
-    : { href: "/home", label: "Find a ride", lead: "Bookings, payments, trip updates and road alerts on your route show up here." };
+    ? { href: "/publish", label: "Publish a ride", lead: "Seat requests, payments and trip updates land here." }
+    : { href: "/home", label: "Find a ride", lead: "Bookings, payments and trip updates land here." };
   return (
     <StateBox $compact={compact} role="status">
       <ActivityArt />
       <h3>{filtered ? `No ${filtered} yet` : "Nothing yet"}</h3>
       <p>{go.lead}</p>
-      <GoLink href={go.href} onClick={onNavigate} role={compact ? "menuitem" : undefined}>
+      <GoLink href={go.href} onClick={onNavigate}>
         {go.label}
-        <ArrowRight size={18} weight="bold" />
+        <ArrowRight size={20} weight="bold" />
       </GoLink>
     </StateBox>
   );
@@ -232,11 +249,13 @@ export function ActivityError({
 }) {
   return (
     <StateBox $compact={compact} role="alert">
-      <ActivityArt stopped />
+      <ErrorArt>
+        <BreakArt />
+      </ErrorArt>
       <h3>Activity didn&apos;t load</h3>
       <p>Check your connection, then try again.</p>
-      <RetryButton type="button" onClick={onRetry} role={compact ? "menuitem" : undefined}>
-        <ArrowClockwise size={18} weight="bold" />
+      <RetryButton type="button" onClick={onRetry}>
+        <ArrowClockwise size={20} weight="bold" />
         Reload activity
       </RetryButton>
     </StateBox>

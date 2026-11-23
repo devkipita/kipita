@@ -1,9 +1,3 @@
-/**
- * Notification shapes — mirrors `public.notifications` (migration 001) and the
- * mobile app's `AppNotification`, so a row written by any client/trigger reads
- * identically on web.
- */
-
 export type NotificationType =
   | "ride_match"
   | "request_match"
@@ -15,7 +9,6 @@ export type NotificationType =
   | "new_alert"
   | "system";
 
-/** The JSONB payload carried by a notification — see `notificationRoute`. */
 export type NotificationData = {
   trip_id?: string;
   request_id?: string;
@@ -25,6 +18,11 @@ export type NotificationData = {
   from?: string;
   to?: string;
   type?: NotificationType;
+  expires_at?: string;
+  milestone?: number | string;
+  seats?: number | string;
+  reminder?: "pay" | "departure";
+  approval_status?: string;
 } & Record<string, unknown>;
 
 export interface AppNotification {
@@ -40,14 +38,3 @@ export interface AppNotification {
 
 export const NOTIFICATION_COLUMNS =
   "id, user_id, type, title, body, data, read, created_at";
-
-/** Which tab a notification belongs to in the inbox. */
-export type NotificationTab = "rides" | "updates" | "system";
-
-/** Ride offers and passenger requests — the "available rides" feed. */
-const RIDE_TYPES: NotificationType[] = ["ride_match", "request_match"];
-
-export function tabForNotification(n: AppNotification): NotificationTab {
-  if (n.type === "system") return "system";
-  return RIDE_TYPES.includes(n.type) ? "rides" : "updates";
-}

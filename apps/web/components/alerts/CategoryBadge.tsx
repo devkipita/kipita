@@ -1,30 +1,33 @@
 "use client";
 
 import styled from "styled-components";
-import { ALERT_META } from "@/lib/alerts/meta";
+import { chipColors, type ChipTone } from "@/components/ui/Chip";
+import { ALERT_META, CATEGORY_ROLE } from "@/lib/alerts/meta";
 import type { AlertCategory } from "@/lib/alerts/types";
-import type { AccentName, AccentStep } from "@/lib/theme";
 
-const Pill = styled.span<{ $accent: AccentName; $step: AccentStep }>`
+const Badge = styled.span<{ $tone: ChipTone; $solid: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: ${({ theme, $tone, $solid }) => chipColors(theme, $tone, $solid).bg};
+  --icon-knockout: ${({ theme, $tone, $solid }) => chipColors(theme, $tone, $solid).bg};
+  color: ${({ theme, $tone, $solid }) => chipColors(theme, $tone, $solid).ink};
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
   white-space: nowrap;
-
-  background: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].bg};
-  color: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].on};
-
-  --icon-knockout: ${({ theme, $accent, $step }) => theme.accent[$accent][$step].bg};
 
   svg {
     flex: none;
   }
 `;
+
+export function categoryTone(category: AlertCategory): ChipTone {
+  return CATEGORY_ROLE[category] ?? "secondary";
+}
 
 export function CategoryBadge({
   category,
@@ -36,9 +39,9 @@ export function CategoryBadge({
   const meta = ALERT_META[category] ?? ALERT_META.general;
   const Icon = meta.icon;
   return (
-    <Pill $accent={meta.accent} $step={solid ? "bold" : meta.step}>
-      <Icon size={13} weight="fill" />
+    <Badge $tone={categoryTone(category)} $solid={solid}>
+      <Icon size={16} weight="fill" aria-hidden />
       {meta.label}
-    </Pill>
+    </Badge>
   );
 }

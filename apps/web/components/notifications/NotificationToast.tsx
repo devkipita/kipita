@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import { AnimatePresence, m, type PanInfo } from "motion/react";
 import { ArrowRight, X } from "@/components/icons";
-import { TONE } from "@/components/notifications/ActivityRow";
-import { activityOf, type ActivityTone } from "@/lib/notifications/activity";
+import { roleColors } from "@/components/notifications/roles";
+import { activityOf, type ActivityRole } from "@/lib/notifications/activity";
 import {
   dismissIncoming,
   getServerSnapshot,
@@ -49,7 +49,7 @@ const Card = styled(m.div)`
   grid-template-columns: 44px minmax(0, 1fr) 36px;
   align-items: start;
   gap: 4px 12px;
-  padding: 14px 12px 18px 14px;
+  padding: 16px 12px 20px 16px;
   border-radius: 22px;
   border: 1px solid ${nocturne.line2};
   background: ${nocturne.surface};
@@ -63,13 +63,15 @@ const Card = styled(m.div)`
   }
 `;
 
-const Well = styled.span<{ $tone: ActivityTone }>`
+const Well = styled.span<{ $role: ActivityRole }>`
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  ${({ $tone }) => TONE[$tone]}
+  border-radius: 50%;
+  background: ${({ theme, $role }) => roleColors(theme, $role).bg};
+  color: ${({ theme, $role }) => roleColors(theme, $role).ink};
+  --icon-knockout: ${({ theme, $role }) => roleColors(theme, $role).bg};
 `;
 
 const Body = styled.div`
@@ -79,9 +81,7 @@ const Body = styled.div`
   .label {
     display: block;
     font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-weight: 700;
     color: ${nocturne.muted2};
   }
   b {
@@ -96,7 +96,7 @@ const Body = styled.div`
     overflow-wrap: anywhere;
   }
   p {
-    margin: 3px 0 0;
+    margin: 4px 0 0;
     font-size: 14px;
     line-height: 1.45;
     color: ${nocturne.muted};
@@ -113,38 +113,25 @@ const Go = styled.button`
   justify-self: start;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
+  gap: 8px;
+  min-height: 40px;
   margin-top: 8px;
-  padding: 0 14px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 12px;
-  background: ${nocturne.surface2};
-  color: ${nocturne.greenDeep};
+  border-radius: 999px;
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
   font: inherit;
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 700;
   cursor: pointer;
   transition:
-    background ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
-
-  &[data-urgent="true"] {
-    background: ${nocturne.ctaBg};
-    color: ${nocturne.ctaFg};
-  }
-
-  svg {
-    transition: transform ${dur.state} ${ease.enter};
-  }
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background: ${nocturne.lime};
-      color: ${nocturne.greenDeep};
-    }
-    &:hover svg {
-      transform: translateX(3px);
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.onGreen} 12%, transparent);
     }
   }
   &:active {
@@ -171,7 +158,8 @@ const Close = styled.button`
   cursor: pointer;
   transition:
     background ${dur.state} ${ease.standard},
-    color ${dur.state} ${ease.standard};
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
   &::after {
     content: "";
@@ -179,11 +167,14 @@ const Close = styled.button`
     inset: -4px;
   }
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       color: ${nocturne.cream};
       background: ${nocturne.surface2};
     }
+  }
+  &:active {
+    transform: scale(0.97);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -280,8 +271,8 @@ export function IncomingToast({
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false);
       }}
     >
-      <Well $tone={a.tone} aria-hidden>
-        <Icon size={22} weight="bold" />
+      <Well $role={a.role} aria-hidden>
+        <Icon size={20} />
       </Well>
       <Body>
         <span className="label">{a.label}</span>
@@ -292,9 +283,9 @@ export function IncomingToast({
         <X size={16} weight="bold" />
       </Close>
       {href && a.action ? (
-        <Go type="button" onClick={open} data-urgent={a.tone === "urgent" ? "true" : "false"}>
+        <Go type="button" onClick={open}>
           {a.action}
-          <ArrowRight size={16} weight="bold" />
+          <ArrowRight size={20} weight="bold" />
         </Go>
       ) : null}
       <Track aria-hidden>

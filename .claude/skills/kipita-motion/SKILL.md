@@ -61,12 +61,14 @@ Use Motion for shared-element morphs, presence (exit animations) and gestures. U
 ## Rules
 
 - Press scales to `0.97` on buttons, `0.98` on cards. `components/ui/interactions.ts` has the shared press and hover mixins; use them.
+- Hover never moves anything: no `translateY` lift, no glow shadow, no icon scale or rotate. Hover is a tone change only. The lift in `pressable` and the spin in `scanGlyph` are retired (`interactions.ts` is on the strict list, so the next edit there must remove them).
+- A view swap inside a container crossfades in place (opacity, at most 2px blur). Nothing slides out of its box.
 - Animate `transform` and `opacity` only. Never `top`, `left`, `width`, `height` or `margin`. Accordions may use `grid-template-rows`.
 - One documented exception: `--sticky-top` is a registered property (`GlobalStyle`) that transitions when the phone chrome collapses, so the few sticky sub-headers glide with the top bar instead of jumping. Do not add more registered-property transitions without the same reasoning written here.
 - Exits mirror entries, shorter. Anything a user can toggle uses transitions, not keyframes, so it can be interrupted mid-way.
 - Loops: only `dash` (a road), `pulse` (waiting), `float` (in transit) from `lib/nocturne.ts`. One loop per scene.
 - No motion on keyboard-driven actions, on values that update often, or on rows in a long list.
-- Numbers that change in place roll with `components/ui/Counter.tsx`.
+- Every count (views, likes, replies, confirmations, totals) renders through `RollingNumber` from `components/ui/Counter.tsx`: it counts up on first view and rolls on every change. It is the one animation exempt from `dur.max`. `design-check` flags raw counts (`raw-count`).
 - GSAP is for scroll reveals on marketing pages only, loaded lazily through `components/anim/Reveal.tsx`.
 - Under `prefers-reduced-motion: reduce`: no transform moves, colour fades only, loops stop. `GlobalStyle` already enforces this globally; do not fight it with `!important`.
 - Map markers move with `transform` or the Maps API's own position update, never by writing `left`/`top` each frame. Every `requestAnimationFrame` is cancelled on unmount.
