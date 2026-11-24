@@ -347,36 +347,34 @@ function reviewDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" });
 }
 
-type Load = { state: "loading" } | { state: "error"; error: string } | { state: "ready"; data: ReviewSummary };
+export type ReviewsLoad = { state: "loading" } | { state: "error"; error: string } | { state: "ready"; data: ReviewSummary };
 
-export function PersonCard({ person, label, role }: { person: CardPerson; label: string; role: "driver" | "passenger" }) {
-  const [open, setOpen] = useState(false);
-  const [load, setLoad] = useState<Load>({ state: "loading" });
-  const name = person.full_name?.trim() || (role === "driver" ? "Kipita driver" : "Kipita passenger");
-  const first = name.split(" ")[0];
-  const trips = person.total_trips ?? 0;
+export function useReviews(personId: string | null | undefined, enabled = true) {
+  const [load, setLoad] = useState<ReviewsLoad>({ state: "loading" });
 
   const refresh = useCallback(
     async (quiet = false) => {
+      if (!personId) return;
       if (!quiet) setLoad({ state: "loading" });
-      const result = await fetchReviews(createClient(), person.id);
+      const result = await fetchReviews(createClient(), personId);
       if (result.ok) setLoad({ state: "ready", data: result.data });
       else if (!quiet) setLoad({ state: "error", error: result.error });
     },
-    [person.id],
+    [personId],
   );
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    if (enabled) void refresh();
+  }, [refresh, enabled]);
 
   useEffect(() => {
+    if (!personId || !enabled) return;
     const supabase = createClient();
     const channel = supabase
-      .channel(`ratings:${person.id}`)
+      .channel(`ratings:${personId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "ratings", filter: `to_user_id=eq.${person.id}` },
+        { event: "INSERT", schema: "public", table: "ratings", filter: `to_user_id=eq.${personId}` },
         () => void refresh(true),
       )
       .subscribe();
@@ -388,7 +386,113 @@ export function PersonCard({ person, label, role }: { person: CardPerson; label:
       document.removeEventListener("visibilitychange", onVisible);
       void supabase.removeChannel(channel);
     };
-  }, [person.id, refresh]);
+  }, [personId, enabled, refresh]);
+
+  return { load, refresh };
+}
+
+export function PersonReviews({
+  load,
+  onRetry,
+  first,
+  role,
+}: {
+  load: ReviewsLoad;
+  onRetry: () => void;
+  first: string;
+  role: "driver" | "passenger";
+}) {
+  if (load.state === "loading") {
+    return (
+      <List aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <Item key={i}>
+            <Shimmer $w="40px" $h="40px" $r="50%" />
+            <span>
+              <Shimmer $w="45%" $h="14px" $r="6px" />
+              <Shimmer $w="85%" $h="12px" $r="6px" />
+            </span>
+          </Item>
+        ))}
+      </List>
+    );
+  }
+  if (load.state === "error") {
+    return (
+      <Empty role="alert">
+        <h3>Reviews didn&apos;t load</h3>
+        <p>{load.error}</p>
+        <Retry type="button" onClick={onRetry}>
+          <ArrowClockwise size={20} aria-hidden /> Load reviews again
+        </Retry>
+      </Empty>
+    );
+  }
+  if (load.data.count === 0) {
+    return (
+      <Empty>
+        <div className="art">
+          <NoReviewsArt />
+        </div>
+        <h3>No reviews yet</h3>
+        <p>
+          {role === "driver"
+            ? `Passengers review ${first} after a finished ride. Theirs will show up here.`
+            : `Drivers review ${first} after a finished ride. Theirs will show up here.`}
+        </p>
+      </Empty>
+    );
+  }
+  return (
+    <>
+      <Summary aria-label="Rating summary">
+        <div className="score">
+          <span className="big">{load.data.average?.toFixed(1)}</span>
+          <StarRow score={load.data.average ?? 0} size={20} />
+          <span className="based">
+            {load.data.count} {load.data.count === 1 ? "review" : "reviews"}
+          </span>
+        </div>
+        <Bars>
+          {([5, 4, 3, 2, 1] as const).map((s) => {
+            const n = load.data.byScore[s];
+            return (
+              <li key={s} aria-label={`${s} stars: ${n}`}>
+                <span>{s}</span>
+                <span className="track">
+                  <Fill $share={n / load.data.count} />
+                </span>
+                <span className="n">{n}</span>
+              </li>
+            );
+          })}
+        </Bars>
+      </Summary>
+      <List>
+        {load.data.reviews.map((r) => (
+          <Item key={r.id}>
+            <Avatar name={r.author?.full_name ?? "Kipita rider"} src={r.author?.avatar_url ?? null} size={40} />
+            <div>
+              <div className="head">
+                <span className="name">{shortName(r.author?.full_name)}</span>
+                <StarRow score={r.score} />
+                <time dateTime={r.created_at}>{reviewDate(r.created_at)}</time>
+              </div>
+              {r.comment ? <p>{r.comment}</p> : null}
+            </div>
+          </Item>
+        ))}
+      </List>
+    </>
+  );
+}
+
+export function PersonCard({ person, label, role }: { person: CardPerson; label: string; role: "driver" | "passenger" }) {
+  const [open, setOpen] = useState(false);
+  const { load, refresh } = useReviews(person.id);
+  const name = person.full_name?.trim() || (role === "driver" ? "Kipita driver" : "Kipita passenger");
+  const first = name.split(" ")[0];
+  const trips = person.total_trips ?? 0;
 
   const summary = load.state === "ready" ? load.data : null;
 
@@ -440,80 +544,7 @@ export function PersonCard({ person, label, role }: { person: CardPerson; label:
 
       <Drawer open={open} onClose={() => setOpen(false)} title={`Reviews for ${first}`} side fill>
         <DrawerBody>
-          {load.state === "loading" ? (
-            <List aria-hidden>
-              {[0, 1, 2].map((i) => (
-                <Item key={i}>
-                  <Shimmer $w="40px" $h="40px" $r="50%" />
-                  <span>
-                    <Shimmer $w="45%" $h="14px" $r="6px" />
-                    <Shimmer $w="85%" $h="12px" $r="6px" />
-                  </span>
-                </Item>
-              ))}
-            </List>
-          ) : load.state === "error" ? (
-            <Empty role="alert">
-              <h3>Reviews didn&apos;t load</h3>
-              <p>{load.error}</p>
-              <Retry type="button" onClick={() => void refresh()}>
-                <ArrowClockwise size={20} aria-hidden /> Load reviews again
-              </Retry>
-            </Empty>
-          ) : load.data.count === 0 ? (
-            <Empty>
-              <div className="art">
-                <NoReviewsArt />
-              </div>
-              <h3>No reviews yet</h3>
-              <p>
-                {role === "driver"
-                  ? `Passengers review ${first} after a finished ride. Theirs will show up here.`
-                  : `Drivers review ${first} after a finished ride. Theirs will show up here.`}
-              </p>
-            </Empty>
-          ) : (
-            <>
-              <Summary aria-label="Rating summary">
-                <div className="score">
-                  <span className="big">{load.data.average?.toFixed(1)}</span>
-                  <StarRow score={load.data.average ?? 0} size={20} />
-                  <span className="based">
-                    {load.data.count} {load.data.count === 1 ? "review" : "reviews"}
-                  </span>
-                </div>
-                <Bars>
-                  {([5, 4, 3, 2, 1] as const).map((s) => {
-                    const n = load.data.byScore[s];
-                    return (
-                      <li key={s} aria-label={`${s} stars: ${n}`}>
-                        <span>{s}</span>
-                        <span className="track">
-                          <Fill $share={n / load.data.count} />
-                        </span>
-                        <span className="n">{n}</span>
-                      </li>
-                    );
-                  })}
-                </Bars>
-              </Summary>
-              <List>
-                {load.data.reviews.map((r) => (
-                  <Item key={r.id}>
-                    <Avatar name={r.author?.full_name ?? "Kipita rider"} src={r.author?.avatar_url ?? null} size={40} />
-                    <div>
-                      <div className="head">
-                        <span className="name">{shortName(r.author?.full_name)}</span>
-                        <StarRow score={r.score} />
-                        <time dateTime={r.created_at}>{reviewDate(r.created_at)}</time>
-                      </div>
-                      {r.comment ? <p>{r.comment}</p> : null}
-                    </div>
-                  </Item>
-                ))}
-              </List>
-            </>
-          )}
+          <PersonReviews load={load} onRetry={() => void refresh()} first={first} role={role} />
         </DrawerBody>
       </Drawer>
     </>

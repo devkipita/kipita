@@ -316,11 +316,6 @@ export function AlertsView({
   }, [viewerId]);
 
   useEffect(() => {
-    if (!viewerId) return;
-    void load(0);
-  }, [viewerId, load]);
-
-  useEffect(() => {
     const onFocus = () => void revalidate();
     const onVisible = () => {
       if (document.visibilityState === "visible") void revalidate();
@@ -415,7 +410,7 @@ export function AlertsView({
   const filtered = useMemo(() => {
     if (tab === "following") {
       const set = new Set(followingIds);
-      return searched.filter((a) => set.has(a.user_id));
+      return searched.filter((a) => a.saved_by_me || set.has(a.user_id));
     }
     if (tab === "route") {
       const towns = routeTowns.map((t) => t.toLowerCase());
@@ -682,8 +677,8 @@ export function AlertsView({
       body: "Search for a trip on the home page and we’ll watch those roads for you.",
     },
     following: {
-      title: "You’re not following anyone yet",
-      body: "Follow reporters whose alerts you trust and their updates land here.",
+      title: "Nothing saved or followed yet",
+      body: "Save an alert with the bookmark, or follow reporters you trust. Both land here.",
     },
     all: {
       title: "Roads are quiet",

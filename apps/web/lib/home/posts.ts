@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { CAR_SEATS_MISSING, isCarSeats } from "@kipita/shared";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { isPhoneConfirmed } from "@/lib/auth/phone";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
@@ -35,19 +36,10 @@ type Session = { userId: string } | { error: string };
 async function resolveUser(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<Session> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, id } = await resolveAppUser(supabase);
   if (!user) return { error: "Your session expired. Sign in again." };
-
-  const { data } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  if (!data) return { error: PROFILE_NOT_READY };
-
-  return { userId: data.id as string };
+  if (!id) return { error: PROFILE_NOT_READY };
+  return { userId: id };
 }
 
 function writeError(error: { code?: string } | null, fallback: string): string {
@@ -61,6 +53,7 @@ async function resolveVehicle(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   trip: PostTripInput,
+  knownId: string | null | undefined,
 ): Promise<string | null> {
   const details = {
     make: trip.vehicle_make?.trim() || null,
@@ -82,12 +75,19 @@ async function resolveVehicle(
       return (latest?.id as string | undefined) ?? null;
     }
 
-    const { data: existing } = await supabase
-      .from("vehicles")
-      .select("id")
-      .eq("driver_id", userId)
-      .eq("plate_number", details.plate_number)
-      .maybeSingle();
+    const existing =
+      knownId !== undefined
+        ? knownId
+          ? { id: knownId }
+          : null
+        : (
+            await supabase
+              .from("vehicles")
+              .select("id")
+              .eq("driver_id", userId)
+              .eq("plate_number", details.plate_number)
+              .maybeSingle()
+          ).data;
 
     const patch = Object.fromEntries(
       Object.entries(details).filter(([, v]) => v !== null),
@@ -131,17 +131,18 @@ async function carSeatsFor(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   plate: string | undefined,
-): Promise<{ seats: number | null } | { error: string }> {
+): Promise<{ seats: number | null; vehicleId?: string | null } | { error: string }> {
   if (!plate) return { seats: null };
   const { data, error } = await supabase
     .from("vehicles")
-    .select("seat_capacity, seats_confirmed_at")
+    .select("id, seat_capacity, seats_confirmed_at")
     .eq("driver_id", userId)
     .eq("plate_number", plate.trim().toUpperCase())
     .maybeSingle();
-  if (error || !data) return { seats: null };
+  if (error) return { seats: null };
+  if (!data) return { seats: null, vehicleId: null };
   if (!data.seats_confirmed_at || !isCarSeats(data.seat_capacity)) return { error: CAR_SEATS_MISSING };
-  return { seats: data.seat_capacity };
+  return { seats: data.seat_capacity, vehicleId: data.id as string };
 }
 
 export async function createTripAction(input: PostTripInput): Promise<PostResult> {
@@ -161,8 +162,19 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   );
   if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
-  // The mode cookie is a UI preference, so re-check the real gate here.
-  const kyc = await fetchDriverKyc(supabase, session.userId);
+  const trip = parsed.data;
+  const leaves = Date.parse(`${trip.departure_date}T${trip.departure_time}:00+03:00`);
+  if (!Number.isFinite(leaves) || leaves <= Date.now()) {
+    return { ok: false, error: "That departure time has already passed. Pick a later one." };
+  }
+
+  const [kyc, phoneConfirmed, early, car] = await Promise.all([
+    fetchDriverKyc(supabase, session.userId),
+    isPhoneConfirmed(supabase),
+    supabase.rpc("flag_enabled", { p_key: "publish_before_approval" }).then(({ data }) => data === true),
+    carSeatsFor(supabase, session.userId, trip.vehicle_plate),
+  ]);
+
   if (!kyc.hasApplied) {
     return {
       ok: false,
@@ -177,29 +189,15 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       fix: "kyc",
     };
   }
-  // The database refuses this too (migration 075); asking here gives a clear message.
-  if (!(await isPhoneConfirmed(supabase))) {
+  if (!phoneConfirmed) {
     return {
       ok: false,
       error: "Confirm your phone number to publish a ride.",
       fix: "phone",
     };
   }
-  let status: "posted" | "awaiting_approval" = "posted";
-  if (kyc.status === "pending") {
-    const { data: early } = await supabase.rpc("flag_enabled", {
-      p_key: "publish_before_approval",
-    });
-    if (early !== true) status = "awaiting_approval";
-  }
+  const status: "posted" | "awaiting_approval" = kyc.status === "pending" && !early ? "awaiting_approval" : "posted";
 
-  const trip = parsed.data;
-  const leaves = Date.parse(`${trip.departure_date}T${trip.departure_time}:00+03:00`);
-  if (!Number.isFinite(leaves) || leaves <= Date.now()) {
-    return { ok: false, error: "That departure time has already passed. Pick a later one." };
-  }
-
-  const car = await carSeatsFor(supabase, session.userId, trip.vehicle_plate);
   if ("error" in car) return { ok: false, error: car.error };
 
   const priceCheck = await checkTripPrice(supabase, {
@@ -215,7 +213,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   });
   if (!priceCheck.ok) return { ok: false, error: priceCheck.error };
 
-  const vehicleId = await resolveVehicle(supabase, session.userId, trip);
+  const vehicleId = await resolveVehicle(supabase, session.userId, trip, car.vehicleId);
 
   const { data, error } = await supabase
     .from("trips")

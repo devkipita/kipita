@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import styled from "styled-components";
+import styled, { useTheme } from "styled-components";
 import {
   BarChart,
   BookmarkSmall,
@@ -67,6 +67,7 @@ export function AlertActions({
   onComment?: () => void;
 }) {
   const router = useRouter();
+  const theme = useTheme();
   const [busy, setBusy] = useState(false);
 
   async function vote(kind: ConfirmKind) {
@@ -180,8 +181,11 @@ export function AlertActions({
       <Engage>
         <IconAction
           type="button"
+          $large
           $on={liked}
           $tone={nocturne.danger}
+          $fill={theme.color.errorContainer}
+          $ink={theme.color.onErrorContainer}
           aria-pressed={liked}
           aria-label={liked ? `Unlike, ${plural(alert.reactions_count, "like", "likes")}` : `Like, ${plural(alert.reactions_count, "like", "likes")}`}
           title={liked ? "Unlike" : "Like"}
@@ -195,6 +199,9 @@ export function AlertActions({
         </IconAction>
         <IconAction
           type="button"
+          $large
+          $fill={theme.color.infoContainer}
+          $ink={theme.color.onInfoContainer}
           aria-label={`Reply, ${plural(alert.comments_count, "reply", "replies")}`}
           title="Reply"
           onClick={(e) => {
@@ -208,6 +215,9 @@ export function AlertActions({
         </IconAction>
         <IconAction
           as={Link}
+          $large
+          $fill={theme.color.tertiaryContainer}
+          $ink={theme.color.onTertiaryContainer}
           href={`/alerts/${alert.id}`}
           aria-label={`Views, ${plural(alert.views_count, "view", "views")}`}
           title={plural(alert.views_count, "view", "views")}
@@ -223,8 +233,11 @@ export function AlertActions({
         </IconAction>
         <IconAction
           type="button"
+          $large
           $on={alert.saved_by_me}
           $tone={nocturne.accent}
+          $fill={theme.color.secondaryContainer}
+          $ink={theme.color.onSecondaryContainer}
           aria-pressed={alert.saved_by_me}
           aria-label={alert.saved_by_me ? "Remove from saved" : "Save alert"}
           title={alert.saved_by_me ? "Remove from saved" : "Save alert"}
@@ -237,6 +250,9 @@ export function AlertActions({
         </IconAction>
         <IconAction
           as="a"
+          $large
+          $fill={theme.color.successContainer}
+          $ink={theme.color.onSuccessContainer}
           href={whatsappHref(alert)}
           target="_blank"
           rel="noopener noreferrer"

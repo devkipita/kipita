@@ -327,6 +327,39 @@ export function ArrivedArt() {
   );
 }
 
+export function LuggageArt() {
+  return (
+    <Scene>
+      <Ground cx={168} rx={128} />
+      <Car x={20} y={70} />
+
+      <path className="accent" strokeOpacity="0.55" strokeDasharray="2 9" d="M136 112c18-30 40-34 58-14" />
+
+      <Hover>
+        <g transform="translate(190 92)">
+          <rect x="0" y="12" width="48" height="58" rx="9" className="accent-fill" fillOpacity="0.16" />
+          <rect x="0" y="12" width="48" height="58" rx="9" className="accent" />
+          <path className="accent" d="M16 12V4h16v8" />
+          <path className="accent thin" strokeOpacity="0.5" d="M16 26v32M32 26v32" />
+          <circle cx="11" cy="74" r="3.5" className="accent-fill" />
+          <circle cx="37" cy="74" r="3.5" className="accent-fill" />
+        </g>
+        <g transform="translate(250 112)">
+          <path className="ink" d="M4 50V20a14 14 0 0 1 28 0v30Z" />
+          <path className="accent-fill" fillOpacity="0.2" d="M4 50V20a14 14 0 0 1 28 0v30Z" />
+          <path className="ink thin" d="M11 32h14" />
+          <path className="ink thin" strokeOpacity="0.6" d="M12 8a6 6 0 0 1 12 0" />
+        </g>
+      </Hover>
+
+      <g transform="translate(262 40)">
+        <circle cx="16" cy="16" r="16" className="cta-fill" />
+        <path className="on-cta" d="M9 16.5l5 5 9-10" />
+      </g>
+    </Scene>
+  );
+}
+
 export function StoppedArt() {
   return (
     <Scene tone="stopped">

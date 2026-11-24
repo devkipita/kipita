@@ -122,33 +122,33 @@ function toComment(raw: unknown, liked = false): AlertComment {
   };
 }
 
-/**
- * The caller's own reactions for a page of alerts.
- *
- * Mobile never fetches this, which is why a reaction there vanishes on reload.
- * Two queries rather than a filtered embedded join: embedded-resource filtering
- * semantics vary between PostgREST versions and can silently drop parent rows,
- * and the id list is already bounded by the page size.
- *
- * `alert_reactions` RLS is `FOR ALL USING (own row)`, so this can only ever
- * return the caller's own reactions regardless of what is asked for.
- */
-export async function fetchMyReactions(
-  supabase: SupabaseClient,
-  alertIds: string[],
-  viewerId: string,
-): Promise<Map<string, string>> {
-  if (alertIds.length === 0) return new Map();
+const VIEWER_EMBEDS = "alert_reactions ( reaction ), alert_confirmations ( kind ), alert_saves ( alert_id )";
 
-  const { data, error } = await supabase
-    .from("alert_reactions")
-    .select("alert_id, reaction")
-    .eq("user_id", viewerId)
-    .in("alert_id", alertIds);
+type Filterable<Q> = { eq(column: string, value: string): Q };
 
-  if (error) throw error;
-  return new Map(
-    (data ?? []).map((row) => [row.alert_id as string, row.reaction as string]),
+function viewerSelect(select: string, viewerId?: string | null): string {
+  return viewerId ? `${select}, ${VIEWER_EMBEDS}` : select;
+}
+
+function scopeToViewer<Q extends Filterable<Q>>(query: Q, viewerId?: string | null): Q {
+  if (!viewerId) return query;
+  return query
+    .eq("alert_reactions.user_id", viewerId)
+    .eq("alert_confirmations.user_id", viewerId)
+    .eq("alert_saves.user_id", viewerId);
+}
+
+function toViewedAlert(raw: unknown): Alert {
+  const row = raw as {
+    alert_reactions?: { reaction: string }[] | null;
+    alert_confirmations?: { kind: ConfirmKind }[] | null;
+    alert_saves?: unknown[] | null;
+  };
+  return toAlert(
+    raw,
+    one(row.alert_reactions ?? null)?.reaction ?? null,
+    one(row.alert_confirmations ?? null)?.kind ?? null,
+    (row.alert_saves?.length ?? 0) > 0,
   );
 }
 
@@ -164,69 +164,20 @@ export async function fetchAlerts(
   const { limit = PAGE_SIZE, offset = 0, category, viewerId } = opts;
 
   const data = await withViewsFallback<unknown[]>((select) => {
-    let query = supabase
-      .from("announcements")
-      .select(select)
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    let query = scopeToViewer(
+      supabase
+        .from("announcements")
+        .select(viewerSelect(select, viewerId))
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+      viewerId,
+    );
 
     if (category) query = query.eq("category", category);
     return query as unknown as PromiseLike<{ data: unknown[] | null; error: QueryError }>;
   });
 
-  const alerts = (data ?? []).map((row) => toAlert(row));
-  if (!viewerId || alerts.length === 0) return alerts;
-
-  const ids = alerts.map((a) => a.id);
-  const [reactions, confirmations, saves] = await Promise.all([
-    fetchMyReactions(supabase, ids, viewerId),
-    fetchMyConfirmations(supabase, ids, viewerId),
-    fetchMySaves(supabase, ids, viewerId),
-  ]);
-
-  return alerts.map((a) => ({
-    ...a,
-    user_reaction: reactions.get(a.id) ?? null,
-    my_confirmation: confirmations.get(a.id) ?? null,
-    saved_by_me: saves.has(a.id),
-  }));
-}
-
-/** The caller's own Still-there / Cleared votes for a page of alerts. */
-export async function fetchMyConfirmations(
-  supabase: SupabaseClient,
-  alertIds: string[],
-  viewerId: string,
-): Promise<Map<string, ConfirmKind>> {
-  if (alertIds.length === 0) return new Map();
-
-  const { data, error } = await supabase
-    .from("alert_confirmations")
-    .select("alert_id, kind")
-    .eq("user_id", viewerId)
-    .in("alert_id", alertIds);
-
-  if (error) throw error;
-  return new Map(
-    (data ?? []).map((row) => [row.alert_id as string, row.kind as ConfirmKind]),
-  );
-}
-
-export async function fetchMySaves(
-  supabase: SupabaseClient,
-  alertIds: string[],
-  viewerId: string,
-): Promise<Set<string>> {
-  if (alertIds.length === 0) return new Set();
-
-  const { data, error } = await supabase
-    .from("alert_saves")
-    .select("alert_id")
-    .eq("user_id", viewerId)
-    .in("alert_id", alertIds);
-
-  if (error) throw error;
-  return new Set((data ?? []).map((row) => row.alert_id as string));
+  return (data ?? []).map(toViewedAlert);
 }
 
 /**
@@ -379,32 +330,16 @@ export async function fetchAlert(
 ): Promise<Alert | null> {
   const data = await withViewsFallback<unknown>(
     (select) =>
-      supabase
-        .from("announcements")
-        .select(select)
-        .eq("id", id)
-        .maybeSingle() as unknown as PromiseLike<{
+      scopeToViewer(
+        supabase.from("announcements").select(viewerSelect(select, viewerId)).eq("id", id),
+        viewerId,
+      ).maybeSingle() as unknown as PromiseLike<{
         data: unknown | null;
         error: QueryError;
       }>,
   );
 
-  if (!data) return null;
-
-  if (!viewerId) return toAlert(data);
-
-  const [reactions, confirmations, saves] = await Promise.all([
-    fetchMyReactions(supabase, [id], viewerId),
-    fetchMyConfirmations(supabase, [id], viewerId),
-    fetchMySaves(supabase, [id], viewerId),
-  ]);
-
-  return toAlert(
-    data,
-    reactions.get(id) ?? null,
-    confirmations.get(id) ?? null,
-    saves.has(id),
-  );
+  return data ? toViewedAlert(data) : null;
 }
 
 export async function fetchAlertComments(
@@ -413,13 +348,15 @@ export async function fetchAlertComments(
   viewerId?: string | null,
   limit = 200,
 ): Promise<AlertComment[]> {
-  const run = (select: string) =>
-    supabase
+  const run = (select: string) => {
+    const query = supabase
       .from("alert_comments")
-      .select(select)
-      .eq("alert_id", alertId)
+      .select(viewerId ? `${select}, comment_likes ( comment_id )` : select)
+      .eq("alert_id", alertId);
+    return (viewerId ? query.eq("comment_likes.user_id", viewerId) : query)
       .order("created_at", { ascending: true })
       .limit(limit);
+  };
 
   let { data, error } = await run(threadColumn ? COMMENT_SELECT_THREADED : COMMENT_SELECT);
   if (error?.code === "42703" && /parent_id/i.test(error.message ?? "")) {
@@ -429,21 +366,9 @@ export async function fetchAlertComments(
 
   if (error) throw error;
 
-  const comments = (data ?? []).map((row) => toComment(row));
-  if (!viewerId || comments.length === 0) return comments;
-
-  const { data: likes, error: likeError } = await supabase
-    .from("comment_likes")
-    .select("comment_id")
-    .eq("user_id", viewerId)
-    .in(
-      "comment_id",
-      comments.map((c) => c.id),
-    );
-  if (likeError) throw likeError;
-
-  const liked = new Set((likes ?? []).map((l) => l.comment_id as string));
-  return comments.map((c) => ({ ...c, liked_by_me: liked.has(c.id) }));
+  return (data ?? []).map((row) =>
+    toComment(row, ((row as { comment_likes?: unknown[] | null }).comment_likes?.length ?? 0) > 0),
+  );
 }
 
 /**

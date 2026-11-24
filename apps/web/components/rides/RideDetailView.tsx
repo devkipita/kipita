@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   CalendarBlank,
   Briefcase,
-  CarProfile,
   CheckCircle as CheckCircle2,
   Copy,
   ShareForward,
@@ -46,9 +45,10 @@ import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
 import { useMorphNavigate } from "@/lib/ui/viewTransition";
 import { MapSheet, useSplitLayout } from "@/components/trips/MapSheet";
 import { PersonCard } from "./PersonCard";
-import { RideRiders } from "./RideRiders";
+import { CarTile, MetaRow, RouteHead, StatusBadge, type StatusTone } from "./RideParts";
+import { RideRiders, ShareMine } from "./RideRiders";
 import { RideFinish } from "./RideFinish";
-import { usePickupLocations, useTripLocation } from "@/lib/trips/live";
+import { PICKUP_WINDOW_MS, usePickupLocations, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "@/components/trips/RouteMap";
 import type { TripRoute } from "@/lib/maps/types";
 import { BookPanel, RULE } from "./RideLayout";
@@ -76,43 +76,6 @@ const Facts = styled.ul`
     flex: none;
     color: ${nocturne.accent};
   }
-`;
-
-const Vehicle = styled.div`
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-
-  > svg {
-    flex: none;
-    align-self: center;
-    color: ${nocturne.accent};
-  }
-  b {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(19px, 2vw, 23px);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${nocturne.cream};
-  }
-  span.colour {
-    font-size: 16px;
-    color: ${nocturne.muted};
-  }
-`;
-
-const Plate = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 12px;
-  border-radius: 7px;
-  background: ${nocturne.surface2};
-  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  color: ${nocturne.cream};
 `;
 
 const Note = styled.p`
@@ -526,111 +489,6 @@ const BackLink = styled(Link)`
   }
 `;
 
-type StatusTone = "live" | "wait" | "off";
-
-const Status = styled.span<{ $tone: StatusTone }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 32px;
-  padding: 0 14px 0 12px;
-  border-radius: 999px;
-  font-size: 13.5px;
-  font-weight: 800;
-  ${({ $tone }) =>
-    $tone === "live"
-      ? `background: color-mix(in oklab, ${nocturne.lime} 55%, ${nocturne.surface}); color: ${nocturne.greenDeep};`
-      : $tone === "wait"
-        ? `background: color-mix(in oklab, ${nocturne.star} 18%, ${nocturne.surface}); color: ${nocturne.cream};`
-        : `background: ${nocturne.surface3}; color: ${nocturne.muted};`}
-
-  i {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: ${({ $tone }) => ($tone === "live" ? nocturne.green : $tone === "wait" ? nocturne.star : nocturne.muted2)};
-  }
-`;
-
-const Head = styled.header`
-  view-transition-name: morph-hero;
-  margin-top: 18px;
-
-  h1 {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px 14px;
-    margin: 0;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(30px, 4.4vw, 42px);
-    font-weight: 800;
-    line-height: 1.08;
-    letter-spacing: -0.035em;
-    color: ${nocturne.cream};
-    overflow-wrap: anywhere;
-  }
-  .leg {
-    position: relative;
-    flex: none;
-    width: 46px;
-    height: 2px;
-    background: repeating-linear-gradient(90deg, ${nocturne.accent} 0 6px, transparent 6px 11px);
-
-    &::before,
-    &::after {
-      content: "";
-      position: absolute;
-      top: 50%;
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      transform: translateY(-50%);
-    }
-    &::before {
-      left: -4px;
-      background: ${nocturne.surface};
-      box-shadow: inset 0 0 0 2.5px ${nocturne.accent};
-    }
-    &::after {
-      right: -4px;
-      background: ${nocturne.accent};
-    }
-  }
-  p {
-    margin: 10px 0 0;
-    font-size: 15.5px;
-    line-height: 1.5;
-    color: ${nocturne.muted};
-  }
-`;
-
-const Meta = styled.ul`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 16px 0 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 38px;
-    padding: 0 14px;
-    border-radius: 12px;
-    background: ${nocturne.surface};
-    font-size: 14.5px;
-    font-weight: 700;
-    color: ${nocturne.cream};
-  }
-  svg {
-    flex: none;
-    color: ${nocturne.accent};
-  }
-`;
-
 const Stack = styled.div`
   display: grid;
   gap: 14px;
@@ -799,18 +657,6 @@ const CopyButton = styled.button`
   }
 `;
 
-const CarCard = styled(Card)`
-  background: ${({ theme }) => theme.tone.blue.bg};
-  color: ${({ theme }) => theme.tone.blue.on};
-
-  h2.label,
-  .colour,
-  svg,
-  b {
-    color: inherit;
-  }
-`;
-
 type NavigationLike = {
   currentEntry?: { index: number } | null;
   entries?: () => { url: string | null }[];
@@ -928,7 +774,6 @@ export function RideDetailView({
   const searchHref = routeSearch(ride.from_location, ride.to_location, isTrip ? undefined : ride.seats_needed);
 
   const ended = isTrip && closed ? phase : null;
-  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && phase === "in_progress");
   const board = useBoarding(isTrip ? ride.id : null, ownerView && !awaiting);
   const pickups = usePickupLocations(isTrip ? ride.id : null, ownerView && !awaiting);
   const people = board.rows
@@ -943,6 +788,19 @@ export function RideDetailView({
   const [shownChat, setShownChat] = useState<BoardingRow | null>(null);
   if (chatWith && chatWith !== shownChat) setShownChat(chatWith);
   const ready = ownerView && !awaiting && board.summary.loaded && board.rows.length > 0 && board.summary.waiting === 0;
+  const leavesMs = isTrip && ride.departure_date
+    ? Date.parse(`${ride.departure_date}T${(ride.departure_time ?? "23:59").slice(0, 5)}:00+03:00`)
+    : Number.NaN;
+  const [clock, setClock] = useState(0);
+  useEffect(() => {
+    if (!ownerView || awaiting || !Number.isFinite(leavesMs)) return;
+    setClock(Date.now());
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [ownerView, awaiting, leavesMs]);
+  const pickupSoon =
+    ownerView && !awaiting && board.summary.waiting > 0 && clock > 0 && clock >= leavesMs - PICKUP_WINDOW_MS;
+  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && (phase === "in_progress" || pickupSoon));
   const endedLabel =
     ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
   const endedLead = !ended
@@ -1074,15 +932,7 @@ export function RideDetailView({
     ) : null;
   const carTile =
     isTrip && ride.vehicle && vehicleName ? (
-      <CarCard aria-label="Car">
-        <h2 className="label">Car</h2>
-        <Vehicle>
-          <CarProfile size={24} aria-hidden />
-          <b>{vehicleName}</b>
-          {ride.vehicle.color && <span className="colour">{ride.vehicle.color}</span>}
-          {plate && <Plate>{plate.toUpperCase()}</Plate>}
-        </Vehicle>
-      </CarCard>
+      <CarTile name={vehicleName} colour={ride.vehicle.color} plate={plate} />
     ) : null;
 
   return (
@@ -1126,33 +976,37 @@ export function RideDetailView({
     >
       <Top>
         <span className="desk">{back}</span>
-        <Status $tone={statusTone}>
+        <StatusBadge $tone={statusTone}>
           <i aria-hidden />
           {status}
-        </Status>
+        </StatusBadge>
       </Top>
 
-      <Head>
+      <RouteHead>
         <h1>
           <span>{ride.from_location}</span>
-          <i className="leg" aria-hidden />
-          <span>{ride.to_location}</span>
+          <span className="to">
+            <i className="leg" aria-hidden />
+            <span>{ride.to_location}</span>
+          </span>
         </h1>
         {lead && !ownDone ? <p>{lead}</p> : null}
-      </Head>
+      </RouteHead>
 
       {meta.length > 0 && (
-        <Meta>
+        <MetaRow>
           {meta.map(({ icon, label }) => (
             <li key={label}>
               {icon}
               {label}
             </li>
           ))}
-        </Meta>
+        </MetaRow>
       )}
 
       <Stack>
+        {pickupSoon && <ShareMine tripId={ride.id} />}
+
         {ownerView && !awaiting && !split && (
           <BoardingPanel tripId={ride.id} board={board} always onMessage={setChatWith} />
         )}

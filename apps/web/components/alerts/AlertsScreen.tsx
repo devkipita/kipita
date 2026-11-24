@@ -8,18 +8,14 @@ import {
 import { AlertsView } from "./AlertsView";
 
 export async function AlertsScreen({ openId }: { openId?: string }) {
-  const [alerts, profile, open] = await Promise.all([
-    fetchAlertsServer(),
-    getProfile(),
+  const viewer = getProfile();
+  const [alerts, profile, open, followingIds, routeTowns] = await Promise.all([
+    viewer.then((p) => fetchAlertsServer({ viewerId: p?.id ?? null })),
+    viewer,
     openId ? fetchAlertServer(openId) : Promise.resolve(null),
+    viewer.then((p) => (p ? fetchFollowingServer(p.id) : [])),
+    viewer.then((p) => (p ? fetchRouteTownsServer(p.id) : [])),
   ]);
-
-  const [followingIds, routeTowns] = profile
-    ? await Promise.all([
-        fetchFollowingServer(profile.id),
-        fetchRouteTownsServer(profile.id),
-      ])
-    : [[], []];
 
   return (
     <AlertsView

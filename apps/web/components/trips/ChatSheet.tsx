@@ -18,6 +18,7 @@ type Message = {
 };
 
 const COLUMNS = "id, conversation_id, sender_id, content, created_at";
+const LOAD_FAILED = "We couldn't load messages.";
 
 const Feed = styled.ol`
   flex: 1;
@@ -294,15 +295,6 @@ export default function ChatPanel({
         return;
       }
       setConv(id as string);
-      const { data, error: err } = await supabase
-        .from("messages")
-        .select(COLUMNS)
-        .eq("conversation_id", id as string)
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (!live) return;
-      if (err) setError("We couldn't load messages.");
-      else setItems(((data as Message[]) ?? []).reverse());
     })().catch(() => {
       if (live) setError("We couldn't open messages.");
     });
@@ -326,14 +318,18 @@ export default function ChatPanel({
     setItems((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
   }, []);
 
-  const refresh = useCallback(async (id: string) => {
+  const refresh = useCallback(async (id: string, first = false) => {
     const { data, error: err } = await createClient()
       .from("messages")
       .select(COLUMNS)
       .eq("conversation_id", id)
       .order("created_at", { ascending: false })
       .limit(100);
-    if (err || !data) return;
+    if (err || !data) {
+      if (first) setError(LOAD_FAILED);
+      return;
+    }
+    setError((current) => (current === LOAD_FAILED ? "" : current));
     setItems((prev) => {
       const byId = new Map(prev.map((m) => [m.id, m]));
       for (const m of data as Message[]) byId.set(m.id, m);
@@ -343,7 +339,7 @@ export default function ChatPanel({
 
   useEffect(() => {
     if (!open || !conv) return;
-    void refresh(conv);
+    void refresh(conv, true);
     const poll = window.setInterval(() => {
       if (document.visibilityState === "visible") void refresh(conv);
     }, 8000);

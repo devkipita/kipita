@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { driverKycSchema, type DriverKycInput } from "@/lib/validators/home";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
@@ -16,16 +17,9 @@ export async function submitDriverKycAction(
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, id } = await resolveAppUser(supabase);
   if (!user) return { ok: false, error: "Your session expired. Sign in again." };
-
-  const { data: me } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  const me = id ? { id } : null;
   if (!me) {
     return {
       ok: false,

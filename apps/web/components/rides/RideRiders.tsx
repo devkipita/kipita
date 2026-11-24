@@ -295,28 +295,25 @@ const MessageButton = styled.button`
 
 async function loadRiders(tripId: string, viewerId: string, live: boolean): Promise<Rider[] | null> {
   const supabase = createClient();
-  const { data: bookings, error } = await supabase
+  const columns = "id, seats_booked, total_price, passenger:users!passenger_id ( full_name, avatar_url )";
+  const query = supabase
     .from("bookings")
-    .select("id, seats_booked, total_price, passenger:users!passenger_id ( full_name, avatar_url )")
+    .select(live ? columns : `${columns}, wallet_transactions ( amount ), ratings!ratings_booking_id_fkey ( score )`)
     .eq("trip_id", tripId)
-    .eq("status", live ? "in_progress" : "completed")
-    .order("created_at", { ascending: true });
+    .eq("status", live ? "in_progress" : "completed");
+  const { data: bookings, error } = await (live
+    ? query
+    : query.eq("wallet_transactions.type", "payout").eq("ratings.from_user_id", viewerId)
+  ).order("created_at", { ascending: true });
   if (error) return null;
-  const ids = (bookings ?? []).map((b) => b.id as string);
-  if (ids.length === 0) return [];
 
-  const [payouts, ratings] = live
-    ? [{ data: [] as { booking_id: string; amount: number }[] }, { data: [] as { booking_id: string; score: number }[] }]
-    : await Promise.all([
-    supabase.from("wallet_transactions").select("booking_id, amount").eq("type", "payout").in("booking_id", ids),
-    supabase.from("ratings").select("booking_id, score").eq("from_user_id", viewerId).in("booking_id", ids),
-  ]);
-  const paid = new Map<string, number>();
-  for (const p of payouts.data ?? []) paid.set(p.booking_id as string, Number(p.amount));
-  const scored = new Map<string, number>();
-  for (const r of ratings.data ?? []) scored.set(r.booking_id as string, Number(r.score));
+  const first = (value: unknown, key: "amount" | "score") => {
+    const row = (value as Record<string, unknown>[] | null)?.[0];
+    return row ? Number(row[key]) : null;
+  };
 
-  return (bookings ?? []).map((b) => {
+  return (bookings ?? []).map((raw) => {
+    const b = raw as unknown as Record<string, unknown>;
     const person = (Array.isArray(b.passenger) ? b.passenger[0] : b.passenger) as
       | { full_name: string | null; avatar_url: string | null }
       | null;
@@ -326,13 +323,13 @@ async function loadRiders(tripId: string, viewerId: string, live: boolean): Prom
       fare: Number(b.total_price ?? 0),
       name: person?.full_name?.trim() || "Passenger",
       avatarUrl: person?.avatar_url ?? null,
-      payout: paid.get(b.id as string) ?? null,
-      myScore: scored.get(b.id as string) ?? null,
+      payout: first(b.wallet_transactions, "amount"),
+      myScore: first(b.ratings, "score"),
     };
   });
 }
 
-function ShareMine({ tripId }: { tripId: string }) {
+export function ShareMine({ tripId }: { tripId: string }) {
   const { state, retry } = useShareLocation(tripId, true);
   if (state !== "denied" && state !== "failed") return null;
   return (

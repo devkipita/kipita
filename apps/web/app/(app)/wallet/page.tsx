@@ -41,10 +41,8 @@ async function loadWallet() {
 }
 
 export default async function WalletPage() {
-  const profile = await getProfile();
+  const [profile, wallet, mode] = await Promise.all([getProfile(), loadWallet(), readMode()]);
   if (!profile) redirect("/auth/sign-in?next=/wallet");
-
-  const [wallet, mode] = await Promise.all([loadWallet(), readMode()]);
 
   if (!wallet.ok) return <WalletError />;
 

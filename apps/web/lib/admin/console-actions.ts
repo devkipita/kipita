@@ -33,15 +33,15 @@ export async function fetchTripAction(tripId: string): Promise<TripDetail | null
 }
 
 export async function saveSettingsAction(values: Record<string, number>): Promise<Result> {
-  const supabase = await createClient();
   for (const [key, value] of Object.entries(values)) {
     const range = SETTING_RANGES[key];
     if (!range || !Number.isFinite(value) || value < range.min || value > range.max || (range.integer && !Number.isInteger(value))) {
       return { ok: false, error: `Invalid value for ${key}` };
     }
-    const { error } = await supabase.rpc("set_setting", { p_key: key, p_value: value });
-    if (error) return { ok: false, error: error.message };
   }
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_settings", { p_values: values });
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/admin/pricing");
   return { ok: true };
 }

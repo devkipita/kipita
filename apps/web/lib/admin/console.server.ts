@@ -74,21 +74,14 @@ export function loadAudit(action?: string, limit = 50) {
   return rpc<AuditRow[]>("admin_audit_log", { p_action: action ?? null, p_limit: limit });
 }
 
-export async function loadSidebarCounts() {
-  const supabase = await createClient();
-  const [drivers, reports, problems, payouts] = await Promise.all([
-    supabase.from("driver_profiles").select("user_id", { count: "exact", head: true }).eq("approval_status", "pending"),
-    supabase.rpc("admin_reports", { p_status: "open" }),
-    // Rides to review (migration 070). Bookings, not rows: a booking can carry two open problems.
-    // On a database that has not run 070 this errors and counts as none.
-    supabase.from("booking_problems").select("booking_id").eq("status", "open"),
-    // Payments to make today (migration 074). Errors on a database without 074 and counts as none.
-    supabase.rpc("admin_payout_count"),
-  ]);
+type SidebarCounts = { drivers: number; disputes: number; problems: number; payouts: number };
+
+export async function loadSidebarCounts(): Promise<SidebarCounts> {
+  const { data } = await rpc<Partial<SidebarCounts>>("admin_sidebar_counts");
   return {
-    drivers: drivers.count ?? 0,
-    disputes: Array.isArray(reports.data) ? reports.data.length : 0,
-    problems: problems.error ? 0 : new Set((problems.data ?? []).map((r) => r.booking_id as string)).size,
-    payouts: payouts.error || typeof payouts.data !== "number" ? 0 : payouts.data,
+    drivers: Number(data?.drivers ?? 0),
+    disputes: Number(data?.disputes ?? 0),
+    problems: Number(data?.problems ?? 0),
+    payouts: Number(data?.payouts ?? 0),
   };
 }

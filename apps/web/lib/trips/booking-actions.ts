@@ -21,16 +21,16 @@ export async function cancelBookingAction(
 ): Promise<CancelResult> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    { data: before },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("bookings").select("status").eq("id", bookingId).maybeSingle<{ status: string }>(),
+  ]);
   if (!user) return { ok: false, error: "Your session expired. Sign in again." };
-
-  const { data: before } = await supabase
-    .from("bookings")
-    .select("status")
-    .eq("id", bookingId)
-    .maybeSingle<{ status: string }>();
 
   const { error } = await supabase.rpc("cancel_booking", {
     p_booking_id: bookingId,
@@ -67,15 +67,16 @@ export async function cancelTripAction(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    { error },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.rpc("cancel_trip", { p_trip_id: tripId, p_reason: reason?.trim() || null }),
+  ]);
   if (!user) return { ok: false, error: "Your session expired. Sign in again." };
-
-  const { error } = await supabase.rpc("cancel_trip", {
-    p_trip_id: tripId,
-    p_reason: reason?.trim() || null,
-  });
 
   if (error) {
     return {
@@ -139,12 +140,13 @@ export async function markNoShowAction(
   bookingId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    { error },
+  ] = await Promise.all([supabase.auth.getUser(), supabase.rpc("mark_no_show", { p_booking_id: bookingId })]);
   if (!user) return { ok: false, error: NO_SHOW_ERRORS["28000"] };
-
-  const { error } = await supabase.rpc("mark_no_show", { p_booking_id: bookingId });
   if (error) {
     return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "We couldn't report that. Please try again." };
   }
@@ -160,15 +162,16 @@ export async function disputeNoShowAction(
   note: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user },
+    },
+    { error },
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.rpc("dispute_no_show", { p_booking_id: bookingId, p_note: note.trim().slice(0, 500) }),
+  ]);
   if (!user) return { ok: false, error: NO_SHOW_ERRORS["28000"] };
-
-  const { error } = await supabase.rpc("dispute_no_show", {
-    p_booking_id: bookingId,
-    p_note: note.trim().slice(0, 500),
-  });
   if (error) {
     return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "We couldn't send that. Please try again." };
   }

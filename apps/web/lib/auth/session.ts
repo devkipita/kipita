@@ -89,7 +89,7 @@ function synthesize(user: User): Profile {
  */
 export const getProfile = cache(async function getProfile(): Promise<Profile | null> {
   const supabase = await createClient();
-  const user = await getAuthUser();
+  const [user, ownResult] = await Promise.all([getAuthUser(), supabase.rpc("current_user_profile")]);
   if (!user) return null;
 
   const merge = (row: Profile): Profile => ({
@@ -108,7 +108,7 @@ export const getProfile = cache(async function getProfile(): Promise<Profile | n
   // users and never re-granted `email`/`phone`, so asking for PROFILE_COLUMNS
   // is denied for the entire table and this silently fell through to
   // synthesize(), whose id is the AUTH id rather than users.id.
-  const { data: own } = await supabase.rpc("current_user_profile");
+  const own = ownResult.data;
   const ownRow = Array.isArray(own) ? own[0] : own;
   if (ownRow) return merge(ownRow as Profile);
 

@@ -5,7 +5,7 @@ import styled from "styled-components";
 import { NavigationArrow } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { etaAction } from "@/lib/trips/journey-actions";
-import type { TripLocation } from "@/lib/trips/live";
+import { kmBetween, type TripLocation } from "@/lib/trips/live";
 
 const Body = styled.section`
   display: grid;
@@ -42,19 +42,47 @@ const Tag = styled.span`
   font-weight: 800;
 `;
 
-export function useLiveEta(loc: TripLocation | null, destination: string) {
-  const [eta, setEta] = useState<number | null>(null);
-  const asked = useRef(0);
+export type LegNow = { seconds: number; meters: number; at: number; fromLat: number; fromLng: number };
+
+export function useLiveLeg(loc: TripLocation | null, destination: string): LegNow | null {
+  const [leg, setLeg] = useState<LegNow | null>(null);
+  const asked = useRef({ at: 0, to: "", lat: 0, lng: 0 });
   useEffect(() => {
     if (!loc || !destination) return;
     const t = Date.now();
-    if (t - asked.current < 60000) return;
-    asked.current = t;
-    void etaAction(loc.lat, loc.lng, destination).then((s) => {
-      if (s != null) setEta(s);
+    const last = asked.current;
+    const elapsed = t - last.at;
+    const moved = kmBetween(last.lat, last.lng, loc.lat, loc.lng);
+    const due = last.to !== destination || elapsed >= 90000 || (elapsed >= 30000 && moved >= 0.1);
+    if (!due) return;
+    asked.current = { at: t, to: destination, lat: loc.lat, lng: loc.lng };
+    const from = { lat: loc.lat, lng: loc.lng };
+    void etaAction(loc.lat, loc.lng, destination).then((r) => {
+      if (r) setLeg({ seconds: r.seconds, meters: r.meters, at: Date.now(), fromLat: from.lat, fromLng: from.lng });
     });
   }, [loc, destination]);
-  return eta;
+  return leg;
+}
+
+export function legFromHere(leg: LegNow, car: { lat: number; lng: number }, target: { lat: number; lng: number }) {
+  const then = kmBetween(leg.fromLat, leg.fromLng, target.lat, target.lng);
+  const now = kmBetween(car.lat, car.lng, target.lat, target.lng);
+  const share = then < 0.05 ? 1 : Math.min(1.5, Math.max(0, now / then));
+  return { seconds: leg.seconds * share, meters: leg.meters * share };
+}
+
+export function useLiveEta(loc: TripLocation | null, destination: string) {
+  return useLiveLeg(loc, destination)?.seconds ?? null;
+}
+
+export function legDuration(seconds: number): { hours: number; minutes: number } {
+  const total = Math.max(1, Math.ceil(seconds / 60));
+  return { hours: Math.floor(total / 60), minutes: total % 60 };
+}
+
+export function legDistance(meters: number): string {
+  if (meters < 1000) return `${Math.max(10, Math.round(meters / 10) * 10)} m`;
+  return `${(meters / 1000).toFixed(meters < 10000 ? 1 : 0)} km`;
 }
 
 function since(iso: string, now: number) {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isCarSeats } from "@kipita/shared";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { PLATE_ERROR, isPlate } from "@/lib/home/plate";
 import type { GarageCar } from "@/lib/home/vehicle";
@@ -16,12 +17,7 @@ export type CarResult = { ok: true; car: GarageCar } | { ok: false; error: strin
 async function currentUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<string | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase.from("users").select("id").eq("auth_id", user.id).maybeSingle();
-  return (data?.id as string | undefined) ?? null;
+  return (await resolveAppUser(supabase)).id;
 }
 
 export async function saveCarAction(input: CarInput): Promise<CarResult> {

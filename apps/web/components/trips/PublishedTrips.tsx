@@ -10,7 +10,7 @@ import { tween } from "@/lib/motion";
 import { SITE } from "@/lib/site";
 import { Chip } from "@/components/ui/Chip";
 import { RollingNumber } from "@/components/ui/Counter";
-import { useShareLocation } from "@/lib/trips/live";
+import { PICKUP_WINDOW_MS, useShareLocation } from "@/lib/trips/live";
 import { useAppMode } from "@/components/nav/AppShell";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { useConfirm } from "@/components/ui/ConfirmPop";
@@ -342,6 +342,7 @@ export function PublishedTrips({
   const at = departureMs(hero);
   const until = at === null ? 0 : at - now;
   const startable = !held && (at === null || until <= START_WINDOW_MS);
+  const pickupSoon = !running && !held && hero.paid_seats > 0 && at !== null && until <= PICKUP_WINDOW_MS;
   const working = busy === hero.id;
   const booked = hero.paid_seats + hero.awaiting_payment;
 
@@ -460,7 +461,7 @@ export function PublishedTrips({
         actions={
           <>
             {primary}
-            {running && <ShareLocation tripId={hero.id} />}
+            {(running || pickupSoon) && <ShareLocation tripId={hero.id} />}
           </>
         }
         trailing={

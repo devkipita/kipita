@@ -9,7 +9,7 @@ const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function fetchAlertsServer(
-  opts: { limit?: number; category?: AlertCategory | null } = {},
+  opts: { limit?: number; category?: AlertCategory | null; viewerId?: string | null } = {},
 ): Promise<Alert[] | null> {
   try {
     const supabase = await createClient();

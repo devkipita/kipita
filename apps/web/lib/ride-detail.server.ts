@@ -48,12 +48,15 @@ export async function fetchRideDetail(
   if (!UUID.test(id)) return null;
 
   const supabase = await createClient();
+  if (hint === "request") return (await fetchRequest(supabase, id)) ?? fetchTrip(supabase, id);
+  if (hint === "trip") return (await fetchTrip(supabase, id)) ?? fetchRequest(supabase, id);
+
   const [trip, request] = await Promise.all([
     fetchTrip(supabase, id),
     fetchRequest(supabase, id),
   ]);
 
-  return hint === "request" ? (request ?? trip) : (trip ?? request);
+  return trip ?? request;
 }
 
 async function fetchTrip(supabase: Supabase, id: string): Promise<TripDetail | null> {

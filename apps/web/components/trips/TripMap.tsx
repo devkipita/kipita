@@ -119,6 +119,12 @@ const Frame = styled.div`
     position: absolute;
     left: 0;
     top: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .kp-me > .dot {
+    position: absolute;
     width: 18px;
     height: 18px;
     margin: -9px 0 0 -9px;
@@ -126,6 +132,30 @@ const Frame = styled.div`
     background: ${nocturne.accent};
     border: 3px solid ${nocturne.surface};
     box-shadow: 0 0 0 8px color-mix(in oklab, ${nocturne.accent} 22%, transparent);
+  }
+  .kp-me > .cone {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    margin: -36px 0 0 -36px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from -30deg,
+      color-mix(in oklab, ${nocturne.accent} 38%, transparent) 0deg,
+      transparent 60deg,
+      transparent 360deg
+    );
+    mask: radial-gradient(circle, transparent 8px, ${nocturne.cream} 9px, transparent 36px);
+    display: none;
+    transition: rotate ${dur.state} ${ease.standard};
+  }
+  .kp-me[data-heading] > .cone {
+    display: block;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kp-me > .cone {
+      transition: none;
+    }
   }
 `;
 
@@ -191,7 +221,9 @@ type Crowd = { sync: (list: MapPerson[]) => void };
 function escapeHtml(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 }
-type Spot = { set: (p: google.maps.LatLngLiteral) => void };
+type Spot = { set: (p: google.maps.LatLngLiteral) => void; face: (heading: number | null) => void };
+
+export type MapMe = { lat: number; lng: number; heading: number | null };
 
 function bearing(a: google.maps.LatLng, b: google.maps.LatLng) {
   const r = Math.PI / 180;
@@ -220,6 +252,7 @@ export default function TripMap({
   onboard = false,
   bare = false,
   people,
+  me,
 }: {
   polyline: string;
   car?: TripLocation | null;
@@ -233,6 +266,7 @@ export default function TripMap({
   onboard?: boolean;
   bare?: boolean;
   people?: MapPerson[];
+  me?: MapMe | null;
 }) {
   const crowdRef = useRef<Crowd | null>(null);
   const onboardRef = useRef(onboard);
@@ -416,6 +450,8 @@ export default function TripMap({
         const meEl = document.createElement("div");
         meEl.className = "kp-me";
         meEl.style.display = "none";
+        meEl.innerHTML = `<i class="cone"></i><i class="dot"></i>`;
+        const cone = meEl.firstElementChild as HTMLElement;
         const meView = new Html(meEl, null, "overlayMouseTarget");
         meView.setMap(map);
         meRef.current = {
@@ -423,6 +459,14 @@ export default function TripMap({
             meView.pos = new g.maps.LatLng(p);
             meEl.style.display = "block";
             meView.draw();
+          },
+          face(heading) {
+            if (heading == null) {
+              meEl.removeAttribute("data-heading");
+              return;
+            }
+            meEl.setAttribute("data-heading", "");
+            cone.style.rotate = `${heading}deg`;
           },
         };
 
@@ -453,9 +497,12 @@ export default function TripMap({
           },
         };
 
-        const bounds = new g.maps.LatLngBounds();
-        path.forEach((p) => bounds.extend(p));
-        const fit = () => map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
+        const fit = () => {
+          const bounds = new g.maps.LatLngBounds();
+          path.forEach((p) => bounds.extend(p));
+          extraRef.current.forEach((p) => bounds.extend(p));
+          map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
+        };
         fitRef.current = fit;
         fit();
         let lastW = hostRef.current.offsetWidth;
@@ -508,7 +555,61 @@ export default function TripMap({
     if (follow) mapRef.current?.panTo({ lat: car.lat, lng: car.lng });
   }, [car, ready, follow]);
 
+  const extraRef = useRef<google.maps.LatLngLiteral[]>([]);
+  extraRef.current = [
+    ...(car ? [{ lat: car.lat, lng: car.lng }] : []),
+    ...(me ? [{ lat: me.lat, lng: me.lng }] : []),
+  ];
+  const compass = useRef<number | null>(null);
+  const meNow = useRef<MapMe | null>(null);
+  meNow.current = me ?? null;
+  const tracking = me != null;
+
+  useEffect(() => {
+    if (!ready || !me) return;
+    meRef.current?.set({ lat: me.lat, lng: me.lng });
+    meRef.current?.face(compass.current ?? me.heading);
+  }, [ready, me]);
+
+  useEffect(() => {
+    if (!ready || !tracking) return;
+    let frame = 0;
+    const turn = (heading: number) => {
+      compass.current = heading;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => meRef.current?.face(heading));
+    };
+    const absolute = (e: DeviceOrientationEvent) => {
+      if (e.absolute && e.alpha != null) turn((360 - e.alpha) % 360);
+    };
+    const apple = (e: DeviceOrientationEvent) => {
+      const h = (e as DeviceOrientationEvent & { webkitCompassHeading?: number }).webkitCompassHeading;
+      if (h != null && Number.isFinite(h)) turn(h);
+    };
+    window.addEventListener("deviceorientationabsolute", absolute as EventListener);
+    window.addEventListener("deviceorientation", apple);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("deviceorientationabsolute", absolute as EventListener);
+      window.removeEventListener("deviceorientation", apple);
+      compass.current = null;
+    };
+  }, [ready, tracking]);
+
+  const framed = useRef("");
+  useEffect(() => {
+    if (!ready || follow) return;
+    const key = `${car ? "car" : ""}${me ? "me" : ""}`;
+    if (!key || framed.current === key) return;
+    framed.current = key;
+    fitRef.current?.();
+  }, [ready, car, me, follow]);
+
   function locate() {
+    if (meNow.current) {
+      mapRef.current?.panTo({ lat: meNow.current.lat, lng: meNow.current.lng });
+      return;
+    }
     if (!("geolocation" in navigator)) return;
     if (watchRef.current != null) {
       navigator.geolocation.clearWatch(watchRef.current);

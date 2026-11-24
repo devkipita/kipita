@@ -17,16 +17,13 @@ async function loadDone(tripId: string): Promise<Done | null> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("bookings")
-    .select("id, seats_booked, started_at, completed_at, passenger:users!passenger_id ( full_name )")
+    .select("id, seats_booked, started_at, completed_at, passenger:users!passenger_id ( full_name ), wallet_transactions ( amount )")
     .eq("trip_id", tripId)
-    .eq("status", "completed");
+    .eq("status", "completed")
+    .eq("wallet_transactions.type", "payout");
   if (error) return null;
   const rows = data ?? [];
-  const ids = rows.map((r) => r.id as string);
-  const payouts =
-    ids.length > 0
-      ? await supabase.from("wallet_transactions").select("amount").eq("type", "payout").in("booking_id", ids)
-      : { data: [], error: null };
+  const payouts = rows.flatMap((r) => (r.wallet_transactions as { amount: number }[] | null) ?? []);
   const starts = rows.map((r) => r.started_at as string | null).filter((v): v is string => !!v).sort();
   const ends = rows.map((r) => r.completed_at as string | null).filter((v): v is string => !!v).sort();
   const only = rows.length === 1 ? rows[0].passenger : null;
@@ -35,7 +32,7 @@ async function loadDone(tripId: string): Promise<Done | null> {
     passengerName: person?.full_name?.trim().split(" ")[0] ?? null,
     passengers: rows.length,
     seats: rows.reduce((sum, r) => sum + Number(r.seats_booked ?? 0), 0),
-    payout: payouts.error ? null : (payouts.data ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0),
+    payout: payouts.reduce((sum, p) => sum + Number(p.amount ?? 0), 0),
     startedAt: starts[0] ?? null,
     completedAt: ends[ends.length - 1] ?? null,
   };

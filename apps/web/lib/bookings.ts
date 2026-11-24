@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 
@@ -41,16 +42,9 @@ export async function reserveSeatAction(
   const requested = Math.max(1, Math.min(8, Math.floor(seats) || 1));
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, id: profileId } = await resolveAppUser(supabase);
   if (!user) return { ok: false, error: "Sign in to reserve a seat." };
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  const profile = profileId ? { id: profileId } : null;
   if (!profile) {
     return { ok: false, error: "Your profile isn't ready yet. Try again in a moment." };
   }
@@ -100,16 +94,5 @@ export async function reserveSeatAction(
 }
 
 export async function currentUserIdAction(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  return (data?.id as string) ?? null;
+  return (await resolveAppUser(await createClient())).id;
 }
