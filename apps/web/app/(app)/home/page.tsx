@@ -33,20 +33,17 @@ export default async function HomePage({
   const date = sp.date?.trim() ?? "";
   const seats = Math.min(8, Math.max(1, Number(sp.seats) || 1));
 
-  const [profile, supabase] = await Promise.all([getProfile(), createClient()]);
+  const search: Promise<Loaded> = createClient()
+    .then((supabase) => searchTrips(supabase, { from, to, date: date || null, seats }))
+    .then(
+      (items) => ({ items, failed: false }),
+      (error: unknown) => {
+        console.error("home search failed", error);
+        return { items: [], failed: true };
+      },
+    );
 
-  const loaded: Loaded = await searchTrips(supabase, {
-    from,
-    to,
-    date: date || null,
-    seats,
-  }).then(
-    (items) => ({ items, failed: false }),
-    (error: unknown) => {
-      console.error("home search failed", error);
-      return { items: [], failed: true };
-    },
-  );
+  const [profile, loaded] = await Promise.all([getProfile(), search]);
 
   return (
     <FindRideView

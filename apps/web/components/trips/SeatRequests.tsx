@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { AnimatePresence, m } from "motion/react";
@@ -13,7 +13,7 @@ import { useConfirm } from "@/components/ui/ConfirmPop";
 import { tween } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
-import { answerSeatRequestAction, seatRequestAction } from "@/lib/trips/request-actions";
+import { answerSeatRequestAction, seatRequestsAction } from "@/lib/trips/request-actions";
 import { useBookingStream } from "@/lib/trips/realtime";
 import type { Booking } from "@/lib/trips/types";
 
@@ -267,6 +267,9 @@ export function SeatRequests({
     return () => window.clearInterval(timer);
   }, []);
 
+  const arrivals = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(arrivals.current), []);
+
   const receive = useCallback((row: { id: string; status: string }, event: "INSERT" | "UPDATE") => {
     if (row.status !== "requested") {
       setItems((prev) => prev.filter((b) => b.id !== row.id));
@@ -274,10 +277,16 @@ export function SeatRequests({
     }
     if (event === "UPDATE") return;
 
-    void seatRequestAction(row.id).then((booking) => {
-      if (!booking) return;
-      setItems((prev) => (prev.some((b) => b.id === booking.id) ? prev : [booking, ...prev]));
-    });
+    window.clearTimeout(arrivals.current);
+    arrivals.current = window.setTimeout(() => {
+      void seatRequestsAction().then((fresh) => {
+        setItems((prev) => {
+          const known = new Set(prev.map((b) => b.id));
+          const added = fresh.filter((b) => !known.has(b.id)).reverse();
+          return added.length ? [...added, ...prev] : prev;
+        });
+      });
+    }, 250);
   }, []);
 
   useBookingStream(`seat-requests:${viewerId}`, viewerId ? `driver_id=eq.${viewerId}` : null, receive);

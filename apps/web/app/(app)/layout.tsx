@@ -19,6 +19,7 @@ export const viewport: Viewport = {
 };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
+  const openCases = fetchOpenSupportCases();
   const [profile, mode] = await Promise.all([getProfile(), readMode()]);
 
   if (profile) after(claimReferralFromCookie);
@@ -28,7 +29,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         createClient()
           .then((supabase) => fetchDriverKyc(supabase, profile.id))
           .catch(() => null),
-        fetchOpenSupportCases(),
+        openCases,
       ])
     : [null, []];
 

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { LIMITS, rateLimit, retryMessage } from "@/lib/security/rate-limit";
 import { MESSAGE_COLUMNS, type SupportMessage } from "./types";
@@ -18,20 +19,10 @@ const MIN_DETAIL = 10;
 async function resolveUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ userId: string } | { error: string }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, id } = await resolveAppUser(supabase);
   if (!user) return { error: "Sign in to contact support." };
-
-  const { data } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  if (!data) {
-    return { error: "Your profile isn't ready yet. Sign out and back in." };
-  }
-  return { userId: data.id as string };
+  if (!id) return { error: "Your profile isn't ready yet. Sign out and back in." };
+  return { userId: id };
 }
 
 /** The signed-in caller's `users.id`, needed before uploading an attachment. */
@@ -66,32 +57,18 @@ export async function openSupportCaseAction(input: {
   );
   if (!gate.ok) return { ok: false, error: retryMessage(gate.retryAfterMs) };
 
-  const { data, error } = await supabase
-    .from("support_cases")
-    .insert({
-      user_id: session.userId,
-      booking_id: input.bookingId ?? null,
-      category: input.category ?? "general",
-      subject,
-      detail,
-    })
-    .select("id")
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("open_support_case", {
+    p_subject: subject,
+    p_detail: detail,
+    p_category: input.category ?? "general",
+    p_booking_id: input.bookingId ?? null,
+  });
 
-  if (error || !data) {
+  if (error || typeof data !== "string") {
     return { ok: false, error: "We couldn't open that case. Please try again." };
   }
 
-  const caseId = data.id as string;
-
-  // The opening detail becomes the first message, so the thread reads in one
-  // place rather than hiding its first line in a column nothing renders.
-  await supabase.from("support_case_messages").insert({
-    case_id: caseId,
-    author_id: session.userId,
-    body: detail,
-  });
-
+  const caseId = data;
   revalidatePath("/trips");
   return { ok: true, id: caseId };
 }

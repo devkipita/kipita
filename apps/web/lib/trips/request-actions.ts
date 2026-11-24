@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
-import { fetchBooking, fetchSeatRequests } from "./server";
+import { fetchSeatRequests } from "./server";
 import type { Booking } from "./types";
 
 export type RequestDecision = "accept" | "decline";
@@ -58,14 +59,6 @@ export async function answerSeatRequestAction(
   return { ok: true, status: data?.status ?? "" };
 }
 
-export async function seatRequestAction(
-  bookingId: string,
-): Promise<Booking | null> {
-  const booking = await fetchBooking(bookingId).catch(() => null);
-  if (!booking || booking.status !== "requested") return null;
-  return booking;
-}
-
 export async function openSeatRequestIdsAction(
   bookingIds: string[],
 ): Promise<string[] | null> {
@@ -82,19 +75,8 @@ export async function openSeatRequestIdsAction(
 }
 
 export async function seatRequestsAction(): Promise<Booking[]> {
-  const supabase = await createClient();
+  const { id } = await resolveAppUser(await createClient());
+  if (!id) return [];
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle<{ id: string }>();
-  if (!profile) return [];
-
-  return fetchSeatRequests(profile.id);
+  return fetchSeatRequests(id);
 }

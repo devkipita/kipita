@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { alertSchema, commentSchema } from "@/lib/validators/home";
 import type { AlertInput } from "@/lib/validators/home";
@@ -24,19 +25,10 @@ const PROFILE_NOT_READY =
 async function resolveUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ userId: string } | { error: string }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, id } = await resolveAppUser(supabase);
   if (!user) return { error: "Sign in to post." };
-
-  const { data } = await supabase
-    .from("users")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  if (!data) return { error: PROFILE_NOT_READY };
-
-  return { userId: data.id as string };
+  if (!id) return { error: PROFILE_NOT_READY };
+  return { userId: id };
 }
 
 export async function createAlertAction(input: AlertInput): Promise<AlertResult> {

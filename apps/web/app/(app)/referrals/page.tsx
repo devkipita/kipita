@@ -10,13 +10,12 @@ export const metadata: Metadata = {
 };
 
 export default async function ReferralsPage() {
-  const profile = await getProfile();
-  if (!profile) redirect("/auth/sign-in?next=/referrals");
-
-  const [summary, entries] = await Promise.all([
+  const [profile, summary, entries] = await Promise.all([
+    getProfile(),
     fetchReferralSummary(),
     fetchReferrals(),
   ]);
+  if (!profile) redirect("/auth/sign-in?next=/referrals");
 
   return <ReferralView summary={summary} entries={entries} />;
 }

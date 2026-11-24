@@ -10,8 +10,7 @@ export const metadata = {
 };
 
 export default async function ConsoleLayout({ children }: { children: ReactNode }) {
-  const admin = await requireAdmin();
-  const counts = await loadSidebarCounts();
+  const [admin, counts] = await Promise.all([requireAdmin(), loadSidebarCounts()]);
 
   return (
     <ConsoleShell name={admin.full_name} image={admin.image} counts={counts}>

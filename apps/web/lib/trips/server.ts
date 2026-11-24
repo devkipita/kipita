@@ -84,25 +84,15 @@ async function fetchBookingsIn(
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("bookings")
-      .select(BOOKING_SELECT)
+      .select(`${BOOKING_SELECT}, ratings!ratings_booking_id_fkey ( score )`)
       .or(`passenger_id.eq.${userId},driver_id.eq.${userId}`)
       .in("status", states)
+      .eq("ratings.from_user_id", userId)
       .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error || !data) return [];
-    const bookings = data.map(toBooking);
-    const done = bookings.filter((b) => b.status === "completed").map((b) => b.id);
-    if (done.length > 0) {
-      const { data: rated } = await supabase
-        .from("ratings")
-        .select("booking_id, score")
-        .eq("from_user_id", userId)
-        .in("booking_id", done);
-      const scores = new Map((rated ?? []).map((r) => [r.booking_id as string, Number(r.score)]));
-      for (const b of bookings) if (b.status === "completed") b.my_rating = scores.get(b.id) ?? null;
-    }
-    return byDeparture(bookings);
+    return byDeparture(data.map(withMyRating));
   } catch {
     return [];
   }
@@ -163,30 +153,20 @@ type SeatTally = {
   riders: SeatRider[];
 };
 
-async function tallySeats(
-  tripIds: string[],
-): Promise<Map<string, SeatTally>> {
-  const tally = new Map<string, SeatTally>();
-  if (tripIds.length === 0) return tally;
+const LIVE_SEAT_STATES = ["requested", "pending_payment", "confirmed", "in_progress"];
 
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from("bookings")
-    .select("id, trip_id, seats_booked, total_price, status, created_at, passenger:users!passenger_id ( full_name, avatar_url )")
-    .in("trip_id", tripIds)
-    .in("status", ["requested", "pending_payment", "confirmed", "in_progress"]);
+function tallySeats(bookings: unknown): SeatTally {
+  const current: SeatTally = {
+    pending_requests: 0,
+    awaiting_payment: 0,
+    paid_seats: 0,
+    fares_paid: 0,
+    riders: [],
+  };
 
-  for (const raw of data ?? []) {
+  for (const raw of (bookings as unknown[] | null) ?? []) {
     const row = raw as Record<string, unknown>;
-    const tripId = row.trip_id as string;
     const seats = Number(row.seats_booked ?? 0);
-    const current = tally.get(tripId) ?? {
-      pending_requests: 0,
-      awaiting_payment: 0,
-      paid_seats: 0,
-      fares_paid: 0,
-      riders: [],
-    };
 
     const person = (Array.isArray(row.passenger) ? row.passenger[0] : row.passenger) as
       | { full_name: string | null; avatar_url: string | null }
@@ -207,11 +187,9 @@ async function tallySeats(
       current.paid_seats += seats;
       current.fares_paid += Number(row.total_price ?? 0);
     }
-
-    tally.set(tripId, current);
   }
 
-  return tally;
+  return current;
 }
 
 export async function fetchPublishedTrips(
@@ -221,7 +199,9 @@ export async function fetchPublishedTrips(
     const supabase = await createClient();
     const columns = `id, from_location, to_location, departure_date, departure_time,
          price_per_seat, seats_available, seats_total, status, from_lat, from_lng, to_lat, to_lng,
-         vehicle:vehicles!vehicle_id ( make, model, color, plate_number )`;
+         vehicle:vehicles!vehicle_id ( make, model, color, plate_number ),
+         bookings!bookings_ride_id_fkey ( id, seats_booked, total_price, status, created_at,
+           passenger:users!passenger_id ( full_name, avatar_url ) )`;
     const today = kenyaToday();
 
     const [open, running] = await Promise.all([
@@ -231,6 +211,7 @@ export async function fetchPublishedTrips(
         .eq("driver_id", userId)
         .in("status", ["posted", "active", "awaiting_approval"])
         .gte("departure_date", today)
+        .in("bookings.status", LIVE_SEAT_STATES)
         .order("departure_date", { ascending: true })
         .order("departure_time", { ascending: true })
         .limit(50),
@@ -239,6 +220,7 @@ export async function fetchPublishedTrips(
         .select(columns)
         .eq("driver_id", userId)
         .eq("status", "in_progress")
+        .in("bookings.status", LIVE_SEAT_STATES)
         .order("departure_date", { ascending: true })
         .limit(10),
     ]);
@@ -246,13 +228,11 @@ export async function fetchPublishedTrips(
     const rows = [...(running.data ?? []), ...(open.data ?? [])];
     if (rows.length === 0) return [];
 
-    const tally = await tallySeats(rows.map((raw) => (raw as { id: string }).id));
-
     return rows.map((raw) => {
       const row = raw as Record<string, unknown>;
       const total = Number(row.seats_total ?? 0);
       const left = Number(row.seats_available ?? 0);
-      const counts = tally.get(row.id as string);
+      const counts = tallySeats(row.bookings);
       return {
         id: row.id as string,
         from_location: (row.from_location as string) ?? "",
@@ -288,18 +268,54 @@ export function fetchPreviousBookings(userId: string): Promise<Booking[]> {
 export async function fetchBooking(id: string, viewerId?: string): Promise<Booking | null> {
   if (!UUID.test(id)) return null;
   const supabase = await createClient();
-  const [bookingRes, ratingRes] = await Promise.all([
-    supabase.from("bookings").select(BOOKING_SELECT).eq("id", id).maybeSingle(),
-    viewerId
-      ? supabase.from("ratings").select("score").eq("booking_id", id).eq("from_user_id", viewerId).maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
-  ]);
+  const query = supabase
+    .from("bookings")
+    .select(viewerId ? `${BOOKING_SELECT}, ratings!ratings_booking_id_fkey ( score )` : BOOKING_SELECT)
+    .eq("id", id);
+  const { data, error } = await (viewerId ? query.eq("ratings.from_user_id", viewerId) : query).maybeSingle();
 
-  if (bookingRes.error) throw new Error(`booking ${id}: ${bookingRes.error.code} ${bookingRes.error.message}`);
-  if (!bookingRes.data) return null;
-  const booking = toBooking(bookingRes.data);
+  if (error) throw new Error(`booking ${id}: ${error.code} ${error.message}`);
+  if (!data) return null;
+  return withMyRating(data);
+}
+
+function withMyRating(raw: unknown): Booking {
+  const booking = toBooking(raw);
   if (booking.status === "completed") {
-    booking.my_rating = ratingRes.data ? Number((ratingRes.data as { score: number }).score) : null;
+    const mine = one((raw as { ratings?: { score: number }[] | null }).ratings ?? null);
+    booking.my_rating = mine ? Number(mine.score) : null;
   }
   return booking;
+}
+
+const DETAIL_SELECT = `${BOOKING_SELECT},
+  boarded_at, boarded_method, cancel_tier, no_show_marked_at, no_show_disputed_at, cancelled_by,
+  payments ( escrow_status, release_due_at, created_at ),
+  booking_problems ( kind, status, outcome, created_at ),
+  wallet_transactions ( amount )`;
+
+export type BookingDetail = { booking: Booking; row: Record<string, unknown> };
+
+export async function fetchBookingDetail(id: string, viewerId?: string): Promise<BookingDetail | null> {
+  if (!UUID.test(id)) return null;
+  const supabase = await createClient();
+  let query = supabase
+    .from("bookings")
+    .select(viewerId ? `${DETAIL_SELECT}, ratings!ratings_booking_id_fkey ( score )` : DETAIL_SELECT)
+    .eq("id", id)
+    .eq("payments.status", "completed")
+    .order("created_at", { referencedTable: "payments", ascending: false })
+    .limit(1, { referencedTable: "payments" })
+    .eq("booking_problems.source", "passenger")
+    .order("created_at", { referencedTable: "booking_problems", ascending: false })
+    .limit(1, { referencedTable: "booking_problems" })
+    .eq("wallet_transactions.type", "payout")
+    .limit(1, { referencedTable: "wallet_transactions" });
+  if (viewerId) query = query.eq("ratings.from_user_id", viewerId);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(`booking ${id}: ${error.code} ${error.message}`);
+  if (!data) return null;
+  const row = data as unknown as Record<string, unknown>;
+  return { booking: withMyRating(row), row };
 }

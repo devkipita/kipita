@@ -316,11 +316,6 @@ export function AlertsView({
   }, [viewerId]);
 
   useEffect(() => {
-    if (!viewerId) return;
-    void load(0);
-  }, [viewerId, load]);
-
-  useEffect(() => {
     const onFocus = () => void revalidate();
     const onVisible = () => {
       if (document.visibilityState === "visible") void revalidate();

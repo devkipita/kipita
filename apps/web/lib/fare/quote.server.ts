@@ -63,7 +63,7 @@ export async function loadPriceQuote(
     /** seats offered, used to keep the class big enough */
     seats?: number;
   },
-  loaded?: VehicleClass[],
+  loaded?: VehicleClass[] | Promise<VehicleClass[]>,
 ): Promise<PriceQuote> {
   const fail = (reason: PriceUnavailableReason): PriceQuote => ({ available: false, reason });
 
@@ -71,7 +71,16 @@ export async function loadPriceQuote(
     const distanceKm = roadDistanceKm(args.from, args.to);
     if (distanceKm === null) return fail("no_route");
 
-    const classes = loaded ?? (await loadClasses(supabase));
+    const region = (resolveTown(args.from)?.name ?? args.from).trim().toLowerCase();
+    const [classes, { data, error }, platform] = await Promise.all([
+      loaded ?? loadClasses(supabase),
+      supabase
+        .from("fuel_prices")
+        .select("fuel_type, region, price_kes, effective_from, effective_to")
+        .in("region", Array.from(new Set([region, "nairobi"]))),
+      fetchPlatform(),
+    ]);
+
     const vehicle = pickVehicleClass(classes, {
       requested: args.vehicleClass,
       make: args.vehicleMake,
@@ -79,23 +88,17 @@ export async function loadPriceQuote(
       seats: args.seats,
     });
     if (!vehicle) return fail("error");
-
-    // Fuel is priced by the town the trip leaves from; Nairobi is the fallback.
-    const region = (resolveTown(args.from)?.name ?? args.from).trim().toLowerCase();
-    const { data, error } = await supabase
-      .from("fuel_prices")
-      .select("fuel_type, region, price_kes, effective_from, effective_to")
-      .eq("fuel_type", vehicle.fuelType)
-      .in("region", Array.from(new Set([region, "nairobi"])));
     if (error) return fail("not_ready");
 
-    const rows: FuelPriceRow[] = (data ?? []).map((r) => ({
-      fuelType: r.fuel_type as FuelType,
-      region: String(r.region),
-      priceKes: Number(r.price_kes),
-      effectiveFrom: String(r.effective_from),
-      effectiveTo: String(r.effective_to),
-    }));
+    const rows: FuelPriceRow[] = (data ?? [])
+      .filter((r) => r.fuel_type === vehicle.fuelType)
+      .map((r) => ({
+        fuelType: r.fuel_type as FuelType,
+        region: String(r.region),
+        priceKes: Number(r.price_kes),
+        effectiveFrom: String(r.effective_from),
+        effectiveTo: String(r.effective_to),
+      }));
 
     let fuel;
     try {
@@ -104,7 +107,6 @@ export async function loadPriceQuote(
       return fail("no_fuel_price");
     }
 
-    const platform = await fetchPlatform();
     return {
       available: true,
       distanceKm,
@@ -153,7 +155,9 @@ export async function checkTripPrice(
   // The car type is picked from the seats alone and must carry everyone, people riding along included.
   // This holds even when no price can be worked out, so a car that is too small is never let through
   // just because the fuel price is missing.
-  const classes = await loadClasses(supabase);
+  const loadingClasses = loadClasses(supabase);
+  const quoting = loadPriceQuote(supabase, args, loadingClasses);
+  const classes = await loadingClasses;
   const vehicle = pickVehicleClass(classes, {
     requested: args.vehicleClass,
     make: args.vehicleMake,
@@ -168,7 +172,7 @@ export async function checkTripPrice(
     return { ok: false, error: carSeatsText(args.carSeats, args.seats, args.othersAboard ?? 0) };
   }
 
-  const quote = await loadPriceQuote(supabase, args, classes);
+  const quote = await quoting;
   if (!quote.available) return { ok: true };
 
   let range;

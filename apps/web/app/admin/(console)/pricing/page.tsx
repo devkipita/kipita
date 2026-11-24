@@ -14,12 +14,12 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const PRICING_ACTIONS = new Set(["setting.update", "fuel.add", "vehicle_class.update"]);
+const PRICING_ACTIONS = ["setting.update", "fuel.add", "vehicle_class.update"];
 const PRICING_KEYS = new Set(Object.keys(SETTING_FALLBACKS));
 
 export default async function AdminPricingPage() {
   const supabase = await createClient();
-  const [{ data: rows }, fuel, classes, log] = await Promise.all([
+  const [{ data: rows }, fuel, classes, ...logs] = await Promise.all([
     supabase.from("platform_settings").select("key, value"),
     supabase
       .from("fuel_prices")
@@ -30,7 +30,7 @@ export default async function AdminPricingPage() {
       .from("vehicle_classes")
       .select("code, label, km_per_litre, fuel_type, active, sort_order")
       .order("sort_order", { ascending: true }),
-    loadAudit(undefined, 40),
+    ...PRICING_ACTIONS.map((action) => loadAudit(action, action === "setting.update" ? 40 : 10)),
   ]);
 
   const settings: PricingSettings = {
@@ -55,9 +55,12 @@ export default async function AdminPricingPage() {
     if (row.key in settings && Number.isFinite(value)) settings[row.key as keyof PricingSettings] = value;
   }
 
-  const pricingLog = (log.data ?? [])
-    .filter((r) => PRICING_ACTIONS.has(r.action) && (r.action !== "setting.update" || PRICING_KEYS.has(r.subject_id ?? "")))
+  const pricingLog = logs
+    .flatMap((log) => log.data ?? [])
+    .filter((r) => r.action !== "setting.update" || PRICING_KEYS.has(r.subject_id ?? ""))
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .slice(0, 10);
+  const logError = logs.find((log) => log.error)?.error ?? null;
 
   const fuelRows: FuelPriceRecord[] = (fuel.data ?? []).map((r) => ({
     id: r.id as string,
@@ -86,7 +89,7 @@ export default async function AdminPricingPage() {
       today={nairobiDate(new Date())}
       loadError={fuel.error?.message ?? classes.error?.message ?? null}
       log={pricingLog}
-      logError={log.error}
+      logError={logError}
     />
   );
 }

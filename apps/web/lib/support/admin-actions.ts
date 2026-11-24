@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { MESSAGE_COLUMNS, type SupportCaseStatus, type SupportMessage } from "./types";
 
@@ -15,19 +16,13 @@ const BODY_MAX = 2000;
 async function requireAdminId(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<{ id: string } | { error: string }> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [{ user, id }, { data: admin }] = await Promise.all([
+    resolveAppUser(supabase),
+    supabase.rpc("is_admin"),
+  ]);
   if (!user) return { error: "Sign in as an admin." };
-
-  const { data } = await supabase
-    .from("users")
-    .select("id, is_admin")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-
-  if (!data?.is_admin) return { error: "Admins only." };
-  return { id: data.id as string };
+  if (!id || admin !== true) return { error: "Admins only." };
+  return { id };
 }
 
 export async function adminReplyAction(

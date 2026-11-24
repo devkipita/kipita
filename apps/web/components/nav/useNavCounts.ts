@@ -63,20 +63,16 @@ async function unseenAlerts(userId: string): Promise<string[]> {
     const since = unseenWindowStart(Date.now()).toISOString();
     const { data: recent, error } = await supabase
       .from("announcements")
-      .select("id")
+      .select("id, alert_views ( alert_id )")
       .gt("created_at", since)
       .neq("user_id", userId)
+      .eq("alert_views.user_id", userId)
       .order("created_at", { ascending: false })
       .limit(100);
     if (error || !recent?.length) return [];
     const ids = recent.map((a) => a.id as string);
-    const { data: seen, error: seenError } = await supabase
-      .from("alert_views")
-      .select("alert_id")
-      .eq("user_id", userId)
-      .in("alert_id", ids);
-    if (seenError) return [];
-    return pickUnseen(ids, (seen ?? []).map((v) => v.alert_id as string));
+    const seen = recent.filter((a) => (a.alert_views as unknown[] | null)?.length).map((a) => a.id as string);
+    return pickUnseen(ids, seen);
   } catch {
     return [];
   }

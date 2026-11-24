@@ -51,28 +51,19 @@ async function signedIn() {
 export async function getBoardingStatusAction(
   tripId: string,
 ): Promise<{ ok: true; rows: BoardingRow[] } | Fail> {
-  const { supabase, user } = await signedIn();
-  if (!user) return { ok: false, error: SESSION };
-
+  const supabase = await createClient();
   const { data, error } = await supabase.rpc("trip_boarding_status", { p_trip_id: tripId });
   if (error) {
     return { ok: false, error: dbMessage(error.code, error.message, BOARD_ERRORS, "Couldn't load passengers.") };
   }
 
   const raw = (data ?? []) as Record<string, unknown>[];
-  const ids = [...new Set(raw.map((r) => r.passenger_id as string | null).filter((id): id is string => !!id))];
-  const avatars = new Map<string, string | null>();
-  if (ids.length) {
-    const { data: people } = await supabase.from("users").select("id, avatar_url").in("id", ids);
-    for (const p of people ?? []) avatars.set(p.id as string, (p.avatar_url as string | null) ?? null);
-  }
-
   const rows = raw.map(
     (r): BoardingRow => ({
       bookingId: r.booking_id as string,
       passengerId: (r.passenger_id as string | null) ?? null,
       passengerName: (r.passenger_name as string) || "Passenger",
-      avatarUrl: avatars.get(r.passenger_id as string) ?? null,
+      avatarUrl: (r.passenger_avatar_url as string | null) ?? null,
       seats: Number(r.seats_booked ?? 1),
       pickup: (r.pickup_location as string | null) ?? null,
       state: r.state as BoardingRow["state"],

@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { resolveAppUser } from "@/lib/auth/app-user";
 import { createClient } from "@/lib/supabase/server";
 import { fetchDriverKyc } from "@/lib/driver/kyc";
 import { MODE_COOKIE, MODE_MAX_AGE, type AppMode } from "./mode";
@@ -21,19 +22,10 @@ export async function setModeAction(next: AppMode): Promise<ModeResult> {
 
   if (mode === "driver") {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { ok: false, reason: "auth" };
+    const { id } = await resolveAppUser(supabase);
+    if (!id) return { ok: false, reason: "auth" };
 
-    const { data: me } = await supabase
-      .from("users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
-    if (!me) return { ok: false, reason: "auth" };
-
-    const kyc = await fetchDriverKyc(supabase, me.id);
+    const kyc = await fetchDriverKyc(supabase, id);
     if (!kyc.hasApplied) return { ok: false, reason: "kyc_required" };
   }
 

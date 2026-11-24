@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getProfile } from "@/lib/auth/session";
+import { getAuthUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { etaBetween } from "@/lib/maps/routes.server";
 
@@ -71,8 +71,8 @@ export async function contactPhoneAction(bookingId: string): Promise<Result<stri
 }
 
 export async function etaAction(lat: number, lng: number, destination: string): Promise<number | null> {
-  const profile = await getProfile();
-  if (!profile || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (!(await getAuthUser())) return null;
   return etaBetween(`${lat.toFixed(2)},${lng.toFixed(2)}`, destination);
 }
 
