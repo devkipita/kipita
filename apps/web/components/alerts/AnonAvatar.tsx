@@ -7,25 +7,18 @@ import {
   ANON_AVATAR_SHAPES,
   anonAvatarFor,
 } from "@kipita/shared";
-import { chipColors, type ChipTone } from "@/components/ui/Chip";
+import type { ToneName } from "@/lib/theme";
 
 /**
  * The picture beside a name on a road alert or a reply. It is drawn from the
  * person's id (see `anonAvatarFor`), never from their photo, so it is the same
  * every time and reveals nothing.
  *
- * Colours come from the theme's tone containers, so they follow light and dark.
- * Error, warning-red and neutral are left out: red reads as an accident, and the
- * neutral one disappears into a card.
+ * Colours are the theme's own tone pairs (`theme.tone`), the same pastels the help
+ * and landing cards use, so they read on both the light and the dark card. Red is
+ * left out on purpose: it would look like an accident alert.
  */
-const TONES: ReadonlyArray<ChipTone> = [
-  "primary",
-  "secondary",
-  "tertiary",
-  "success",
-  "warning",
-  "info",
-];
+const TONES: ReadonlyArray<ToneName> = ["green", "blue", "peach", "lav", "tan", "lime"];
 
 const BG = "var(--anon-bg)";
 const FG = "var(--anon-fg)";
@@ -68,12 +61,12 @@ if (TONES.length !== ANON_AVATAR_PALETTES || SHAPES.length !== ANON_AVATAR_SHAPE
 
 // The colours travel as custom properties, not `color`, so a parent rule such as
 // `.author svg { color: ... }` cannot repaint the shape.
-const Svg = styled.svg<{ $tone: ChipTone }>`
+const Svg = styled.svg<{ $tone: ToneName }>`
   display: block;
   flex: none;
   border-radius: 50%;
-  --anon-bg: ${({ theme, $tone }) => chipColors(theme, $tone, false).bg};
-  --anon-fg: ${({ theme, $tone }) => chipColors(theme, $tone, false).ink};
+  --anon-bg: ${({ theme, $tone }) => theme.tone[$tone].bg};
+  --anon-fg: ${({ theme, $tone }) => theme.tone[$tone].on};
   background: var(--anon-bg);
 `;
 
