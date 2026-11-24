@@ -34,11 +34,18 @@ const Shell = styled.article`
 
   @media (hover: hover) and (pointer: fine) {
     &:has(.title:hover) {
-      box-shadow: inset 0 0 0 999px color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+      box-shadow: inset 0 0 0 1px ${({ theme }) => theme.color.outlineVariant};
     }
+    &:has(.title:hover) h3 {
+      color: ${nocturne.accent};
+    }
+  }
+  h3 {
+    transition: color ${dur.state} ${ease.standard};
   }
   &:has(.title:active) {
     transform: scale(0.98);
+    box-shadow: inset 0 0 0 1px ${({ theme }) => theme.color.outline};
   }
 
   @media (prefers-reduced-motion: reduce) {

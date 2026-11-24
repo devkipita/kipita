@@ -97,7 +97,7 @@ export const Chip = styled.button<{ $tone?: ChipTone; $selected?: boolean }>`
   }
 `;
 
-export const IconAction = styled.button<{ $on?: boolean; $tone?: string }>`
+export const IconAction = styled.button<{ $on?: boolean; $tone?: string; $fill?: string; $ink?: string; $large?: boolean }>`
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -144,6 +144,53 @@ export const IconAction = styled.button<{ $on?: boolean; $tone?: string }>`
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
+
+  ${({ $large, $on, $tone }) =>
+    $large
+      ? css`
+          @media (min-width: 900px) {
+            gap: 8px;
+            min-width: 44px;
+            min-height: 44px;
+            padding: 0 12px;
+            font-size: 16px;
+            font-weight: 700;
+            color: ${$on && $tone ? $tone : nocturne.cream};
+
+            svg {
+              width: 24px;
+              height: 24px;
+              color: ${$on && $tone ? "inherit" : nocturne.muted};
+            }
+          }
+          @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) svg {
+              color: inherit;
+            }
+          }
+        `
+      : ""}
+
+  ${({ $fill, $ink }) =>
+    $fill
+      ? css`
+          @media (hover: hover) and (pointer: fine) {
+            &:hover:not(:disabled) {
+              background-color: ${$fill};
+              color: ${$ink ?? nocturne.cream};
+              --icon-knockout: ${$fill};
+            }
+            &:hover:not(:disabled) svg {
+              color: inherit;
+            }
+          }
+          &:active:not(:disabled) {
+            background-color: ${$fill};
+            color: ${$ink ?? nocturne.cream};
+            --icon-knockout: ${$fill};
+          }
+        `
+      : ""}
 
   @media (prefers-reduced-motion: reduce) {
     &:active:not(:disabled) {
