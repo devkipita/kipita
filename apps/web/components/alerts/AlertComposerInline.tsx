@@ -12,7 +12,7 @@ import {
   X,
 } from "@/components/icons";
 import { findNearestTown } from "@kipita/shared";
-import { Avatar } from "@/components/profile/Avatar";
+import { AnonAvatar } from "./AnonAvatar";
 import { Collapse } from "@/components/anim/Collapse";
 import { Notice } from "@/components/ui/primitives";
 import { Popover, PopoverItem } from "@/components/ui/Popover";
@@ -405,7 +405,7 @@ export function AlertComposerInline({
   return (
     <Shell aria-label="Post a road alert">
       <TopRow>
-        <Avatar name={profile.full_name || "You"} src={profile.avatar_url} size={40} />
+        <AnonAvatar id={profile.id} size={40} />
         <Input
           ref={inputRef}
           rows={1}

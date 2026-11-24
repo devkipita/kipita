@@ -12,6 +12,7 @@ export * from "./cancellation";
 export * from "./unseen-alerts";
 export * from "./alert-status";
 export * from "./person-name";
+export * from "./anon-avatar";
 export * from "./kenya-time";
 export * from "./reconcile";
 export * from "./payout-file";

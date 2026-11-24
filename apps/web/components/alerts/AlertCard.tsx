@@ -19,6 +19,7 @@ import { AlertActions } from "./AlertActions";
 import { AlertEditor } from "./AlertEditor";
 import { AlertOwnerMenu } from "./AlertOwnerMenu";
 import { VerifiedMark } from "./VerifiedMark";
+import { AnonAvatar } from "./AnonAvatar";
 import { ClearedTag } from "./ClearedTag";
 import { useIsUnseenAlert } from "@/lib/alerts/unseen";
 import { alertStatus } from "@/lib/alerts/status";
@@ -365,6 +366,7 @@ export function AlertCard({
         <Text data-cleared={cleared}>{body}</Text>
 
         <Author>
+          <AnonAvatar id={alert.user?.id} size={24} />
           <span className="name">{author}</span>
           <VerifiedMark verified={alert.user?.is_verified} />
           {alert.user?.trusted_reporter && (

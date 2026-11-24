@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styled from "styled-components";
 import { CaretDown, ImageSquare, Lock, PaperPlaneTilt as Send, Smiley, X } from "@/components/icons";
-import { Avatar } from "@/components/profile/Avatar";
+import { AnonAvatar } from "./AnonAvatar";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { IconAction } from "@/components/ui/Chip";
 import { Popover } from "@/components/ui/Popover";
@@ -690,7 +690,7 @@ export function AlertReplies({
         </Attached>
       )}
       <Row>
-        <Avatar name={profile.full_name} src={profile.avatar_url} size={32} />
+        <AnonAvatar id={profile.id} size={32} />
         <Field>
           <textarea
             ref={fieldRef}

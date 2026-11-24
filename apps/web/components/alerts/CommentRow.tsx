@@ -5,7 +5,7 @@ import Image from "next/image";
 import styled from "styled-components";
 import { m } from "motion/react";
 import { ArrowClockwise, Check, Copy, DotsThree, HeartSmall, ShareForward, TextSelect, Trash, X } from "@/components/icons";
-import { Avatar } from "@/components/profile/Avatar";
+import { AnonAvatar } from "./AnonAvatar";
 import { shortName } from "@kipita/shared";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { IconAction } from "@/components/ui/Chip";
@@ -390,7 +390,7 @@ export function CommentRow({
       initial={outgoing ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0, transition: tween.enter }}
     >
-      <Avatar name={author} src={comment.user?.avatar_url} size={nested ? 24 : 32} />
+      <AnonAvatar id={comment.user?.id} size={nested ? 24 : 32} />
       <Body>
         <span className="who">
           <span className="name">{author}</span>
