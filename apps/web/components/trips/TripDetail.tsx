@@ -1982,6 +1982,7 @@ export function TripDetail({
               follow={live}
               padding={mapPad}
               onboard={live && !isDriver}
+              me={pickupSoon && !live ? pickupShare.here : null}
             />
           )}
         </MapPane>

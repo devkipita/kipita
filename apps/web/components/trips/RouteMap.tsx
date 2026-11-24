@@ -5,7 +5,7 @@ import { Suspense, use } from "react";
 import { Shimmer } from "@/components/ui/Shimmer";
 import type { TripRoute } from "@/lib/maps/types";
 import type { TripLocation } from "@/lib/trips/live";
-import type { MapPerson } from "./TripMap";
+import type { MapMe, MapPerson } from "./TripMap";
 
 const TripMap = dynamic(() => import("./TripMap"), {
   ssr: false,
@@ -23,6 +23,7 @@ type Props = {
   onboard?: boolean;
   bare?: boolean;
   people?: MapPerson[];
+  me?: MapMe | null;
 };
 
 function short(secs: number) {

@@ -89,8 +89,11 @@ export type PickupLocation = {
   updated_at: string;
 };
 
+export type Here = { lat: number; lng: number; heading: number | null };
+
 export function useSharePickup(bookingId: string, active: boolean) {
   const [state, setState] = useState<ShareState>("off");
+  const [here, setHere] = useState<Here | null>(null);
   const watch = useRef<number | null>(null);
   const last = useRef(0);
 
@@ -110,10 +113,12 @@ export function useSharePickup(bookingId: string, active: boolean) {
     watch.current = navigator.geolocation.watchPosition(
       (pos) => {
         setState((s) => (s === "failed" ? s : "on"));
+        const { latitude, longitude, accuracy, heading, speed } = pos.coords;
+        const moving = speed != null && speed > 0.5 && heading != null && Number.isFinite(heading);
+        setHere({ lat: latitude, lng: longitude, heading: moving ? heading : null });
         const now = Date.now();
         if (now - last.current < 10000) return;
         last.current = now;
-        const { latitude, longitude, accuracy } = pos.coords;
         void supabase
           .rpc("share_pickup_location", {
             p_booking_id: bookingId,
@@ -142,11 +147,12 @@ export function useSharePickup(bookingId: string, active: boolean) {
     else {
       stop();
       setState("off");
+      setHere(null);
     }
     return stop;
   }, [active, start, stop]);
 
-  return { state, retry: start };
+  return { state, here, retry: start };
 }
 
 export function usePickupLocations(tripId: string | null, enabled: boolean) {

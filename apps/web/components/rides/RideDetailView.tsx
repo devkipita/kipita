@@ -928,7 +928,6 @@ export function RideDetailView({
   const searchHref = routeSearch(ride.from_location, ride.to_location, isTrip ? undefined : ride.seats_needed);
 
   const ended = isTrip && closed ? phase : null;
-  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && phase === "in_progress");
   const board = useBoarding(isTrip ? ride.id : null, ownerView && !awaiting);
   const pickups = usePickupLocations(isTrip ? ride.id : null, ownerView && !awaiting);
   const people = board.rows
@@ -955,6 +954,7 @@ export function RideDetailView({
   }, [ownerView, awaiting, leavesMs]);
   const pickupSoon =
     ownerView && !awaiting && board.summary.waiting > 0 && clock > 0 && clock >= leavesMs - PICKUP_WINDOW_MS;
+  const carLoc = useTripLocation(isTrip ? ride.id : null, isOwn && isTrip && (phase === "in_progress" || pickupSoon));
   const endedLabel =
     ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
   const endedLead = !ended
