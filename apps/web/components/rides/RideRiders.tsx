@@ -329,7 +329,7 @@ async function loadRiders(tripId: string, viewerId: string, live: boolean): Prom
   });
 }
 
-function ShareMine({ tripId }: { tripId: string }) {
+export function ShareMine({ tripId }: { tripId: string }) {
   const { state, retry } = useShareLocation(tripId, true);
   if (state !== "denied" && state !== "failed") return null;
   return (

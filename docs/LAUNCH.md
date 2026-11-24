@@ -96,8 +96,9 @@ Fill this from the live database (`pg_tables`, `pg_proc`), not from `supabase_mi
 | 083 chat from booking | — | — | applied to the dev DB 24 Nov 2026; `booking_conversation` and `conversation_open` accept unpaid seats, grants unchanged |
 | 085 payout lookup index | — | — | applied to the dev DB 24 Nov 2026; partial index on `wallet_transactions (booking_id) WHERE type = 'payout'` |
 | 084 pickup location | — | — | applied to the dev DB 24 Nov 2026; `pickup_locations` with RLS (passenger and driver read), `share_pickup_location` authenticated only, clear-on-board trigger, in `supabase_realtime` |
-| 086 six-hour chat on accept | — | — | applied to the dev DB 24 Nov 2026 outside the repo; file recovered from `supabase_migrations` byte for byte. Drops `pickup_locations` and `share_pickup_location`, which `apps/web/lib/trips/live.ts` still calls |
+| 086 six-hour chat on accept | — | — | applied to the dev DB 24 Nov 2026 outside the repo; file recovered from `supabase_migrations` byte for byte. Its pickup-location removal is reversed by 091 |
 | 087–090 batch settings, boarding avatar, sidebar counts, open support case | — | — | applied to the dev DB 24 Nov 2026; four functions present, anon has no execute, `trip_boarding_status` returns `passenger_avatar_url` |
+| 091 live location both ways | — | — | applied to the dev DB 24 Nov 2026; `pickup_locations` back with RLS and in `supabase_realtime`; passenger and driver share from 20 minutes before departure on a paid booking, until the trip ends; cleared when the booking leaves confirmed or in progress; purge keeps pre-departure driver positions |
 
 ## Design drift
 

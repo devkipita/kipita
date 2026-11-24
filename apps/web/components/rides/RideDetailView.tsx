@@ -46,9 +46,9 @@ import { VerifyStatusCard } from "@/components/publish/VerifyStatus";
 import { useMorphNavigate } from "@/lib/ui/viewTransition";
 import { MapSheet, useSplitLayout } from "@/components/trips/MapSheet";
 import { PersonCard } from "./PersonCard";
-import { RideRiders } from "./RideRiders";
+import { RideRiders, ShareMine } from "./RideRiders";
 import { RideFinish } from "./RideFinish";
-import { usePickupLocations, useTripLocation } from "@/lib/trips/live";
+import { PICKUP_WINDOW_MS, usePickupLocations, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "@/components/trips/RouteMap";
 import type { TripRoute } from "@/lib/maps/types";
 import { BookPanel, RULE } from "./RideLayout";
@@ -943,6 +943,18 @@ export function RideDetailView({
   const [shownChat, setShownChat] = useState<BoardingRow | null>(null);
   if (chatWith && chatWith !== shownChat) setShownChat(chatWith);
   const ready = ownerView && !awaiting && board.summary.loaded && board.rows.length > 0 && board.summary.waiting === 0;
+  const leavesMs = isTrip && ride.departure_date
+    ? Date.parse(`${ride.departure_date}T${(ride.departure_time ?? "23:59").slice(0, 5)}:00+03:00`)
+    : Number.NaN;
+  const [clock, setClock] = useState(0);
+  useEffect(() => {
+    if (!ownerView || awaiting || !Number.isFinite(leavesMs)) return;
+    setClock(Date.now());
+    const timer = window.setInterval(() => setClock(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [ownerView, awaiting, leavesMs]);
+  const pickupSoon =
+    ownerView && !awaiting && board.summary.waiting > 0 && clock > 0 && clock >= leavesMs - PICKUP_WINDOW_MS;
   const endedLabel =
     ended === "completed" ? "Completed" : ended === "cancelled" ? "Cancelled" : ended === "in_progress" ? "On the road" : "Not taking bookings";
   const endedLead = !ended
@@ -1153,6 +1165,8 @@ export function RideDetailView({
       )}
 
       <Stack>
+        {pickupSoon && <ShareMine tripId={ride.id} />}
+
         {ownerView && !awaiting && !split && (
           <BoardingPanel tripId={ride.id} board={board} always onMessage={setChatWith} />
         )}

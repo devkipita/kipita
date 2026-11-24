@@ -13,7 +13,7 @@ import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
 import { LiveStatus, useLiveEta } from "./LiveCard";
 import { placeKey } from "@/lib/maps/types";
-import { useSharePickup, useTripLocation } from "@/lib/trips/live";
+import { PICKUP_WINDOW_MS, useSharePickup, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "./RouteMap";
 
 const ChatPanel = dynamic(() => import("./ChatSheet"), { ssr: false });
@@ -1093,8 +1093,6 @@ export function TripDetail({
   const split = wide && hasMap;
   const roomy = useRoomy();
   const [timelineOpen, setTimelineOpen] = useState(false);
-  const loc = useTripLocation(booking.trip_id, live && !isDriver);
-  const eta = useLiveEta(loc, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
 
   const [snap, setSnap] = useState<Snap>("half");
   const [mapPad, setMapPad] = useState<google.maps.Padding | undefined>(undefined);
@@ -1123,8 +1121,10 @@ export function TripDetail({
   }, [paid, live, booking.status]);
 
   const pickupSoon =
-    !isDriver && paid && !!journey.code && departsAt != null && nowMs >= departsAt.getTime() - 30 * 60 * 1000;
+    !isDriver && paid && !!journey.code && departsAt != null && nowMs >= departsAt.getTime() - PICKUP_WINDOW_MS;
   const pickupShare = useSharePickup(booking.id, pickupSoon);
+  const loc = useTripLocation(booking.trip_id, (live || pickupSoon) && !isDriver);
+  const eta = useLiveEta(live ? loc : null, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
 
   const paidAtDate = booking.paid_at ? new Date(booking.paid_at) : null;
   const freeEnds = departsAt && paidAtDate ? freeUntil(departsAt, paidAtDate, cancelConfig) : null;
@@ -1686,7 +1686,7 @@ export function TripDetail({
               <Settled $pending={!pickupSoon || pickupShare.state !== "on"}>
                 <NavigationArrow size={20} weight="fill" aria-hidden />
                 {!pickupSoon
-                  ? `${firstName} sees where you are from 30 minutes before the ride`
+                  ? `You and ${firstName} see each other on the map from 20 minutes before the ride`
                   : pickupShare.state === "on"
                     ? `${firstName} can see where you are`
                     : pickupShare.state === "unsupported"

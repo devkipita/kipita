@@ -15,6 +15,8 @@ export type TripLocation = {
 
 export type ShareState = "off" | "on" | "denied" | "unsupported" | "failed";
 
+export const PICKUP_WINDOW_MS = 20 * 60 * 1000;
+
 export function useShareLocation(tripId: string, running: boolean) {
   const [state, setState] = useState<ShareState>("off");
   const watch = useRef<number | null>(null);
