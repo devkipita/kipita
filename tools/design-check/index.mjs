@@ -18,6 +18,9 @@ function offGrid(line) {
   return values.some((v) => v > 2 && v % 4 !== 0);
 }
 
+const GENERIC_TITLE = /<h1\b[^>]*>\s*(?:Trip|Ride|Details|Booking|Overview|Page|Info)\s*<\/h1>/;
+const ACTION_VERB = /^(?:Share|Cancel|Message|Call|Report|Pay|Copy|Delete|Remove|Book|Start|End|Decline|Accept|Rate) \w/;
+
 const LINE_RULES = [
   {
     id: "hex",
@@ -389,6 +392,32 @@ function checkFile(rel) {
   });
   const mixins = stateMixins(text);
   for (const match of text.matchAll(TEMPLATE_START)) checkTemplate(rel, text, match, push, mixins);
+  lines.forEach((line, i) => {
+    if (GENERIC_TITLE.test(line)) {
+      push(i + 1, "generic-title", "Page heading names nothing. Lead with the specifics: the route, the person, the amount.");
+    }
+  });
+  const iconOnly = new Map();
+  const spoken = new Map();
+  const note = (map, label, at) => map.set(label, [...(map.get(label) ?? []), at]);
+  lines.forEach((line, i) => {
+    for (const [, plain, expr] of line.matchAll(/aria-label=(?:"([^"]+)"|\{([^}]*)\})/g)) {
+      const labels = plain ? [plain] : [...(expr ?? "").matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+      for (const label of labels) if (ACTION_VERB.test(label)) note(iconOnly, label, i + 1);
+    }
+    if (/<h[1-6]\b/.test(line)) return;
+    const texts = [
+      ...[...line.matchAll(/>\s*([A-Z][a-z]+(?: [a-z]+){1,3})\s*</g)].map((x) => x[1]),
+      ...[...line.matchAll(/[?:]\s*"([A-Z][a-z]+(?: [a-z]+){1,3})"/g)].map((x) => x[1]),
+      ...(/^\s*([A-Z][a-z]+(?: [a-z]+){1,3})\s*$/.test(line) ? [line.trim()] : []),
+    ];
+    if (/aria-label=|title=/.test(line)) return;
+    for (const label of new Set(texts)) if (ACTION_VERB.test(label)) note(spoken, label, i + 1);
+  });
+  for (const [label, at] of iconOnly) {
+    const total = at.length + (spoken.get(label)?.length ?? 0);
+    if (total > 1) push(at[at.length - 1], "duplicate-action", `"${label}" is offered ${total} times. One control per job.`);
+  }
   if (/\/page\.tsx$/.test(rel) && !/<Suspense\b/.test(text)) {
     const start = text.search(/export\s+default\s+async\s+function\b/);
     if (start >= 0) {

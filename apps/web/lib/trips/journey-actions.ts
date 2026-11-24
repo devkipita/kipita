@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAuthUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
-import { etaBetween } from "@/lib/maps/routes.server";
+import { legBetween, type LiveLeg } from "@/lib/maps/routes.server";
 
 type Result<T = undefined> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -70,9 +70,9 @@ export async function contactPhoneAction(bookingId: string): Promise<Result<stri
   return { ok: true, value: data as string };
 }
 
-export async function etaAction(lat: number, lng: number, destination: string): Promise<number | null> {
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+export async function etaAction(lat: number, lng: number, destination: string): Promise<LiveLeg | null> {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !destination) return null;
   if (!(await getAuthUser())) return null;
-  return etaBetween(`${lat.toFixed(2)},${lng.toFixed(2)}`, destination);
+  return legBetween(`${lat.toFixed(3)},${lng.toFixed(3)}`, destination);
 }
 

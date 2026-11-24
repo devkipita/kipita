@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import styled, { keyframes } from "styled-components";
-import { CheckCircle, QuestionCircle } from "@/components/icons";
+import { CaretDown, CheckCircle, Lifebuoy, QuestionCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { ButtonEl, Notice } from "@/components/ui/primitives";
 import { Chip } from "@/components/ui/Chip";
@@ -14,14 +14,28 @@ import { ButtonOrb } from "@/components/ui/ButtonOrb";
 
 const Card = styled.section`
   display: grid;
-  gap: 14px;
+  gap: 16px;
+
+  @media (min-width: 900px) {
+    .toggle {
+      display: none;
+    }
+  }
+  @media (max-width: 899px) {
+    .desk-title {
+      display: none;
+    }
+    &:not([data-open="true"]) .options {
+      display: none;
+    }
+  }
 
   h2 {
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(21px, 2.2vw, 26px);
+    font-size: 18px;
     font-weight: 800;
-    letter-spacing: -0.028em;
+    letter-spacing: -0.02em;
     color: ${nocturne.cream};
   }
   > p {
@@ -39,6 +53,63 @@ const Chips = styled.div`
   gap: 8px;
 `;
 
+const HelpRow = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 16px;
+  background: ${nocturne.surface};
+  color: ${nocturne.cream};
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  > svg:first-child {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+  > span {
+    flex: 1;
+    min-width: 0;
+  }
+  > svg:last-child {
+    flex: none;
+    color: ${nocturne.muted};
+    transition: rotate ${dur.state} ${ease.standard};
+  }
+  &[aria-expanded="true"] > svg:last-child {
+    rotate: 180deg;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
 const unfold = keyframes`
   from { opacity: 0; transform: translateY(-10px) scaleY(0.92); }
   to { opacity: 1; transform: none; }
@@ -46,7 +117,7 @@ const unfold = keyframes`
 
 const Form = styled.div`
   display: grid;
-  gap: 10px;
+  gap: 12px;
   transform-origin: top center;
   animation: ${unfold} ${dur.enter} ${ease.enter};
 
@@ -60,7 +131,7 @@ const Form = styled.div`
     border: 1.5px solid
       color-mix(in oklab, var(--n-accent) 58%, transparent);
     border-radius: 12px;
-    padding: 13px 15px;
+    padding: 12px 16px;
     background: ${nocturne.surface};
     color: ${nocturne.cream};
     caret-color: ${nocturne.accent};
@@ -68,7 +139,7 @@ const Form = styled.div`
     font-size: 16px;
     line-height: 1.55;
     resize: vertical;
-    transition: border-color 0.16s ease;
+    transition: border-color ${dur.state} ${ease.standard};
   }
   textarea::placeholder {
     color: ${nocturne.muted2};
@@ -112,6 +183,7 @@ export function TripHelp({ booking, viewer }: { booking: Booking; viewer: HelpVi
   const [detail, setDetail] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [opened, setOpened] = useState(false);
 
   const existing = open.find((c) => c.booking_id === booking.id) ?? null;
   const topics = HELP_TOPICS.filter((t) => t.viewers.includes(viewer));
@@ -152,10 +224,21 @@ export function TripHelp({ booking, viewer }: { booking: Booking; viewer: HelpVi
   }
 
   return (
-    <Card>
-      <h2>Report a problem</h2>
+    <Card data-open={opened}>
+      <h2 className="desk-title">Something wrong?</h2>
+      <HelpRow
+        className="toggle"
+        type="button"
+        aria-expanded={opened}
+        aria-controls={`help-${booking.id}`}
+        onClick={() => setOpened((o) => !o)}
+      >
+        <Lifebuoy size={24} aria-hidden />
+        <span>Something wrong? Get help</span>
+        <CaretDown size={20} aria-hidden />
+      </HelpRow>
 
-      <Chips role="group" aria-label="What went wrong?">
+      <Chips className="options" id={`help-${booking.id}`} role="group" aria-label="What went wrong?">
         {topics.map((t) => {
           const Icon = t.icon;
           const selected = topic === t.key;
@@ -176,7 +259,7 @@ export function TripHelp({ booking, viewer }: { booking: Booking; viewer: HelpVi
       </Chips>
 
       {chosen && (
-        <Form>
+        <Form className="options">
           {error && <Notice $variant="error">{error}</Notice>}
           <textarea
             value={detail}

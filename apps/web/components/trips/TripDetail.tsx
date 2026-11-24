@@ -3,22 +3,23 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import styled, { css, keyframes } from "styled-components";
-import { ArrowLeft, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareForward, Star, X } from "@/components/icons";
+import styled, { css } from "styled-components";
+import { ArrowLeft, CalendarBlank, CarProfile, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, NavigationArrow, Phone, SealCheck, ShareForward, Star, Ticket, Users, X } from "@/components/icons";
 import { contactPhoneAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { reportProblemAction } from "@/lib/trips/boarding-actions";
 import type { ProblemKind } from "@/lib/trips/problems";
 import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
-import { LiveStatus, useLiveEta } from "./LiveCard";
+import { LiveStatus, legDistance, legDuration, legFromHere, useLiveEta, useLiveLeg } from "./LiveCard";
 import { placeKey } from "@/lib/maps/types";
-import { PICKUP_WINDOW_MS, useSharePickup, useTripLocation } from "@/lib/trips/live";
+import { PICKUP_WINDOW_MS, kmBetween, useSharePickup, useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "./RouteMap";
 
 const ChatPanel = dynamic(() => import("./ChatSheet"), { ssr: false });
 import { Avatar } from "@/components/profile/Avatar";
 import { ContentWidth } from "@/components/nav/AppShell";
+import { PageTitle } from "@/components/nav/PageTitle";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import { cancellationRuleLines, freeUntil, noShowOpensAt, type CancellationConfig } from "@kipita/shared";
@@ -38,15 +39,19 @@ import { ProblemPanel } from "./ProblemPanel";
 import { BoardingPanel, PickupCodeCard, SlideToComplete, earningsLine, useBoarding } from "./Boarding";
 import { FinishScene } from "./FinishScene";
 import { useSplitLayout } from "./MapSheet";
-import { PersonCard } from "@/components/rides/PersonCard";
+import { PersonCard, PersonReviews, useReviews } from "@/components/rides/PersonCard";
+import { MetaRow, Plate, RouteHead, StatusBadge, type StatusTone } from "@/components/rides/RideParts";
+import { RollingNumber } from "@/components/ui/Counter";
 import { Drawer, DrawerBody, SIDE_PUSH, useRoomy } from "@/components/ui/Drawer";
 import { RateRide } from "./RateRide";
+import { ArrivalReminder, type ArrivalStage } from "./ArrivalReminder";
 import { PayPanel } from "./PayPanel";
-import { PANEL_IN, PANEL_IN_MS, PANEL_OUT, SidePanel, type PanelMode } from "./SidePanel";
+import { PANEL_IN, PANEL_IN_MS, PANEL_OUT, PanelBody, SidePanel, type PanelMode } from "./SidePanel";
 import { PushBanner } from "@/components/notifications/PushBanner";
 import { useConfirm } from "@/components/ui/ConfirmPop";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-import { Chip, STATUS } from "./BookingCard";
+import { Shimmer } from "@/components/ui/Shimmer";
+import { STATUS } from "./BookingCard";
 import { TripHelp } from "./TripHelp";
 import { StoppedTrip } from "./StoppedTrip";
 
@@ -89,41 +94,6 @@ const Page = styled(ContentWidth)<{ $map: boolean; $side?: boolean; $squeeze?: b
     `}
 `;
 
-const Bar = styled.header<{ $map?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 50px;
-  padding-top: clamp(20px, 4vh, 40px);
-
-  ${({ $map }) =>
-    $map &&
-    css`
-      @media (max-width: 899px) {
-        display: none;
-      }
-    `}
-
-  h1 {
-    margin: 0;
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(30px, 4vw, 40px);
-    font-weight: 800;
-    letter-spacing: -0.035em;
-    line-height: 1.1;
-    color: ${nocturne.cream};
-  }
-
-  @media (max-width: 960px) {
-    min-height: 0;
-    padding-top: 0;
-
-    > a {
-      display: none;
-    }
-  }
-`;
-
 const Back = styled(Link)`
   display: grid;
   place-items: center;
@@ -134,36 +104,15 @@ const Back = styled(Link)`
   border: 1.5px solid ${nocturne.muted2};
   background: ${nocturne.surface};
   color: ${nocturne.cream};
+  transition:
+    border-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       border-color: ${nocturne.accent};
     }
   }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
-  }
-`;
-
-const Share = styled.button<{ $done: boolean }>`
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 46px;
-  height: 46px;
-  margin-left: auto;
-  padding: 0;
-  border-radius: 50%;
-  border: 0;
-  background: ${({ $done }) => ($done ? nocturne.green : nocturne.surface)};
-  color: ${({ $done }) => ($done ? nocturne.onGreen : nocturne.cream)};
-  border: 1.5px solid ${nocturne.muted2};
-  cursor: pointer;
-  transition:
-    background-color ${dur.state} ${ease.standard},
-    transform ${dur.press} ${ease.standard};
-
   &:active {
     transform: scale(0.97);
   }
@@ -172,17 +121,28 @@ const Share = styled.button<{ $done: boolean }>`
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
     &:active {
       transform: none;
     }
   }
 `;
 
+const HeadBlock = styled.div`
+  @media (max-width: 899px) {
+    h1 {
+      display: none;
+    }
+    header {
+      margin-top: 0;
+    }
+  }
+`;
+
+
 const Grid = styled.div<{ $single?: boolean }>`
   display: grid;
   gap: 16px;
-  margin-top: 18px;
+  margin-top: 20px;
 
   ${DESK} {
     grid-template-columns: ${({ $single }) => ($single ? "minmax(0, 1fr)" : "minmax(0, 1fr) 380px")};
@@ -225,28 +185,8 @@ const MapPane = styled.div`
 `;
 
 
-const MapTop = styled.div`
-  position: absolute;
-  z-index: 3;
-  top: 12px;
-  left: 12px;
-  right: 12px;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-
-  > * {
-    pointer-events: auto;
-    box-shadow: ${nocturne.panelShadow};
-  }
-
-  ${WIDE} {
-    display: none;
-  }
-`;
-
 type Snap = "peek" | "half" | "full";
-type Side = "pay" | "chat" | "cancel" | "dispute" | "problem";
+type Side = "pay" | "chat" | "reviews" | "cancel" | "dispute" | "problem";
 
 const SNAP_Y: Record<Snap, string> = {
   full: "0px",
@@ -306,6 +246,10 @@ const Handle = styled.button`
       height: 5px;
       border-radius: 999px;
       background: ${nocturne.muted2};
+      transition: transform ${dur.press} ${ease.standard};
+    }
+    &:active i {
+      transform: scaleX(1.2);
     }
     &:focus-visible {
       outline: 3px solid ${nocturne.accent};
@@ -447,8 +391,8 @@ const LiveWrap = styled.div`
 const Card = styled.section<{ $order?: number }>`
   order: ${({ $order }) => $order ?? 0};
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 16px;
+  padding: 20px;
   border-radius: 20px;
   background: ${nocturne.surface};
 
@@ -462,7 +406,7 @@ const Card = styled.section<{ $order?: number }>`
   }
 
   ${DESK} {
-    padding: 22px;
+    padding: 24px;
   }
 `;
 
@@ -473,69 +417,21 @@ const Slot = styled.div<{ $order: number }>`
 const Top = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  padding-top: clamp(20px, 4vh, 36px);
 
-  span:last-child:not(:first-child) {
-    font-size: 13px;
-    font-weight: 700;
-    color: ${nocturne.muted};
-  }
-`;
+  @media (max-width: 899px) {
+    padding-top: 0;
 
-const Route = styled.ol`
-  display: grid;
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    position: relative;
-    display: grid;
-    gap: 2px;
-    padding-left: 26px;
-  }
-  li::before {
-    content: "";
-    position: absolute;
-    left: 3px;
-    top: 9px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 2.5px ${nocturne.green};
-    background: ${nocturne.surface};
-  }
-  li + li::before {
-    background: ${nocturne.green};
-  }
-  li:first-child::after {
-    content: "";
-    position: absolute;
-    left: 7px;
-    top: 23px;
-    bottom: -14px;
-    border-left: 2px dashed ${nocturne.line2};
-  }
-  b {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: clamp(20px, 2.4vw, 24px);
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    line-height: 1.2;
-    color: ${nocturne.cream};
-    overflow-wrap: anywhere;
-  }
-  small {
-    font-size: 14px;
-    color: ${nocturne.muted};
+    > a {
+      display: none;
+    }
   }
 `;
 
 const Lines = styled.dl`
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
 
   div {
@@ -572,9 +468,9 @@ const Hint = styled.p<{ $warn?: boolean; $order?: number }>`
   order: ${({ $order }) => $order ?? 0};
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
-  padding: 12px 14px;
+  padding: 12px 16px;
   border-radius: 14px;
   background: ${({ $warn }) =>
     $warn ? "color-mix(in oklab, var(--n-cta-bg) 14%, transparent)" : `color-mix(in oklab, ${nocturne.cream} 8%, transparent)`};
@@ -603,46 +499,12 @@ const Settled = styled.p<{ $pending?: boolean }>`
   }
 `;
 
-const Who = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-
-  > span {
-    display: grid;
-    gap: 2px;
-    min-width: 0;
-  }
-  b {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 16px;
-    font-weight: 800;
-    color: ${nocturne.cream};
-  }
-  b svg {
-    color: ${nocturne.green};
-  }
-  small {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 13px;
-    color: ${nocturne.muted};
-  }
-  small svg {
-    color: ${nocturne.star};
-  }
-`;
-
 const Acts = styled.div<{ $order?: number }>`
   order: ${({ $order }) => $order ?? 0};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  gap: 10px;
+  gap: 8px;
 `;
 
 const btn = css`
@@ -650,18 +512,28 @@ const btn = css`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 52px;
-  padding: 0 16px;
+  min-height: 40px;
+  padding: 0 20px;
   border-radius: 999px;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 15px;
-  font-weight: 800;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
   text-decoration: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
   transition:
-    background-color 0.16s ease,
-    border-color 0.16s ease;
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (pointer: coarse) {
+    min-height: 48px;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 8%, transparent);
+    }
+  }
   &:active:not(:disabled) {
     transform: scale(0.97);
   }
@@ -682,42 +554,78 @@ const btn = css`
 
 const Outline = styled.button`
   ${btn}
-  border: 2px solid ${nocturne.green};
-  background: ${nocturne.surface};
-  color: ${nocturne.green};
+  border: 0;
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
+  color: ${({ theme }) => theme.color.onSurface};
+`;
 
-  @media (hover: hover) {
+const Tonal = styled.button`
+  ${btn}
+  border: 0;
+  background: ${({ theme }) => theme.color.secondaryContainer};
+  color: ${({ theme }) => theme.color.onSecondaryContainer};
+`;
+
+const Cta = styled.button`
+  ${btn}
+  border: 0;
+  background: ${({ theme }) => theme.color.secondaryContainer};
+  color: ${({ theme }) => theme.color.onSecondaryContainer};
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
     &:hover:not(:disabled) {
-      background: ${nocturne.surface2};
+      box-shadow: none;
+      background: ${nocturne.ctaBg};
+      color: ${nocturne.ctaFg};
     }
+  }
+  &:active:not(:disabled) {
+    background: ${nocturne.ctaBg};
+    color: ${nocturne.ctaFg};
+  }
+`;
+
+const Danger = styled.button`
+  ${btn}
+  border: 0;
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
+  color: ${({ theme }) => theme.color.onSurface};
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      box-shadow: none;
+      background: ${({ theme }) => theme.color.errorContainer};
+      color: ${({ theme }) => theme.color.onErrorContainer};
+    }
+  }
+  &:active:not(:disabled) {
+    background: ${({ theme }) => theme.color.errorContainer};
+    color: ${({ theme }) => theme.color.onErrorContainer};
   }
 `;
 
 const Solid = styled.button`
   ${btn}
-  border: 2px solid transparent;
+  border: 0;
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
-
-  @media (hover: hover) {
-    &:hover:not(:disabled) {
-      background: ${nocturne.greenDeep};
-    }
-  }
 `;
 
 const Pay = styled.button<{ $quiet?: boolean }>`
   ${btn}
   width: 100%;
-  border: 2px solid ${({ $quiet }) => ($quiet ? nocturne.green : "transparent")};
-  background: ${({ $quiet }) => ($quiet ? nocturne.surface : nocturne.ctaBg)};
-  color: ${({ $quiet }) => ($quiet ? nocturne.green : nocturne.ctaFg)};
-  font-size: 16px;
-`;
-
-const beacon = keyframes`
-  0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2.1); opacity: 0; }
+  min-height: 48px;
+  border: 0;
+  background: ${({ $quiet, theme }) => ($quiet ? theme.color.surfaceContainerHighest : nocturne.ctaBg)};
+  color: ${({ $quiet, theme }) => ($quiet ? theme.color.onSurface : nocturne.ctaFg)};
 `;
 
 const Steps = styled.ol`
@@ -732,7 +640,7 @@ const Steps = styled.ol`
     align-items: center;
     gap: 12px;
     min-height: 44px;
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: ${nocturne.muted};
   }
@@ -741,15 +649,16 @@ const Steps = styled.ol`
     position: absolute;
     left: 11px;
     top: 34px;
+    width: 2px;
     height: 20px;
-    border-left: 2px solid ${nocturne.line};
+    background: ${nocturne.line2};
   }
   li[data-state="done"]:not(:last-child)::after {
-    border-left-color: ${nocturne.green};
+    background: ${nocturne.green};
   }
   time {
     margin-left: auto;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: ${nocturne.muted};
@@ -768,7 +677,7 @@ const Steps = styled.ol`
     color: ${nocturne.cream};
   }
   li[data-state="next"] {
-    color: ${nocturne.muted2};
+    color: ${nocturne.muted};
     font-weight: 600;
   }
   li[data-state="done"] .dot {
@@ -781,9 +690,8 @@ const Steps = styled.ol`
     font-weight: 800;
   }
   li[data-state="now"] .dot {
-    position: relative;
     border-color: ${nocturne.green};
-    box-shadow: 0 0 0 4px color-mix(in oklab, var(--n-green) 18%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklab, ${nocturne.green} 18%, transparent);
 
     &::before {
       content: "";
@@ -791,20 +699,6 @@ const Steps = styled.ol`
       height: 8px;
       border-radius: 50%;
       background: ${nocturne.green};
-    }
-    &::after {
-      content: "";
-      position: absolute;
-      inset: -2px;
-      border-radius: 50%;
-      border: 2px solid ${nocturne.green};
-      animation: ${beacon} 1.8s cubic-bezier(0.23, 1, 0.32, 1) infinite;
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    li[data-state="now"] .dot::after {
-      animation: none;
-      opacity: 0;
     }
   }
   li[data-state="stop"] {
@@ -824,6 +718,164 @@ const Talk = styled.div`
   margin-left: auto;
 `;
 
+const Driver = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+`;
+
+const WhoButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+  margin: -8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  color: ${nocturne.cream};
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  > span {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  b {
+    display: block;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 24px;
+    letter-spacing: -0.01em;
+    color: ${nocturne.cream};
+    overflow-wrap: anywhere;
+  }
+  b .last {
+    white-space: nowrap;
+  }
+  b svg {
+    margin-left: 4px;
+    vertical-align: -2px;
+    color: ${nocturne.green};
+  }
+  .meta {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: ${nocturne.muted};
+  }
+  .meta svg {
+    color: ${nocturne.star};
+  }
+  .more {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    color: ${nocturne.accent};
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+    }
+  }
+  &:active {
+    transform: scale(0.98);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const Eta = styled.div<{ $here?: boolean }>`
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: ${({ $here, theme }) => ($here ? theme.color.successContainer : theme.color.surfaceContainerHigh)};
+  color: ${({ $here, theme }) => ($here ? theme.color.onSuccessContainer : theme.color.onSurface)};
+
+  > svg {
+    color: ${({ $here }) => ($here ? "currentColor" : nocturne.accent)};
+  }
+  .what,
+  .far {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+  .far {
+    justify-items: end;
+    text-align: right;
+  }
+  small {
+    font-size: 13px;
+    font-weight: 600;
+    color: ${({ $here }) => ($here ? "currentColor" : nocturne.muted)};
+  }
+  b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 28px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: inherit;
+  }
+  .far b {
+    font-size: 16px;
+    line-height: 22px;
+  }
+  b.quiet {
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 22px;
+    letter-spacing: 0;
+  }
+`;
+
+const CarLine = styled.p`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid ${nocturne.line};
+  font-size: 15px;
+  font-weight: 600;
+  color: ${nocturne.cream};
+
+  > svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+`;
+
 const RoundAct = styled.button`
   position: relative;
   z-index: 1;
@@ -834,8 +886,8 @@ const RoundAct = styled.button`
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
+  background: ${({ theme }) => theme.color.secondaryContainer};
+  color: ${({ theme }) => theme.color.onSecondaryContainer};
   cursor: pointer;
   transition: transform ${dur.press} ${ease.standard};
 
@@ -861,8 +913,8 @@ const RoundAct = styled.button`
 const Booked = styled.p`
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 14px 0 0;
+  gap: 12px;
+  margin: 16px 0 0;
   padding: 12px 16px;
   border-radius: 16px;
   background: ${({ theme }) => theme.color.successContainer};
@@ -873,6 +925,10 @@ const Booked = styled.p`
 const Help = styled.div`
   margin-top: clamp(32px, 5vh, 48px);
 `;
+
+function buzz(event: React.PointerEvent) {
+  if (event.pointerType === "touch" && "vibrate" in navigator) navigator.vibrate(8);
+}
 
 const ORDER = ["requested", "pending_payment", "confirmed", "in_progress", "completed"] as const;
 
@@ -977,8 +1033,7 @@ export function TripDetail({
   const [, startTransition] = useTransition();
   const { ask, confirmNode } = useConfirm();
   const lapsed = due && !hold;
-  const chip = lapsed ? { label: "Payment missed", tone: "off" as const, icon: X } : status;
-  const ChipIcon = chip.icon;
+  const chip = lapsed ? { label: "Payment missed" } : status;
   const earned = paid || live;
   const receiveTitle = booking.status === "completed" ? "What you received" : earned ? "What you receive" : "What you'll receive";
   const receiveTotal = booking.status === "completed" ? "You received" : earned ? "You receive" : "You'll receive";
@@ -1012,15 +1067,16 @@ export function TripDetail({
   }
 
   const car = booking.trip?.vehicle;
-  const carLine = car
-    ? [[car.make, car.model].filter(Boolean).join(" "), car.color && car.color !== "Unspecified" ? car.color.toLowerCase() : null, car.plate_number]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const carName = car ? [car.make, car.model].filter(Boolean).join(" ") : "";
+  const carColour = car?.color && car.color !== "Unspecified" ? car.color.toLowerCase() : null;
+  const carPlate = car?.plate_number && !/^PENDING-/i.test(car.plate_number) ? car.plate_number : null;
 
   const canCancel = !isDriver && (booking.status === "requested" || due || paid);
   const answerable = isDriver && booking.status === "requested";
   const firstName = name.split(" ")[0];
+  const nameCut = name.lastIndexOf(" ");
+  const nameHead = nameCut > 0 ? name.slice(0, nameCut + 1) : "";
+  const nameLast = nameCut > 0 ? name.slice(nameCut + 1) : name;
   const runnable = isDriver && (paid || live);
 
   const board = useBoarding(booking.trip_id, isDriver && (paid || live));
@@ -1125,6 +1181,102 @@ export function TripDetail({
   const pickupShare = useSharePickup(booking.id, pickupSoon);
   const loc = useTripLocation(booking.trip_id, (live || pickupSoon) && !isDriver);
   const eta = useLiveEta(live ? loc : null, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
+  const here = pickupShare.here;
+  const pickupTarget = here
+    ? `${here.lat.toFixed(3)},${here.lng.toFixed(3)}`
+    : booking.trip?.from_lat != null && booking.trip?.from_lng != null
+      ? placeKey(origin, booking.trip.from_lat, booking.trip.from_lng)
+      : "";
+  const pickupLeg = useLiveLeg(pickupSoon ? loc : null, pickupTarget);
+  const pickupGapKm = loc && here ? kmBetween(loc.lat, loc.lng, here.lat, here.lng) : null;
+  const pickupPoint = here
+    ? { lat: here.lat, lng: here.lng }
+    : booking.trip?.from_lat != null && booking.trip?.from_lng != null
+      ? { lat: booking.trip.from_lat, lng: booking.trip.from_lng }
+      : null;
+  const pickupNow = pickupLeg && loc && pickupPoint ? legFromHere(pickupLeg, loc, pickupPoint) : null;
+  const arriving = pickupNow ? legDuration(pickupNow.seconds) : null;
+  const arrivalStrip = isDriver || !(paid && journey.code) ? null : !pickupSoon ? (
+    <Eta>
+      <Clock size={24} aria-hidden />
+      <span className="what">
+        <small>{firstName} picks you up at</small>
+        <b>{time}</b>
+      </span>
+      <span className="far">
+        <small>Live arrival time from 20 min before</small>
+      </span>
+    </Eta>
+  ) : !loc ? (
+    <Eta role="status">
+      <NavigationArrow size={24} aria-hidden />
+      <span className="what">
+        <small>Arrival time</small>
+        <b className="quiet">Waiting for {firstName}&rsquo;s location</b>
+      </span>
+    </Eta>
+  ) : pickupGapKm != null && pickupGapKm < 0.1 ? (
+    <Eta role="status" $here>
+      <NavigationArrow size={24} weight="fill" aria-hidden />
+      <span className="what">
+        <small>Look out for {carPlate ? carPlate.toUpperCase() : "the car"}</small>
+        <b>{firstName} is here</b>
+      </span>
+    </Eta>
+  ) : arriving && pickupNow ? (
+    <Eta role="status" aria-live="polite">
+      <NavigationArrow size={24} weight="fill" aria-hidden />
+      <span className="what">
+        <small>{firstName} arrives in</small>
+        <b>
+          {arriving.hours > 0 && (
+            <>
+              <RollingNumber value={arriving.hours} /> h{" "}
+            </>
+          )}
+          <RollingNumber value={arriving.minutes} /> min
+        </b>
+      </span>
+      <span className="far">
+        <b>{legDistance(pickupNow.meters)}</b>
+        <small>by road, with traffic</small>
+      </span>
+    </Eta>
+  ) : (
+    <Eta role="status">
+      <NavigationArrow size={24} weight="fill" aria-hidden />
+      <span className="what">
+        <small>{firstName} arrives in</small>
+        <Shimmer $w="96px" $h="24px" $r="6px" />
+      </span>
+    </Eta>
+  );
+  const badgeTone: StatusTone = stopped || lapsed ? "off" : live || paid || booking.status === "completed" ? "live" : "wait";
+  const badgeLabel =
+    !isDriver && paid ? (pickupSoon ? `Pickup at ${time}` : "Paid · seat held") : live ? "On the way" : chip.label;
+  const [remind, setRemind] = useState<ArrivalStage | null>(null);
+  useEffect(() => {
+    if (isDriver) return;
+    const recent = booking.completed_at != null && Date.now() - new Date(booking.completed_at).getTime() < 24 * 60 * 60 * 1000;
+    const stage: ArrivalStage | null =
+      booking.status === "completed" && booking.my_rating == null && recent
+        ? "arrived"
+        : live && eta != null && eta <= 600
+          ? "arriving"
+          : null;
+    if (!stage) return;
+    const key = `kipita:arrival:${booking.id}`;
+    try {
+      const seen = window.localStorage.getItem(key) ?? "";
+      if (seen.split(",").includes(stage)) return;
+      window.localStorage.setItem(key, [seen, stage].filter(Boolean).join(","));
+    } catch {
+      return;
+    }
+    setRemind(stage);
+  }, [isDriver, booking.id, booking.status, booking.my_rating, booking.completed_at, live, eta]);
+  const [reviewsAsked, setReviewsAsked] = useState(false);
+  const reviews = useReviews(person?.id, reviewsAsked);
 
   const paidAtDate = booking.paid_at ? new Date(booking.paid_at) : null;
   const freeEnds = departsAt && paidAtDate ? freeUntil(departsAt, paidAtDate, cancelConfig) : null;
@@ -1314,6 +1466,7 @@ export function TripDetail({
 
   const openSide = (s: Side) => {
     if (!mobile && !pushing && side === null) measure();
+    if (s === "reviews") setReviewsAsked(true);
     setLastSide(s);
     setSide(s);
   };
@@ -1499,7 +1652,9 @@ export function TripDetail({
       title={
         shown === "chat"
           ? name
-          : shown === "cancel"
+          : shown === "reviews"
+            ? `Reviews for ${firstName}`
+            : shown === "cancel"
             ? "Cancel ride"
             : shown === "dispute"
               ? "Dispute no-show"
@@ -1508,7 +1663,7 @@ export function TripDetail({
                 : "Pay for your seat"
       }
       closeLabel={
-        shown === "chat" ? "Close messages" : shown === "cancel" ? "Keep ride" : shown === "dispute" || shown === "problem" ? "Close" : "Close payment"
+        shown === "chat" ? "Close messages" : shown === "reviews" ? "Close reviews" : shown === "cancel" ? "Keep ride" : shown === "dispute" || shown === "problem" ? "Close" : "Close payment"
       }
       onClose={() => setSide(null)}
       locked={
@@ -1518,6 +1673,11 @@ export function TripDetail({
         (shown === "problem" && busy === "problem")
       }
     >
+      {shown === "reviews" && (
+        <PanelBody>
+          <PersonReviews load={reviews.load} onRetry={() => void reviews.refresh()} first={firstName} role={isDriver ? "passenger" : "driver"} />
+        </PanelBody>
+      )}
       {shown === "pay" && due && !isDriver && (
         <PayPanel
           open={side === "pay"}
@@ -1637,14 +1797,14 @@ export function TripDetail({
                 <>
                   <li data-state="done">
                     <span className="dot">
-                      <Check size={13} weight="bold" />
+                      <Check size={16} weight="bold" aria-hidden />
                     </span>
                     {labels[0]}
                     <time dateTime={booking.created_at}>{stampLabel(booking.created_at)}</time>
                   </li>
                   <li data-state="stop">
                     <span className="dot">
-                      <X size={12} weight="bold" />
+                      <X size={16} weight="bold" aria-hidden />
                     </span>
                     {booking.status === "rejected" ? "Declined" : "Cancelled"}
                     {booking.cancelled_at && <time dateTime={booking.cancelled_at}>{stampLabel(booking.cancelled_at)}</time>}
@@ -1656,7 +1816,7 @@ export function TripDetail({
                   const stamp = state !== "next" ? stamps[i] : null;
                   return (
                     <li key={label} data-state={state}>
-                      <span className="dot">{state === "done" && <Check size={13} weight="bold" />}</span>
+                      <span className="dot">{state === "done" && <Check size={16} weight="bold" aria-hidden />}</span>
                       {label}
                       {stamp && <time dateTime={stamp}>{stampLabel(stamp)}</time>}
                     </li>
@@ -1673,27 +1833,12 @@ export function TripDetail({
               <PickupCodeCard code={journey.code} />
             </Slot>
           )}
-          {!isDriver && paid && journey.code && (
+          {!isDriver && pickupSoon && (pickupShare.state === "denied" || pickupShare.state === "failed") && (
             <Slot $order={0}>
-            {pickupShare.state === "denied" || pickupShare.state === "failed" ? (
-              <Outline type="button" onClick={pickupShare.retry}>
-                <NavigationArrow size={18} weight="bold" />
-                {pickupShare.state === "denied"
-                  ? `Allow location so ${firstName} can find you`
-                  : "Location didn't send. Try again"}
-              </Outline>
-            ) : (
-              <Settled $pending={!pickupSoon || pickupShare.state !== "on"}>
-                <NavigationArrow size={20} weight="fill" aria-hidden />
-                {!pickupSoon
-                  ? `You and ${firstName} see each other on the map from 20 minutes before the ride`
-                  : pickupShare.state === "on"
-                    ? `${firstName} can see where you are`
-                    : pickupShare.state === "unsupported"
-                      ? "This browser can't share your location"
-                      : "Finding your location"}
-              </Settled>
-            )}
+              <Tonal type="button" onClick={pickupShare.retry}>
+                <NavigationArrow size={20} weight="bold" aria-hidden />
+                {pickupShare.state === "denied" ? `Allow location so ${firstName} can find you` : "Location didn't send. Try again"}
+              </Tonal>
             </Slot>
           )}
           {isDriver && paid && booking.trip_id && (
@@ -1806,28 +1951,34 @@ export function TripDetail({
               <PersonCard person={person} label={isDriver ? "Your passenger" : "Your driver"} role={isDriver ? "passenger" : "driver"} />
             </Slot>
           ) : (
-          <Card $order={!isDriver && (live || paid) ? 0 : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
-            <Who>
-              <Avatar name={name} src={person?.avatar_url} size={48} />
-              <span>
-                <b>
-                  {name}
-                  {person?.is_verified && <SealCheck size={16} weight="fill" role="img" aria-label="Verified" />}
-                </b>
-                <small>
+          <Card $order={!isDriver && (live || paid) ? (pickupSoon ? -1 : 0) : 3} aria-label={isDriver ? "Passenger" : "Driver"}>
+            <Driver>
+              <WhoButton
+                type="button"
+                aria-haspopup="dialog"
+                aria-expanded={side === "reviews"}
+                onClick={() => openSide("reviews")}
+              >
+                <Avatar name={name} src={person?.avatar_url} size={56} />
+                <span>
+                  <b>
+                    {nameHead}
+                    <span className="last">
+                      {nameLast}
+                      {person?.is_verified && <SealCheck size={16} weight="fill" role="img" aria-label="Verified" />}
+                    </span>
+                  </b>
                   {rating ? (
-                    <>
-                      <Star size={13} weight="fill" /> {rating}
+                    <span className="meta">
+                      <Star size={16} weight="fill" aria-hidden /> {rating}
                       {person?.total_trips ? ` · ${person.total_trips} trips` : ""}
-                    </>
-                  ) : isDriver ? (
-                    "Passenger"
-                  ) : (
-                    "Driver"
-                  )}
-                </small>
-                {!isDriver && carLine && <small>{carLine}</small>}
-              </span>
+                    </span>
+                  ) : null}
+                  <span className="more">
+                    See reviews <CaretRight size={16} aria-hidden />
+                  </span>
+                </span>
+              </WhoButton>
               {(chatOpen || talkable) && (
                 <Talk>
                   {chatOpen && (
@@ -1842,7 +1993,16 @@ export function TripDetail({
                   )}
                 </Talk>
               )}
-            </Who>
+            </Driver>
+            {arrivalStrip}
+            {!isDriver && car && carName && (
+              <CarLine>
+                <CarProfile size={20} aria-hidden />
+                {carName}
+                {carColour ? ` · ${carColour}` : ""}
+                {carPlate && <Plate>{carPlate.toUpperCase()}</Plate>}
+              </CarLine>
+            )}
           </Card>
           )}
 
@@ -1892,13 +2052,14 @@ export function TripDetail({
               )
             ) : (
               <>
-                <Outline type="button" onClick={share}>
-                  {copied ? <Check size={18} weight="bold" /> : <ShareForward size={18} />}
+                <Cta type="button" onClick={share} onPointerDown={buzz}>
+                  {copied ? <Check size={20} weight="bold" aria-hidden /> : <ShareForward size={20} aria-hidden />}
                   {copied ? "Link copied" : "Share ride"}
-                </Outline>
+                </Cta>
                 {canCancel && (
-                  <Outline
+                  <Danger
                     type="button"
+                    onPointerDown={buzz}
                     onClick={() => openSide("cancel")}
                     aria-expanded={side === "cancel"}
                     disabled={busy !== null}
@@ -1906,7 +2067,7 @@ export function TripDetail({
                   >
                     {busy === "cancel" ? <ButtonOrb job="committing" /> : null}
                     Cancel ride
-                  </Outline>
+                  </Danger>
                 )}
                 {problemOpen && (
                   <Outline type="button" onClick={() => openSide("problem")} aria-expanded={side === "problem"} disabled={busy !== null}>
@@ -1955,13 +2116,6 @@ export function TripDetail({
     >
       {hasMap && (
         <MapPane data-map-pane>
-          {booking.status !== "completed" && (
-            <MapTop>
-              <Share type="button" aria-label={copied ? "Link copied" : "Share ride"} onClick={share} $done={copied}>
-                {copied ? <Check size={20} weight="bold" /> : <ShareForward size={20} />}
-              </Share>
-            </MapTop>
-          )}
           {booking.status === "completed" ? (
             <FinishScene
               destination={destination}
@@ -2005,22 +2159,43 @@ export function TripDetail({
           </Handle>
         )}
         <SheetBody ref={bodyRef} $map={hasMap}>
-      <Bar $map={hasMap}>
+      <PageTitle title={`${origin} to ${destination}`} back="/trips" backLabel="Back to trips" />
+      <Top>
         <Back href="/trips" aria-label="Back to trips">
           <ArrowLeft size={20} />
         </Back>
-        <h1 data-bar-title="">Trip</h1>
-        {!stopped && booking.status !== "completed" && (
-          <Share
-            type="button"
-            aria-label={copied ? "Link copied" : "Share ride"}
-            onClick={share}
-            $done={copied}
-          >
-            {copied ? <Check size={20} weight="bold" /> : <ShareForward size={20} />}
-          </Share>
-        )}
-      </Bar>
+        <StatusBadge $tone={badgeTone}>
+          <i aria-hidden />
+          {badgeLabel}
+        </StatusBadge>
+      </Top>
+      <HeadBlock>
+        <RouteHead>
+          <h1 data-bar-title="">
+            <span>{origin}</span>
+            <span className="to">
+              <i className="leg" aria-hidden />
+              <span>{destination}</span>
+            </span>
+          </h1>
+        </RouteHead>
+        <MetaRow>
+          <li>
+            <CalendarBlank size={18} aria-hidden />
+            {date}, {time}
+          </li>
+          <li>
+            <Users size={18} aria-hidden />
+            {booking.seats_booked} {seatWord}
+          </li>
+          {booking.booking_reference && (
+            <li>
+              <Ticket size={18} aria-hidden />
+              {booking.booking_reference}
+            </li>
+          )}
+        </MetaRow>
+      </HeadBlock>
 
       {justBooked && (
         <Booked role="status">
@@ -2056,30 +2231,6 @@ export function TripDetail({
               />
             </Card>
           )}
-          <Card $order={1} aria-label="Route">
-            <Top>
-              <Chip $tone={chip.tone}>
-                {live ? <i aria-hidden /> : <ChipIcon size={15} weight="bold" />}
-                {chip.label}
-              </Chip>
-              {booking.booking_reference && <span>{booking.booking_reference}</span>}
-            </Top>
-            <Route>
-              <li>
-                <b>{origin}</b>
-                <small>
-                  {date} · {time}
-                </small>
-              </li>
-              <li>
-                <b>{destination}</b>
-                <small>
-                  {booking.seats_booked} {seatWord}
-                </small>
-              </li>
-            </Route>
-          </Card>
-
           {booking.status === "completed" ? (
             <TimelineRow $order={5} type="button" aria-haspopup="dialog" aria-expanded={timelineOpen} onClick={() => setTimelineOpen(true)}>
               <span>
@@ -2113,6 +2264,20 @@ export function TripDetail({
       {confirmNode}
 
     </Page>
+    {!isDriver && (
+      <ArrivalReminder
+        stage={remind ?? "arriving"}
+        open={remind != null}
+        onClose={() => setRemind(null)}
+        destination={destination}
+        driverFirst={firstName}
+        minutes={eta != null ? Math.max(1, Math.round(eta / 60)) : null}
+        bookingId={booking.id}
+        driverName={name}
+        driverAvatar={person?.avatar_url ?? null}
+        rating={booking.my_rating}
+      />
+    )}
     <Drawer open={timelineOpen} onClose={() => setTimelineOpen(false)} title="Trip timeline" side>
       <DrawerBody>{timeline}</DrawerBody>
     </Drawer>

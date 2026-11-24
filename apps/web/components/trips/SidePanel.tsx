@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { X } from "@/components/icons";
-import { dur as m3 } from "@/lib/motion";
+import { dur as m3, ease as motionEase } from "@/lib/motion";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export type PanelMode = "map" | "sheet" | "float";
@@ -41,6 +41,7 @@ const Layer = styled.aside<{ $open: boolean; $mode: PanelMode }>`
       `;
     }
     if ($mode === "sheet") {
+      const slide = $open ? `${m3.long2}ms ${motionEase.sheet}` : `${m3.medium2}ms ${motionEase.sheet}`;
       return css`
         position: fixed;
         z-index: 1100;
@@ -52,8 +53,13 @@ const Layer = styled.aside<{ $open: boolean; $mode: PanelMode }>`
         border-radius: 24px 24px 0 0;
         background: ${nocturne.bg};
         box-shadow: ${nocturne.panelShadow};
-        clip-path: ${$open ? "inset(0 0 0 0 round 24px 24px 0 0)" : "inset(100% 0 0 0 round 24px 24px 0 0)"};
-        transition: clip-path ${t}, ${hide};
+        transform: translate3d(0, ${$open ? "0" : "100%"}, 0);
+        transition: transform ${slide}, ${hide};
+        will-change: transform;
+
+        &[data-dragging] {
+          transition: none;
+        }
       `;
     }
     return css`
@@ -70,10 +76,26 @@ const Layer = styled.aside<{ $open: boolean; $mode: PanelMode }>`
   }}
 
   @media (prefers-reduced-motion: reduce) {
-    transform: none;
     clip-path: none;
     transition: none;
+    ${({ $mode }) => ($mode === "sheet" ? "" : "transform: none;")}
+    ${({ $mode, $open }) => ($mode === "sheet" && !$open ? "visibility: hidden;" : "")}
   }
+`;
+
+const DragZone = styled.div<{ $sheet: boolean }>`
+  flex: none;
+
+  ${({ $sheet }) =>
+    $sheet &&
+    css`
+      touch-action: none;
+      cursor: grab;
+
+      &:active {
+        cursor: grabbing;
+      }
+    `}
 `;
 
 const Grip = styled.span`
@@ -213,17 +235,60 @@ export function SidePanel({
     };
   }, [open]);
 
+  const drag = useRef<{ y: number; t: number; dy: number } | null>(null);
+
+  function dragStart(e: PointerEvent<HTMLDivElement>) {
+    if (mode !== "sheet" || locked || (e.target as HTMLElement).closest("button")) return;
+    drag.current = { y: e.clientY, t: performance.now(), dy: 0 };
+    e.currentTarget.setPointerCapture(e.pointerId);
+    ref.current?.setAttribute("data-dragging", "");
+  }
+
+  function dragMove(e: PointerEvent<HTMLDivElement>) {
+    const d = drag.current;
+    const el = ref.current;
+    if (!d || !el) return;
+    const raw = e.clientY - d.y;
+    d.dy = raw < 0 ? raw * 0.15 : raw;
+    el.style.transform = `translate3d(0, ${d.dy}px, 0)`;
+  }
+
+  function dragEnd() {
+    const d = drag.current;
+    const el = ref.current;
+    drag.current = null;
+    if (!d || !el) return;
+    el.removeAttribute("data-dragging");
+    const speed = d.dy / Math.max(1, performance.now() - d.t);
+    if (d.dy > 120 || speed > 0.5) {
+      onClose();
+      requestAnimationFrame(() => {
+        el.style.transform = "";
+      });
+      return;
+    }
+    el.style.transform = "";
+  }
+
   return (
     <>
     {mode === "sheet" && <Scrim $open={shown && open} onClick={() => !locked && onClose()} aria-hidden />}
     <Layer ref={ref} $open={shown && open} $mode={mode} aria-hidden={!open} inert={!open} aria-label={title}>
-      {mode === "sheet" && <Grip aria-hidden />}
-      <Head>
-        <h2>{title}</h2>
-        <Close type="button" aria-label={closeLabel} onClick={onClose} disabled={locked}>
-          <X size={18} weight="bold" />
-        </Close>
-      </Head>
+      <DragZone
+        $sheet={mode === "sheet"}
+        onPointerDown={dragStart}
+        onPointerMove={dragMove}
+        onPointerUp={dragEnd}
+        onPointerCancel={dragEnd}
+      >
+        {mode === "sheet" && <Grip aria-hidden />}
+        <Head>
+          <h2>{title}</h2>
+          <Close type="button" aria-label={closeLabel} onClick={onClose} disabled={locked}>
+            <X size={18} weight="bold" />
+          </Close>
+        </Head>
+      </DragZone>
       {children}
     </Layer>
     </>

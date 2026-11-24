@@ -6,6 +6,7 @@ export const curve = {
   emphasizedAccelerate: [0.3, 0, 0.8, 0.15],
   emphasizedDecelerate: [0.05, 0.7, 0.1, 1],
   spring: [0.34, 1.56, 0.64, 1],
+  sheet: [0.32, 0.72, 0, 1],
 } as const satisfies Record<string, readonly [number, number, number, number]>;
 
 const bezier = (c: readonly number[]) => `cubic-bezier(${c.join(", ")})`;
@@ -18,6 +19,7 @@ export const ease = {
   emphasizedAccelerate: bezier(curve.emphasizedAccelerate),
   emphasizedDecelerate: bezier(curve.emphasizedDecelerate),
   spring: bezier(curve.spring),
+  sheet: bezier(curve.sheet),
 } as const;
 
 export const dur = {

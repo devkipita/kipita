@@ -497,9 +497,12 @@ export default function TripMap({
           },
         };
 
-        const bounds = new g.maps.LatLngBounds();
-        path.forEach((p) => bounds.extend(p));
-        const fit = () => map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
+        const fit = () => {
+          const bounds = new g.maps.LatLngBounds();
+          path.forEach((p) => bounds.extend(p));
+          extraRef.current.forEach((p) => bounds.extend(p));
+          map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
+        };
         fitRef.current = fit;
         fit();
         let lastW = hostRef.current.offsetWidth;
@@ -552,6 +555,11 @@ export default function TripMap({
     if (follow) mapRef.current?.panTo({ lat: car.lat, lng: car.lng });
   }, [car, ready, follow]);
 
+  const extraRef = useRef<google.maps.LatLngLiteral[]>([]);
+  extraRef.current = [
+    ...(car ? [{ lat: car.lat, lng: car.lng }] : []),
+    ...(me ? [{ lat: me.lat, lng: me.lng }] : []),
+  ];
   const compass = useRef<number | null>(null);
   const meNow = useRef<MapMe | null>(null);
   meNow.current = me ?? null;
@@ -588,17 +596,13 @@ export default function TripMap({
     };
   }, [ready, tracking]);
 
-  const framed = useRef(false);
+  const framed = useRef("");
   useEffect(() => {
-    if (!ready || framed.current || follow || !car || !me) return;
-    const m = mapRef.current;
-    if (!m) return;
-    framed.current = true;
-    const both = new google.maps.LatLngBounds();
-    both.extend({ lat: car.lat, lng: car.lng });
-    both.extend({ lat: me.lat, lng: me.lng });
-    m.fitBounds(both, padRef.current ?? { top: 96, right: 96, bottom: 96, left: 96 });
-    if ((m.getZoom() ?? 0) > 17) m.setZoom(17);
+    if (!ready || follow) return;
+    const key = `${car ? "car" : ""}${me ? "me" : ""}`;
+    if (!key || framed.current === key) return;
+    framed.current = key;
+    fitRef.current?.();
   }, [ready, car, me, follow]);
 
   function locate() {
