@@ -9,7 +9,7 @@ export const TRIP_FAQS: { q: string; a: string }[] = [
   },
   {
     q: "What if I need to cancel?",
-    a: "Cancel from the trip. Not paid yet: nothing is charged. Paid: free for a short while after paying and until shortly before the ride. After that you get part of the seat price back, and the service fee isn't refunded. No-shows get nothing back. If the driver cancels, you get everything back. Exact amounts show before you confirm.",
+    a: "Cancel from the trip. Unpaid: nothing is charged. Paid: free until shortly before the ride, then part of the seat price comes back. If the driver cancels, you get everything back. Amounts show before you confirm.",
   },
   {
     q: "The driver never arrived. What now?",
