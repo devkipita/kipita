@@ -136,8 +136,8 @@ export function AppUpdate() {
         <ArrowClockwise size={24} weight="bold" />
       </span>
       <div className="copy">
-        <h2 id="app-update-title">Kipita has a new version</h2>
-        <p>Reload to start using it. It takes a second.</p>
+        <h2 id="app-update-title">Update available</h2>
+        <p>Reload to update.</p>
         <ReloadButton
           type="button"
           disabled={reloading}

@@ -389,7 +389,7 @@ export default function ChatPanel({
           <Empty role={error ? "alert" : undefined}>
             {!error && <ChatHelloArt />}
             <b>{error ? "Messages didn't load" : conv ? `Say hello to ${otherName.split(" ")[0]}` : "Opening messages…"}</b>
-            <span>{error || "Pick a quick reply or type below"}</span>
+            <span>{error || "Type or pick a reply"}</span>
             {error && !conv && (
               <QuickBtn type="button" onClick={() => setAttempt((n) => n + 1)}>
                 Try again

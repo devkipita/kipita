@@ -475,7 +475,7 @@ export function SupportDock() {
             <small>
               {active?.status === "awaiting_reply"
                 ? "Waiting on you"
-                : "We usually reply within a few hours"}
+                : "Replies within a few hours"}
             </small>
           </div>
           {active && (

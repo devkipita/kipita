@@ -8,11 +8,11 @@ export type CancelResult =
   | { ok: false; error: string };
 
 const CANCEL_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "This booking is already closed.",
   "42501": "That isn't your booking.",
   P0002: "That booking no longer exists.",
-  KP001: "This ride is already under way. Contact support if something went wrong.",
+  KP001: "Already under way. Contact support if something went wrong.",
 };
 
 export async function cancelBookingAction(
@@ -24,7 +24,7 @@ export async function cancelBookingAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data: before } = await supabase
     .from("bookings")
@@ -42,7 +42,7 @@ export async function cancelBookingAction(
       ok: false,
       error:
         CANCEL_ERRORS[error.code ?? ""] ??
-        "We couldn't cancel that. Please try again.",
+        "Couldn't cancel that. Try again.",
     };
   }
 
@@ -55,7 +55,7 @@ export async function cancelBookingAction(
 }
 
 const TRIP_CANCEL_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "This ride can no longer be cancelled.",
   "42501": "That isn't your ride.",
   P0002: "That ride no longer exists.",
@@ -70,7 +70,7 @@ export async function cancelTripAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { error } = await supabase.rpc("cancel_trip", {
     p_trip_id: tripId,
@@ -82,7 +82,7 @@ export async function cancelTripAction(
       ok: false,
       error:
         TRIP_CANCEL_ERRORS[error.code ?? ""] ??
-        "We couldn't cancel that ride. Please try again.",
+        "Couldn't cancel that ride. Try again.",
     };
   }
 
@@ -126,11 +126,11 @@ export async function getCancellationQuoteAction(
 }
 
 const NO_SHOW_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "This booking can't be reported as a no-show.",
   "42501": "That isn't your booking.",
   P0002: "That booking no longer exists.",
-  KP002: "It's too early to report a no-show. Wait a few more minutes after departure.",
+  KP002: "Too early to report. Wait a few minutes after departure.",
   KP003: "The time to dispute this has passed.",
 };
 
@@ -146,7 +146,7 @@ export async function markNoShowAction(
 
   const { error } = await supabase.rpc("mark_no_show", { p_booking_id: bookingId });
   if (error) {
-    return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "We couldn't report that. Please try again." };
+    return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "Couldn't report that. Try again." };
   }
 
   revalidatePath("/trips");
@@ -170,7 +170,7 @@ export async function disputeNoShowAction(
     p_note: note.trim().slice(0, 500),
   });
   if (error) {
-    return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "We couldn't send that. Please try again." };
+    return { ok: false, error: NO_SHOW_ERRORS[error.code ?? ""] ?? "Couldn't send that. Try again." };
   }
 
   revalidatePath("/trips");

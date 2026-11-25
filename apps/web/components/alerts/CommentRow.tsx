@@ -250,8 +250,8 @@ function ReplyMenu({
   const under = replyCount === 1 ? "the 1 reply under it" : `the ${replyCount} replies under it`;
   const lead =
     replyCount > 0
-      ? `It disappears from this alert for everyone, with ${under}. You can't undo this.`
-      : "It disappears from this alert for everyone. You can't undo this.";
+      ? `Deleted for everyone, with ${under}. This can't be undone.`
+      : "Deleted for everyone. This can't be undone.";
 
   return (
     <>

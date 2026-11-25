@@ -3,8 +3,8 @@ import type { AppMode } from "./mode";
 export const HOME_COPY = {
   greeting: (name: string) => ({ lead: "Karibu, ", name, tail: "." }),
   greetingSub: {
-    passenger: "Rides on your routes, updated as drivers post them.",
-    driver: "Passengers looking for a seat on the routes you drive.",
+    passenger: "Rides on your routes.",
+    driver: "Passengers on your routes.",
   } satisfies Record<AppMode, string>,
 
   mapLabel: "Kenya, right now",
@@ -12,9 +12,9 @@ export const HOME_COPY = {
   mapTeaserTitle: "See who is on the road",
   mapTeaserCta: "Show live map",
   mapHide: "Hide map",
-  mapEmpty: "Quiet roads today. These are the routes people travel most.",
+  mapEmpty: "Quiet today. Popular routes:",
   mapUnavailable:
-    "The map is unavailable right now. Search and booking still work.",
+    "Map unavailable. Search still works.",
 
   fromLabel: "From",
   fromDetecting: "Locating you…",
@@ -36,9 +36,9 @@ export const HOME_COPY = {
   planTitle: "Plan your ride",
   placeTitleFrom: "Where are you starting?",
   placeDescFrom:
-    "We guessed from your connection. Change it if we got it wrong.",
+    "Based on your location. Change it if wrong.",
   placeTitleTo: "Where are you headed?",
-  placeDescTo: "Pick a town, or tap a route to fill both ends at once.",
+  placeDescTo: "Pick a town or a route.",
   placeInputFrom: "Leaving from…",
   placeInputTo: "Going to…",
   sectionPopular: "Popular right now",
@@ -46,10 +46,10 @@ export const HOME_COPY = {
   sectionRecent: "Where you've been looking",
   sectionAll: "Towns across Kenya",
   sectionResults: "Matches",
-  noMatch: (q: string) => `No town called "${q}". Try the county instead.`,
+  noMatch: (q: string) => `No town "${q}". Try the county.`,
 
   whenTitle: "When are you travelling?",
-  whenDesc: 'Leave it on "now" and we\'ll show everything coming up.',
+  whenDesc: 'Leave on "now" to see everything upcoming.',
 
   ridesCount: (n: number) =>
     n === 1 ? "1 going your way" : `${n} going your way`,
@@ -64,10 +64,10 @@ export const HOME_COPY = {
   alertsPost: "Post an alert",
   emptyAlerts: "No alerts nearby",
   emptyAlertsBody:
-    "Nothing reported on these roads yet. Post an alert if you see something.",
+    "No alerts on these roads yet.",
 
   errorTitle: "That didn't load",
-  errorBody: "Check your connection and try again.",
+  errorBody: "Check your connection.",
   retry: "Try again",
   notOnMap: "Not on the map",
 } as const;

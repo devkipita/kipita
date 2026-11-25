@@ -468,8 +468,8 @@ export function PersonCard({ person, label, role }: { person: CardPerson; label:
               <h3>No reviews yet</h3>
               <p>
                 {role === "driver"
-                  ? `Passengers review ${first} after a finished ride. Theirs will show up here.`
-                  : `Drivers review ${first} after a finished ride. Theirs will show up here.`}
+                  ? `No reviews yet.`
+                  : `No reviews yet.`}
               </p>
             </Empty>
           ) : (

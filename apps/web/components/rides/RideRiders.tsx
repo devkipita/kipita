@@ -387,8 +387,7 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
           )}
           {load.state === "ready" && riders.length > 0 ? (
             <span className="note">
-              From <RollingNumber value={riders.length} /> {riders.length === 1 ? "passenger" : "passengers"} on board. It reaches your wallet, less the
-              Kipita fee, when there is no dispute.
+              From <RollingNumber value={riders.length} /> {riders.length === 1 ? "passenger" : "passengers"} on board. Paid to your wallet if no dispute.
             </span>
           ) : null}
         </PaidTile>
@@ -404,9 +403,9 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
               ))}
             </List>
           ) : load.state === "error" ? (
-            <p role="alert">Passengers didn&apos;t load. Reload the page to try again.</p>
+            <p role="alert">Couldn&apos;t load passengers. Reload.</p>
           ) : riders.length === 0 ? (
-            <p>No passengers are on board.</p>
+            <p>No passengers.</p>
           ) : (
             <List>
               {riders.map((r) => (
@@ -498,9 +497,9 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
             ))}
           </List>
         ) : load.state === "error" ? (
-          <p role="alert">Passengers didn&apos;t load. Reload the page to try again.</p>
+          <p role="alert">Couldn&apos;t load passengers. Reload.</p>
         ) : riders.length === 0 ? (
-          <p>No one finished this ride with you.</p>
+          <p>No passengers.</p>
         ) : (
           <List>
             {riders.map((r) => {

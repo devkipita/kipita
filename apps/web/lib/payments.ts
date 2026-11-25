@@ -17,12 +17,12 @@ export type PaymentErrorKind =
   | "declined";
 
 const PAYMENT_ERROR_COPY: Record<PaymentErrorKind, string> = {
-  offline: "We couldn't reach M-Pesa. Check your connection and try again.",
-  signed_out: "You've been signed out. Sign in again to pay.",
+  offline: "Couldn't reach M-Pesa. Try again.",
+  signed_out: "Signed out. Sign in to pay.",
   not_found: "We couldn't find this booking.",
-  not_awaiting: "This booking isn't waiting for payment any more. Check your trip.",
-  hold_expired: "Your seat hold ran out before payment. Request the seat again.",
-  declined: "M-Pesa didn't accept the request. Check the number and try again.",
+  not_awaiting: "Not waiting for payment. Check your trip.",
+  hold_expired: "Hold expired. Request the seat again.",
+  declined: "M-Pesa declined. Check the number and try again.",
 };
 
 export class PaymentError extends Error {

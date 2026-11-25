@@ -138,8 +138,7 @@ export function PhoneGate({
           Confirm your phone number
         </h2>
         <p>
-          Passengers call you on this number once a seat is paid, and your payouts are sent to it. We text you a code
-          once.
+          Passengers call this number. Payouts go here. We text a code once.
         </p>
         <PhoneVerifyFlow initialPhone={initialPhone} onCancel={onClose} onVerified={() => onVerified()} />
       </Card>

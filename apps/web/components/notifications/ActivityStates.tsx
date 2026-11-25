@@ -85,18 +85,18 @@ function emptyCopy(kind: EmptyKind, driver: boolean): EmptyCopy {
       return {
         title: "No trip updates yet",
         lead: driver
-          ? "Publish a ride and seat requests show up here."
-          : "Book a seat and every step of the trip shows up here.",
+          ? "Seat requests appear here."
+          : "Trip updates appear here.",
         ...start,
       };
     case "payments":
       return driver
-        ? { title: "No payments yet", lead: "Fares you earn and payouts show up here.", href: "/wallet", label: "Open wallet" }
-        : { title: "No payments yet", lead: "Fares you pay, refunds and wallet top-ups show up here.", ...start };
+        ? { title: "No payments yet", lead: "Earnings appear here.", href: "/wallet", label: "Open wallet" }
+        : { title: "No payments yet", lead: "Payments and refunds appear here.", ...start };
     case "alerts":
       return {
         title: "Roads are quiet",
-        lead: "Alerts on the roads you travel show up here.",
+        lead: "Road alerts appear here.",
         href: "/alerts",
         label: "See road alerts",
       };
@@ -104,8 +104,8 @@ function emptyCopy(kind: EmptyKind, driver: boolean): EmptyCopy {
       return {
         title: "Nothing yet",
         lead: driver
-          ? "Seat requests, payments and trip updates show up here."
-          : "Bookings, payments and trip updates show up here.",
+          ? "Updates appear here."
+          : "Updates appear here.",
         ...start,
       };
   }

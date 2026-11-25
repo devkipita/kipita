@@ -301,8 +301,7 @@ export function EditProfileForm({
             {welcome ? "Complete your profile" : "Edit profile"}
           </Display>
           <Lede>
-            This is what other Kipita members see when you book a seat or offer
-            one. You can change it any time.
+            Shown to other members.
           </Lede>
 
           {welcome && (
@@ -311,8 +310,7 @@ export function EditProfileForm({
                 <Confetti size={26} />
               </span>
               <span>
-                <strong>You&apos;re in.</strong> Add a few details so riders
-                know who they&apos;re travelling with.
+                <strong>You&apos;re in.</strong> Tell riders about yourself.
               </span>
             </Welcome>
           )}

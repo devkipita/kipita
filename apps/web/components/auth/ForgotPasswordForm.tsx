@@ -59,8 +59,7 @@ export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
         </Burst>
         <Heading style={{ fontSize: "1.8rem" }}>Reset link sent</Heading>
         <Sub style={{ margin: "10px auto 24px" }}>
-          If an account uses <strong>{email}</strong>, a reset link is on its
-          way. Open it to choose a new password.
+          If an account uses <strong>{email}</strong>, we sent a reset link.
         </Sub>
         <FootNote>
           <a href="/auth/sign-in">Back to sign in</a>
@@ -72,7 +71,7 @@ export function ForgotPasswordForm({ notice = "" }: { notice?: string }) {
   return (
     <>
       <Heading>Forgot password?</Heading>
-      <Sub>No stress. Enter your email and we&apos;ll send a reset link.</Sub>
+      <Sub>Enter your email for a reset link.</Sub>
 
       {error && (
         <AlertBox style={{ marginBottom: 18 }}>

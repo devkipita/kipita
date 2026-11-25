@@ -192,14 +192,14 @@ function copyFor(stage: VerifyStage, context: "publish" | "ride", liveNow: boole
   if (context === "ride") {
     if (stage === "pending")
       return {
-        title: "Saved, and waiting on your verification",
-        body: "Passengers can't see or book this ride yet. It goes live on its own the moment we approve your documents.",
+        title: "Saved. Waiting for verification",
+        body: "Goes live once you're verified.",
         steps: ["Ride saved", "Documents in review", "Live for passengers"],
         at: 1,
       };
     return {
-      title: "Live. Passengers can book this ride",
-      body: "It shows in search for your route, and every seat request lands in your notifications.",
+      title: "Live",
+      body: "Passengers can book it.",
       steps: ["Ride saved", "Verified", "Live for passengers"],
       at: 3,
     };
@@ -208,8 +208,8 @@ function copyFor(stage: VerifyStage, context: "publish" | "ride", liveNow: boole
     return {
       title: liveNow ? "Your documents are in review" : "Publish now, live once you're verified",
       body: liveNow
-        ? "Passengers can book while we finish checking your documents."
-        : "Your ride is saved when you publish, then goes live to passengers the moment we approve your documents.",
+        ? "Passengers can book while we check your documents."
+        : "Goes live once you're verified.",
       steps: ["Documents sent", "In review", "Live for passengers"],
       at: 1,
     };
@@ -218,7 +218,7 @@ function copyFor(stage: VerifyStage, context: "publish" | "ride", liveNow: boole
       title: "Send your documents again",
       body: (
         <>
-          <b>Your last verification didn't go through.</b> Send clear photos of your ID, licence and car. Rides can't go live until you're verified.
+          <b>Your last verification didn't go through.</b> Send clear photos of your ID, licence and car.
         </>
       ),
       steps: ["Resubmit", "Review", "Live for passengers"],
@@ -226,7 +226,7 @@ function copyFor(stage: VerifyStage, context: "publish" | "ride", liveNow: boole
     };
   return {
     title: "Get verified to go live",
-    body: "Every Kipita driver verifies once: your ID, driving licence and a photo of your car. It is how passengers know the car at the kerb is yours.",
+    body: "Verify once: your ID, driving licence and a photo of your car.",
     steps: ["Verify", "Review", "Live for passengers"],
     at: 0,
   };

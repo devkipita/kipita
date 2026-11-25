@@ -936,29 +936,29 @@ export function RideDetailView({
       ? ended === "completed"
         ? `You drove this ride${date ? ` on ${date}` : ""}.`
         : ended === "cancelled"
-          ? "You cancelled this ride, so it no longer takes bookings."
+          ? "You cancelled this ride."
           : ended === "in_progress"
             ? "You are driving this ride now."
-            : "This ride no longer takes bookings."
+            : "Bookings closed."
       : ended === "completed"
-        ? "This ride has already happened."
+        ? "This ride has ended."
         : ended === "cancelled"
           ? "The driver cancelled this ride."
           : ended === "in_progress"
-            ? "This ride is already on the road."
-            : "This ride no longer takes bookings.";
+            ? "Already under way."
+            : "Bookings closed.";
 
   const lead = endedLead
     ? endedLead
     : ownerView
     ? awaiting
-      ? "Your ride is saved. It goes live for passengers as soon as your verification clears."
-      : `Your ride is posted. Anyone heading to ${ride.to_location} can find it and book a seat now.`
+      ? "Saved. Goes live once you're verified."
+      : `Your ride is live.`
     : isTrip
-      ? "Request a seat. Once the driver accepts, you pay to lock it in."
+      ? "Request a seat. Pay once the driver accepts."
       : isOwn
         ? "This is how drivers see your request."
-        : "Driving this route? Post your ride and they can request a seat.";
+        : "Driving this route? Post a ride.";
 
   const backHref = isOwn ? "/trips" : "/home";
 
@@ -1291,7 +1291,7 @@ export function RideDetailView({
               <Warning size={20} />
               <div>
                 <b>Couldn&apos;t load Kipita&apos;s fees</b>
-                <p>Your total can&apos;t be shown yet, so requests are paused.</p>
+                <p>Total unavailable. Requests paused.</p>
               </div>
             </Banner>
             <GreenButton type="button" onClick={() => router.refresh()}>
@@ -1303,7 +1303,7 @@ export function RideDetailView({
         <Escrow>
           <Lock size={18} aria-hidden />
           <p>
-            <b>Your fare is safe.</b> Kipita holds it and only pays the driver after the trip.
+            <b>Your fare is safe.</b> Held until the trip ends.
           </p>
         </Escrow>
       </BookPanel>
@@ -1360,7 +1360,7 @@ export function RideDetailView({
             <CheckCircle2 size={20} />
             <div>
               <b>Your request is live</b>
-              <p>We&apos;ll tell you when a driver posts this route.</p>
+              <p>We&apos;ll tell you when a driver posts.</p>
             </div>
           </Banner>
           <PrimaryLink href={searchHref}>

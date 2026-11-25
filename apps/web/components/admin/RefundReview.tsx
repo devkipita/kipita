@@ -97,7 +97,7 @@ export function RefundReview() {
         await resolveRefund(item.id, decision);
         setItems((prev) => prev?.filter((i) => i.id !== item.id) ?? null);
       } catch {
-        setError("That action failed. Please try again.");
+        setError("That action failed. Try again.");
       } finally {
         setBusy(null);
       }

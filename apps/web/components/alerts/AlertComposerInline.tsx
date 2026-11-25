@@ -347,8 +347,8 @@ export function AlertComposerInline({
       if (opts.silent) return;
       setError(
         outcome.reason === "denied"
-          ? "Location is off for this site. Type the road name instead."
-          : "Couldn't get your location. Type the road name instead.",
+          ? "Location is off. Type the road name."
+          : "No location. Type the road name.",
       );
       whereRef.current?.focus();
       return;

@@ -176,7 +176,7 @@ export function PushBanner() {
         </Lead>
         <div className="copy">
           <b>Hear new requests and road alerts</b>
-          <span className="sub">A chime and a browser alert while Kipita is open.</span>
+          <span className="sub">Chime and alert while Kipita is open.</span>
         </div>
         <Actions>
           <Enable type="button" onClick={enable}>

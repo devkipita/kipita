@@ -1172,11 +1172,11 @@ export function PublishWeb({
 
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
-      return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
+      return { kind: "towns", text: "Pick two different towns." };
     if (hasDeparted(draft.date, draft.time)) {
       return draft.date < kenyaToday()
-        ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
-        : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
+        ? { kind: "day", text: "That time has passed. Pick a later time." }
+        : { kind: "time", text: `${prettyTime(draft.time)} has passed. Pick a later time.` };
     }
     // Cars saved before the seats were asked, and drafts from then, reach the review without them.
     if (car && car.seats === null) return { kind: "car", text: CAR_SEATS_MISSING };
@@ -1358,7 +1358,7 @@ export function PublishWeb({
   function pickTown(name: string) {
     if (choosingFrom) {
       if (sameTown(draft.to, name)) {
-        setBlock({ kind: "towns", text: "That is where you are going. Pick a different town to leave from." });
+        setBlock({ kind: "towns", text: "Pick a different start town." });
         return;
       }
       patch({ from: name });
@@ -1367,7 +1367,7 @@ export function PublishWeb({
       return;
     }
     if (sameTown(draft.from, name)) {
-      setBlock({ kind: "towns", text: "That is where you are leaving from. Pick a different destination." });
+      setBlock({ kind: "towns", text: "Pick a different destination." });
       return;
     }
     patch({ to: name });
@@ -1701,7 +1701,7 @@ export function PublishWeb({
                   </AddCar>
                 </Row>
                 {cars.length === 0 && (
-                  <Alert $tone="warn">A ride without a car still publishes, but passengers find you faster with one.</Alert>
+                  <Alert $tone="warn">Optional, but passengers find you faster.</Alert>
                 )}
                 {car && (
                   <CarSeatsPicker id="car-seats" value={car.seats} onChange={saveSeats} disabled={savingSeats} />
@@ -1780,7 +1780,7 @@ export function PublishWeb({
                 </Day>
               ))}
             </DayGrid>
-            <Alert $tone="warn">Rides can be posted up to three weeks ahead.</Alert>
+            <Alert $tone="warn">Post up to 3 weeks ahead.</Alert>
           </Dialog>
         </Backdrop>
       )}

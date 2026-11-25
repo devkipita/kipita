@@ -670,15 +670,15 @@ export function AlertsView({
   const emptyCopy: Record<Tab, { title: string; body: string }> = {
     nearby: {
       title: "Roads are quiet near you",
-      body: "Nothing reported within 60 km. Be the first to share what you can see.",
+      body: "Nothing within 60 km. Post what you see.",
     },
     route: {
       title: "Nothing on your routes",
-      body: "Search for a trip on the home page and we’ll watch those roads for you.",
+      body: "Search a trip and we’ll watch its roads.",
     },
     all: {
       title: "Roads are quiet",
-      body: "Be the first to share what you can see out there.",
+      body: "Post what you see.",
     },
   };
 
@@ -693,7 +693,7 @@ export function AlertsView({
           <BreakArt />
         </div>
         <h2>Alerts didn&rsquo;t load</h2>
-        <p>Check your connection and try again.</p>
+        <p>Check your connection.</p>
         <ButtonEl
           type="button"
           disabled={status === "retrying"}
@@ -718,10 +718,10 @@ export function AlertsView({
         </span>
         <h2>Turn on location to see nearby alerts</h2>
         {locating === "denied" && (
-          <p role="alert">Location is blocked for this site. Allow it in your browser settings.</p>
+          <p role="alert">Location is blocked. Allow it in browser settings.</p>
         )}
         {locating === "unavailable" && (
-          <p role="alert">Couldn&rsquo;t find you. Try again outdoors or with Wi-Fi on.</p>
+          <p role="alert">Couldn&rsquo;t find you. Try again.</p>
         )}
         <ButtonEl
           type="button"

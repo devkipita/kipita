@@ -84,7 +84,7 @@ export function PickupCodeCard({ code }: { code: string }) {
           </span>
         ))}
       </Digits>
-      <p>Give this to your driver when you get in.</p>
+      <p>Show this to your driver.</p>
     </Card>
   );
 }
@@ -567,7 +567,7 @@ export function BoardingPanel({
         <PanelHead>
           <h2>Check passengers in</h2>
         </PanelHead>
-        <p>Passengers show up here once they pay. When each one gets in, ask for their 4-digit pickup code.</p>
+        <p>Passengers appear here once paid. Ask each for their code.</p>
         {error && <Problem role="alert">{error}</Problem>}
       </Card>
     );
@@ -869,7 +869,7 @@ export function SlideToComplete({
 
 /** The line shown above the slider: what the driver will be paid, and on what condition. */
 export function earningsLine(summary: BoardingSummary): string {
-  if (!summary.loaded) return "Paid when there is no dispute.";
-  if (summary.boarded === 0) return "No one boarded, so nothing to pay out.";
-  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, when there is no dispute.`;
+  if (!summary.loaded) return "Paid if no dispute.";
+  if (summary.boarded === 0) return "No one boarded. Nothing to pay.";
+  return `You get ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"} if no dispute.`;
 }

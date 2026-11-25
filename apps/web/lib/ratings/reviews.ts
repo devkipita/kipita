@@ -28,7 +28,7 @@ export async function fetchReviews(
     .order("created_at", { ascending: false })
     .limit(LIMIT);
 
-  if (error) return { ok: false, error: "Reviews didn't load. Check your connection and try again." };
+  if (error) return { ok: false, error: "Couldn't load reviews." };
 
   const reviews = (data ?? []).map((row) => ({
     id: row.id as string,

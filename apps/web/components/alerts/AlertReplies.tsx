@@ -800,7 +800,7 @@ export function AlertReplies({
   } else if (status === "error") {
     list = (
       <Failed role="alert">
-        <Notice $variant="error">Replies didn&rsquo;t load. Check your connection.</Notice>
+        <Notice $variant="error">Couldn&rsquo;t load replies.</Notice>
         <ButtonEl
           type="button"
           $compact

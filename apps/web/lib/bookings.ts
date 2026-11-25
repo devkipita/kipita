@@ -30,7 +30,7 @@ const HOLD_ERRORS: Record<string, string> = {
   "28000": "Sign in to request a seat.",
   "22023": "This ride is no longer taking bookings.",
   "42501": "This is your own ride.",
-  "53400": "Those seats have just gone. Try fewer, or another ride.",
+  "53400": "Seats just taken. Try fewer, or another ride.",
   P0002: "This ride is no longer available.",
 };
 
@@ -52,7 +52,7 @@ export async function reserveSeatAction(
     .eq("auth_id", user.id)
     .maybeSingle();
   if (!profile) {
-    return { ok: false, error: "Your profile isn't ready yet. Try again in a moment." };
+    return { ok: false, error: "Profile not ready. Try again." };
   }
 
   const gate = rateLimit(
@@ -78,12 +78,12 @@ export async function reserveSeatAction(
       ok: false,
       error:
         HOLD_ERRORS[holdError.code ?? ""] ??
-        "We couldn't send that request. Please try again.",
+        "Couldn't send that request. Try again.",
     };
   }
 
   if (!held) {
-    return { ok: false, error: "We couldn't send that request. Please try again." };
+    return { ok: false, error: "Couldn't send that request. Try again." };
   }
 
   revalidatePath(`/ride/${tripId}`);

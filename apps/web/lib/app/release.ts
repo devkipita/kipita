@@ -64,8 +64,8 @@ export function useAppUpdate(): { release: string | null; dismiss: () => void } 
       announced.current = live;
       setRelease(live);
       ping({
-        title: "Kipita has a new version",
-        body: "Reload Kipita to start using it.",
+        title: "Update available",
+        body: "Reload to update.",
         tag: `kipita-update-${live}`,
         quiet: true,
       });

@@ -169,7 +169,7 @@ export function FinishScene({
     <Wrap aria-label="Trip complete">
       <Copy>
         <h2>{headline}</h2>
-        <p>{isDriver ? "Paid when there is no dispute" : "Thanks for riding with Kipita"}</p>
+        <p>{isDriver ? "Paid if no dispute" : "Thanks for riding with Kipita"}</p>
         <ul>
           {amount != null ? (
             <li className="money">

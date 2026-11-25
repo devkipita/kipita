@@ -498,25 +498,25 @@ const HOW: { icon: typeof UserPlus; t: string; d: string; tone: ToneName }[] = [
   {
     icon: UserPlus,
     t: "Create your account",
-    d: "Sign up with your email in seconds. Set a password and add a photo.",
+    d: "Sign up with your email.",
     tone: "green",
   },
   {
     icon: Search,
     t: "Find your ride",
-    d: "Search your route and pick a driver heading your way at a price you like.",
+    d: "Search your route and pick a driver.",
     tone: "amber",
   },
   {
     icon: Wallet,
     t: "Pay with M-Pesa",
-    d: "Your fare is held safely in escrow and only released once the trip is done.",
+    d: "Pay with M-Pesa. Your fare is held until the trip ends.",
     tone: "lav",
   },
   {
     icon: MapPin,
     t: "Travel together",
-    d: "Meet at the pickup point, share the ride, and rate each other after.",
+    d: "Meet your driver and ride.",
     tone: "blue",
   },
 ];
@@ -529,32 +529,32 @@ const DEFAULT_FAQS: FaqItem[] = [
   {
     question: "How does payment work?",
     answer:
-      "You pay with M-Pesa when you book. Kipita holds the fare in escrow and only releases it to the driver once your trip is completed. So your money is protected.",
+      "You pay with M-Pesa. Kipita holds your fare until the trip ends, then pays the driver.",
   },
   {
     question: "Is my ride safe?",
     answer:
-      "Riders and drivers are verified, every trip is rated, and payments are escrow-protected. Share your trip details with a friend any time from the app.",
+      "Drivers are verified, trips are rated and fares are held until the trip ends.",
   },
   {
-    question: "Can I sign up with my phone number?",
+    question: "Can I sign in with my phone number?",
     answer:
-      "Yes. Choose the Phone tab on sign in, enter your Kenyan number, and we'll text you a 6-digit code to verify it.",
+      "No. Sign in with your email, then verify your number in your profile.",
   },
   {
     question: "How do I become a driver?",
     answer:
-      "Create an account, then submit your licence and ID for KYC verification from the app. Once approved, you can start offering seats.",
+      "Create an account, then send your ID, licence and car photo. Once approved, you can offer seats.",
   },
   {
     question: "What if I need to cancel?",
     answer:
-      "You can cancel from your bookings. Refunds follow our refund policy. Escrow-held fares are returned when eligible.",
+      "Cancel from your bookings. Refunds follow our refund policy.",
   },
   {
     question: "How do I change my email or phone?",
     answer:
-      "Head to your profile. Your phone number has its own card: add or change it there and confirm it with the code we text you. To change your email, edit your details and confirm the link we send you.",
+      "In your profile. Confirm a new number with a code, or a new email with the link we send.",
   },
 ];
 

@@ -126,7 +126,7 @@ export function AlertOwnerMenu({
         <Note>
           {editable
             ? `You can change this for ${left} more ${left === 1 ? "minute" : "minutes"}.`
-            : "The five-minute window for changes has closed."}
+            : "Can no longer be changed."}
         </Note>
       </Popover>
       {confirmNode}

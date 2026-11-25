@@ -19,7 +19,7 @@ export type AlertResult = { ok: true; id: string } | { ok: false; error: string 
 export type CommentResult = { ok: true } | { ok: false; error: string };
 
 const PROFILE_NOT_READY =
-  "Your profile isn't ready yet. Sign out and back in, then try again.";
+  "Profile not ready. Sign out and back in.";
 
 async function resolveUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -72,7 +72,7 @@ export async function createAlertAction(input: AlertInput): Promise<AlertResult>
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, error: "We couldn't post that alert. Please try again." };
+    return { ok: false, error: "Couldn't post that alert. Try again." };
   }
 
   revalidatePath("/alerts");
@@ -114,7 +114,7 @@ export async function updateAlertAction(
     .select("id");
 
   if (error) {
-    return { ok: false, error: "We couldn't save that change. Please try again." };
+    return { ok: false, error: "Couldn't save that change. Try again." };
   }
   if (!data || data.length === 0) {
     return { ok: false, error: "That alert can no longer be edited." };
@@ -137,7 +137,7 @@ export async function deleteAlertAction(alertId: string): Promise<CommentResult>
     .select("id");
 
   if (error) {
-    return { ok: false, error: "We couldn't delete that alert. Please try again." };
+    return { ok: false, error: "Couldn't delete that alert. Try again." };
   }
   if (!data || data.length === 0) {
     return { ok: false, error: "That alert can no longer be deleted." };
@@ -207,7 +207,7 @@ export async function addCommentAction(
   });
 
   if (error) {
-    return { ok: false, error: "We couldn't post that reply. Please try again." };
+    return { ok: false, error: "Couldn't post that reply. Try again." };
   }
 
   revalidatePath(`/alerts/${alertId}`);

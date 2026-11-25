@@ -438,7 +438,7 @@ export function TripsView({
     <EmptyState
       art={<NoTripsArt />}
       title="No trips booked"
-      line="Seats you book show up here with the driver, pickup time and what you paid."
+      line="Your bookings appear here."
       action={<Find href="/home" $tonal={isDriver}>Find a ride</Find>}
     />
   );
@@ -456,7 +456,7 @@ export function TripsView({
         <EmptyState
           art={<NoTripsArt />}
           title={`No trips match "${query.trim()}"`}
-          line="Try a town, a name, a date or a booking reference."
+          line="Try a town, name or date."
         />
       );
   } else if (tab === "incoming") {
@@ -469,7 +469,7 @@ export function TripsView({
           <EmptyState
             art={<NoRequestsArt />}
             title="No seat requests right now"
-            line="When someone asks for a seat on your ride, it lands here for you to accept or decline."
+            line="Seat requests appear here."
           />
         }
       />
@@ -482,7 +482,7 @@ export function TripsView({
         <EmptyState
           art={<NoPastArt />}
           title="No past trips yet"
-          line="Finished and cancelled trips stay here with their receipts."
+          line="Past trips appear here."
         />
       );
   } else {

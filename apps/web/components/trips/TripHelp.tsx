@@ -182,7 +182,7 @@ export function TripHelp({ booking, viewer }: { booking: Booking; viewer: HelpVi
             value={detail}
             maxLength={2000}
             onChange={(e) => setDetail(e.target.value)}
-            placeholder="What happened? Times, names and what you expected all help."
+            placeholder="What happened?"
             aria-label="What happened?"
           />
           <div className="acts">

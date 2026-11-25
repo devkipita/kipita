@@ -256,7 +256,7 @@ export function SupportProvider({
         );
         return true;
       } catch {
-        setError("That didn't send. Check your connection and try again.");
+        setError("Didn't send. Try again.");
         return false;
       } finally {
         setSending(false);

@@ -127,20 +127,20 @@ function cancelLead(trip: PublishedTrip): string {
   const riders = trip.riders ?? [];
   const people = riders.length;
   const paid = riders.filter((r) => r.state === "paid").length;
-  if (people === 0) return "No one has booked a seat yet, so the ride just comes off Kipita.";
+  if (people === 0) return "No bookings. The ride is removed.";
   const who =
     people === 1
-      ? "Your 1 passenger loses their seat and gets a message."
-      : `All ${people} passengers lose their seats and get a message.`;
+      ? "Your passenger is told."
+      : `All ${people} passengers are told.`;
   if (paid === 0) return who;
   const back =
     paid === people
       ? people === 1
-        ? "They get their full fare back."
-        : "Each one gets their full fare back."
+        ? "Refunded in full."
+        : "All refunded in full."
       : paid === 1
-        ? "The 1 who paid gets their full fare back."
-        : `The ${paid} who paid get their full fare back.`;
+        ? "The 1 who paid is refunded in full."
+        : `The ${paid} who paid are refunded in full.`;
   return `${who} ${back}`;
 }
 

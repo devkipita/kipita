@@ -59,8 +59,7 @@ export function ClearedNote({ votes }: { votes: AlertVotes }) {
   if (alertStatus(votes) === "cleared") {
     text = (
       <>
-        <b>Cleared.</b> {CLEARED_THRESHOLD} people say it&rsquo;s back to normal. If the problem comes back, post a
-        new alert.
+        <b>Cleared.</b> {CLEARED_THRESHOLD} people say it&rsquo;s cleared.
       </>
     );
   } else if (votes.cleared_count > 0) {

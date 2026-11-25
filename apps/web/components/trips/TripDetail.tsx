@@ -1119,16 +1119,16 @@ export function TripDetail({
   const noShowNote: string | null =
     stopped && noShow?.tier === "no_show"
       ? noShow.disputedAt
-        ? "Under review. The fare stays on hold while we look into it"
+        ? "Under review. Fare on hold"
         : isDriver
           ? disputeOpen
-            ? `${formatCurrency(subtotal)} goes to your wallet in ${cancelConfig.noShowDisputeHours} hours unless the passenger disputes it`
+            ? `${formatCurrency(subtotal)} to your wallet in ${cancelConfig.noShowDisputeHours} hours unless disputed`
             : `${formatCurrency(subtotal)} was added to your wallet`
           : disputeOpen
-            ? `Your driver says you didn't show up. Dispute it within ${cancelConfig.noShowDisputeHours} hours or the fare goes to your driver`
-            : "You didn't show up, so the seat price went to your driver"
+            ? `Marked no-show. Dispute within ${cancelConfig.noShowDisputeHours} hours or the fare goes to your driver`
+            : "No-show. The seat price went to your driver"
       : stopped && noShow?.tier === "late" && booking.refunded_amount == null
-        ? "Cancelled late, so nothing was refunded"
+        ? "Cancelled late. No refund"
         : null;
 
   const [quote, setQuote] = useState<CancellationQuoteView | "loading" | "failed" | null>(null);
@@ -1147,19 +1147,19 @@ export function TripDetail({
   const cancelCopy: { money: string; detail: string | null; refund: boolean } = (() => {
     if (!paid) return { money: "Nothing has been charged", detail: null, refund: false };
     if (quote === "loading" || quote === null) {
-      return { money: "Checking what you'd get back…", detail: null, refund: true };
+      return { money: "Checking refund…", detail: null, refund: true };
     }
     if (quote === "failed") {
       return {
-        money: "We couldn't check what you'd get back",
+        money: "Couldn't check your refund",
         detail: cancellationRuleLines(cancelConfig).slice(0, 2).join(" "),
         refund: true,
       };
     }
     if (quote.tier === "free" || quote.tier === "driver") {
       return {
-        money: `${formatCurrency(quote.passengerGets)} goes back to your Kipita wallet`,
-        detail: "You're inside the free cancellation window, so nothing is kept.",
+        money: `${formatCurrency(quote.passengerGets)} refunded to your wallet`,
+        detail: "Free cancellation. Nothing is kept.",
         refund: true,
       };
     }
@@ -1167,7 +1167,7 @@ export function TripDetail({
       const ended = quote.freeUntil ? `Free cancellation ended ${whenLabel(quote.freeUntil)}.` : "Free cancellation has ended.";
       const fee = `the ${formatCurrency(quote.kipitaKeeps)} service fee isn't refunded`;
       return {
-        money: quote.passengerGets > 0 ? `${formatCurrency(quote.passengerGets)} goes back to your Kipita wallet` : "Nothing is refunded",
+        money: quote.passengerGets > 0 ? `${formatCurrency(quote.passengerGets)} refunded to your wallet` : "Nothing is refunded",
         detail:
           quote.passengerGets > 0
             ? `${ended} The other ${formatCurrency(quote.driverGets)} goes to your driver and ${fee}.`
@@ -1238,10 +1238,10 @@ export function TripDetail({
     (live || (booking.status === "completed" && journey.escrow === "held" && releaseMs != null && nowMs <= releaseMs));
   const problemNote: string | null = journey.problem
     ? journey.problem.status === "open"
-      ? "We're looking into your report. The fare is on hold"
+      ? "Under review. Fare on hold"
       : journey.problem.outcome === "refund"
-        ? "Refunded to your Kipita wallet"
-        : "We found no problem. Contact support if you disagree"
+        ? "Refunded to your wallet"
+        : "No problem found. Contact support if you disagree"
     : null;
 
   const pageRef = useRef<HTMLDivElement>(null);
@@ -1573,15 +1573,15 @@ export function TripDetail({
   const driverFee = journey.payout != null ? Math.max(0, subtotal - journey.payout) : 0;
   const driverPayLine =
     booking.status !== "completed"
-      ? "Paid when there is no dispute"
+      ? "Paid if no dispute"
       : released
-        ? "Paid to your Kipita wallet"
+        ? "Paid to your wallet"
         : journey.escrow === "refunded" || journey.escrow === "refund_pending"
           ? `Refunded to ${firstName}`
           : journey.escrow === "held"
             ? journey.problem?.status === "open"
-              ? "On hold while we look into a reported problem"
-              : "Paid when there is no dispute"
+              ? "On hold. Problem reported"
+              : "Paid if no dispute"
             : "Trip complete";
   const baseNote: string | null = due
     ? hold
@@ -1589,12 +1589,12 @@ export function TripDetail({
         ? `Waiting for ${firstName} to pay · ${hold} left`
         : `Pay within ${hold} to keep your ${seatWord}`
       : isDriver
-        ? `${firstName} didn't pay in time, so the seat isn't held for them`
-        : "Your hold ran out. Request the seat again if it's still free"
+        ? `${firstName} didn't pay in time`
+        : "Hold expired. Request again if still free"
     : booking.status === "requested"
       ? isDriver
-        ? `${firstName} can message you once you accept, and sees your number after paying`
-        : "Nothing is charged until the driver accepts"
+        ? `${firstName} can message you after you accept. Number shared after payment.`
+        : "Not charged until accepted"
       : live
         ? null
         : paid || booking.status === "completed"
@@ -1606,7 +1606,7 @@ export function TripDetail({
           : booking.refunded_amount != null
             ? `${formatCurrency(booking.refunded_amount)} refunded ${booking.refund_to === "mpesa" ? "to M-Pesa" : "to your Kipita wallet"}`
             : booking.paid_at
-              ? "Refund on its way to your Kipita wallet"
+              ? "Refund sent to your wallet"
               : "Nothing was charged";
   const note = noShowNote ?? baseNote;
   const waiting = isDriver && (due || (!noShowNote && !released && (paid || booking.status === "completed")));
@@ -1710,8 +1710,8 @@ export function TripDetail({
                 {freeNow
                   ? `Free cancellation until ${whenLabel(freeEnds.toISOString())}`
                   : cancelConfig.latePercent > 0
-                    ? `Free cancellation has ended. Cancelling now returns ${cancelConfig.latePercent}% of the seat price`
-                    : "Free cancellation has ended. Cancelling now returns nothing"}
+                    ? `Free cancellation ended. You get ${cancelConfig.latePercent}% back`
+                    : "Free cancellation ended. No refund"}
               </Hint>
             )}
             {runnable && paid && (

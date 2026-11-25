@@ -54,7 +54,7 @@ export function ProblemPanel({
     <>
       <PanelBody>
         <Title>What went wrong?</Title>
-        <Sub>{held ? "We hold the fare while we look into it." : "We look into every report and tell you what we decide."}</Sub>
+        <Sub>{held ? "Fare on hold while we review." : "We'll tell you what we decide."}</Sub>
         <Label>What happened?</Label>
         <Chips role="radiogroup" aria-label="What went wrong">
           {PROBLEM_KINDS.map((k) => (

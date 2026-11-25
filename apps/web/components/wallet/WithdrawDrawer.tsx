@@ -215,7 +215,7 @@ export function WithdrawDrawer({
       setError(
         err instanceof Error
           ? err.message
-          : "We couldn't reach M-Pesa. Your balance is unchanged.",
+          : "Couldn't reach M-Pesa. Balance unchanged.",
       );
       setStage("form");
     }
@@ -233,7 +233,7 @@ export function WithdrawDrawer({
           </b>
           <p>
             {stage === "done"
-              ? `Sent to ${masked}. It usually lands within a minute.`
+              ? `Sent to ${masked}.`
               : `${formatKes(value)} is reserved for ${masked}.`}
           </p>
         </Status>
@@ -268,8 +268,8 @@ export function WithdrawDrawer({
       return (
         <Status>
           <WalletToPhoneArt />
-          <b>Verify your phone to withdraw</b>
-          <p>Payouts only go to a verified M-Pesa number.</p>
+          <b>Verify your number</b>
+          <p>Payouts go to a verified M-Pesa number.</p>
         </Status>
       );
     }
@@ -313,7 +313,7 @@ export function WithdrawDrawer({
           )}
         </FieldBlock>
 
-        <PaidTo aria-label={`Paid to your verified number ending ${payoutPhone.slice(6, 9)}`}>
+        <PaidTo aria-label={`To your number ending ${payoutPhone.slice(6, 9)}`}>
           <DeviceMobile size={22} />
           <span>
             Paid to <b>{masked}</b>

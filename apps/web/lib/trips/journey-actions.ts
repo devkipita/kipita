@@ -44,10 +44,10 @@ export async function payWithWalletAction(bookingId: string): Promise<Result> {
     return {
       ok: false,
       error: /insufficient/i.test(error.message)
-        ? "Your wallet doesn't have enough for this seat."
+        ? "Not enough in your wallet."
         : error.code === "22023"
           ? error.message
-          : "We couldn't take the payment. Nothing was charged.",
+          : "Payment failed. Nothing was charged.",
     };
   }
 

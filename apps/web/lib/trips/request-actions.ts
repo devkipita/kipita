@@ -12,10 +12,10 @@ export type DecisionResult =
   | { ok: false; error: string; code?: string };
 
 const DECISION_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "That request is no longer open.",
   "42501": "Only the driver can answer that request.",
-  "53400": "You no longer have enough seats for that request.",
+  "53400": "Not enough seats left.",
   P0002: "That request no longer exists.",
 };
 
@@ -29,7 +29,7 @@ export async function answerSeatRequestAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data, error } =
     decision === "accept"
@@ -49,7 +49,7 @@ export async function answerSeatRequestAction(
       code: error.code ?? undefined,
       error:
         DECISION_ERRORS[error.code ?? ""] ??
-        "We couldn't record that. Please try again.",
+        "Couldn't record that. Try again.",
     };
   }
 

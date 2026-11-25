@@ -26,7 +26,7 @@ export type BoardingRow = {
 
 type Fail = { ok: false; error: string };
 
-const SESSION = "Your session expired. Sign in again.";
+const SESSION = "Session expired. Sign in again.";
 
 const BOARD_ERRORS: Record<string, string> = {
   "28000": SESSION,
@@ -134,7 +134,7 @@ const REPORT_ERRORS: Record<string, string> = {
   "28000": SESSION,
   "42501": "That isn't your booking.",
   P0002: "Booking not found.",
-  KP006: "The time to report has passed. Contact support.",
+  KP006: "Time to report has passed. Contact support.",
 };
 
 export async function reportProblemAction(

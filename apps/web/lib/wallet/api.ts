@@ -74,5 +74,5 @@ async function readFunctionError(error: unknown): Promise<string> {
     if (body?.error) return String(body.error);
   }
   const message = (error as { message?: string }).message;
-  return message || "Something went wrong. Please try again.";
+  return message || "Something went wrong. Try again.";
 }

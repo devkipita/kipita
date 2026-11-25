@@ -53,7 +53,7 @@ export async function adminReplyAction(
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, error: "That didn't send. Please try again." };
+    return { ok: false, error: "Didn't send. Try again." };
   }
 
   revalidatePath("/admin/support");

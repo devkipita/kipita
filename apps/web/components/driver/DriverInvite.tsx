@@ -209,7 +209,7 @@ export function DriverInvite({ open, onYes, onLater }: { open: boolean; onYes: (
           <h2 id="driver-invite-title" ref={titleRef} tabIndex={-1}>
             Will you be driving too?
           </h2>
-          <p>Get verified as a driver to offer your empty seats and get paid for trips you already make.</p>
+          <p>Get verified to offer seats and get paid.</p>
         </Hero>
         <Steps aria-label="What you will need">
           {STEPS.map((s) => (

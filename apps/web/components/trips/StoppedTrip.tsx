@@ -465,8 +465,8 @@ export function StoppedTrip({
     !["cancelled", "completed", "expired", "in_progress"].includes(booking.trip.status) &&
     (!leaves || leaves.getTime() > Date.now());
   const stillOn = booking.accepted_at
-    ? `Your ride to ${destination} is still on, and the seat is back on sale.`
-    : `Your ride to ${destination} is still open for booking.`;
+    ? `Your ride to ${destination} is still on.`
+    : `Your ride to ${destination} is still open.`;
   const search = new URLSearchParams({ from: origin, to: destination }).toString();
 
   const steps: { label: string; at: string; stop?: boolean }[] = [
