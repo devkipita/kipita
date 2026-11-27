@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import styled from "styled-components";
-import { CaretRight } from "@/components/icons";
+import { CaretDown } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { TRIP_FAQS } from "@/lib/trips/copy";
 import { HelpPanel, Unfold, rowPress } from "./helpRows";
@@ -10,17 +10,17 @@ import { HelpPanel, Unfold, rowPress } from "./helpRows";
 const Row = styled.button<{ $open: boolean }>`
   ${rowPress}
 
-  svg {
-    transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
+  .caret {
+    transform: rotate(${({ $open }) => ($open ? 180 : 0)}deg);
   }
 `;
 
 const Answer = styled(Unfold)`
   p {
     margin: 0;
-    padding: 4px 12px 12px;
-    font-size: 14px;
-    line-height: 20px;
+    padding: 0 48px 16px 8px;
+    font-size: 15px;
+    line-height: 24px;
     color: ${nocturne.muted};
   }
 `;
@@ -43,7 +43,9 @@ export function TripFaqs() {
               onClick={() => setOpen(on ? null : f.q)}
             >
               <span>{f.q}</span>
-              <CaretRight size={16} aria-hidden />
+              <span className="caret" aria-hidden>
+                <CaretDown size={20} />
+              </span>
             </Row>
             <Answer $open={on} id={id}>
               <div inert={!on} aria-hidden={!on}>

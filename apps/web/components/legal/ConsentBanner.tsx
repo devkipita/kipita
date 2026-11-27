@@ -2,119 +2,122 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import styled from "styled-components";
-import { Cookie } from "@/components/icons";
-import { Chip } from "@/components/ui/Chip";
+import styled, { css } from "styled-components";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { Z } from "@/lib/z";
 import { readConsent, writeConsent, type Consent } from "@/lib/consent";
+import { CookiesArt } from "./LegalArt";
 
 const Card = styled.section`
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + var(--bottom-bar-space, 0px) + env(safe-area-inset-bottom));
   z-index: ${Z.consent};
   display: grid;
-  gap: 14px;
-  padding: 10px max(20px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom))
-    max(20px, env(safe-area-inset-left));
-  border-radius: 24px 24px 0 0;
-  background: color-mix(in oklab, ${nocturne.surface} 68%, transparent);
-  backdrop-filter: blur(22px) saturate(1.6);
-  -webkit-backdrop-filter: blur(22px) saturate(1.6);
-  border-top: 1px solid color-mix(in oklab, ${nocturne.onGreen} 80%, transparent);
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, ${nocturne.onGreen} 70%, transparent),
-    ${nocturne.panelShadow};
-
-  @supports not (backdrop-filter: blur(1px)) {
-    background: ${nocturne.surface};
-  }
+  overflow: hidden;
+  border-radius: 24px;
+  background: ${nocturne.surface};
   color: ${nocturne.cream};
-  transform: translateY(100%);
-  transition: transform ${dur.exit} ${ease.exit};
+  box-shadow: ${nocturne.panelShadow};
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    transform ${dur.exit} ${ease.exit},
+    opacity ${dur.exit} ${ease.exit};
 
   &[data-show="true"] {
+    opacity: 1;
     transform: none;
-    transition: transform ${dur.enter} ${ease.enter};
-  }
-
-  .grip {
-    width: 42px;
-    height: 4px;
-    margin: 0 auto 4px;
-    border-radius: 999px;
-    background: ${nocturne.outline};
+    transition:
+      transform ${dur.enter} ${ease.enter},
+      opacity ${dur.enter} ${ease.enter};
   }
 
   @media (min-width: 860px) {
     left: 24px;
     right: auto;
     bottom: 24px;
-    width: 420px;
-    padding: 18px;
-    border-radius: 22px;
-    border: 1px solid color-mix(in oklab, ${nocturne.onGreen} 80%, transparent);
-    transform: translateY(calc(100% + 40px));
-    opacity: 0;
-    transition:
-      transform ${dur.exit} ${ease.exit},
-      opacity ${dur.exit} ${ease.exit};
+    width: 400px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transform: none;
 
     &[data-show="true"] {
-      opacity: 1;
-      transition:
-        transform ${dur.enter} ${ease.enter},
-        opacity ${dur.state} ${ease.standard};
-    }
-
-    .grip {
-      display: none;
+      transform: none;
     }
   }
 `;
 
-const Head = styled.div`
+const Band = styled.div`
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
+  place-items: center;
+  padding: 16px 24px 0;
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
 
-  .well {
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
+  svg {
+    width: min(240px, 72%);
+    height: auto;
   }
+
+  @media (max-width: 420px) {
+    svg {
+      width: min(180px, 60%);
+    }
+  }
+`;
+
+const Body = styled.div`
+  display: grid;
+  gap: 8px;
+  padding: 20px 20px 0;
+
   h2 {
     margin: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 17px;
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: -0.015em;
+    line-height: 28px;
+    letter-spacing: -0.02em;
   }
   p {
-    margin: 4px 0 0;
-    font-size: 14px;
-    line-height: 1.45;
+    margin: 0;
+    font-size: 15px;
+    line-height: 22px;
     color: ${nocturne.muted};
   }
   .links {
     display: flex;
     flex-wrap: wrap;
-    gap: 4px 14px;
-    margin-top: 8px;
+    gap: 4px 16px;
   }
-  a {
-    font-size: 14px;
-    font-weight: 700;
-    color: ${nocturne.accent};
-    text-decoration: underline;
-    text-underline-offset: 3px;
+`;
+
+const TextLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 700;
+  color: ${nocturne.green};
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  transition: color ${dur.state} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      color: ${nocturne.greenDeep};
+    }
+  }
+  &:active {
+    color: ${nocturne.greenDeep};
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 `;
 
@@ -122,27 +125,25 @@ const Actions = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+  padding: 16px 20px 20px;
 `;
 
-const Accept = styled.button`
-  min-height: 44px;
+const pill = css`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 12px;
-  background: ${nocturne.green};
-  color: ${nocturne.onGreen};
+  border-radius: 999px;
   font: inherit;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   transition:
-    background 160ms ease,
-    transform 150ms ease;
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      background: ${nocturne.greenDeep};
-    }
-  }
   &:active {
     transform: scale(0.97);
   }
@@ -150,11 +151,35 @@ const Accept = styled.button`
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
 `;
 
-const Essential = styled(Chip)`
-  justify-content: center;
-  min-height: 44px;
+const Essential = styled.button`
+  ${pill}
+  background: ${({ theme }) => theme.tone.surface.bg};
+  color: ${({ theme }) => theme.tone.surface.on};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${({ theme }) => theme.tone.surface.bg} 88%, ${nocturne.cream});
+    }
+  }
+`;
+
+const Accept = styled.button`
+  ${pill}
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: ${nocturne.greenDeep};
+    }
+  }
 `;
 
 export function ConsentBanner() {
@@ -177,21 +202,27 @@ export function ConsentBanner() {
   if (!mounted) return null;
 
   return (
-    <Card data-show={show ? "true" : "false"} role="dialog" aria-label="Cookies and your privacy" aria-live="polite">
-      <span className="grip" aria-hidden="true" />
-      <Head>
-        <span className="well" aria-hidden="true">
-          <Cookie size={22} />
-        </span>
-        <div>
-          <h2>Cookies and your privacy</h2>
-          <p>We use essential cookies to keep you signed in. With your OK we also measure performance to make Kipita faster.</p>
-          <div className="links">
-            <Link href="/legal/privacy">Privacy policy</Link>
-            <Link href="/legal/cookies">Cookie policy</Link>
-          </div>
+    <Card
+      data-show={show ? "true" : "false"}
+      role="dialog"
+      aria-modal="false"
+      aria-labelledby="consent-title"
+      aria-describedby="consent-body"
+    >
+      <Band aria-hidden>
+        <CookiesArt />
+      </Band>
+      <Body>
+        <h2 id="consent-title">Cookies on Kipita</h2>
+        <p id="consent-body">
+          We use essential cookies to keep you signed in. With your OK, we also measure performance to make Kipita
+          faster.
+        </p>
+        <div className="links">
+          <TextLink href="/legal/privacy">Privacy policy</TextLink>
+          <TextLink href="/legal/cookies">Cookie policy</TextLink>
         </div>
-      </Head>
+      </Body>
       <Actions>
         <Essential type="button" onClick={() => choose("essential")}>
           Essential only

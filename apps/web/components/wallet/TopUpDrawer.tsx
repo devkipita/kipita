@@ -345,7 +345,8 @@ export function TopUpDrawer({
       dismissible={!busy}
       initialFocusRef={amountRef}
       size="sm"
-      title="Top up your wallet"
+      side
+      title="Deposit to your wallet"
       footer={
         settled ? (
           <DrawerFooter>

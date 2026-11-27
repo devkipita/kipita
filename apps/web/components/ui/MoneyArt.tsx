@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import styled from "styled-components";
+import { nocturne } from "@/lib/nocturne";
 
 const Svg = styled.svg<{ $tone?: "bad" }>`
   display: block;
   width: 100%;
-  max-width: 192px;
+  max-width: 220px;
   height: auto;
   margin: 0 auto;
 
@@ -38,6 +39,29 @@ const Svg = styled.svg<{ $tone?: "bad" }>`
     stroke-width: 3.2;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+  .f-green {
+    fill: ${nocturne.green};
+  }
+  .f-deep {
+    fill: ${nocturne.greenDeep};
+  }
+  .f-lime {
+    fill: ${nocturne.lime};
+  }
+  .f-paper {
+    fill: ${nocturne.surface};
+  }
+  .s-deep {
+    stroke: ${nocturne.greenDeep};
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .s-paper {
+    stroke: ${nocturne.surface};
+    stroke-width: 2.4;
+    stroke-linecap: round;
   }
 `;
 
@@ -88,13 +112,12 @@ function Coin({
   const u = r / 14;
   return (
     <g>
-      <circle cx={cx} cy={cy} r={r} className="accent-fill" fillOpacity="0.16" />
-      <circle cx={cx} cy={cy} r={r} className="accent" />
+      <circle cx={cx} cy={cy} r={r} className="f-lime" />
+      <circle cx={cx} cy={cy} r={r} className="s-deep" />
       <path
         d={`M${cx - 4 * u} ${cy - 6 * u}v${12 * u}M${cx + 4 * u} ${cy - 6 * u}l${-8 * u} ${6 * u} ${8 * u} ${6 * u}`}
-        className="accent"
-        strokeOpacity="0.75"
-        strokeWidth={2.2 * u}
+        className="s-deep"
+        strokeWidth={2.4 * u}
       />
     </g>
   );
@@ -103,34 +126,11 @@ function Coin({
 function Wallet() {
   return (
     <g>
-      <rect
-        x="52"
-        y="42"
-        width="74"
-        height="22"
-        rx="7"
-        className="ink thin"
-        strokeOpacity="0.28"
-      />
-      <rect
-        x="34"
-        y="54"
-        width="112"
-        height="56"
-        rx="15"
-        className="ink"
-        strokeOpacity="0.45"
-      />
-      <rect
-        x="100"
-        y="70"
-        width="46"
-        height="24"
-        rx="12"
-        className="accent"
-        strokeOpacity="0.5"
-      />
-      <circle cx="116" cy="82" r="4" className="accent-fill" fillOpacity="0.6" />
+      <rect x="52" y="42" width="74" height="22" rx="7" className="f-deep" />
+      <rect x="34" y="54" width="112" height="56" rx="15" className="f-green" />
+      <path d="M46 66h48" className="s-paper" strokeOpacity="0.35" />
+      <rect x="100" y="70" width="46" height="24" rx="12" className="f-lime" />
+      <circle cx="116" cy="82" r="4.5" className="f-deep" />
     </g>
   );
 }
@@ -211,69 +211,28 @@ export function WalletToPhoneArt() {
       <Ground cx={44} rx={34} />
       <Ground cx={142} rx={26} />
 
-      <rect
-        x="22"
-        y="50"
-        width="44"
-        height="14"
-        rx="5"
-        className="ink thin"
-        strokeOpacity="0.28"
-      />
-      <rect
-        x="10"
-        y="58"
-        width="68"
-        height="46"
-        rx="12"
-        className="ink"
-        strokeOpacity="0.45"
-      />
-      <rect
-        x="52"
-        y="70"
-        width="28"
-        height="18"
-        rx="9"
-        className="accent"
-        strokeOpacity="0.45"
-      />
+      <rect x="22" y="50" width="44" height="14" rx="5" className="f-deep" />
+      <rect x="10" y="58" width="68" height="46" rx="12" className="f-green" />
+      <path d="M20 70h28" className="s-paper" strokeOpacity="0.35" />
+      <rect x="52" y="70" width="28" height="18" rx="9" className="f-lime" />
+      <circle cx="62" cy="79" r="3.5" className="f-deep" />
 
-      <rect
-        x="118"
-        y="32"
-        width="48"
-        height="76"
-        rx="12"
-        className="ink"
-        strokeOpacity="0.45"
-      />
-      <rect
-        x="124"
-        y="42"
-        width="36"
-        height="58"
-        rx="7"
-        className="ink-fill"
-        fillOpacity="0.06"
-      />
-      <path d="M136 37h12" className="ink thin" strokeOpacity="0.3" />
-      <path
-        d="M130 66h24"
-        className="accent"
-        strokeOpacity="0.55"
-        strokeWidth="3.2"
-      />
-      <path d="M130 78h15" className="ink thin" strokeOpacity="0.26" />
+      <rect x="118" y="30" width="48" height="80" rx="12" className="f-deep" />
+      <rect x="124" y="40" width="36" height="60" rx="7" className="f-paper" />
+      <path d="M136 35h12" className="s-paper" strokeOpacity="0.5" />
+      <rect x="129" y="50" width="26" height="12" rx="6" className="f-lime" />
+      <path d="M130 72h24" className="s-deep" strokeOpacity="0.5" />
+      <path d="M130 82h15" className="s-deep" strokeOpacity="0.3" />
+      <circle cx="142" cy="93" r="4" className="f-green" />
 
       <path
         d="M46 56C58 22 108 18 132 34"
-        className="accent"
-        strokeOpacity="0.45"
+        className="s-deep"
+        strokeOpacity="0.55"
         strokeDasharray="5 7"
         fill="none"
       />
-      <Coin cx={85} cy={26} r={13} />
+      <Coin cx={85} cy={26} r={14} />
     </Art>
   );
 }

@@ -88,7 +88,7 @@ const Money = styled.div`
 
 export function TripsSkeleton() {
   return (
-    <Page $max={1080}>
+    <Page $max={1320}>
       <Head>
         <HeadRow $open={false}>
           <h1 data-bar-title="">Trips</h1>
