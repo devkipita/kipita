@@ -15,6 +15,40 @@ export type TripLocation = {
 
 export type ShareState = "off" | "on" | "denied" | "unsupported" | "failed";
 
+// A locked phone stops sending the car's position, so the screen stays on while we share.
+// The browser lets go of the lock when the page is hidden, so it is taken again on return.
+function useKeepScreenOn(active: boolean) {
+  useEffect(() => {
+    if (!active || !("wakeLock" in navigator)) return;
+    let live = true;
+    let asking = false;
+    let lock: WakeLockSentinel | null = null;
+
+    const take = () => {
+      if (asking || document.visibilityState !== "visible" || (lock && !lock.released)) return;
+      asking = true;
+      navigator.wakeLock
+        .request("screen")
+        .then((sentinel) => {
+          if (live) lock = sentinel;
+          else void sentinel.release();
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          asking = false;
+        });
+    };
+
+    take();
+    document.addEventListener("visibilitychange", take);
+    return () => {
+      live = false;
+      document.removeEventListener("visibilitychange", take);
+      void lock?.release().catch(() => undefined);
+    };
+  }, [active]);
+}
+
 export function useShareLocation(tripId: string, running: boolean) {
   const [state, setState] = useState<ShareState>("off");
   const watch = useRef<number | null>(null);
@@ -73,6 +107,8 @@ export function useShareLocation(tripId: string, running: boolean) {
     else stop();
     return stop;
   }, [running, start, stop]);
+
+  useKeepScreenOn(running && state !== "denied" && state !== "unsupported");
 
   return { state, retry };
 }
