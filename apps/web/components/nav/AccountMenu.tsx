@@ -4,13 +4,14 @@ import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import styled, { css } from "styled-components";
-import { Moon, SignOut } from "@/components/icons";
+import { DeviceMobile, Moon, SignOut } from "@/components/icons";
 import { useOptionalAppMode } from "@/components/nav/AppShell";
 import { useThemeMode } from "@/components/providers/ThemeRuntimeProvider";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { Avatar } from "@/components/profile/Avatar";
 import { RollingNumber } from "@/components/ui/Counter";
 import { Switch } from "@/components/ui/Switch";
+import { useInstall } from "@/lib/app/install";
 import { signOutAction } from "@/lib/auth/actions";
 import type { Profile } from "@/lib/auth/types";
 import { dur, ease, nocturne } from "@/lib/nocturne";
@@ -19,11 +20,12 @@ import { ACCOUNT_NAV, isNavItemActive, type NavCounts, type NavItem } from "./na
 type Size = "menu" | "sheet";
 
 const THEME = "theme";
+const INSTALL = "install";
 
 const GROUPS: { title: string; keys: string[] }[] = [
   { title: "Your trips", keys: ["trips", "notifications", "alerts"] },
   { title: "Money", keys: ["wallet", "referrals"] },
-  { title: "Account and help", keys: ["profile", THEME, "help", "legal"] },
+  { title: "Account and help", keys: ["profile", THEME, INSTALL, "help", "legal"] },
 ];
 
 const layer = (pct: number) => `color-mix(in oklab, ${nocturne.cream} ${pct}%, transparent)`;
@@ -203,6 +205,19 @@ const SignOutButton = styled.button<{ $size: Size }>`
   }
 `;
 
+const ActionRow = styled.button<{ $size: Size }>`
+  ${rowShape}
+  ${rowInteractive}
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: ${({ $size }) => ($size === "sheet" ? 17 : 16)}px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+`;
+
 function SignOutRow({ size }: { size: Size }) {
   const { pending } = useFormStatus();
   return (
@@ -225,6 +240,26 @@ function ThemeRow({ size }: { size: Size }) {
       </span>
       <Switch checked={mode === "dark"} onChange={toggle} label="Dark mode" />
     </StaticRow>
+  );
+}
+
+function InstallRow({ size, onDone }: { size: Size; onDone: () => void }) {
+  const { offer, install } = useInstall();
+  if (!offer) return null;
+  return (
+    <ActionRow
+      type="button"
+      $size={size}
+      onClick={() => {
+        void install();
+        onDone();
+      }}
+    >
+      <Well aria-hidden="true">
+        <DeviceMobile size={24} />
+      </Well>
+      <span className="label">Install the app</span>
+    </ActionRow>
   );
 }
 
@@ -300,6 +335,7 @@ export function AccountMenu({
           <h3 id={`account-group-${g.keys[0]}`}>{g.title}</h3>
           {g.keys.map((k) => {
             if (k === THEME) return <ThemeRow key={k} size={size} />;
+            if (k === INSTALL) return <InstallRow key={k} size={size} onDone={onNavigate} />;
             const item = byKey.get(k);
             return item ? row(item) : null;
           })}
