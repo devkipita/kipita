@@ -8,6 +8,7 @@ import { ChunkReloadScript } from "@/components/providers/ChunkReloadScript";
 import { ConsentBanner } from "@/components/legal/ConsentBanner";
 import { NetworkStatus } from "@/components/ui/NetworkStatus";
 import { AppUpdate } from "@/components/ui/AppUpdate";
+import { InstallWatch } from "@/components/providers/InstallWatch";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.websiteUrl),
@@ -96,6 +97,7 @@ export default function RootLayout({
             {children}
             <NetworkStatus />
             <AppUpdate />
+            <InstallWatch />
             <ConsentBanner />
           </ThemeProvider>
         </StyledRegistry>
