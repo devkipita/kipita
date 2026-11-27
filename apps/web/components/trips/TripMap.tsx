@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { useTheme } from "styled-components";
 import { Crosshair, Minus, Plus } from "@/components/icons";
 import { loadGoogleMaps, mapStyle, token } from "@/lib/maps/google";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { TripLocation } from "@/lib/trips/live";
 
+const DRIVER_QUIET_MS = 3 * 60 * 1000;
 const INK_FALLBACK = "#14231d";
 const HALO_FALLBACK = "#ffffff";
 
@@ -245,6 +246,7 @@ export default function TripMap({
   const fromPin = useRef<HTMLDivElement | null>(null);
   const toPin = useRef<HTMLDivElement | null>(null);
   const watchRef = useRef<number | null>(null);
+  const autoLocate = useRef(false);
   const [ready, setReady] = useState(false);
   const [locating, setLocating] = useState(false);
   const padRef = useRef(padding);
@@ -508,14 +510,8 @@ export default function TripMap({
     if (follow) mapRef.current?.panTo({ lat: car.lat, lng: car.lng });
   }, [car, ready, follow]);
 
-  function locate() {
+  const startLocate = useCallback(() => {
     if (!("geolocation" in navigator)) return;
-    if (watchRef.current != null) {
-      navigator.geolocation.clearWatch(watchRef.current);
-      watchRef.current = null;
-      setLocating(false);
-      return;
-    }
     setLocating(true);
     let first = true;
     watchRef.current = navigator.geolocation.watchPosition(
@@ -539,7 +535,54 @@ export default function TripMap({
       },
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
     );
+  }, []);
+
+  function locate() {
+    if (!("geolocation" in navigator)) return;
+    autoLocate.current = false;
+    if (watchRef.current != null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+      watchRef.current = null;
+      setLocating(false);
+      return;
+    }
+    startLocate();
   }
+
+  // Backup for a passenger on board: while the driver's position is missing or older than 3 minutes
+  // (the same time the status line uses for "paused"), the passenger's own position moves on the map.
+  // It starts by itself only when the browser already allows location, so nothing new is asked, and
+  // it stops when the driver's position is back. It is shown on this screen only; nothing is sent.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!onboard) return;
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, [onboard]);
+  const driverQuiet = !car || now - new Date(car.updated_at).getTime() > DRIVER_QUIET_MS;
+
+  useEffect(() => {
+    if (!ready || !onboard || !driverQuiet || watchRef.current != null) return;
+    if (!("geolocation" in navigator) || !navigator.permissions?.query) return;
+    let live = true;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        if (!live || status.state !== "granted" || watchRef.current != null) return;
+        autoLocate.current = true;
+        startLocate();
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+      if (autoLocate.current && watchRef.current != null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+        watchRef.current = null;
+        setLocating(false);
+      }
+      autoLocate.current = false;
+    };
+  }, [ready, onboard, driverQuiet, startLocate]);
 
   const zoom = (d: number) => {
     const m = mapRef.current;
