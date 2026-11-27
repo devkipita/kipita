@@ -41,10 +41,22 @@ async function loadDone(tripId: string): Promise<Done | null> {
   };
 }
 
-export function RideFinish({ tripId, destination }: { tripId: string; destination: string }) {
+export function RideFinish({
+  tripId,
+  destination,
+  pending = false,
+}: {
+  tripId: string;
+  destination: string;
+  pending?: boolean;
+}) {
   const [done, setDone] = useState<Done | null>(null);
 
   useEffect(() => {
+    if (pending) {
+      setDone(null);
+      return;
+    }
     let alive = true;
     void loadDone(tripId).then((d) => {
       if (alive) setDone(d);
@@ -52,7 +64,7 @@ export function RideFinish({ tripId, destination }: { tripId: string; destinatio
     return () => {
       alive = false;
     };
-  }, [tripId]);
+  }, [tripId, pending]);
 
   return (
     <FinishScene

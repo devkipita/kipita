@@ -21,22 +21,28 @@ const Title = styled.h1`
 
 const Band = styled.div`
   display: grid;
-  gap: 14px;
+  gap: 12px;
 
-  @media (min-width: 900px) {
-    grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr);
+  @media (min-width: 960px) {
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
     align-items: stretch;
   }
+`;
+
+const Stack = styled.div`
+  display: grid;
+  gap: 12px;
 `;
 
 const Balance = styled.div`
   container-type: inline-size;
   display: grid;
-  gap: 22px;
+  gap: 24px;
   align-content: space-between;
-  padding: 26px;
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.color.primaryContainer};
+  min-height: 320px;
+  padding: 28px;
+  border-radius: 28px;
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
 
   .cap {
     height: 22px;
@@ -61,9 +67,9 @@ const Balance = styled.div`
 const Tile = styled.div`
   display: grid;
   align-content: start;
-  gap: 12px;
-  padding: 22px;
-  border-radius: ${({ theme }) => theme.radius.lg};
+  gap: 8px;
+  padding: 20px;
+  border-radius: 24px;
   background: ${({ theme }) => theme.color.surfaceContainerLow};
 `;
 
@@ -98,11 +104,15 @@ export function WalletSkeleton() {
               <Shimmer $w="132px" $h="48px" $r="999px" />
             </div>
           </Balance>
-          <Tile>
-            <Shimmer $w="130px" $h="18px" />
-            <Shimmer $w="150px" $h="36px" $r="10px" />
-            <Shimmer $w="70%" $h="14px" />
-          </Tile>
+          <Stack>
+            {[0, 1, 2].map((i) => (
+              <Tile key={i}>
+                <Shimmer $w="130px" $h="16px" />
+                <Shimmer $w="150px" $h="28px" $r="8px" />
+                <Shimmer $w="60%" $h="12px" />
+              </Tile>
+            ))}
+          </Stack>
         </Band>
         <Heading>Activity</Heading>
         <Ledger aria-hidden>
