@@ -2,53 +2,67 @@
 
 import { useState, useTransition } from "react";
 import styled from "styled-components";
-import { Check, Plus } from "@/components/icons";
+import { CaretRight, CheckCircle } from "@/components/icons";
 import { useSupport } from "@/components/support/SupportProvider";
 import { Notice } from "@/components/ui/primitives";
 import { HELP_TOPICS } from "@/lib/trips/copy";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Booking } from "@/lib/trips/types";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
-import { HelpPanel, Unfold, rowLook } from "./helpRows";
+import { FadeIn, HelpPanel, rowPress } from "./helpRows";
 
 const Topic = styled.button<{ $open: boolean }>`
-  ${rowLook}
+  ${rowPress}
+  justify-content: flex-start;
 
-  svg {
-    transform: rotate(${({ $open }) => ($open ? 45 : 0)}deg);
+  .label {
+    flex: 1;
+    min-width: 0;
+  }
+  .glyph {
+    color: ${nocturne.accent};
+  }
+  .caret {
+    transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
   }
 `;
 
-const Form = styled(Unfold)`
+const Form = styled(FadeIn)`
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  padding: 8px 4px 12px;
 
   label {
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 700;
     color: ${nocturne.muted};
   }
   textarea,
   select {
     width: 100%;
     border: 0;
-    border-radius: 14px;
-    padding: 12px 14px;
-    background: ${nocturne.surface2};
-    box-shadow: inset 0 0 0 1px ${nocturne.line};
+    border-radius: 12px;
+    padding: 12px;
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
     color: ${nocturne.cream};
     font: inherit;
     font-size: 16px;
+    transition: box-shadow ${dur.state} ${ease.standard};
   }
   textarea {
-    min-height: 104px;
-    line-height: 1.5;
+    min-height: 96px;
+    line-height: 24px;
     resize: vertical;
   }
   textarea:focus-visible,
   select:focus-visible {
     outline: none;
     box-shadow: inset 0 0 0 2px ${nocturne.accent};
+  }
+  .hint {
+    margin: 0;
+    font-size: 13px;
+    color: ${nocturne.muted};
   }
 `;
 
@@ -64,30 +78,38 @@ const Btn = styled.button<{ $main?: boolean }>`
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 46px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
   border-radius: 999px;
-  border: 2px solid ${({ $main }) => ($main ? "transparent" : nocturne.green)};
-  background: ${({ $main }) => ($main ? nocturne.green : nocturne.surface)};
-  color: ${({ $main }) => ($main ? nocturne.onGreen : nocturne.green)};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  background: ${({ $main, theme }) => ($main ? nocturne.green : theme.tone.surface.bg)};
+  color: ${({ $main, theme }) => ($main ? nocturne.onGreen : theme.tone.surface.on)};
+  font: inherit;
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
-  transition: transform ${dur.press} ${ease.standard};
+  transition:
+    filter ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      filter: brightness(0.94);
+    }
+  }
   &:active:not(:disabled) {
-    transform: scale(0.97);
+    transform: scale(0.98);
   }
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${nocturne.muted2};
+    cursor: default;
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
     outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
     &:active:not(:disabled) {
       transform: none;
     }
@@ -97,16 +119,18 @@ const Btn = styled.button<{ $main?: boolean }>`
 const Done = styled.p`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin: 0;
-  min-height: 76px;
-  font-size: 18px;
-  font-weight: 800;
-  color: ${nocturne.cream};
+  min-height: 48px;
+  padding: 12px;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.successContainer};
+  color: ${({ theme }) => theme.color.onSuccessContainer};
+  font-size: 15px;
+  font-weight: 700;
 
   svg {
     flex: none;
-    color: ${nocturne.green};
   }
 `;
 
@@ -146,23 +170,32 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
   if (done) {
     return (
       <HelpPanel>
-        <Done>
-          <Check size={20} weight="bold" />
-          Report sent
+        <Done role="status">
+          <CheckCircle size={20} weight="fill" aria-hidden />
+          Report sent. We&rsquo;ll reply in Activity.
         </Done>
       </HelpPanel>
     );
   }
 
+  const short = detail.trim().length < 10;
+
   return (
     <HelpPanel>
       {HELP_TOPICS.map((t) => {
         const open = topic === t.key;
+        const Icon = t.icon;
         return (
           <div key={t.key}>
-            <Topic type="button" $open={open} aria-expanded={open} onClick={() => setTopic(open ? null : t.key)}>
-              {t.subject}
-              <Plus size={28} />
+            <Topic
+              type="button"
+              $open={open}
+              aria-expanded={open}
+              onClick={() => setTopic(open ? null : t.key)}
+            >
+              <Icon size={20} className="glyph" aria-hidden />
+              <span className="label">{t.subject}</span>
+              <CaretRight size={16} className="caret" aria-hidden />
             </Topic>
 
             {open && (
@@ -192,6 +225,7 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                   onChange={(e) => setDetail(e.target.value)}
                   placeholder="Times, names, what you expected"
                 />
+                {short && <p className="hint">Add a little more so we can help.</p>}
 
                 <Btns>
                   <Btn type="button" onClick={() => setTopic(null)}>
@@ -201,11 +235,16 @@ export function SupportPanel({ trips }: { trips: Booking[] }) {
                     type="button"
                     $main
                     onClick={() => submit(t.subject, t.category)}
-                    disabled={pending || detail.trim().length < 10}
+                    disabled={pending || short}
                     aria-busy={pending}
                   >
-                    {pending && <ButtonOrb job="committing" />}
-                    Send report
+                    {pending ? (
+                      <>
+                        <ButtonOrb job="committing" /> Sending report
+                      </>
+                    ) : (
+                      "Send report"
+                    )}
                   </Btn>
                 </Btns>
               </Form>

@@ -142,23 +142,6 @@ const Card = styled.div`
   }
 `;
 
-const Why = styled.details`
-  margin-top: 8px;
-
-  summary {
-    display: inline-block;
-    cursor: pointer;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: ${nocturne.muted2};
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    ${ring}
-  }
-  p {
-    margin: 6px 0 0;
-  }
-`;
 
 const Counter = styled.div`
   display: inline-flex;
@@ -359,7 +342,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
     return (
       <Wrap>
         <Section>
-          <Note>We couldn’t work out a suggested price for this trip. Enter the price you’d like to charge for each seat.</Note>
+          <Note>Enter your price per seat.</Note>
           <AmountBox $on={fare > 0} $bad={false}>
             <span className="unit">KES</span>
             <input
@@ -404,7 +387,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
       ) : heldBack ? (
         <Note>Smaller types are off while others ride with you.</Note>
       ) : (
-        <Note>Helps us estimate your fuel. You’ll pick the car you’re driving on the next step.</Note>
+        <Note>Used to suggest a price.</Note>
       )}
     </Section>
   );
@@ -413,7 +396,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
     return (
       <Wrap aria-busy="true">
         {classChips}
-        <Note role="status">Working out a fair price…</Note>
+        <Note role="status">Working out the price…</Note>
       </Wrap>
     );
   }
@@ -462,7 +445,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
           +
         </CountButton>
       </Counter>
-      <Note>{noRoomNote ?? "People riding with you who aren’t booking a seat. They share the cost, so passengers don’t pay for them."}</Note>
+      <Note>{noRoomNote ?? "Riding with you, not booking a seat."}</Note>
     </Section>
   );
 
@@ -475,8 +458,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
   const boxValue = typed !== null ? typedValue(typed) : fare > 0 && !choiceHit ? typedValue(String(fare)) : "";
   const outcomes = inRange ? fillOutcomes(fare, seats, range.tripCostKes, quote.config) : [];
   const full = outcomes[outcomes.length - 1];
-  // One plain sentence about a full car. The fee is not mentioned here: it is shown to passengers.
-  const fullCar = seats === 1 ? "If your seat is booked" : seats === 2 ? "If both seats are booked" : `If all ${seats} seats are booked`;
+  const fullCar = "Full car";
   const dashed = (kes: number) => formatKes(kes);
 
   // The range is shown only once the driver moves away from the recommended price. At the recommended price
@@ -485,21 +467,14 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
   let rangeNote = `Between ${dashed(range.floorKes)} and ${dashed(range.capKes)} a seat.`;
   let tone: "danger" | undefined;
   if (verdict === "below_floor") {
-    rangeNote = `That’s too low for this trip. The lowest is ${dashed(range.floorKes)} a seat.`;
+    rangeNote = `Too low. Minimum ${dashed(range.floorKes)} a seat.`;
     tone = "danger";
   } else if (verdict === "above_cap") {
-    rangeNote = `That’s too high for a shared ride. The most is ${dashed(range.capKes)} a seat.`;
+    rangeNote = `Too high. Maximum ${dashed(range.capKes)} a seat.`;
     tone = "danger";
   }
 
-  const verdictNote =
-    verdict === "recommended"
-      ? others > 0
-        ? "An even split of the trip cost across everyone in the car."
-        : "An even split of the trip cost, with your own share included."
-      : verdict === "higher"
-        ? "Above the recommended price, so lower-priced rides may be booked first."
-        : "";
+  const verdictNote = verdict === "higher" ? "Above recommended. Cheaper rides may book first." : "";
 
   return (
     <Wrap>
@@ -513,14 +488,6 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
           {formatKes(range.recommendedKes)}
           <span className="unit">per seat</span>
         </div>
-        <Why>
-          <summary>How is this worked out?</summary>
-          <p>
-            Fuel and wear for about {Math.round(quote.distanceKm)} km, shared evenly between you
-            {others > 0 ? `, ${others} ${others === 1 ? "other" : "others"} travelling with you` : ""} and {seats}{" "}
-            {seats === 1 ? "passenger" : "passengers"}. Fuel at about {formatKes(quote.fuel.priceKes)} a litre.
-          </p>
-        </Why>
       </Card>
 
       <Section>
@@ -568,8 +535,7 @@ export function PriceStep({ state, seats, others, price, vehicleClass, onPrice, 
         <Section>
           <Outcomes>
             <li>
-              {fullCar}, you’d receive <strong>{formatKes(full.recoveredKes)}</strong>, covering about{" "}
-              {full.shareOfCostPct}% of your trip cost.
+              {fullCar}: you get <strong>{formatKes(full.recoveredKes)}</strong>
             </li>
           </Outcomes>
         </Section>

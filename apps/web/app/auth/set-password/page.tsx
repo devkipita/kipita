@@ -13,7 +13,7 @@ export default async function SetPasswordPage() {
       intent="signup"
       step={2}
       heading="Secure your account"
-      sub="Email confirmed! Set a password so you can sign in any time."
+      sub="Email confirmed. Set a password."
       cta="Save password"
       redirectTo="/profile/edit?welcome=1"
     />

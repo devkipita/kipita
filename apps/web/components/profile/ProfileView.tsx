@@ -387,7 +387,7 @@ export function ProfileView({
           <LinkRow
             icon={Gift}
             title="Invite friends"
-            description="Share your code and earn credit"
+            description="Invite friends, earn credit"
             href="/referrals"
             tone="lime"
             last
@@ -402,7 +402,7 @@ export function ProfileView({
             description={
               appMode === "driver"
                 ? "You are offering rides"
-                : "Switch to offer seats instead of booking them"
+                : "Switch to offering seats"
             }
             tone="green"
             last

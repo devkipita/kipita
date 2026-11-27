@@ -30,7 +30,7 @@ export function NoShowPanel({
     <>
       <PanelBody>
         <Title>What happened?</Title>
-        <Sub>We keep your fare on hold while we look into it.</Sub>
+        <Sub>Your fare is on hold.</Sub>
         <Label>Pick the one that fits</Label>
         <Chips role="radiogroup" aria-label="What happened">
           {REASONS.map((r) => (

@@ -481,7 +481,7 @@ export function SupportDock({
       }
       say("Added to your case.");
     } catch {
-      say("That didn't send. Check your connection and try again.");
+      say("That didn't send. Try again.");
     } finally {
       setSending(false);
     }

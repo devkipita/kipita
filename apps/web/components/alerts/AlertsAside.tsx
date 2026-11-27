@@ -1,122 +1,185 @@
 "use client";
 
 import Link from "next/link";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import {
-  ArrowRight,
-  CaretRight as ChevronRight,
-  TrendUp as TrendingUp,
+  Camera,
+  CaretRight,
+  Eye,
+  Heart,
+  Megaphone,
+  Prohibit,
+  Users,
+  TrendUp,
 } from "@/components/icons";
-import { AlertsSearch } from "./AlertsSearch";
+import { RollingNumber } from "@/components/ui/Counter";
+import { OPEN_ALERT_EVENT } from "@/lib/alerts/meta";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
-const Panel = styled.section`
-  border-radius: ${({ theme }) => theme.radius.md};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+export const AsidePanel = styled.section`
+  display: grid;
+  gap: 2px;
   margin-bottom: 16px;
-  overflow: hidden;
-
-  > h2 {
-    margin: 0;
-    padding: 14px 16px 10px;
-    font-size: 1.02rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: ${({ theme }) => theme.color.text};
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  > h2 svg {
-    color: ${({ theme }) => theme.color.primary};
-  }
+  padding: 4px;
+  border-radius: 16px;
+  background: ${nocturne.surface};
 `;
 
-const Row = styled(Link)`
+export const AsideHeading = styled.h2`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 11px 16px;
-  border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
+  gap: 8px;
+  margin: 0;
+  padding: 12px 12px 8px;
+  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: ${nocturne.cream};
 
-  &:hover {
-    background: ${({ theme }) => theme.color.surfaceContainer};
-  }
-
-  b {
-    display: block;
-    font-size: 0.92rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.text};
-  }
-  small {
-    display: block;
-    font-size: 0.78rem;
-    color: ${({ theme }) => theme.color.textSoft};
-  }
   svg {
     flex: none;
-    color: ${({ theme }) => theme.color.textSoft};
+    color: ${nocturne.accent};
   }
 `;
 
-const Question = styled.details`
-  border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
+const pressRow = css`
+  border-radius: 12px;
+  color: ${nocturne.cream};
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 12px 16px;
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: ${({ theme }) => theme.color.text};
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: color-mix(in oklab, ${nocturne.cream} 8%, transparent);
+    }
   }
-  summary::-webkit-details-marker {
-    display: none;
+  &:active {
+    background-color: color-mix(in oklab, ${nocturne.cream} 12%, transparent);
+    transform: scale(0.98);
   }
-  summary svg {
-    flex: none;
-    color: ${({ theme }) => theme.color.textSoft};
-    transition: transform 0.18s ease;
-  }
-  &[open] summary svg {
-    transform: rotate(90deg);
-  }
-  p {
-    margin: 0;
-    padding: 0 16px 14px;
-    font-size: 0.86rem;
-    line-height: 1.5;
-    max-width: 65ch;
-    color: ${({ theme }) => theme.color.textSoft};
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    summary svg {
-      transition: none;
+    &:active {
+      transform: none;
     }
   }
 `;
 
-const Foot = styled(Link)`
-  display: flex;
+const RoadLink = styled(Link)`
+  ${pressRow}
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 16px;
   align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  border-top: 1px solid ${({ theme }) => theme.color.surfaceContainerHighest};
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: ${({ theme }) => theme.color.primary};
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
 
-  &:hover {
-    text-decoration: underline;
+  .text {
+    min-width: 0;
+  }
+  b {
+    display: block;
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  small {
+    display: block;
+    overflow: hidden;
+    font-size: 13px;
+    line-height: 20px;
+    color: ${nocturne.muted};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  > svg {
+    color: ${nocturne.muted};
   }
 `;
+
+const Count = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: ${({ theme }) => theme.color.warningContainer};
+  color: ${({ theme }) => theme.color.onWarningContainer};
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+`;
+
+const Rules = styled.ul`
+  display: grid;
+  margin: 0;
+  padding: 0 4px 8px;
+  list-style: none;
+`;
+
+const Rule = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 36px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: ${nocturne.cream};
+
+  svg {
+    flex: none;
+    color: ${nocturne.accent};
+  }
+  &.stop svg {
+    color: ${nocturne.danger};
+  }
+`;
+
+const POSTING_RULES = [
+  { key: "kind", icon: Heart, text: "Be kind to everyone on the road" },
+  { key: "stop", icon: Prohibit, text: "No insults, hate or threats" },
+  { key: "true", icon: Eye, text: "Only share what you saw yourself" },
+  { key: "private", icon: Camera, text: "Keep faces and private plates out" },
+  { key: "ads", icon: Megaphone, text: "No adverts or spam" },
+] as const;
+
+export function PostingGuide() {
+  return (
+    <AsidePanel aria-labelledby="alerts-guide">
+      <AsideHeading id="alerts-guide">
+        <Users size={20} aria-hidden />
+        Keep it respectful
+      </AsideHeading>
+      <Rules>
+        {POSTING_RULES.map((r) => {
+          const Icon = r.icon;
+          return (
+            <Rule key={r.key} className={r.key === "stop" ? "stop" : undefined}>
+              <Icon size={20} aria-hidden />
+              {r.text}
+            </Rule>
+          );
+        })}
+      </Rules>
+    </AsidePanel>
+  );
+}
+
 
 export type TrendingRoad = {
   road: string;
@@ -125,61 +188,40 @@ export type TrendingRoad = {
   alertId: string;
 };
 
-export type AsideFaq = {
-  id: string;
-  question: string;
-  answer: string;
-};
-
-export function AlertsAside({
-  trending,
-  faqs,
-}: {
-  trending: TrendingRoad[];
-  faqs: AsideFaq[];
-}) {
+export function AlertsAside({ trending }: { trending: TrendingRoad[] }) {
   return (
     <>
-      <AlertsSearch />
-
       {trending.length > 0 && (
-        <Panel>
-          <h2>
-            <TrendingUp size={17} />
-            What’s happening on the roads
-          </h2>
+        <AsidePanel aria-labelledby="alerts-trending">
+          <AsideHeading id="alerts-trending">
+            <TrendUp size={20} aria-hidden />
+            What&rsquo;s happening on the roads
+          </AsideHeading>
           {trending.map((t) => (
-            <Row key={t.road} href={`/alerts/${t.alertId}`}>
-              <span>
+            <RoadLink
+              key={t.road}
+              href={`/alerts/${t.alertId}`}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent(OPEN_ALERT_EVENT, { detail: t.alertId }));
+              }}
+              aria-label={`${t.road}, ${t.count} ${t.count === 1 ? "alert" : "alerts"}`}
+            >
+              <span className="text">
                 <b>{t.road}</b>
-                <small>
-                  {t.count} {t.count === 1 ? "alert" : "alerts"}
-                  {t.blurb ? ` · ${t.blurb}` : ""}
-                </small>
+                {t.blurb && <small>{t.blurb}</small>}
               </span>
-              <ArrowRight size={15} />
-            </Row>
+              <Count>
+                <RollingNumber value={t.count} /> {t.count === 1 ? "alert" : "alerts"}
+              </Count>
+              <CaretRight size={16} aria-hidden />
+            </RoadLink>
           ))}
-        </Panel>
+        </AsidePanel>
       )}
 
-      {faqs.length > 0 && (
-        <Panel>
-          <h2>Good to know</h2>
-          {faqs.map((f) => (
-            <Question key={f.id}>
-              <summary>
-                {f.question}
-                <ChevronRight size={16} />
-              </summary>
-              <p>{f.answer}</p>
-            </Question>
-          ))}
-          <Foot href="/help#faq">
-            More answers <ArrowRight size={14} />
-          </Foot>
-        </Panel>
-      )}
+      <PostingGuide />
     </>
   );
 }

@@ -7,17 +7,22 @@ import {
   CaretDown,
   Clock,
   Crosshair,
-  Megaphone,
   SealCheck,
 } from "@/components/icons";
-import { ButtonEl } from "@/components/ui/primitives";
+import { ButtonEl, Notice } from "@/components/ui/primitives";
+import { Chip } from "@/components/ui/Chip";
+import { RollingNumber } from "@/components/ui/Counter";
+import { ChatHelloArt } from "@/components/trips/CancelArt";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
 import { BreakArt } from "@/components/ui/StatusArt";
 import { Popover, PopoverItem } from "@/components/ui/Popover";
 import { TabIndicator } from "@/components/ui/TabIndicator";
 import { shortName } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/client";
-import { fetchAlerts } from "@/lib/alerts/api";
+import { fetchAlert, fetchAlerts, recordAlertImpressions } from "@/lib/alerts/api";
+import { OPEN_ALERT_EVENT } from "@/lib/alerts/meta";
+import { createAlertAction } from "@/lib/alerts/actions";
+import { removeAlertImage, uploadAlertImage } from "@/lib/alerts/upload";
 import {
   ALERT_TABS,
   SORT_LABEL,
@@ -31,7 +36,8 @@ import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Alert } from "@/lib/alerts/types";
 import type { Profile } from "@/lib/auth/types";
 import { AlertCard } from "./AlertCard";
-import { AlertComposerInline } from "./AlertComposerInline";
+import { AlertComposerInline, type AlertDraft } from "./AlertComposerInline";
+import { AlertRepliesPanel } from "./AlertRepliesPanel";
 
 type Tab = AlertTab;
 
@@ -60,26 +66,31 @@ const TabButton = styled.button<{ $active: boolean }>`
   position: relative;
   flex: 1 0 auto;
   min-height: 48px;
-  padding: 0 18px;
+  padding: 0 16px;
   border: none;
-  border-radius: 12px;
   background: transparent;
   font: inherit;
-  font-size: 0.875rem;
+  font-size: 14px;
   font-weight: ${({ $active }) => ($active ? 700 : 500)};
   color: ${({ $active }) => ($active ? nocturne.cream : nocturne.muted)};
   cursor: pointer;
   white-space: nowrap;
-  transition: color ${dur.state} ${ease.standard};
+  transition:
+    color ${dur.state} ${ease.standard},
+    background-color ${dur.state} ${ease.standard};
 
   .text {
     position: relative;
     z-index: 1;
   }
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       color: ${nocturne.cream};
+      background-color: color-mix(in oklab, ${nocturne.cream} 4%, transparent);
     }
+  }
+  &:active {
+    background-color: color-mix(in oklab, ${nocturne.cream} 8%, transparent);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -91,73 +102,30 @@ const Toolbar = styled.div`
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 10px;
-  padding: 18px 2px 10px;
+  gap: 8px;
+  padding: 16px 0 12px;
   flex-wrap: wrap;
 
   h1 {
     margin: 0;
-    font-size: 1.28rem;
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 20px;
     font-weight: 800;
-    letter-spacing: -0.025em;
-    color: ${({ theme }) => theme.color.text};
+    line-height: 28px;
+    letter-spacing: -0.02em;
+    color: ${nocturne.cream};
   }
   .count {
-    margin: 2px 0 0;
-    font-size: 0.82rem;
+    margin: 0;
+    font-size: 13px;
     font-variant-numeric: tabular-nums;
-    color: ${({ theme }) => theme.color.textSoft};
-  }
-`;
-
-const SortTrigger = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 14px 0 12px;
-  border: 1px solid ${nocturne.outline};
-  border-radius: 999px;
-  background: ${nocturne.surface};
-  color: ${nocturne.cream};
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition:
-    background ${dur.state} ${ease.standard},
-    transform ${dur.press} ${ease.standard};
-
-  svg {
-    flex: none;
+    color: ${nocturne.muted};
   }
   .caret {
-    opacity: 0.72;
     transition: transform ${dur.state} ${ease.standard};
   }
-  &[aria-expanded="true"] .caret {
+  [aria-expanded="true"] .caret {
     transform: rotate(180deg);
-  }
-  @media (hover: hover) {
-    &:hover {
-      background: ${nocturne.surface2};
-    }
-  }
-  &[aria-expanded="true"] {
-    background: ${nocturne.surface2};
-  }
-  &:active {
-    transform: scale(0.97);
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    &:active {
-      transform: none;
-    }
   }
 `;
 
@@ -178,57 +146,18 @@ const Feed = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-top: 4px;
 `;
 
-const ShowNew = styled.button`
-  width: 100%;
-  min-height: 48px;
-  border: none;
-  border-bottom: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  background: transparent;
-  color: ${({ theme }) => theme.color.primary};
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  @media (hover: hover) {
-    &:hover {
-      background: ${({ theme }) => theme.color.surfaceContainerLow};
-    }
-  }
-`;
-
-const Empty = styled.div`
+const NewRow = styled.div`
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 40px 4px;
-  color: ${({ theme }) => theme.color.textSoft};
-
-  svg {
-    flex: none;
-    color: ${({ theme }) => theme.color.primary};
-  }
-  b {
-    display: block;
-    font-size: 1rem;
-    font-weight: 800;
-    color: ${({ theme }) => theme.color.text};
-  }
-  p {
-    margin: 3px 0 0;
-    max-width: 65ch;
-    font-size: 0.9rem;
-    line-height: 1.45;
-  }
+  justify-content: center;
+  padding-bottom: 12px;
 `;
 
 const Block = styled.div`
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 28px 16px 40px;
   text-align: center;
   color: ${nocturne.cream};
@@ -270,7 +199,7 @@ const Block = styled.div`
 const More = styled.div`
   display: grid;
   justify-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 20px 0;
 
   p {
@@ -290,16 +219,25 @@ const SORT_ICON: Record<SortKey, typeof Clock> = {
 };
 
 type FeedStatus = "ready" | "error" | "retrying";
+
+type Posting = {
+  tempId: string;
+  draft: AlertDraft;
+  state: "sending" | "failed";
+  error?: string;
+};
 type Locating = "idle" | "asking" | "denied" | "unavailable";
 
 export function AlertsView({
   initialAlerts,
   initialFailed = false,
+  initialOpen = null,
   profile,
   routeTowns,
 }: {
   initialAlerts: Alert[];
   initialFailed?: boolean;
+  initialOpen?: Alert | null;
   profile: Profile | null;
   routeTowns: string[];
 }) {
@@ -319,6 +257,9 @@ export function AlertsView({
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState<Locating>("idle");
   const [pending, setPending] = useState<Alert[]>([]);
+  const [replyId, setReplyId] = useState<string | null>(initialOpen?.id ?? null);
+  const [extra, setExtra] = useState<Alert | null>(initialOpen);
+  const [notice, setNotice] = useState<string | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLButtonElement>(null);
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
@@ -409,6 +350,22 @@ export function AlertsView({
 
   useEffect(() => {
     const supabase = createClient();
+    let last = 0;
+    let trailing: number | undefined;
+    const settle = () => {
+      const wait = 5_000 - (Date.now() - last);
+      if (wait <= 0) {
+        last = Date.now();
+        void revalidate();
+        return;
+      }
+      if (trailing === undefined) {
+        trailing = window.setTimeout(() => {
+          trailing = undefined;
+          settle();
+        }, wait);
+      }
+    };
     const channel = supabase
       .channel("alerts-feed")
       .on(
@@ -416,9 +373,15 @@ export function AlertsView({
         { event: "INSERT", schema: "public", table: "announcements" },
         () => void revalidate(),
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "announcements" },
+        settle,
+      )
       .subscribe();
 
     return () => {
+      window.clearTimeout(trailing);
       void supabase.removeChannel(channel);
     };
   }, [revalidate]);
@@ -465,13 +428,217 @@ export function AlertsView({
 
   const shown = useMemo(() => sortAlerts(filtered, sort), [filtered, sort]);
 
+  const seenQueue = useRef<Set<string>>(new Set());
+  const seenSent = useRef<Set<string>>(new Set());
+  const seenTimer = useRef<number | undefined>(undefined);
+
+  const flushSeen = useCallback(async () => {
+    seenTimer.current = undefined;
+    const ids = [...seenQueue.current];
+    seenQueue.current.clear();
+    if (ids.length === 0) return;
+    const counts = await recordAlertImpressions(createClient(), ids);
+    if (!counts || counts.size === 0) return;
+    setAlerts((prev) =>
+      prev.map((a) => {
+        const total = counts.get(a.id);
+        return total != null && total !== a.views_count ? { ...a, views_count: total } : a;
+      }),
+    );
+  }, []);
+
+  const markSeen = useCallback(
+    (id: string) => {
+      if (id.startsWith("local-") || seenSent.current.has(id)) return;
+      seenSent.current.add(id);
+      seenQueue.current.add(id);
+      if (seenTimer.current === undefined) {
+        seenTimer.current = window.setTimeout(() => void flushSeen(), 1_000);
+      }
+    },
+    [flushSeen],
+  );
+
+  useEffect(() => () => window.clearTimeout(seenTimer.current), []);
+
+  const openReplies = useCallback(
+    (id: string) => {
+      setReplyId(id);
+      if (window.location.pathname !== `/alerts/${id}`) {
+        window.history.pushState(null, "", `/alerts/${id}`);
+      }
+      if (!alertsRef.current.some((a) => a.id === id)) {
+        void fetchAlert(createClient(), id, viewerId)
+          .then((found) => found && setExtra(found))
+          .catch(() => undefined);
+      }
+    },
+    [viewerId],
+  );
+
+  function closeReplies() {
+    setReplyId(null);
+    if (window.location.pathname !== "/alerts") {
+      window.history.pushState(null, "", `/alerts${window.location.search}`);
+    }
+  }
+
+  useEffect(() => {
+    const onPop = () => {
+      const match = window.location.pathname.match(/^\/alerts\/([0-9a-f-]{36})$/i);
+      setReplyId(match?.[1] ?? null);
+    };
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (typeof id === "string") openReplies(id);
+    };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener(OPEN_ALERT_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener(OPEN_ALERT_EVENT, onOpen);
+    };
+  }, [openReplies]);
+
+  const [posting, setPosting] = useState<Posting[]>([]);
+  const postingRef = useRef<Posting[]>([]);
+
+  useEffect(() => {
+    postingRef.current = posting;
+  });
+
+  useEffect(
+    () => () => {
+      for (const p of postingRef.current) if (p.draft.preview) URL.revokeObjectURL(p.draft.preview);
+    },
+    [],
+  );
+
+  function markPostFailed(tempId: string, message: string) {
+    setPosting((prev) =>
+      prev.map((p) => (p.tempId === tempId ? { ...p, state: "failed", error: message } : p)),
+    );
+  }
+
+  async function deliverAlert(tempId: string, draft: AlertDraft) {
+    if (!profile) return;
+    let imageUrl: string | null = null;
+    let imagePath: string | null = null;
+    if (draft.file) {
+      const upload = await uploadAlertImage(createClient(), draft.file, profile.id);
+      if (!upload.ok) {
+        markPostFailed(tempId, upload.error);
+        return;
+      }
+      imageUrl = upload.url;
+      imagePath = upload.path;
+    }
+
+    const result = await createAlertAction({
+      category: draft.category,
+      location: draft.location,
+      content: draft.content,
+      image_url: imageUrl,
+      lat: draft.lat,
+      lng: draft.lng,
+    });
+    if (!result.ok) {
+      if (imagePath) await removeAlertImage(createClient(), imagePath);
+      markPostFailed(tempId, result.error);
+      return;
+    }
+
+    setAlerts((prev) =>
+      prev.map((a) => (a.id === tempId ? { ...a, id: result.id, image_url: imageUrl } : a)),
+    );
+    setPosting((prev) => prev.filter((p) => p.tempId !== tempId));
+    if (draft.preview) URL.revokeObjectURL(draft.preview);
+  }
+
+  function postAlert(draft: AlertDraft) {
+    if (!profile) return;
+    const tempId = `local-${crypto.randomUUID()}`;
+    const now = new Date().toISOString();
+    const temp: Alert = {
+      id: tempId,
+      user_id: profile.id,
+      location: draft.location,
+      category: draft.category,
+      content: draft.content,
+      image_url: null,
+      lat: draft.lat,
+      lng: draft.lng,
+      reactions_count: 0,
+      comments_count: 0,
+      confirms_count: 0,
+      cleared_count: 0,
+      views_count: 0,
+      created_at: now,
+      updated_at: now,
+      user: {
+        id: profile.id,
+        full_name: profile.full_name,
+        avatar_url: profile.avatar_url,
+        trusted_reporter: false,
+      },
+      user_reaction: null,
+      my_confirmation: null,
+      saved_by_me: false,
+      distance_km: null,
+    };
+    setAlerts((prev) => [temp, ...prev]);
+    setPosting((prev) => [...prev, { tempId, draft, state: "sending" }]);
+    void deliverAlert(tempId, draft);
+  }
+
+  function retryPost(tempId: string) {
+    const item = posting.find((p) => p.tempId === tempId);
+    if (!item) return;
+    setPosting((prev) => prev.map((p) => (p.tempId === tempId ? { ...p, state: "sending", error: undefined } : p)));
+    void deliverAlert(tempId, item.draft);
+  }
+
+  function discardPost(tempId: string) {
+    const item = posting.find((p) => p.tempId === tempId);
+    if (item?.draft.preview) URL.revokeObjectURL(item.draft.preview);
+    setPosting((prev) => prev.filter((p) => p.tempId !== tempId));
+    setAlerts((prev) => prev.filter((a) => a.id !== tempId));
+  }
+
+  function outgoingFor(id: string) {
+    const item = posting.find((p) => p.tempId === id);
+    if (!item) return undefined;
+    return {
+      state: item.state,
+      error: item.error,
+      preview: item.draft.preview,
+      onRetry: () => retryPost(id),
+      onDiscard: () => discardPost(id),
+    };
+  }
+
   function patch(next: Alert) {
     setAlerts((prev) => prev.map((a) => (a.id === next.id ? { ...a, ...next } : a)));
   }
 
+  const removed = useRef<Map<string, number>>(new Map());
+
   function drop(id: string) {
+    removed.current.set(id, alertsRef.current.findIndex((a) => a.id === id));
     setAlerts((prev) => prev.filter((a) => a.id !== id));
     setPending((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  function undrop(alert: Alert, message: string) {
+    const at = removed.current.get(alert.id) ?? 0;
+    removed.current.delete(alert.id);
+    setAlerts((prev) => {
+      if (prev.some((a) => a.id === alert.id)) return prev;
+      const next = [...prev];
+      next.splice(Math.max(0, Math.min(at, next.length)), 0, alert);
+      return next;
+    });
+    setNotice(message);
   }
 
   function requireAuth() {
@@ -503,15 +670,15 @@ export function AlertsView({
   const emptyCopy: Record<Tab, { title: string; body: string }> = {
     nearby: {
       title: "Roads are quiet near you",
-      body: "Nothing reported within 60 km. Be the first to share what you can see.",
+      body: "Nothing within 60 km. Post what you see.",
     },
     route: {
       title: "Nothing on your routes",
-      body: "Search for a trip on the home page and we’ll watch those roads for you.",
+      body: "Search a trip and we’ll watch its roads.",
     },
     all: {
       title: "Roads are quiet",
-      body: "Be the first to share what you can see out there.",
+      body: "Post what you see.",
     },
   };
 
@@ -526,7 +693,7 @@ export function AlertsView({
           <BreakArt />
         </div>
         <h2>Alerts didn&rsquo;t load</h2>
-        <p>Check your connection and try again.</p>
+        <p>Check your connection.</p>
         <ButtonEl
           type="button"
           disabled={status === "retrying"}
@@ -547,14 +714,14 @@ export function AlertsView({
     body = (
       <Block>
         <span className="glyph" aria-hidden>
-          <Crosshair size={28} />
+          <Crosshair size={24} />
         </span>
         <h2>Turn on location to see nearby alerts</h2>
         {locating === "denied" && (
-          <p role="alert">Location is blocked for this site. Allow it in your browser settings.</p>
+          <p role="alert">Location is blocked. Allow it in browser settings.</p>
         )}
         {locating === "unavailable" && (
-          <p role="alert">Couldn&rsquo;t find you. Try again outdoors or with Wi-Fi on.</p>
+          <p role="alert">Couldn&rsquo;t find you. Try again.</p>
         )}
         <ButtonEl
           type="button"
@@ -576,13 +743,13 @@ export function AlertsView({
     );
   } else if (shown.length === 0) {
     body = (
-      <Empty>
-        <Megaphone size={26} />
-        <span>
-          <b>{emptyCopy[tab].title}</b>
-          <p>{emptyCopy[tab].body}</p>
-        </span>
-      </Empty>
+      <Block>
+        <div className="art">
+          <ChatHelloArt />
+        </div>
+        <h2>{emptyCopy[tab].title}</h2>
+        <p>{emptyCopy[tab].body}</p>
+      </Block>
     );
   } else {
     body = (
@@ -594,7 +761,11 @@ export function AlertsView({
             viewerId={viewerId}
             onChange={patch}
             onDeleted={drop}
+            onDeleteFailed={undrop}
             onRequireAuth={requireAuth}
+            onReply={(a) => openReplies(a.id)}
+            outgoing={outgoingFor(alert.id)}
+            onSeen={markSeen}
           />
         ))}
       </Feed>
@@ -632,53 +803,19 @@ export function AlertsView({
         })}
       </TabBar>
 
-      {profile && (
-        <AlertComposerInline
-          profile={profile}
-          onPosted={(posted) => {
-            const optimistic: Alert = {
-              id: posted.id,
-              user_id: profile.id,
-              location: posted.location,
-              category: posted.category,
-              content: posted.content,
-              image_url: posted.image_url,
-              lat: posted.lat,
-              lng: posted.lng,
-              reactions_count: 0,
-              comments_count: 0,
-              confirms_count: 0,
-              cleared_count: 0,
-              views_count: 0,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              user: {
-                id: profile.id,
-                full_name: profile.full_name,
-                avatar_url: profile.avatar_url,
-                trusted_reporter: false,
-              },
-              user_reaction: null,
-              my_confirmation: null,
-              saved_by_me: false,
-              distance_km: null,
-            };
-            setAlerts((prev) => [optimistic, ...prev]);
-          }}
-        />
-      )}
+      {profile && <AlertComposerInline profile={profile} onSubmit={postAlert} />}
 
       <div id="alerts-panel" role="tabpanel" aria-labelledby={`alerts-tab-${tab}`}>
         <Toolbar>
           <div>
-            <h1>Road alerts</h1>
+            <h1 data-bar-title="">Road alerts</h1>
             {!failed && !locationOff && (
               <p className="count">
-                {shown.length} {shown.length === 1 ? "report" : "reports"}
+                <RollingNumber value={shown.length} /> {shown.length === 1 ? "report" : "reports"}
               </p>
             )}
           </div>
-          <SortTrigger
+          <Chip
             ref={sortRef}
             type="button"
             aria-haspopup="menu"
@@ -686,26 +823,35 @@ export function AlertsView({
             aria-label={`Sort alerts: ${SORT_LABEL[sort]}`}
             onClick={() => setSortOpen((v) => !v)}
           >
-            <SortIcon size={18} aria-hidden />
+            <SortIcon size={16} aria-hidden />
             {SORT_LABEL[sort]}
             <CaretDown size={16} className="caret" aria-hidden />
-          </SortTrigger>
+          </Chip>
         </Toolbar>
 
+        {notice && (
+          <NewRow role="alert">
+            <Notice>{notice}</Notice>
+          </NewRow>
+        )}
+
         {pending.length > 0 && (
-          <ShowNew
-            type="button"
-            onClick={() => {
-              setAlerts((prev) => {
-                const seen = new Set(prev.map((a) => a.id));
-                return [...pending.filter((a) => !seen.has(a.id)), ...prev];
-              });
-              setPending([]);
-              topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-          >
-            Show {pending.length} new {pending.length === 1 ? "alert" : "alerts"}
-          </ShowNew>
+          <NewRow>
+            <Chip
+              type="button"
+              $tone="primary"
+              onClick={() => {
+                setAlerts((prev) => {
+                  const seen = new Set(prev.map((a) => a.id));
+                  return [...pending.filter((a) => !seen.has(a.id)), ...prev];
+                });
+                setPending([]);
+                topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+            >
+              Show <RollingNumber value={pending.length} /> new {pending.length === 1 ? "alert" : "alerts"}
+            </Chip>
+          </NewRow>
         )}
 
         {body}
@@ -747,6 +893,20 @@ export function AlertsView({
           </More>
         ) : null}
       </div>
+
+      <AlertRepliesPanel
+        alert={
+          replyId
+            ? (alerts.find((a) => a.id === replyId) ?? (extra?.id === replyId ? extra : null))
+            : null
+        }
+        profile={profile}
+        onClose={closeReplies}
+        onChange={(next) => {
+          patch(next);
+          setExtra((e) => (e?.id === next.id ? { ...e, ...next } : e));
+        }}
+      />
 
       <Popover
         open={sortOpen}

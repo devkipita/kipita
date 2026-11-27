@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 export type TripRunResult = { ok: true; moved: number } | { ok: false; error: string };
 
 const RUN_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "This ride is not at that stage.",
   "42501": "That isn't your ride.",
   "55006": "You already have a ride under way.",
@@ -28,7 +28,7 @@ export async function startTripAction(tripId: string): Promise<TripRunResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data, error } = await supabase.rpc("start_trip", {
     p_trip_id: tripId,
@@ -39,7 +39,7 @@ export async function startTripAction(tripId: string): Promise<TripRunResult> {
     if (error.code === "KP005" && error.message) return { ok: false, error: error.message };
     return {
       ok: false,
-      error: message(error.code, "We couldn't start that ride. Please try again."),
+      error: message(error.code, "Couldn't start that ride. Try again."),
     };
   }
 
@@ -56,7 +56,7 @@ export async function completeTripAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data, error } = await supabase.rpc("complete_trip", {
     p_trip_id: tripId,
@@ -65,7 +65,7 @@ export async function completeTripAction(
   if (error) {
     return {
       ok: false,
-      error: message(error.code, "We couldn't end that ride. Please try again."),
+      error: message(error.code, "Couldn't end that ride. Try again."),
     };
   }
 

@@ -21,6 +21,7 @@ export type Ping = {
   body?: string;
   tag: string;
   href?: string | null;
+  quiet?: boolean;
 };
 
 export function soundOn(): boolean {
@@ -102,8 +103,8 @@ export function chime(preview = false): void {
     .catch(() => undefined);
 }
 
-export function ping({ title, body, tag, href }: Ping): void {
-  chime();
+export function ping({ title, body, tag, href, quiet = false }: Ping): void {
+  if (!quiet) chime();
 
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   if (document.visibilityState === "visible" && document.hasFocus()) return;

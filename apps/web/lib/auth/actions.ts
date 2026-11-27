@@ -31,7 +31,7 @@ export async function updateProfileAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Your session expired. Sign in again." };
+  if (!user) return { error: "Session expired. Sign in again." };
 
   const { full_name, city, date_of_birth, gender } = parsed.data;
   const { data, error } = await supabase
@@ -51,7 +51,7 @@ export async function updateProfileAction(
   if (!data) {
     return {
       error:
-        "Your profile is not ready yet. Sign out and back in, then try again.",
+        "Profile not ready. Sign out and back in.",
     };
   }
 
@@ -77,7 +77,7 @@ export async function updateAvatarAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Your session expired. Sign in again." };
+  if (!user) return { error: "Session expired. Sign in again." };
 
   const { data, error } = await supabase
     .from("users")
@@ -92,7 +92,7 @@ export async function updateAvatarAction(
   if (!data) {
     return {
       error:
-        "Your profile is not ready yet. Sign out and back in, then try again.",
+        "Profile not ready. Sign out and back in.",
     };
   }
 

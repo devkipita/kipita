@@ -147,7 +147,7 @@ export async function checkTripPrice(
   }
   const people = args.seats + (args.othersAboard ?? 0);
   if (people > 8) {
-    return { ok: false, error: "That is more people than the car can carry. Check the seats and who is travelling with you." };
+    return { ok: false, error: "Too many people for this car." };
   }
 
   // The car type is picked from the seats alone and must carry everyone, people riding along included.
@@ -189,13 +189,13 @@ export async function checkTripPrice(
   if (verdict === "below_floor") {
     return {
       ok: false,
-      error: `That price is too low for this trip. The lowest is KES ${range.floorKes.toLocaleString("en-KE")} a seat.`,
+      error: `Too low. Minimum KES ${range.floorKes.toLocaleString("en-KE")} a seat.`,
     };
   }
   if (verdict === "above_cap") {
     return {
       ok: false,
-      error: `That price is too high for a shared ride. The most is KES ${range.capKes.toLocaleString("en-KE")} a seat.`,
+      error: `Too high. Maximum KES ${range.capKes.toLocaleString("en-KE")} a seat.`,
     };
   }
   return { ok: true };

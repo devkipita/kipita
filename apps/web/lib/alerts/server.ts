@@ -1,19 +1,9 @@
+import { cache } from "react";
 import { alertStatus } from "@kipita/shared";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAlert, fetchAlertComments, fetchAlerts } from "./api";
-import { ALERTS_FAQ_TOPIC } from "@/lib/faq-topics";
 import type { Alert, AlertCategory, AlertComment } from "./types";
 
-/**
- * Server-side alert reads for first paint.
- *
- * Rows come back with `user_reaction: null` and `liked_by_me: false`; the
- * client corrects those two personal flags on mount. That trade buys a
- * flicker-free render of the content itself, which is what people are here for.
- *
- * `announcements` is world-readable (`"Alerts readable" USING (true)`), so none
- * of this requires a session.
- */
 
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,12 +19,11 @@ export async function fetchAlertsServer(
   }
 }
 
-export async function fetchAlertServer(id: string): Promise<Alert | null> {
-  // Postgres throws on a malformed uuid rather than returning nothing.
+export const fetchAlertServer = cache(async (id: string): Promise<Alert | null> => {
   if (!UUID.test(id)) return null;
   const supabase = await createClient();
   return fetchAlert(supabase, id);
-}
+});
 
 export async function fetchAlertCommentsServer(
   alertId: string,
@@ -48,15 +37,9 @@ export type TrendingRoad = {
   road: string;
   count: number;
   blurb: string | null;
-  /** The alert that best represents this road right now. */
   alertId: string;
 };
 
-/**
- * Roads with the most recent activity. Grouped in JS over a bounded window
- * rather than in SQL: `route_interests` is RLS'd to the caller's own rows, so
- * a cross-user aggregate is not reachable from a client key.
- */
 export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
   try {
     const supabase = await createClient();
@@ -88,9 +71,6 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
       }
     }
 
-    // Severity, recency and corroboration all make a road more worth knowing
-    // about. A raw count alone ranks a quiet road with three stale notes above
-    // a motorway closure that one person reported ten minutes ago.
     const WEIGHT: Record<string, number> = {
       accident: 3,
       road_closure: 3,
@@ -114,7 +94,6 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
 
     for (const row of data) {
       const raw = (row.location as string) ?? "";
-      // "Salgaa, Nakuru-Eldoret" and "Salgaa" are the same road to a driver.
       const road = raw.split(/[,–-]/)[0]?.trim();
       if (!road) continue;
 
@@ -129,7 +108,6 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
         0,
         (now - new Date(row.created_at as string).getTime()) / 3_600_000,
       );
-      // Halve the weight roughly every 6 hours.
       const recency = 1 / (1 + ageHours / 6);
       const corroboration = 1 + votes.confirms_count * 0.5;
       const score = (WEIGHT[category] ?? 1) * recency * corroboration;
@@ -166,30 +144,6 @@ export async function fetchTrendingRoads(limit = 5): Promise<TrendingRoad[]> {
         blurb: null,
         alertId: e.alertId,
       }));
-  } catch {
-    return [];
-  }
-}
-
-export type AsideFaq = { id: string; question: string; answer: string };
-
-export async function fetchAlertFaqs(limit = 4): Promise<AsideFaq[]> {
-  try {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("faqs")
-      .select("id, question, answer")
-      .eq("is_published", true)
-      .eq("topic", ALERTS_FAQ_TOPIC)
-      .order("sort_order", { ascending: true })
-      .limit(limit);
-
-    if (error || !data) return [];
-    return data.map((row) => ({
-      id: row.id as string,
-      question: row.question as string,
-      answer: row.answer as string,
-    }));
   } catch {
     return [];
   }

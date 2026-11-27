@@ -1,19 +1,5 @@
 import type { NotificationData } from "./types";
 
-/**
- * Resolve a notification's payload to the web route its tap should open.
- *
- * The web counterpart of `apps/mobile/src/lib/notifications/route.ts`. Shared by
- * the inbox, the toast and the browser-notification click handler so a tap
- * behaves identically wherever it originates.
- *
- * Returns `null` when nothing on web can show the target yet — `system`
- * messages have no target at all, and chat still lives only in the app.
- * Callers render those rows as non-navigating.
- *
- * `booking_id` is checked before `trip_id`: a booking notification carries
- * both, and the booking is the more specific destination.
- */
 export function notificationRoute(
   data: NotificationData | null | undefined,
 ): string | null {

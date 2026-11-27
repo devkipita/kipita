@@ -6,6 +6,7 @@ import Image from "next/image";
 import styled, { keyframes } from "styled-components";
 import people from "../../public/landing/people-left.png";
 import { ContentWidth } from "@/components/nav/AppShell";
+import { PageTitle } from "@/components/nav/PageTitle";
 import {
   Calendar,
   Confetti,
@@ -295,12 +296,12 @@ export function EditProfileForm({
     <Wrap $max={1120}>
       <Split>
         <Intro>
-          <Display>
+          {welcome && <PageTitle title="Complete your profile" />}
+          <Display data-bar-title="">
             {welcome ? "Complete your profile" : "Edit profile"}
           </Display>
           <Lede>
-            This is what other Kipita members see when you book a seat or offer
-            one. You can change it any time.
+            Shown to other members.
           </Lede>
 
           {welcome && (
@@ -309,8 +310,7 @@ export function EditProfileForm({
                 <Confetti size={26} />
               </span>
               <span>
-                <strong>You&apos;re in.</strong> Add a few details so riders
-                know who they&apos;re travelling with.
+                <strong>You&apos;re in.</strong> Tell riders about yourself.
               </span>
             </Welcome>
           )}

@@ -31,12 +31,25 @@ export interface PublishedTrip {
   seats_total: number;
   status: string;
   seats_taken: number;
-  /** Requests still waiting on the driver. */
   pending_requests: number;
-  /** Seats accepted but not yet paid for. */
   awaiting_payment: number;
-  /** Seats paid for, or already riding. */
   paid_seats: number;
+  vehicle?: TripCar | null;
+  riders?: SeatRider[];
+  fares_paid?: number;
+  from_lat?: number | null;
+  from_lng?: number | null;
+  to_lat?: number | null;
+  to_lng?: number | null;
+}
+
+export interface SeatRider {
+  booking_id: string;
+  name: string;
+  avatar_url: string | null;
+  seats: number;
+  state: "paid" | "booked" | "requested";
+  created_at: string;
 }
 
 export interface TripPerson {
@@ -95,15 +108,9 @@ export interface Booking {
   trip: TripLeg | null;
   passenger: TripPerson | null;
   driver: TripPerson | null;
-  /** Resolved server-side from the destination town. */
   photo_url?: string | null;
 }
 
-/**
- * `phone` is deliberately absent. Migration 004 revoked it, and an ungranted
- * column makes Postgres deny the whole table rather than the one field — the
- * bug that emptied the home page.
- */
 const PERSON = "id, full_name, avatar_url, is_verified, rating, total_trips";
 
 export const BOOKING_SELECT = `
@@ -119,34 +126,26 @@ export const BOOKING_SELECT = `
   driver:users!driver_id ( ${PERSON} )
 `;
 
-/**
- * Cancellation facts that live in columns added by migration 063. They are read in a separate,
- * forgiving query (see app/(app)/trips/[id]/page.tsx) so a database that has not run 063 yet
- * still loads the booking.
- */
 export type NoShowState = {
   tier: string | null;
   markedAt: string | null;
   disputedAt: string | null;
 };
 
-/**
- * What migration 070 adds to a booking: the passenger's pickup code, whether they boarded, when the fare
- * is released, and any problem they reported. Each field is null when it does not apply or when 070 has not
- * run yet (the page reads these in forgiving queries, so an older database still loads the booking).
- */
 export type JourneyState = {
-  /** Four digits, only while the booking is paid and the passenger has not boarded. Passenger only. */
   code: string | null;
   boardedAt: string | null;
   boardedMethod: "code" | "manual" | "legacy" | null;
-  /** The payment's escrow state: held, released, refunded… Passenger only (a driver cannot read payments). */
   escrow: string | null;
-  /** When the fare is released to the driver. A problem report must come before this. */
   releaseDueAt: string | null;
+  payout: number | null;
   problem: { kind: string; status: "open" | "resolved"; outcome: "clear" | "refund" | null } | null;
-  /** Chat and calling work for this booking right now: the seat is paid and the release window has not closed. */
   contactOpen: boolean;
+  /** When this passenger's ride ended: their own tap, or the driver ending the ride. */
+  arrivedAt: string | null;
+  arrivedBy: "passenger" | "trip_end" | null;
+  /** The car's position at that moment, from the driver's phone. */
+  arrivedPlace: { lat: number; lng: number; approximate: boolean } | null;
 };
 
 export const NO_JOURNEY: JourneyState = {
@@ -155,6 +154,10 @@ export const NO_JOURNEY: JourneyState = {
   boardedMethod: null,
   escrow: null,
   releaseDueAt: null,
+  payout: null,
   problem: null,
   contactOpen: false,
+  arrivedAt: null,
+  arrivedBy: null,
+  arrivedPlace: null,
 };

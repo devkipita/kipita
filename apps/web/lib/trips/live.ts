@@ -13,24 +13,7 @@ export type TripLocation = {
   updated_at: string;
 };
 
-const KEY = (tripId: string) => `kipita:share-location:${tripId}`;
-
-function read(tripId: string) {
-  try {
-    return localStorage.getItem(KEY(tripId)) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function write(tripId: string, on: boolean) {
-  try {
-    if (on) localStorage.setItem(KEY(tripId), "1");
-    else localStorage.removeItem(KEY(tripId));
-  } catch {}
-}
-
-export type ShareState = "off" | "on" | "denied" | "unsupported";
+export type ShareState = "off" | "on" | "denied" | "unsupported" | "failed";
 
 export function useShareLocation(tripId: string, running: boolean) {
   const [state, setState] = useState<ShareState>("off");
@@ -48,27 +31,32 @@ export function useShareLocation(tripId: string, running: boolean) {
       return;
     }
     stop();
+    setState((s) => (s === "failed" ? "off" : s));
     const supabase = createClient();
     watch.current = navigator.geolocation.watchPosition(
       (pos) => {
-        setState("on");
-        write(tripId, true);
+        setState((s) => (s === "failed" ? s : "on"));
         const now = Date.now();
         if (now - last.current < 8000) return;
         last.current = now;
         const { latitude, longitude, heading, speed } = pos.coords;
-        void supabase.rpc("share_trip_location", {
-          p_trip_id: tripId,
-          p_lat: latitude,
-          p_lng: longitude,
-          p_heading: heading != null && Number.isFinite(heading) ? heading : null,
-          p_speed_kmh: speed != null && Number.isFinite(speed) ? speed * 3.6 : null,
-        });
+        void supabase
+          .rpc("share_trip_location", {
+            p_trip_id: tripId,
+            p_lat: latitude,
+            p_lng: longitude,
+            p_heading: heading != null && Number.isFinite(heading) ? heading : null,
+            p_speed_kmh: speed != null && Number.isFinite(speed) ? speed * 3.6 : null,
+          })
+          .then(({ error }) => {
+            if (!error) return;
+            last.current = 0;
+            setState("failed");
+          });
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
           setState("denied");
-          write(tripId, false);
           stop();
         }
       },
@@ -76,33 +64,27 @@ export function useShareLocation(tripId: string, running: boolean) {
     );
   }, [tripId, stop]);
 
-  const toggle = useCallback(() => {
-    if (state === "on") {
-      stop();
-      write(tripId, false);
-      setState("off");
-    } else {
-      start();
-    }
-  }, [state, start, stop, tripId]);
+  const retry = useCallback(() => {
+    start();
+  }, [start]);
 
   useEffect(() => {
-    if (running && read(tripId)) start();
-    if (!running) {
-      stop();
-      write(tripId, false);
-    }
+    if (running) start();
+    else stop();
     return stop;
-  }, [running, tripId, start, stop]);
+  }, [running, start, stop]);
 
-  return { state, toggle };
+  return { state, retry };
 }
 
 export function useTripLocation(tripId: string | null, enabled: boolean) {
   const [loc, setLoc] = useState<TripLocation | null>(null);
 
   useEffect(() => {
-    if (!tripId || !enabled) return;
+    if (!tripId || !enabled) {
+      setLoc(null);
+      return;
+    }
     let live = true;
     void createClient()
       .from("trip_locations")

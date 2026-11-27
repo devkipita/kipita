@@ -206,7 +206,7 @@ export function TopUpDrawer({
       setError(
         err instanceof Error
           ? err.message
-          : "We couldn't reach M-Pesa. Check your connection and try again.",
+          : "Couldn't reach M-Pesa. Try again.",
       );
       setStage("form");
     }
@@ -237,7 +237,7 @@ export function TopUpDrawer({
         <Status $tone="wait" role="status">
           <PaymentWaitingArt />
           <b>Still waiting on M-Pesa</b>
-          <p>If you confirm the prompt, your balance updates on its own.</p>
+          <p>Your balance updates after you confirm.</p>
         </Status>
       );
     }

@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ComponentType } from "react";
-import styled, { css } from "styled-components";
+import styled, { css, type DefaultTheme } from "styled-components";
 import { CaretRight, CheckCircle, Clock, NavigationArrow, XCircle } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
+import { VerifiedMark } from "@/components/alerts/VerifiedMark";
 import { dur, ease, nocturne, pulse } from "@/lib/nocturne";
 import { formatCurrency, formatTripDate, formatTripTime } from "@/lib/trips/format";
 import type { Booking } from "@/lib/trips/types";
-import { fs } from "./RideRow";
+import { Road, fs } from "./RideRow";
 import { RateStars } from "./RateStars";
 
 type Tone = "wait" | "pay" | "go" | "live" | "done" | "off";
@@ -31,75 +32,82 @@ const MONEY_NOTE: Record<Booking["status"], string> = {
   confirmed: "Paid, held until you arrive",
   in_progress: "Held until you arrive",
   completed: "Total paid",
-  cancelled: "Booking total",
+  cancelled: "Booking cancelled",
   rejected: "Not charged",
 };
 
 const chipLook: Record<Tone, ReturnType<typeof css>> = {
   wait: css`
-    background: color-mix(in oklab, ${nocturne.tan} 22%, transparent);
-    color: ${nocturne.cream};
+    background: ${({ theme }) => theme.color.secondaryContainer};
+    color: ${({ theme }) => theme.color.onSecondaryContainer};
   `,
   pay: css`
-    background: ${nocturne.ctaBg};
-    color: ${nocturne.ctaFg};
+    background: ${({ theme }) => theme.color.warningContainer};
+    color: ${({ theme }) => theme.color.onWarningContainer};
   `,
   go: css`
-    background: ${nocturne.green};
-    color: ${nocturne.onGreen};
+    background: ${({ theme }) => theme.color.successContainer};
+    color: ${({ theme }) => theme.color.onSuccessContainer};
   `,
   live: css`
     background: ${nocturne.lime};
     color: ${nocturne.greenDeep};
   `,
   done: css`
-    background: ${nocturne.sage};
-    color: ${nocturne.greenDeep};
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${nocturne.cream};
   `,
   off: css`
-    background: color-mix(in oklab, ${nocturne.danger} 12%, transparent);
-    color: ${nocturne.danger};
+    background: ${({ theme }) => theme.color.errorContainer};
+    color: ${({ theme }) => theme.color.onErrorContainer};
   `,
 };
 
 const DESK = "@media (min-width: 861px)";
 
+function toneContainer(tone: Tone, theme: DefaultTheme): string {
+  const c = theme.color;
+  switch (tone) {
+    case "wait":
+      return c.secondaryContainer;
+    case "pay":
+      return c.warningContainer;
+    case "go":
+      return c.successContainer;
+    case "live":
+      return nocturne.lime;
+    case "off":
+      return c.errorContainer;
+    default:
+      return c.surfaceContainerHigh;
+  }
+}
+
 const Card = styled.article<{ $tone: Tone }>`
+  --row-ink: ${nocturne.cream};
+  --row-mark: ${nocturne.accent};
+
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   grid-template-areas:
-    "top top"
+    "time money"
     "route route"
-    "rule rule"
-    "person money"
     "pay pay"
     "rate rate";
-  gap: 14px 12px;
-  padding: 18px 18px 16px;
+  gap: 16px 12px;
+  padding: 16px;
   border-radius: 20px;
-  background: ${nocturne.surface};
+  background: ${({ theme, $tone }) =>
+    `color-mix(in oklab, ${toneContainer($tone, theme)} 32%, ${theme.color.surfaceContainerLowest})`};
   overflow: hidden;
   transition:
-    background-color ${dur.state} ${ease.standard},
+    box-shadow ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
-
-  ${({ $tone }) =>
-    $tone === "off" &&
-    css`
-      ol b,
-      [data-money] b {
-        color: ${nocturne.muted};
-      }
-      [data-money]:not([data-refunded]) b {
-        text-decoration: line-through;
-        text-decoration-thickness: 2px;
-      }
-    `}
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background: ${nocturne.surface2};
+      box-shadow: inset 0 0 0 999px color-mix(in oklab, ${nocturne.cream} 4%, transparent);
     }
   }
   &:active {
@@ -107,26 +115,34 @@ const Card = styled.article<{ $tone: Tone }>`
   }
   &:has(> a[data-cover]:focus-visible) {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
     &:active {
       transform: none;
     }
   }
 
   ${DESK} {
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 240px) auto;
+    grid-template-columns: 136px minmax(0, 1fr) auto;
     grid-template-areas:
-      "top top top"
-      "route person money"
+      "time route money"
       "pay pay pay"
       "rate rate rate";
     align-items: center;
-    gap: 18px 32px;
-    padding: 22px 26px;
+    gap: 16px 32px;
+    padding: 20px 24px;
   }
+`;
+
+export const StatusTile = styled.span<{ $tone: Tone; $small?: boolean }>`
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: ${({ $small }) => ($small ? "32px" : "40px")};
+  height: ${({ $small }) => ($small ? "32px" : "40px")};
+  border-radius: ${({ $small }) => ($small ? "8px" : "12px")};
+  ${({ $tone }) => chipLook[$tone]}
 `;
 
 const Cover = styled(Link)`
@@ -138,32 +154,54 @@ const Cover = styled(Link)`
   &:focus-visible {
     outline: none;
   }
+  &:active {
+    background-color: color-mix(in oklab, ${nocturne.cream} 4%, transparent);
+  }
 `;
 
-const Top = styled.div`
-  grid-area: top;
+const When = styled.div`
+  grid-area: time;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+
+  > span {
+    font-size: ${fs.small};
+    font-weight: 600;
+    color: ${nocturne.muted};
+  }
+  > b {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 28px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    color: ${nocturne.cream};
+  }
+  > :last-child {
+    margin-top: 4px;
+  }
 `;
 
 export const Chip = styled.span<{ $tone: Tone }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: ${fs.small};
-  font-weight: 800;
+  font-weight: 600;
   white-space: nowrap;
   ${({ $tone }) => chipLook[$tone]}
 
   > i {
     position: relative;
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: currentColor;
   }
@@ -173,7 +211,7 @@ export const Chip = styled.span<{ $tone: Tone }>`
     inset: -4px;
     border-radius: 50%;
     background: currentColor;
-    animation: ${pulse} 1.8s ease-in-out infinite;
+    animation: ${pulse} calc(${dur.max} * 4) ${ease.standard} infinite;
   }
   @media (prefers-reduced-motion: reduce) {
     > i::after {
@@ -183,127 +221,39 @@ export const Chip = styled.span<{ $tone: Tone }>`
   }
 `;
 
-const Aside = styled.span<{ $soon?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: ${fs.small};
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: ${({ $soon }) => ($soon ? nocturne.danger : nocturne.muted)};
-  text-align: right;
-`;
-
-const Route = styled.ol`
+const Trip = styled.div`
   grid-area: route;
-  display: grid;
-  gap: 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  li {
-    position: relative;
-    display: grid;
-    gap: 2px;
-    padding-left: 26px;
-  }
-  li::before {
-    content: "";
-    position: absolute;
-    left: 3px;
-    top: 8px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    box-shadow: inset 0 0 0 2.5px ${nocturne.green};
-    background: ${nocturne.surface};
-  }
-  li + li::before {
-    background: ${nocturne.green};
-  }
-  li:first-child::after {
-    content: "";
-    position: absolute;
-    left: 7px;
-    top: 22px;
-    bottom: -12px;
-    border-left: 2px dashed ${nocturne.line2};
-  }
-  b {
-    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 19px;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.25;
-    color: ${nocturne.cream};
-    overflow-wrap: anywhere;
-  }
-  small {
-    font-size: 14px;
-    color: ${nocturne.muted};
-  }
-
-  ${DESK} {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    column-gap: 28px;
-
-    li {
-      padding: 22px 0 0;
-    }
-    li::before {
-      left: 0;
-      top: 0;
-    }
-    li:first-child::after {
-      left: 16px;
-      right: -22px;
-      top: 4px;
-      bottom: auto;
-      border-left: 0;
-      border-top: 2px dashed ${nocturne.line2};
-    }
-    b {
-      font-size: 21px;
-    }
-  }
-`;
-
-const Rule = styled.hr`
-  grid-area: rule;
-  width: 100%;
-  height: 1px;
-  margin: 2px 0;
-  border: 0;
-  background: ${nocturne.line};
-
-  ${DESK} {
-    display: none;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 `;
 
 const Person = styled.span`
-  grid-area: person;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
+  font-size: ${fs.meta};
+  color: ${nocturne.muted};
 
-  span {
-    display: grid;
-    min-width: 0;
-  }
   b {
-    font-size: 15px;
-    font-weight: 800;
-    color: ${nocturne.cream};
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 700;
+    color: ${nocturne.cream};
   }
-  small {
+  .plate {
+    flex: none;
+    padding: 0 4px;
+    border-radius: 4px;
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${nocturne.cream};
     font-size: ${fs.small};
-    color: ${nocturne.muted};
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
 `;
 
@@ -312,10 +262,12 @@ const Money = styled.span`
   display: grid;
   justify-items: end;
   align-content: center;
+  gap: 2px;
+  text-align: right;
 
   b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 19px;
+    font-size: 20px;
     font-weight: 800;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
@@ -327,10 +279,18 @@ const Money = styled.span`
   }
 `;
 
+const Aside = styled.span<{ $soon?: boolean }>`
+  font-size: ${fs.small};
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: ${({ $soon }) => ($soon ? nocturne.danger : nocturne.muted)};
+`;
+
 const RateSlot = styled.div`
   grid-area: rate;
-  padding-top: 14px;
-  border-top: 1px solid ${nocturne.line};
+  position: relative;
+  z-index: 2;
+  padding-top: 12px;
 `;
 
 const Pay = styled(Link)<{ $live?: boolean }>`
@@ -340,49 +300,41 @@ const Pay = styled(Link)<{ $live?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 20px;
   border-radius: 999px;
   background: ${({ $live }) => ($live ? nocturne.lime : nocturne.green)};
   color: ${({ $live }) => ($live ? nocturne.greenDeep : nocturne.onGreen)};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
   transition:
-    background-color ${dur.state} ${ease.standard},
-    color ${dur.state} ${ease.standard},
+    filter ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
-
-  svg:last-child {
-    transition: transform ${dur.state} ${ease.standard};
-  }
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background: ${({ $live }) => ($live ? nocturne.lime : nocturne.ctaBg)};
-      color: ${({ $live }) => ($live ? nocturne.greenDeep : nocturne.ctaFg)};
-    }
-    &:hover svg:last-child {
-      transform: translateX(2px);
+      filter: brightness(0.94);
     }
   }
   &:active {
-    background: ${({ $live }) => ($live ? nocturne.lime : nocturne.ctaBg)};
-    color: ${({ $live }) => ($live ? nocturne.greenDeep : nocturne.ctaFg)};
+    filter: brightness(0.9);
     transform: scale(0.97);
-    transition-duration: ${dur.press};
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
   }
 
   ${DESK} {
     justify-self: end;
-    margin-top: -4px;
   }
 `;
 
@@ -429,73 +381,68 @@ export function BookingCard({
   const origin = booking.trip?.from_location ?? "Pickup to confirm";
   const destination = booking.trip?.to_location ?? "Drop-off to confirm";
   const date = formatTripDate(booking.trip?.departure_date ?? null) || "Date to confirm";
-  const time = formatTripTime(booking.trip?.departure_time ?? null) || "time to confirm";
+  const time = formatTripTime(booking.trip?.departure_time ?? null) || "Time to confirm";
   const status = STATUS[booking.status];
   const Icon = status.icon;
   const live = booking.status === "in_progress";
   const seats = `${booking.seats_booked} ${booking.seats_booked === 1 ? "seat" : "seats"}`;
+  const plate = booking.trip?.vehicle?.plate_number ?? null;
 
   const left = useCountdown(booking.expires_at);
   const soon = left !== null && left.startsWith("0:");
   const canPay = !isDriver && booking.status === "pending_payment";
   const refunded = booking.refunded_amount != null && !isDriver;
 
+  const note =
+    booking.status === "pending_payment" && booking.service_fee == null
+      ? "Pay to keep your seat"
+      : refunded
+        ? booking.refund_to === "mpesa"
+          ? "Refunded to M-Pesa"
+          : "Refunded to your wallet"
+        : booking.status === "cancelled" && !booking.paid_at
+          ? "Cancelled, nothing charged"
+          : MONEY_NOTE[booking.status];
+
   return (
     <Card $tone={status.tone}>
       <Cover data-cover href={`/trips/${booking.id}`} aria-label={`Open trip, ${origin} to ${destination}, ${status.label}`} />
 
-      <Top>
+      <When>
+        <StatusTile $tone={status.tone} aria-hidden>
+          <Icon size={20} weight="bold" />
+        </StatusTile>
+        <span>{date}</span>
+        <b>{time}</b>
         <Chip $tone={status.tone}>
-          {live ? <i aria-hidden /> : <Icon size={15} weight="bold" />}
+          {live ? <i aria-hidden /> : <Icon size={16} weight="bold" />}
           {status.label}
         </Chip>
+      </When>
+
+      <Trip>
+        <Road $moving={live}>
+          <span>{origin}</span>
+          <i aria-hidden />
+          <span>{destination}</span>
+        </Road>
+        <Person>
+          <Avatar name={name} src={person?.avatar_url} size={32} />
+          <b>{name}</b>
+          <VerifiedMark verified={person?.is_verified} />
+          <span>· {isDriver ? "Passenger" : "Driver"} · {seats}</span>
+          {plate && !isDriver && <span className="plate">{plate}</span>}
+        </Person>
+      </Trip>
+
+      <Money>
         {canPay && left ? (
           <Aside $soon={soon}>{soon ? `Seat released in ${left}` : `Pay within ${left}`}</Aside>
-        ) : ["completed", "cancelled", "rejected"].includes(booking.status) ? (
-          <Aside>{date}</Aside>
         ) : booking.booking_reference ? (
           <Aside>{booking.booking_reference}</Aside>
-        ) : (
-          <Aside aria-hidden>
-            <CaretRight size={18} />
-          </Aside>
-        )}
-      </Top>
-
-      <Route>
-        <li>
-          <b>{origin}</b>
-          <small>
-            {date} · {time}
-          </small>
-        </li>
-        <li>
-          <b>{destination}</b>
-          <small>{seats}</small>
-        </li>
-      </Route>
-
-      <Rule aria-hidden />
-      <Person>
-        <Avatar name={name} src={person?.avatar_url} size={36} />
-        <span>
-          <b>{name}</b>
-          <small>{isDriver ? "Passenger" : "Driver"}</small>
-        </span>
-      </Person>
-      <Money data-money data-refunded={refunded ? "" : undefined}>
+        ) : null}
         <b>{formatCurrency(refunded ? booking.refunded_amount! : booking.total_price)}</b>
-        <small>
-          {booking.status === "pending_payment" && booking.service_fee == null
-            ? "Pay to keep your seat"
-            : refunded
-              ? booking.refund_to === "mpesa"
-                ? "Refunded to M-Pesa"
-                : "Refunded to wallet"
-              : booking.status === "cancelled" && !booking.paid_at
-                ? "Not charged"
-                : MONEY_NOTE[booking.status]}
-        </small>
+        <small>{note}</small>
       </Money>
 
       {canPay && (
@@ -511,7 +458,7 @@ export function BookingCard({
       )}
       {live && (
         <Pay href={`/trips/${booking.id}`} $live onPointerDown={tap}>
-          <NavigationArrow size={18} weight="bold" />
+          <NavigationArrow size={20} weight="bold" />
           Open trip
         </Pay>
       )}

@@ -29,7 +29,7 @@ async function resolveUserId(
     .eq("auth_id", user.id)
     .maybeSingle();
   if (!data) {
-    return { error: "Your profile isn't ready yet. Sign out and back in." };
+    return { error: "Profile not ready. Sign out and back in." };
   }
   return { userId: data.id as string };
 }
@@ -52,7 +52,7 @@ export async function openSupportCaseAction(input: {
 
   if (subject.length < 3) return { ok: false, error: "Tell us what happened." };
   if (detail.length < MIN_DETAIL) {
-    return { ok: false, error: "Add a little more detail so we can help." };
+    return { ok: false, error: "Add more detail." };
   }
 
   const supabase = await createClient();
@@ -79,7 +79,7 @@ export async function openSupportCaseAction(input: {
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, error: "We couldn't open that case. Please try again." };
+    return { ok: false, error: "Couldn't open that case. Try again." };
   }
 
   const caseId = data.id as string;
@@ -108,7 +108,7 @@ export async function closeSupportCaseAction(caseId: string): Promise<PlainResul
     .select("id");
 
   if (error) {
-    return { ok: false, error: "We couldn't close that case. Please try again." };
+    return { ok: false, error: "Couldn't close that case. Try again." };
   }
   if (!data || data.length === 0) {
     return { ok: false, error: "That case is no longer open." };
@@ -151,7 +151,7 @@ export async function sendSupportMessageAction(
     .maybeSingle();
 
   if (error || !data) {
-    return { ok: false, error: "That didn't send. Please try again." };
+    return { ok: false, error: "Didn't send. Try again." };
   }
 
   const row = data as Record<string, unknown>;

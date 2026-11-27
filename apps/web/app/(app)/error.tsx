@@ -19,7 +19,7 @@ export default function AppError({
   return (
     <StatusPage
       title="We couldn't load that."
-      lead="Try again, or go back to where you were."
+      lead="Try again."
       art={<BreakArt />}
       onRetry={reset}
     />

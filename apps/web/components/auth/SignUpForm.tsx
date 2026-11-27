@@ -111,8 +111,7 @@ export function SignUpForm({ next = "/home" }: { next?: string }) {
         </Burst>
         <Heading style={{ fontSize: "1.8rem" }}>Check your inbox</Heading>
         <Sub style={{ margin: "10px auto 24px" }}>
-          We sent a magic link to <Strong>{email}</Strong>. Tap it to confirm
-          your email. You&apos;ll set a password next.
+          We sent a link to <Strong>{email}</Strong>. Tap it to continue.
         </Sub>
         {error && (
           <AlertBox style={{ marginBottom: 16, textAlign: "left" }}>
@@ -137,7 +136,7 @@ export function SignUpForm({ next = "/home" }: { next?: string }) {
     <>
       <StepDots total={4} current={0} />
       <Heading>Create your account</Heading>
-      <Sub>Start with your email. No password yet. We keep it quick.</Sub>
+      <Sub>Start with your email.</Sub>
 
       {error && (
         <AlertBox style={{ marginBottom: 18 }}>

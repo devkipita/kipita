@@ -59,9 +59,9 @@ export function rateLimit(
 /** Human-readable "try again in …" for a rejected action. */
 export function retryMessage(retryAfterMs: number): string {
   const seconds = Math.ceil(retryAfterMs / 1000);
-  if (seconds <= 60) return `Slow down a moment. Try again in ${seconds}s.`;
+  if (seconds <= 60) return `Slow down. Try again in ${seconds}s.`;
   const minutes = Math.ceil(seconds / 60);
-  return `You've done that a few times. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  return `Too many tries. Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
 /** Limits per action, tuned to be invisible to a real person. */

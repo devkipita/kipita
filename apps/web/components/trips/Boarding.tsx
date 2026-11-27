@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import styled, { css } from "styled-components";
-import { Check, Clock, Lock } from "@/components/icons";
+import styled, { css, keyframes } from "styled-components";
+import { ArrowRight, ChatCircle, Check, Clock, Lock } from "@/components/icons";
+import { Avatar } from "@/components/profile/Avatar";
 import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { RollingNumber } from "@/components/ui/Counter";
+import { Shimmer } from "@/components/ui/Shimmer";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { formatCurrency } from "@/lib/trips/format";
 import { markNoShowAction } from "@/lib/trips/booking-actions";
@@ -18,8 +21,10 @@ import {
 
 const Card = styled.section`
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
   border-radius: 20px;
   background: ${nocturne.surface};
 
@@ -79,7 +84,7 @@ export function PickupCodeCard({ code }: { code: string }) {
           </span>
         ))}
       </Digits>
-      <p>Give this to your driver when you get in.</p>
+      <p>Show this to your driver.</p>
     </Card>
   );
 }
@@ -148,7 +153,9 @@ export function useBoarding(tripId: string | null | undefined, enabled: boolean)
 
 const List = styled.ul`
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -156,10 +163,28 @@ const List = styled.ul`
 
 const Person = styled.li`
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
   border-radius: 16px;
-  background: ${nocturne.surface2};
+  background: ${({ theme }) => theme.color.surfaceContainerLow};
+`;
+
+const PanelHead = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+
+  .count {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: ${nocturne.muted};
+    font-variant-numeric: tabular-nums;
+  }
 `;
 
 const Head = styled.div`
@@ -167,6 +192,21 @@ const Head = styled.div`
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+
+  > span:first-child {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    > span {
+      min-width: 0;
+    }
+  }
 
   b {
     display: block;
@@ -181,33 +221,92 @@ const Head = styled.div`
   }
 `;
 
+const Side = styled.span`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Talk = styled.button`
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: ${({ theme }) => theme.tone.green.bg};
+  color: ${({ theme }) => theme.tone.green.on};
+  cursor: pointer;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${({ theme }) => theme.tone.green.bg} 85%, ${nocturne.green});
+    }
+  }
+  &:active {
+    transform: scale(0.97);
+  }
+  ${focusRing}
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
 const State = styled.span<{ $tone: "go" | "wait" | "off" }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex: none;
-  padding: 5px 10px;
-  border-radius: 999px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 800;
-  background: ${({ $tone }) => ($tone === "go" ? nocturne.green : "transparent")};
-  color: ${({ $tone }) => ($tone === "go" ? nocturne.onGreen : $tone === "off" ? nocturne.muted : nocturne.cream)};
-  border: 2px solid ${({ $tone }) => ($tone === "go" ? "transparent" : $tone === "off" ? nocturne.muted : nocturne.cream)};
+  font-weight: 700;
+  line-height: 20px;
+  background: ${({ theme, $tone }) =>
+    $tone === "go"
+      ? theme.color.successContainer
+      : $tone === "wait"
+        ? theme.color.warningContainer
+        : theme.color.surfaceContainerHighest};
+  color: ${({ theme, $tone }) =>
+    $tone === "go"
+      ? theme.color.onSuccessContainer
+      : $tone === "wait"
+        ? theme.color.onWarningContainer
+        : nocturne.muted};
 `;
 
 const Row = styled.form`
   display: flex;
   gap: 8px;
+  min-width: 0;
 `;
 
 const CodeInput = styled.input`
   flex: 1;
+  width: 100%;
   min-width: 0;
   min-height: 48px;
-  padding: 0 14px;
-  border: 2px solid ${nocturne.surface};
-  border-radius: 14px;
-  background: ${nocturne.surface};
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
   color: ${nocturne.cream};
   font: inherit;
   font-size: 20px;
@@ -238,23 +337,42 @@ const Go = styled.button`
   justify-content: center;
   gap: 8px;
   min-height: 48px;
-  padding: 0 18px;
-  border: 2px solid transparent;
+  padding: 0 20px;
+  border: 0;
   border-radius: 999px;
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
   font: inherit;
   font-size: 15px;
   font-weight: 800;
+  white-space: nowrap;
   cursor: pointer;
-  transition: transform ${dur.press} ${ease.standard};
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      background-color: ${nocturne.greenDeep};
+    }
+  }
   &:active:not(:disabled) {
     transform: scale(0.97);
   }
   &:disabled {
-    opacity: 0.55;
+    background: ${({ theme }) => theme.color.surfaceContainerHighest};
+    color: ${nocturne.muted};
+    cursor: not-allowed;
+  }
+  &[aria-busy="true"] {
+    background: ${nocturne.green};
+    color: ${nocturne.onGreen};
     cursor: progress;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
   ${focusRing}
 `;
@@ -411,42 +529,95 @@ function CheckIn({ row, tripId, onDone }: { row: BoardingRow; tripId: string; on
  * The driver checks each paid passenger in with the code on their booking. Start is locked by the database until
  * everyone is on board or reported as a no-show; this panel is how the driver gets there.
  */
-export function BoardingPanel({ tripId, board }: { tripId: string; board: Boarding }) {
+export function BoardingPanel({
+  tripId,
+  board,
+  always = false,
+  onMessage,
+}: {
+  tripId: string;
+  board: Boarding;
+  always?: boolean;
+  onMessage?: (row: BoardingRow) => void;
+}) {
   const { rows, summary, error, reload } = board;
-  if (!summary.loaded && !error) return null;
-  // Nothing to check in: no paid passengers (or the list could not load, which the driver cannot fix).
-  if (rows.length === 0) return null;
+  if (!always && ((!summary.loaded && !error) || rows.length === 0)) return null;
+
+  if (!summary.loaded && !error) {
+    return (
+      <Card aria-label="Check passengers in" aria-busy="true">
+        <PanelHead>
+          <h2>Check passengers in</h2>
+        </PanelHead>
+        <List aria-hidden>
+          {[0, 1].map((i) => (
+            <Person key={i}>
+              <Shimmer $w="55%" $h="16px" $r="6px" />
+              <Shimmer $w="100%" $h="48px" $r="12px" />
+            </Person>
+          ))}
+        </List>
+      </Card>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <Card aria-label="Check passengers in">
+        <PanelHead>
+          <h2>Check passengers in</h2>
+        </PanelHead>
+        <p>Passengers appear here once paid. Ask each for their code.</p>
+        {error && <Problem role="alert">{error}</Problem>}
+      </Card>
+    );
+  }
 
   return (
     <Card aria-label="Check passengers in">
-      <h2>Check passengers in</h2>
+      <PanelHead>
+        <h2>Check passengers in</h2>
+        <span className="count">
+          <RollingNumber value={summary.boarded} /> of {rows.length} on board
+        </span>
+      </PanelHead>
       <p>{summary.waiting > 0 ? "Ask each passenger for their code." : "Everyone is on board."}</p>
       <List>
         {rows.map((row) => (
           <Person key={row.bookingId}>
             <Head>
-              <span>
-                <b>{row.passengerName}</b>
-                <small>
-                  {row.seats} {row.seats === 1 ? "seat" : "seats"}
-                  {row.pickup ? ` · ${row.pickup}` : ""}
-                </small>
+              <span className="who">
+                <Avatar name={row.passengerName} src={row.avatarUrl} size={40} />
+                <span>
+                  <b>{row.passengerName}</b>
+                  <small>
+                    {row.seats} {row.seats === 1 ? "seat" : "seats"}
+                    {row.pickup ? ` · ${row.pickup}` : ""}
+                  </small>
+                </span>
               </span>
-              {row.state === "boarded" ? (
-                <State $tone="go">
-                  <Check size={14} weight="bold" /> On board
-                </State>
-              ) : row.state === "no_show" ? (
-                <State $tone="off">No-show</State>
-              ) : (
-                <State $tone="wait">
-                  <Clock size={14} /> Waiting
-                </State>
-              )}
+              <Side>
+                {onMessage && row.state !== "no_show" ? (
+                  <Talk type="button" aria-label={`Message ${row.passengerName}`} onClick={() => onMessage(row)}>
+                    <ChatCircle size={20} aria-hidden />
+                  </Talk>
+                ) : null}
+                {row.state === "boarded" ? (
+                  <State $tone="go">
+                    <Check size={16} weight="bold" /> On board
+                  </State>
+                ) : row.state === "no_show" ? (
+                  <State $tone="off">No-show</State>
+                ) : (
+                  <State $tone="wait">
+                    <Clock size={16} /> Waiting
+                  </State>
+                )}
+              </Side>
             </Head>
             {row.state === "boarded" && row.method === "manual" && (
               <p>
-                <Lock size={14} /> Marked by hand. Held for review.
+                <Lock size={16} /> Marked by hand. Held for review.
               </p>
             )}
             {row.state === "waiting" && <CheckIn row={row} tripId={tripId} onDone={reload} />}
@@ -461,10 +632,19 @@ export function BoardingPanel({ tripId, board }: { tripId: string; board: Boardi
 /** The check-in list for a ride page that is not showing a single booking (the driver's own ride page). */
 export function OwnerBoarding({ tripId }: { tripId: string }) {
   const board = useBoarding(tripId, true);
-  return <BoardingPanel tripId={tripId} board={board} />;
+  return <BoardingPanel tripId={tripId} board={board} always />;
 }
 
 /* ── Driver: slide to end the trip ───────────────────────────────────────────── */
+
+const nudge = keyframes`
+  0%, 62%, 100% { transform: translateX(0); }
+  72% { transform: translateX(6px); }
+  82% { transform: translateX(0); }
+  90% { transform: translateX(3px); }
+`;
+
+const KNOB = 52;
 
 const Track = styled.div<{ $busy: boolean }>`
   position: relative;
@@ -475,47 +655,104 @@ const Track = styled.div<{ $busy: boolean }>`
   overflow: hidden;
   user-select: none;
   touch-action: none;
-  opacity: ${({ $busy }) => ($busy ? 0.7 : 1)};
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow ${dur.state} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.ink} 8%, transparent);
+    }
+  }
 `;
 
-const Label = styled.span`
+const Fill = styled.span.attrs<{ $w: number; $dragging: boolean }>(({ $w, $dragging }) => ({
+  style: {
+    width: `${$w}px`,
+    transition: $dragging ? "none" : `width ${dur.enter} ${ease.enter}`,
+  },
+}))`
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 999px;
+  background: color-mix(in oklab, ${nocturne.ink} 18%, transparent);
+  pointer-events: none;
+`;
+
+const Label = styled.span.attrs<{ $p: number }>(({ $p }) => ({
+  style: { opacity: Math.max(0, 1 - $p * 1.4), transform: `translateX(${Math.round($p * 16)}px)` },
+}))`
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding-left: 52px;
+  gap: 8px;
+  padding-left: ${KNOB}px;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: 16px;
   font-weight: 800;
   pointer-events: none;
+  transition:
+    opacity ${dur.state} ${ease.standard},
+    transform ${dur.state} ${ease.standard};
 `;
 
 const Knob = styled.button.attrs<{ $x: number; $dragging: boolean }>(({ $x, $dragging }) => ({
   style: {
     transform: `translateX(${$x}px)`,
-    transition: $dragging ? "none" : `transform ${dur.state} ${ease.standard}`,
+    transition: $dragging ? "none" : `transform ${dur.enter} ${ease.enter}`,
   },
-}))`
+}))<{ $idle: boolean }>`
   position: absolute;
   top: 4px;
   left: 4px;
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: ${KNOB}px;
+  height: ${KNOB}px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: ${nocturne.surface};
   color: ${nocturne.cream};
+  box-shadow: ${nocturne.panelShadow};
   cursor: grab;
   touch-action: none;
 
+  > span {
+    display: grid;
+    place-items: center;
+    transition: transform ${dur.press} ${ease.standard};
+  }
+  svg {
+    animation: ${({ $idle }) => ($idle ? css`${nudge} calc(${dur.max} * 6) ${ease.standard} infinite` : "none")};
+  }
+  &:active > span {
+    transform: scale(0.92);
+  }
   &:active {
     cursor: grabbing;
   }
+  &:disabled {
+    cursor: default;
+  }
   ${focusRing}
+
+  @media (prefers-reduced-motion: reduce) {
+    svg {
+      animation: none;
+    }
+    &:active > span {
+      transform: none;
+    }
+  }
 `;
+
+function buzz(pattern: number | number[]) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(pattern);
+}
 
 /**
  * Ending a ride moves money (each boarded passenger's fare starts its release timer), so it takes a deliberate
@@ -535,36 +772,70 @@ export function SlideToComplete({
   const track = useRef<HTMLDivElement>(null);
   const [x, setX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [sent, setSent] = useState(false);
   const origin = useRef(0);
-  const KNOB = 52;
+  const armed = useRef(false);
+  const wasBusy = useRef(false);
 
   const maxX = () => Math.max(0, (track.current?.clientWidth ?? 0) - KNOB - 8);
+  const max = maxX();
+  const progress = max > 0 ? Math.min(1, x / max) : 0;
+
+  useEffect(() => {
+    if (busy) {
+      wasBusy.current = true;
+      return;
+    }
+    if (wasBusy.current && sent) {
+      wasBusy.current = false;
+      setSent(false);
+      setX(0);
+    }
+  }, [busy, sent]);
+
+  function finish() {
+    buzz([12, 40, 24]);
+    setX(maxX());
+    setSent(true);
+    onComplete();
+  }
 
   function down(e: React.PointerEvent<HTMLButtonElement>) {
-    if (busy) return;
+    if (busy || sent) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     origin.current = e.clientX - x;
+    armed.current = false;
     setDragging(true);
+    buzz(8);
   }
   function move(e: React.PointerEvent<HTMLButtonElement>) {
     if (!dragging) return;
-    setX(Math.min(maxX(), Math.max(0, e.clientX - origin.current)));
+    const next = Math.min(maxX(), Math.max(0, e.clientX - origin.current));
+    const past = next >= maxX() * 0.9;
+    if (past !== armed.current) {
+      armed.current = past;
+      if (past) buzz(14);
+    }
+    setX(next);
   }
   function up() {
     if (!dragging) return;
     setDragging(false);
-    const done = x >= maxX() * 0.9 && maxX() > 0;
+    if (armed.current && maxX() > 0) {
+      finish();
+      return;
+    }
     setX(0);
-    if (done) onComplete();
   }
 
   return (
     <Track ref={track} $busy={busy}>
-      <Label>
-        {busy ? (
+      <Fill $w={x + KNOB + 8} $dragging={dragging} />
+      <Label $p={busy || sent ? 0 : progress}>
+        {busy || sent ? (
           <>
             <ButtonOrb job="committing" />
-            &nbsp;{busyLabel}
+            {busyLabel}
           </>
         ) : (
           label
@@ -573,7 +844,7 @@ export function SlideToComplete({
       <Knob
         type="button"
         aria-label={label}
-        disabled={busy}
+        disabled={busy || sent}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
@@ -581,13 +852,16 @@ export function SlideToComplete({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onComplete();
+            finish();
           }
         }}
         $x={x}
         $dragging={dragging}
+        $idle={!dragging && !busy && !sent && x === 0}
       >
-        <span aria-hidden>›››</span>
+        <span>
+          {sent || busy ? <Check size={24} weight="bold" aria-hidden /> : <ArrowRight size={24} weight="bold" aria-hidden />}
+        </span>
       </Knob>
     </Track>
   );
@@ -595,7 +869,7 @@ export function SlideToComplete({
 
 /** The line shown above the slider: what the driver will be paid, and on what condition. */
 export function earningsLine(summary: BoardingSummary): string {
-  if (!summary.loaded) return "Paid when there is no dispute.";
-  if (summary.boarded === 0) return "No one boarded, so nothing to pay out.";
-  return `You'll be paid ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"}, when there is no dispute.`;
+  if (!summary.loaded) return "Paid if no dispute.";
+  if (summary.boarded === 0) return "No one boarded. Nothing to pay.";
+  return `You get ${formatCurrency(summary.earning)} for ${summary.boarded} boarded ${summary.boarded === 1 ? "passenger" : "passengers"} if no dispute.`;
 }

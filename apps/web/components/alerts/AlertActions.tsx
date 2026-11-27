@@ -2,138 +2,45 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import styled, { useTheme } from "styled-components";
+import styled from "styled-components";
 import {
   BarChart,
-  BookmarkSmall as Bookmark,
-  CheckSmall as Check,
-  ProhibitedSmall as CircleSlash,
-  HeartSmall as Heart,
-  Message as MessageCircle,
-  ShareSmall as Share2,
+  BookmarkSmall,
+  CheckCircle,
+  HeartSmall,
+  Message,
+  ShareForward,
+  Warning,
 } from "@/components/icons";
-import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
+import Link from "next/link";
+import { Chip, IconAction } from "@/components/ui/Chip";
+import { RollingNumber } from "@/components/ui/Counter";
 import { createClient } from "@/lib/supabase/client";
 import { confirmAlert, reactToAlert, setAlertSaved } from "@/lib/alerts/api";
-import { formatCompactNumber } from "@/lib/alerts/meta";
 import { SITE } from "@/lib/site";
-import { dur, ease, nocturne } from "@/lib/nocturne";
+import { nocturne } from "@/lib/nocturne";
 import type { Alert, ConfirmKind } from "@/lib/alerts/types";
 
-const Bar = styled.div<{ $onMedia: boolean }>`
+const Bar = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-
-  --ink: ${({ theme, $onMedia }) =>
-    $onMedia ? "#ffffff" : theme.color.onSurfaceVariant};
-`;
-
-const Row = styled.div`
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-
-  .group {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-  }
+  gap: 8px 12px;
 `;
 
-const Confirms = styled.div`
+const Confirm = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+`;
+
+const Engage = styled.div`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-`;
-
-const Pill = styled.button<{ $active?: boolean; $accent: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background: transparent;
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: ${({ $active }) => ($active ? 700 : 500)};
-  color: ${({ $active, $accent }) => ($active ? $accent : "var(--ink)")};
-  cursor: pointer;
-  transition:
-    background ${dur.state} ${ease.standard},
-    color ${dur.state} ${ease.standard};
-
-  svg {
-    flex: none;
-  }
-  &:hover,
-  &:focus-visible {
-    color: ${({ $accent }) => $accent};
-    background: color-mix(in srgb, ${({ $accent }) => $accent} 14%, transparent);
-  }
-  &:focus-visible {
-    outline: 2px solid ${({ $accent }) => $accent};
-    outline-offset: 1px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const Action = styled.button<{ $active?: boolean; $accent?: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  min-width: 44px;
-  justify-content: center;
-  padding: 0 10px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.pill};
-  background: transparent;
-  font: inherit;
-  font-size: 0.83rem;
-  font-weight: ${({ $active }) => ($active ? 700 : 500)};
-  color: ${({ $active, $accent }) =>
-    $active && $accent ? $accent : "var(--ink)"};
-  cursor: pointer;
-  transition:
-    color ${dur.state} ${ease.standard},
-    background ${dur.state} ${ease.standard};
-
-  svg {
-    flex: none;
-  }
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    color: ${({ $accent }) => $accent ?? "var(--ink)"};
-    background: ${({ $accent }) =>
-      `color-mix(in srgb, ${$accent ?? "var(--ink)"} 16%, transparent)`};
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-`;
-
-const Stat = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  padding: 0 10px;
-  font-size: 0.83rem;
-  font-weight: 500;
-  color: var(--ink);
-
-  svg {
-    flex: none;
-  }
+  gap: 4px;
+  margin-inline-end: -8px;
 `;
 
 function whatsappHref(alert: Alert): string {
@@ -141,10 +48,13 @@ function whatsappHref(alert: Alert): string {
   return `https://wa.me/?text=${encodeURIComponent(`${alert.location}: ${alert.content}\n${url}`)}`;
 }
 
+function plural(n: number, one: string, many: string) {
+  return `${n} ${n === 1 ? one : many}`;
+}
+
 export function AlertActions({
   alert,
   viewerId,
-  onMedia = false,
   onChange,
   onRequireAuth,
   onComment,
@@ -157,7 +67,6 @@ export function AlertActions({
   onComment?: () => void;
 }) {
   const router = useRouter();
-  const theme = useTheme();
   const [busy, setBusy] = useState(false);
 
   async function vote(kind: ConfirmKind) {
@@ -231,113 +140,113 @@ export function AlertActions({
 
   const still = alert.my_confirmation === "still_there";
   const clear = alert.my_confirmation === "cleared";
-
   const liked = alert.user_reaction === "heart";
 
   return (
-    <Bar $onMedia={onMedia}>
-      <Confirms>
-        <Pill
+    <Bar>
+      <Confirm role="group" aria-label="Is it still there?">
+        <Chip
           type="button"
-          $active={still}
-          $accent={onMedia ? "#ffffff" : theme.color.success}
+          $tone="warning"
+          $selected={still}
           aria-pressed={still}
-          aria-label={`Still here. ${alert.confirms_count} confirmed.`}
+          aria-label={`Still there, ${plural(alert.confirms_count, "person says", "people say")} so`}
           onClick={(e) => {
             stop(e);
             void vote("still_there");
           }}
         >
-          <Check size={18} />
-          Still here
-          {alert.confirms_count > 0 &&
-            ` ${formatCompactNumber(alert.confirms_count)}`}
-        </Pill>
-        <Pill
+          <Warning size={16} weight={still ? "fill" : "regular"} aria-hidden />
+          Still there
+          {alert.confirms_count > 0 && <RollingNumber value={alert.confirms_count} />}
+        </Chip>
+        <Chip
           type="button"
-          $active={clear}
-          $accent={onMedia ? "#ffffff" : theme.color.info}
+          $tone="success"
+          $selected={clear}
           aria-pressed={clear}
-          aria-label={`Cleared. ${alert.cleared_count} reported clear.`}
+          aria-label={`Cleared, ${plural(alert.cleared_count, "person says", "people say")} so`}
           onClick={(e) => {
             stop(e);
             void vote("cleared");
           }}
         >
-          <CircleSlash size={18} />
+          <CheckCircle size={16} weight={clear ? "fill" : "regular"} aria-hidden />
           Cleared
-          {alert.cleared_count > 0 &&
-            ` ${formatCompactNumber(alert.cleared_count)}`}
-        </Pill>
-      </Confirms>
+          {alert.cleared_count > 0 && <RollingNumber value={alert.cleared_count} />}
+        </Chip>
+      </Confirm>
 
-      <Row>
-        <div className="group">
-          <Action
-            type="button"
-            $active={liked}
-            $accent={nocturne.danger}
-            aria-pressed={liked}
-            aria-label={`Like. ${alert.reactions_count} likes.`}
-            onClick={(e) => {
-              stop(e);
-              void toggleLike();
-            }}
-          >
-            <Heart size={20} weight={liked ? "fill" : "regular"} />
-            {alert.reactions_count > 0 &&
-              formatCompactNumber(alert.reactions_count)}
-          </Action>
-          <Action
-            type="button"
-            aria-label={`Reply. ${alert.comments_count} replies.`}
-            onClick={(e) => {
-              stop(e);
-              if (onComment) onComment();
-              else router.push(`/alerts/${alert.id}`);
-            }}
-          >
-            <MessageCircle size={20} />
-            {alert.comments_count > 0 &&
-              formatCompactNumber(alert.comments_count)}
-          </Action>
-          <Stat
-            title={`${alert.views_count} ${alert.views_count === 1 ? "view" : "views"}`}
-          >
-            <BarChart size={20} aria-hidden="true" />
-            <VisuallyHidden>Views: </VisuallyHidden>
-            {formatCompactNumber(alert.views_count)}
-          </Stat>
-        </div>
-        <div className="group">
-          <Action
-            type="button"
-            $active={alert.saved_by_me}
-            $accent={theme.color.tertiary}
-            aria-pressed={alert.saved_by_me}
-            aria-label={alert.saved_by_me ? "Saved" : "Save this alert"}
-            onClick={(e) => {
-              stop(e);
-              void toggleSave();
-            }}
-          >
-            <Bookmark
-              size={20}
-              weight={alert.saved_by_me ? "fill" : "regular"}
-            />
-          </Action>
-          <Action
-            as="a"
-            href={whatsappHref(alert)}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Share on WhatsApp"
-            onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          >
-            <Share2 size={20} />
-          </Action>
-        </div>
-      </Row>
+      <Engage>
+        <IconAction
+          type="button"
+          $on={liked}
+          $tone={nocturne.danger}
+          aria-pressed={liked}
+          aria-label={liked ? `Unlike, ${plural(alert.reactions_count, "like", "likes")}` : `Like, ${plural(alert.reactions_count, "like", "likes")}`}
+          title={liked ? "Unlike" : "Like"}
+          onClick={(e) => {
+            stop(e);
+            void toggleLike();
+          }}
+        >
+          <HeartSmall size={20} weight={liked ? "fill" : "regular"} aria-hidden />
+          {alert.reactions_count > 0 && <RollingNumber value={alert.reactions_count} />}
+        </IconAction>
+        <IconAction
+          type="button"
+          aria-label={`Reply, ${plural(alert.comments_count, "reply", "replies")}`}
+          title="Reply"
+          onClick={(e) => {
+            stop(e);
+            if (onComment) onComment();
+            else router.push(`/alerts/${alert.id}`);
+          }}
+        >
+          <Message size={20} aria-hidden />
+          {alert.comments_count > 0 && <RollingNumber value={alert.comments_count} />}
+        </IconAction>
+        <IconAction
+          as={Link}
+          href={`/alerts/${alert.id}`}
+          aria-label={`Views, ${plural(alert.views_count, "view", "views")}`}
+          title={plural(alert.views_count, "view", "views")}
+          onClick={(e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (!onComment || e.metaKey || e.ctrlKey || e.shiftKey) return;
+            e.preventDefault();
+            onComment();
+          }}
+        >
+          <BarChart size={20} aria-hidden />
+          <RollingNumber value={alert.views_count} />
+        </IconAction>
+        <IconAction
+          type="button"
+          $on={alert.saved_by_me}
+          $tone={nocturne.accent}
+          aria-pressed={alert.saved_by_me}
+          aria-label={alert.saved_by_me ? "Remove from saved" : "Save alert"}
+          title={alert.saved_by_me ? "Remove from saved" : "Save alert"}
+          onClick={(e) => {
+            stop(e);
+            void toggleSave();
+          }}
+        >
+          <BookmarkSmall size={20} weight={alert.saved_by_me ? "fill" : "regular"} aria-hidden />
+        </IconAction>
+        <IconAction
+          as="a"
+          href={whatsappHref(alert)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Share on WhatsApp"
+          title="Share on WhatsApp"
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+        >
+          <ShareForward size={20} aria-hidden />
+        </IconAction>
+      </Engage>
     </Bar>
   );
 }

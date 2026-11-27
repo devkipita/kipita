@@ -31,6 +31,10 @@ const FOCUSABLE =
   'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
 const SHEET_QUERY = "(max-width: 859px)";
+const SIDE_W = 400;
+const SIDE_GAP = 16;
+const SIDE_HIDDEN = "inset(0 0 0 100% round 20px)";
+const SIDE_SHOWN = "inset(0 0 0 0% round 20px)";
 const DISMISS_DISTANCE = 120;
 const DISMISS_VELOCITY = 600;
 
@@ -87,6 +91,22 @@ const Panel = styled(m.div).attrs<{
     max-width: ${({ $size }) =>
       $size === "sm" ? "420px" : $size === "lg" ? "760px" : "560px"};
   }
+`;
+
+const SidePanel = styled(m.div)`
+  position: fixed;
+  z-index: 150;
+  top: calc(var(--topbar-h, 64px) + ${SIDE_GAP}px);
+  right: ${SIDE_GAP}px;
+  bottom: ${SIDE_GAP}px;
+  display: flex;
+  flex-direction: column;
+  width: ${SIDE_W}px;
+  overflow: hidden;
+  border-radius: ${({ theme }) => theme.radius.lg};
+  background: ${({ theme }) => theme.color.surface};
+  box-shadow: ${({ theme }) => theme.shadow.card};
+  outline: none;
 `;
 
 const Handle = styled.div`
@@ -232,11 +252,26 @@ export type DrawerProps = {
   description?: string;
   size?: "sm" | "md" | "lg";
   fill?: boolean;
+  side?: boolean;
   dismissible?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
   footer?: ReactNode;
   children: ReactNode;
 };
+
+export const SIDE_PUSH = SIDE_W + SIDE_GAP * 2;
+
+export function useRoomy(): boolean {
+  const [roomy, setRoomy] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1200px)");
+    const sync = () => setRoomy(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return roomy;
+}
 
 export function useIsSheet(): boolean {
   const [sheet, setSheet] = useState(true);
@@ -257,6 +292,7 @@ export function Drawer({
   description,
   size = "md",
   fill = false,
+  side = false,
   dismissible = true,
   initialFocusRef,
   footer,
@@ -267,6 +303,8 @@ export function Drawer({
   const restoreRef = useRef<HTMLElement | null>(null);
   const id = useId();
   const sheet = useIsSheet();
+  const roomy = useRoomy();
+  const pushing = side && !sheet && roomy;
   const drag = useDragControls();
   const y = useMotionValue(0);
   const scrim = useTransform(y, (offset) => {
@@ -290,19 +328,19 @@ export function Drawer({
     const active = document.activeElement as HTMLElement | null;
     if (active && !panel?.contains(active)) restoreRef.current = active;
     const trigger = restoreRef.current;
-    if (!panel || sheet) return;
+    if (!panel || sheet || pushing) return;
     const from = trigger && trigger !== document.body ? trigger.getBoundingClientRect() : null;
     const box = panel.getBoundingClientRect();
     panel.style.transformOrigin = from
       ? `${from.left + from.width / 2 - box.left}px ${from.top + from.height / 2 - box.top}px`
       : "50% 50%";
-  }, [open, sheet, mounted]);
+  }, [open, sheet, pushing, mounted]);
 
   useEffect(() => {
     if (!open) return;
 
     stack.push(id);
-    lockScroll();
+    if (!pushing) lockScroll();
 
     const focusTarget = initialFocusRefRef.current?.current ?? panelRef.current;
     focusTarget?.focus({ preventScroll: true });
@@ -320,10 +358,19 @@ export function Drawer({
       document.removeEventListener("keydown", onKeyDown);
       const at = stack.indexOf(id);
       if (at !== -1) stack.splice(at, 1);
-      unlockScroll();
+      if (!pushing) unlockScroll();
       restoreRef.current?.focus({ preventScroll: true });
     };
-  }, [open, id]);
+  }, [open, id, pushing]);
+
+  useEffect(() => {
+    if (!open || !pushing) return;
+    const root = document.documentElement;
+    root.style.setProperty("--side-panel", `${SIDE_PUSH}px`);
+    return () => {
+      root.style.removeProperty("--side-panel");
+    };
+  }, [open, pushing]);
 
   const trapTab = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== "Tab") return;
@@ -363,6 +410,44 @@ export function Drawer({
 
   const offscreen = window.innerHeight;
 
+  const head = (
+    <Head>
+      <div className="copy">
+        <h2 id={`${id}-title`}>{title}</h2>
+        {description && <p id={`${id}-desc`}>{description}</p>}
+      </div>
+      <Close type="button" onClick={onClose} disabled={!dismissible} aria-label={`Close ${title}`}>
+        <X size={20} weight="bold" />
+      </Close>
+    </Head>
+  );
+
+  if (pushing) {
+    return createPortal(
+      <AnimatePresence>
+        {open && (
+          <SidePanel
+            key="side"
+            ref={panelRef}
+            role="dialog"
+            aria-modal="false"
+            aria-labelledby={`${id}-title`}
+            aria-describedby={description ? `${id}-desc` : undefined}
+            tabIndex={-1}
+            initial={{ clipPath: SIDE_HIDDEN }}
+            animate={{ clipPath: SIDE_SHOWN, transition: spring.sheet }}
+            exit={{ clipPath: SIDE_HIDDEN, transition: tween.exit }}
+          >
+            {head}
+            {children}
+            {footer}
+          </SidePanel>
+        )}
+      </AnimatePresence>,
+      document.body,
+    );
+  }
+
   return createPortal(
     <AnimatePresence>
       {open && (
@@ -401,20 +486,7 @@ export function Drawer({
           >
             <Handle onPointerDown={startDrag}>
               <Grip />
-              <Head>
-                <div className="copy">
-                  <h2 id={`${id}-title`}>{title}</h2>
-                  {description && <p id={`${id}-desc`}>{description}</p>}
-                </div>
-                <Close
-                  type="button"
-                  onClick={onClose}
-                  disabled={!dismissible}
-                  aria-label={`Close ${title}`}
-                >
-                  <X size={20} weight="bold" />
-                </Close>
-              </Head>
+              {head}
             </Handle>
             {children}
             {footer}

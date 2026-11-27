@@ -142,10 +142,10 @@ export function priceBlockText(state: QuoteState, seats: number, fare: number, o
   if (!range) return null;
   const verdict = judgePrice(fare, range);
   if (verdict === "below_floor") {
-    return `That price is too low for this trip. The lowest is ${formatKes(range.floorKes)} a seat.`;
+    return `Too low. Minimum ${formatKes(range.floorKes)} a seat.`;
   }
   if (verdict === "above_cap") {
-    return `That price is too high for a shared ride. The most is ${formatKes(range.capKes)} a seat.`;
+    return `Too high. Maximum ${formatKes(range.capKes)} a seat.`;
   }
   return null;
 }
@@ -159,9 +159,7 @@ export function carTypeBlockText(state: QuoteState, make: string, model: string)
   const { classes, vehicleClass } = state.quote;
   const listed = classForCar(make, model, classes);
   if (!listed || listed.code === vehicleClass) return null;
-  const priced = classes.find((c) => c.code === vehicleClass);
-  const carName = `${make} ${model}`.replace(/\s+/g, " ").trim();
-  return `${carName} is listed as “${className(listed.label)}”, but the price was worked out for “${priced ? className(priced.label) : "another car type"}”. Go back to the price and pick “${className(listed.label)}”.`;
+  return `Your car is a “${className(listed.label)}”. Go back and pick that type.`;
 }
 
 /**

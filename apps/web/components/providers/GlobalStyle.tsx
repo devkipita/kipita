@@ -180,6 +180,35 @@ export const GlobalStyle = createGlobalStyle`
   body {
     margin: 0;
     padding: 0;
+    overscroll-behavior-y: none;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(a, button, summary, label, [role="button"], [role="tab"], [role="radio"]) {
+    touch-action: manipulation;
+  }
+
+  :where(button, [role="button"], [role="tab"]) {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  @media (max-width: 960px) {
+    :root [data-bar-title] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
   }
 
   body {

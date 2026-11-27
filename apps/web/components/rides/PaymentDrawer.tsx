@@ -181,7 +181,7 @@ const SecondaryButton = styled.button`
   font: inherit;
   font-size: 15px;
   font-weight: 700;
-  ${pressable(nocturne.outline)}
+  ${pressable()}
 `;
 
 export function PaymentDrawer({
@@ -255,7 +255,7 @@ export function PaymentDrawer({
       setError(
         err instanceof PaymentError
           ? err.message
-          : "We couldn't reach M-Pesa. Check your connection and try again.",
+          : "We couldn't reach M-Pesa. Try again.",
       );
       setStage("form");
     }
@@ -270,7 +270,7 @@ export function PaymentDrawer({
     try {
       status = await checkPaymentStatus(paymentId);
     } catch {
-      setError("We couldn't check with M-Pesa. Check your connection and try again.");
+      setError("We couldn't check with M-Pesa. Try again.");
       setStage("timeout");
       return;
     }

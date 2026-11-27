@@ -523,7 +523,7 @@ export function FindRideView({
       <StateBlock
         art={<BreakArt />}
         title="We couldn't load rides"
-        line="Check your connection and try again."
+        line="Check your connection."
         action={
           <StateAction type="button" onClick={() => runSearch(form)}>
             <ArrowClockwise size={18} aria-hidden /> Try again
@@ -569,7 +569,7 @@ export function FindRideView({
       <StateBlock
         art={<DeadEndArt />}
         title={`No rides to ${form.to.trim()} yet`}
-        line="Drivers heading that way will see your request."
+        line="Drivers will see your request."
         action={
           <StateAction type="button" onClick={askDrivers}>
             Ask drivers for this route <ArrowRight size={18} aria-hidden />
@@ -582,7 +582,7 @@ export function FindRideView({
       <StateBlock
         art={<NoRidesArt />}
         title="No rides posted yet"
-        line="Pick where you're going to see who's driving."
+        line="Pick a destination to see drivers."
         action={
           <StateAction type="button" onClick={() => setOpenSignal((n) => n + 1)}>
             <MagnifyingGlass size={18} aria-hidden /> Choose where you&apos;re going

@@ -1095,27 +1095,27 @@ type CameraProblem = "denied" | "missing" | "busy" | "insecure" | "unsupported" 
 const CAMERA_PROBLEMS: Record<CameraProblem, { title: string; text: string }> = {
   denied: {
     title: "Camera access is off",
-    text: "Tap the camera or lock icon in the address bar, set Camera to Allow, then try again.",
+    text: "Allow camera access in your browser, then try again.",
   },
   missing: {
     title: "No camera found",
-    text: "This device has no camera we can use. Upload a photo instead, or continue on your phone.",
+    text: "No camera found. Upload a photo instead.",
   },
   busy: {
     title: "Your camera is in use",
-    text: "Another app is using the camera. Close it, then try again.",
+    text: "Camera in use. Close other apps and try again.",
   },
   insecure: {
     title: "Camera needs a secure connection",
-    text: "Open Kipita over https to use the camera here.",
+    text: "Open Kipita over https.",
   },
   unsupported: {
     title: "This browser can’t use the camera",
-    text: "Update your browser, or upload a photo instead.",
+    text: "Upload a photo instead.",
   },
   unknown: {
     title: "The camera didn’t start",
-    text: "Try again. If it keeps failing, upload a photo instead.",
+    text: "Try again, or upload a photo.",
   },
 };
 
@@ -1592,7 +1592,7 @@ export function DriverKycForm({
     docChosen && doc ? `Your ${doc.label.toLowerCase()}` : "Choose a document",
     "Your profile photo",
     "Photo of your car",
-    "Thanks, we’re checking your details",
+    "Checking your details",
   ];
   const frameText =
     step === 0 ? (doc ? doc.frame : "") : step === 1 ? "Face the camera, no hat or sunglasses" : "Whole car with the number plate visible";
@@ -1600,7 +1600,7 @@ export function DriverKycForm({
   async function onFile(file: File | undefined) {
     if (!file || !slot) return;
     if (!userId) {
-      setError("Your session expired. Sign in again.");
+      setError("Session expired. Sign in again.");
       return;
     }
     setError("");
@@ -1785,7 +1785,7 @@ export function DriverKycForm({
           {rejected && step === 0 && !docChosen && (
             <ErrorLine>
               <Warning size={16} />
-              We couldn’t verify your last details. Send clear photos and check the number.
+              Couldn’t verify. Send clear photos and check the number.
             </ErrorLine>
           )}
 
@@ -1998,7 +1998,7 @@ export function DriverKycForm({
               </Scene>
 
               <p style={{ margin: 0, fontSize: 15, lineHeight: 1.5, color: "var(--n-muted)" }}>
-                Your ride goes live as soon as verification clears. We’ll notify you.
+                Your ride goes live once you’re verified.
               </p>
               <Timeline>
                 {[

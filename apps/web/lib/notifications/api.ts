@@ -1,18 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { NOTIFICATION_COLUMNS, type AppNotification } from "./types";
 
-/**
- * Notification reads/writes against `public.notifications`.
- *
- * Every query is scoped to one user id — the `users.id` (not `auth_id`), which
- * is what the table's foreign key and its RLS policy both use. The policy
- * already restricts rows to the caller; the explicit filter keeps the index hot
- * and makes the intent obvious.
- *
- * Unlike mobile there is no mock fallback: an empty result on web is a real
- * empty state.
- */
-
 export const PAGE_SIZE = 30;
 
 export async function fetchNotifications(

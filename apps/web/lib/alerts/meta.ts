@@ -77,6 +77,8 @@ export const ALERT_META: Record<
 
 export const ALERT_CATEGORIES = Object.keys(ALERT_META) as AlertCategory[];
 
+export const OPEN_ALERT_EVENT = "kipita:open-alert";
+
 /**
  * Category → theme tone. The tone pairs carry a matched `on` colour, so a badge
  * or wash built from one is legible in both schemes without hand-picking text

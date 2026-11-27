@@ -1,47 +1,45 @@
 "use client";
 
 import styled from "styled-components";
-import { Busy, Shimmer, SkeletonStack, SrOnly } from "@/components/ui/Shimmer";
+import { TrendUp } from "@/components/icons";
+import { Busy, Shimmer, SrOnly } from "@/components/ui/Shimmer";
+import { AsideHeading, AsidePanel, PostingGuide } from "./AlertsAside";
 
-const Panel = styled.section`
-  padding: 18px;
-  border-radius: 20px;
-  border: 1px solid ${({ theme }) => theme.color.outlineVariant};
-  background: ${({ theme }) => theme.color.surfaceContainerLow};
+const RoadRow = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 64px 16px;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
 
-  & + & {
-    margin-top: 16px;
+  .text {
+    display: grid;
+    gap: 8px;
   }
-`;
-
-const Heading = styled.h2`
-  margin: 0 0 14px;
-  font-family: ${({ theme }) => theme.fontHeading};
-  font-size: 16px;
-  font-weight: 700;
-  color: ${({ theme }) => theme.color.text};
 `;
 
 export function AlertsAsideSkeleton() {
   return (
     <Busy>
-      <SrOnly>Loading trending roads</SrOnly>
-      <Panel>
-        <Heading>Trending roads</Heading>
-        <SkeletonStack $gap="12px">
-          {[68, 82, 74, 60].map((w, i) => (
-            <Shimmer key={i} $w={`${w}%`} $h="16px" />
-          ))}
-        </SkeletonStack>
-      </Panel>
-      <Panel>
-        <Heading>Common questions</Heading>
-        <SkeletonStack $gap="12px">
-          {[90, 76, 84].map((w, i) => (
-            <Shimmer key={i} $w={`${w}%`} $h="16px" />
-          ))}
-        </SkeletonStack>
-      </Panel>
+      <SrOnly>Loading what is happening on the roads</SrOnly>
+      <AsidePanel aria-hidden>
+        <AsideHeading as="div">
+          <TrendUp size={20} />
+          What&rsquo;s happening on the roads
+        </AsideHeading>
+        {[64, 52, 72, 48].map((w) => (
+          <RoadRow key={w}>
+            <span className="text">
+              <Shimmer $w={`${w}%`} $h="16px" $r="4px" />
+              <Shimmer $w={`${w - 16}%`} $h="12px" $r="4px" />
+            </span>
+            <Shimmer $w="64px" $h="24px" $r="6px" />
+            <span />
+          </RoadRow>
+        ))}
+      </AsidePanel>
+      <PostingGuide />
     </Busy>
   );
 }

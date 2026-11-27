@@ -696,8 +696,7 @@ export function SendView({
       <Kicker>Kipita Send</Kicker>
       <Title>Move things with vehicles already going there.</Title>
       <Lead>
-        A trusted marketplace for empty return trips — less waste for drivers,
-        fairer delivery for everyone.
+        Send parcels on empty return trips.
       </Lead>
 
       <Sides role="group" aria-label="What do you need?">
@@ -830,9 +829,7 @@ export function SendView({
         <Blank>
           <b>No return trips listed yet</b>
           <p>
-            Kipita Send matches parcels to vehicles already making the journey.
-            The first drivers on your corridor will show up here — check back,
-            or list your own returning vehicle above.
+            Check back soon.
           </p>
         </Blank>
       ) : (
@@ -918,8 +915,7 @@ export function SendView({
             </span>
             <b>Safer by design</b>
             <p>
-              Verified drivers, vehicle details, item photos, and secure M-Pesa
-              payment.
+              Verified drivers. Secure M-Pesa payment.
             </p>
           </div>
           <div>
@@ -928,8 +924,7 @@ export function SendView({
             </span>
             <b>No more WhatsApp guesswork</b>
             <p>
-              Keep route, price, messages, proof of pickup, and delivery in one
-              place.
+              Everything in one place.
             </p>
           </div>
           <div>
@@ -938,7 +933,7 @@ export function SendView({
             </span>
             <b>Better return journeys</b>
             <p>
-              Drivers offset fuel costs while existing road capacity gets used.
+              Drivers earn on return trips.
             </p>
           </div>
         </WhyGrid>

@@ -88,7 +88,7 @@ export function SignInForm({
       }
       done(result.next ?? next);
     } catch {
-      setError("Couldn't reach Kipita. Check your connection and try again.");
+      setError("No connection. Try again.");
       setSigningIn(false);
     }
   }
@@ -99,7 +99,7 @@ export function SignInForm({
   return (
     <>
       <Heading>Welcome back</Heading>
-      <Sub>Sign in to book a seat, offer a ride, or check your trips.</Sub>
+      <Sub>Sign in to continue.</Sub>
 
       {error && (
         <Notice>

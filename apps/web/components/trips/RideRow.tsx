@@ -1,16 +1,16 @@
 "use client";
 
 import styled, { css, keyframes } from "styled-components";
-import { nocturne, pulse } from "@/lib/nocturne";
+import { dur, ease, nocturne } from "@/lib/nocturne";
 
 export const RULE = "color-mix(in oklab, var(--n-accent) 58%, transparent)";
 
 export const fs = {
   small: "13px",
-  meta: "15px",
-  body: "17px",
-  route: "22px",
-  head: "clamp(26px, 3vw, 32px)",
+  meta: "14px",
+  body: "16px",
+  route: "20px",
+  head: "20px",
 } as const;
 
 const roll = keyframes`
@@ -20,35 +20,42 @@ const roll = keyframes`
 export const SectionHead = styled.h2`
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 0 6px;
+  gap: 8px;
+  margin: 0 0 12px;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: ${fs.head};
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 28px;
+  letter-spacing: -0.02em;
   color: ${nocturne.cream};
+
+  @media (max-width: 600px) {
+    margin-bottom: 8px;
+    font-size: 17px;
+    line-height: 24px;
+  }
 `;
 
 export const SectionLead = styled.p`
-  margin: 0 0 18px;
+  margin: 0 0 16px;
   max-width: 60ch;
   font-size: ${fs.body};
-  line-height: 1.5;
+  line-height: 24px;
   color: ${nocturne.muted};
 `;
 
 export const Count = styled.span`
-  display: inline-grid;
-  place-items: center;
-  min-width: 30px;
-  height: 30px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: ${nocturne.lime};
-  color: ${nocturne.greenDeep};
-  font-size: ${fs.meta};
-  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: ${({ theme }) => theme.color.secondaryContainer};
+  color: ${({ theme }) => theme.color.onSecondaryContainer};
+  font-family: var(--font-dm), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
   font-variant-numeric: tabular-nums;
 `;
 
@@ -58,33 +65,31 @@ export const Row = styled.article<{ $mood: Mood }>`
   --row-ink: ${({ $mood }) => ($mood === "running" ? nocturne.onGreen : nocturne.cream)};
   --row-soft: ${({ $mood }) => ($mood === "running" ? nocturne.onGreenMuted : nocturne.muted)};
   --row-mark: ${({ $mood }) => ($mood === "running" ? nocturne.lime : nocturne.accent)};
+  --row-track: ${({ $mood, theme }) =>
+    $mood === "running" ? "color-mix(in oklab, var(--n-on-green) 20%, transparent)" : theme.color.surfaceContainerHigh};
   ${({ $mood }) =>
     $mood === "running" &&
     css`
-      --act-ink: ${nocturne.onGreen};
-      --act-line: ${nocturne.onGreenMuted};
-      --act-soft: ${nocturne.onGreenMuted};
+      --act-ink: ${nocturne.greenDeep};
+      --act-tonal: ${nocturne.lime};
       --act-main: ${nocturne.ctaBg};
       --act-main-ink: ${nocturne.ctaFg};
-      --act-main-hover: ${nocturne.ctaBg};
+      --icon-knockout: ${nocturne.green};
     `}
 
   display: grid;
-  grid-template-columns: 148px minmax(0, 1fr) auto;
+  grid-template-columns: 136px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px 36px;
-  padding: clamp(20px, 3vh, 28px) ${({ $mood }) => ($mood === "running" ? "clamp(18px, 2.4vw, 28px)" : "0")};
+  gap: 16px 32px;
+  padding: 20px;
+  border-radius: 16px;
   color: var(--row-ink);
-  border-radius: ${({ $mood }) => ($mood === "running" ? "16px" : "0")};
-  background: ${({ $mood }) => ($mood === "running" ? nocturne.green : "transparent")};
-
-  & + & {
-    border-top: 1.5px solid ${({ $mood }) => ($mood === "running" ? "transparent" : RULE)};
-  }
+  background: ${({ $mood, theme }) => ($mood === "running" ? nocturne.green : theme.color.surfaceContainerLowest)};
 
   @media (max-width: 860px) {
     grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
+    gap: 12px;
+    padding: 16px;
   }
 `;
 
@@ -92,32 +97,32 @@ export const Depart = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 4px;
 
   > span {
-    font-size: ${fs.meta};
+    font-size: ${fs.small};
     font-weight: 600;
     color: var(--row-soft);
   }
   > b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: ${fs.route};
+    font-size: 22px;
     font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.15;
+    letter-spacing: -0.02em;
+    line-height: 28px;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
     color: var(--row-ink);
   }
   > :last-child:not(b):not(span) {
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   @media (max-width: 860px) {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    gap: 6px 10px;
+    gap: 4px 12px;
 
     > :last-child:not(b):not(span) {
       margin-top: 0;
@@ -128,13 +133,13 @@ export const Depart = styled.div`
 export const Road = styled.p<{ $moving?: boolean }>`
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   margin: 0;
   font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
   font-size: ${fs.route};
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1.2;
+  letter-spacing: -0.02em;
+  line-height: 28px;
   color: var(--row-ink);
 
   > span {
@@ -146,35 +151,47 @@ export const Road = styled.p<{ $moving?: boolean }>`
     flex: 1 1 40px;
     min-width: 28px;
     max-width: 160px;
-    height: 3px;
+    height: 2px;
     background-image: linear-gradient(90deg, var(--row-mark) 0 12px, transparent 12px 24px);
-    background-size: 24px 3px;
+    background-size: 24px 2px;
     ${({ $moving }) =>
       $moving &&
       css`
-        animation: ${roll} 0.9s linear infinite;
+        animation: ${roll} calc(${dur.max} * 2) linear infinite;
       `}
   }
   > i::before,
   > i::after {
     content: "";
     position: absolute;
-    top: -3.5px;
+    top: -4px;
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: var(--row-mark);
   }
   > i::before {
-    left: -5px;
+    left: -4px;
   }
   > i::after {
-    right: -5px;
-    ${({ $moving }) =>
-      $moving &&
-      css`
-        box-shadow: 0 0 0 4px color-mix(in oklab, var(--row-mark) 30%, transparent);
-      `}
+    right: -4px;
+  }
+  > i > svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    padding: 0 4px;
+    color: var(--row-mark);
+    background: var(--road-bg, transparent);
+    transform: translate(-50%, -50%);
+  }
+  .to {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -188,50 +205,53 @@ export type TagTone = "go" | "wait" | "pay" | "live" | "done" | "off";
 
 const tagLook: Record<TagTone, ReturnType<typeof css>> = {
   go: css`
+    background: ${({ theme }) => theme.color.successContainer};
+    color: ${({ theme }) => theme.color.onSuccessContainer};
+  `,
+  wait: css`
+    background: ${({ theme }) => theme.color.secondaryContainer};
+    color: ${({ theme }) => theme.color.onSecondaryContainer};
+  `,
+  pay: css`
+    background: ${({ theme }) => theme.color.warningContainer};
+    color: ${({ theme }) => theme.color.onWarningContainer};
+  `,
+  live: css`
     background: ${nocturne.lime};
     color: ${nocturne.greenDeep};
   `,
-  wait: css`
-    background: ${nocturne.sage};
-    color: ${nocturne.greenDeep};
-  `,
-  pay: css`
-    background: color-mix(in oklab, ${nocturne.ctaBg} 16%, transparent);
-    color: ${nocturne.cream};
-    box-shadow: inset 0 0 0 1.5px ${nocturne.ctaBg};
-  `,
-  live: css`
-    background: color-mix(in oklab, ${nocturne.lime} 22%, transparent);
-    color: ${nocturne.lime};
-  `,
   done: css`
-    background: ${nocturne.surface3};
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
     color: ${nocturne.muted};
   `,
   off: css`
-    background: transparent;
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
     color: ${nocturne.muted};
-    box-shadow: inset 0 0 0 1.5px ${RULE};
   `,
 };
+
+const ping = keyframes`
+  0% { opacity: 0.5; transform: scale(0.5); }
+  70%, 100% { opacity: 0; transform: scale(1.5); }
+`;
 
 export const Tag = styled.span<{ $tone: TagTone }>`
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 28px;
-  padding: 0 11px;
-  border-radius: 999px;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 6px;
   font-size: ${fs.small};
-  font-weight: 800;
+  font-weight: 600;
   white-space: nowrap;
   ${({ $tone }) => tagLook[$tone]}
 
   > i {
     position: relative;
     flex: none;
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: currentColor;
   }
@@ -241,7 +261,7 @@ export const Tag = styled.span<{ $tone: TagTone }>`
     inset: -4px;
     border-radius: 50%;
     background: currentColor;
-    animation: ${pulse} 1.8s ease-in-out infinite;
+    animation: ${ping} calc(${dur.max} * 4) ${ease.enter} infinite;
   }
   > svg {
     flex: none;
@@ -250,7 +270,7 @@ export const Tag = styled.span<{ $tone: TagTone }>`
   @media (prefers-reduced-motion: reduce) {
     > i[data-pulse]::after {
       animation: none;
-      opacity: 0.3;
+      opacity: 0;
     }
   }
 `;
@@ -259,13 +279,13 @@ export const Meta = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 18px;
-  margin-top: 10px;
+  gap: 8px 16px;
+  margin-top: 8px;
   font-size: ${fs.meta};
   color: var(--row-soft);
 
   b {
-    font-weight: 800;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
     color: var(--row-ink);
   }
@@ -276,82 +296,90 @@ export const Meta = styled.div`
   }
 `;
 
+export const SeatTrack = styled.span<{ $total: number }>`
+  display: grid;
+  grid-template-columns: repeat(${({ $total }) => $total}, minmax(0, 1fr));
+  gap: 2px;
+  width: ${({ $total }) => Math.min(160, $total * 16)}px;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+
+  i {
+    background: var(--row-track);
+  }
+  i[data-seat="paid"] {
+    background: var(--row-mark);
+  }
+  i[data-seat="taken"] {
+    background: color-mix(in oklab, var(--row-mark) 45%, var(--row-track));
+  }
+`;
+
 export const Acts = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 8px;
 
   @media (max-width: 860px) {
     justify-content: stretch;
     width: 100%;
-    > * {
+
+    > :not([data-menu]) {
       flex: 1;
     }
   }
 `;
 
-export const Act = styled.button<{ $primary?: boolean; $quiet?: boolean }>`
+export const Act = styled.button<{ $primary?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 ${({ $quiet }) => ($quiet ? "10px" : "20px")};
-  border: 1.5px solid
-    ${({ $primary, $quiet }) => ($primary || $quiet ? "transparent" : `var(--act-line, ${RULE})`)};
+  min-height: 40px;
+  padding: 0 20px;
+  border: 0;
   border-radius: 999px;
-  background: ${({ $primary }) => ($primary ? `var(--act-main, ${nocturne.green})` : "transparent")};
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: ${fs.meta};
-  font-weight: 800;
-  color: ${({ $primary, $quiet }) =>
-    $primary
-      ? `var(--act-main-ink, ${nocturne.onGreen})`
-      : $quiet
-        ? `var(--act-soft, ${nocturne.muted})`
-        : `var(--act-ink, ${nocturne.cream})`};
-  cursor: pointer;
+  background: ${({ $primary, theme }) =>
+    $primary ? `var(--act-main, ${nocturne.green})` : `var(--act-tonal, ${theme.tone.green.bg})`};
+  color: ${({ $primary, theme }) =>
+    $primary ? `var(--act-main-ink, ${nocturne.onGreen})` : `var(--act-ink, ${theme.tone.green.on})`};
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
   white-space: nowrap;
   text-decoration: none;
+  cursor: pointer;
   transition:
-    background-color 0.18s ease,
-    color 0.18s ease,
-    border-color 0.18s ease,
-    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+    filter ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
+  @media (hover: hover) and (pointer: fine) {
     &:hover:not(:disabled) {
-      background: ${({ $primary }) =>
-        $primary ? `var(--act-main-hover, ${nocturne.greenDeep})` : nocturne.surface2};
-      color: ${({ $primary }) =>
-        $primary ? `var(--act-main-ink, ${nocturne.onGreen})` : nocturne.accent};
-      border-color: ${({ $primary, $quiet }) =>
-        $primary || $quiet ? "transparent" : nocturne.accent};
-      transform: translateY(-1px);
+      filter: brightness(0.94);
     }
   }
+  &:active:not(:disabled) {
+    filter: brightness(0.9);
+    transform: scale(0.97);
+  }
   &:disabled {
-    opacity: 0.6;
+    background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    color: ${nocturne.muted2};
     cursor: progress;
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
-    outline-offset: 3px;
+    outline-offset: 2px;
   }
 
-  @media (max-width: 860px) {
-    ${({ $quiet }) =>
-      $quiet &&
-      css`
-        order: 3;
-        flex: 1 0 100%;
-      `}
-  }
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    &:hover:not(:disabled) {
+    &:active:not(:disabled) {
       transform: none;
     }
   }
