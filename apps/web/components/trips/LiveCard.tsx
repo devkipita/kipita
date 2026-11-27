@@ -112,6 +112,7 @@ export function LiveStatus({
       <p>
         {from} to {to}
         {loc ? ` · updated ${since(loc.updated_at, now)}` : ""}
+        {!loc || stale ? " · Tap the location button to see where you are" : ""}
       </p>
     </Body>
   );

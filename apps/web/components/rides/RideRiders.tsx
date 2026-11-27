@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -12,6 +12,7 @@ import { RollingNumber } from "@/components/ui/Counter";
 import { Shimmer } from "@/components/ui/Shimmer";
 import { createClient } from "@/lib/supabase/client";
 import { useShareLocation } from "@/lib/trips/live";
+import { useRowStream } from "@/lib/trips/realtime";
 import { formatClock, formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
@@ -384,6 +385,25 @@ export function RideRiders({
       alive = false;
     };
   }, [tripId, viewerId, live, pending]);
+
+  // A passenger taps "I've arrived": their booking row gets an arrival time, so that row is updated here.
+  const arrive = useCallback((row: { id: string; arrived_at?: string | null }) => {
+    setLoad((prev) =>
+      prev.state === "ready"
+        ? {
+            state: "ready",
+            riders: prev.riders.map((r) => (r.bookingId === row.id ? { ...r, arrivedAt: row.arrived_at ?? r.arrivedAt } : r)),
+          }
+        : prev,
+    );
+  }, []);
+
+  useRowStream<{ id: string; arrived_at?: string | null }>(
+    `ride-riders:${tripId}`,
+    "bookings",
+    live && !pending ? `trip_id=eq.${tripId}` : null,
+    arrive,
+  );
 
   if (live) {
     const riders = load.state === "ready" ? load.riders : [];

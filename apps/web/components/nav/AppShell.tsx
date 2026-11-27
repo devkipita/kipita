@@ -17,6 +17,7 @@ import styled from "styled-components";
 import { DriverKycForm, readKycProgress } from "@/components/driver/DriverKycForm";
 import { PhoneGate } from "@/components/driver/PhoneGate";
 import { DriverInvite } from "@/components/driver/DriverInvite";
+import { LocationAsk } from "@/components/driver/LocationAsk";
 import { SupportDock } from "@/components/support/SupportDock";
 import { SupportProvider } from "@/components/support/SupportProvider";
 import { VisuallyHidden } from "@/components/ui/VisuallyHidden";
@@ -304,6 +305,11 @@ export function AppShell({
           setKycOpen(true);
           router.refresh();
         }}
+      />
+
+      <LocationAsk
+        enabled={Boolean(profile) && driverReady && kycStatus !== "rejected"}
+        blocked={kycOpen || phoneGateOpen || inviteOpen}
       />
 
       <DriverKycForm
