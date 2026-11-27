@@ -5,12 +5,14 @@ import { useRef, useState, useTransition, type ReactNode } from "react";
 import styled from "styled-components";
 import {
   bulkPaymentCsv,
+  checkPayoutNames,
   kenyaToday,
   parseStatementCsv,
   reconcile,
   type ColumnKey,
   type ColumnOverrides,
   type KipitaRecord,
+  type NameCheckRow,
   type ParsedStatement,
   type Reconciliation,
   type StatementLine,
@@ -530,13 +532,31 @@ const PICKS: { key: ColumnKey; label: string; need?: boolean }[] = [
   { key: "details", label: "Details" },
 ];
 
+const nameCols: Col<NameCheckRow>[] = [
+  { head: "Receipt", cell: (n) => <code>{n.receipt}</code> },
+  { head: "Amount", right: true, cell: (n) => <Money>{fmt(n.amount)}</Money> },
+  { head: "M-Pesa shows", cell: (n) => [n.statementName, n.statementPhone].filter(Boolean).join(" · ") || "No name" },
+  { head: "Account", cell: (n) => n.kipitaName ?? "No name" },
+  { head: "Result", cell: (n) => n.why },
+];
+
 function Results({ r, parsed }: { r: Reconciliation; parsed: ParsedStatement }) {
   const compared = r.matched.length + r.problems;
-  const clear = r.problems === 0 && r.matched.length > 0;
+  // A payout that paired with a statement line, even with a different amount, is still a payout to check by name.
+  const names = checkPayoutNames([...r.matched, ...r.amountDiffers]);
+  const nameIssues = names.toCheck.length;
+  const clear = r.problems === 0 && nameIssues === 0 && r.matched.length > 0;
+  const summary = [
+    r.problems > 0 ? `${r.problems} to look at` : null,
+    nameIssues > 0 ? `${nameIssues} ${nameIssues === 1 ? "name" : "names"} to check` : null,
+    `${r.matched.length} agree`,
+  ]
+    .filter(Boolean)
+    .join(". ");
   return (
     <Stack>
       <Note $tone={clear ? "success" : "warning"} style={{ margin: 0, fontSize: 13 }}>
-        {clear ? `All ${r.matched.length} agree.` : `${r.problems} to look at. ${r.matched.length} agree.`}
+        {clear ? `All ${r.matched.length} agree.` : `${summary}.`}
       </Note>
 
       <Card>
@@ -556,6 +576,15 @@ function Results({ r, parsed }: { r: Reconciliation; parsed: ParsedStatement }) 
             <dd>{fmt(r.charges.total)}</dd>
             <small>{r.charges.lines.length} lines, not compared</small>
           </div>
+          {names.checked > 0 && (
+            <div>
+              <dt>Names</dt>
+              <dd>
+                {names.matched} of {names.checked}
+              </dd>
+              <small>payouts match the account name</small>
+            </div>
+          )}
           <div>
             <dt>Lines read</dt>
             <dd>{parsed.lines.length}</dd>
@@ -563,7 +592,16 @@ function Results({ r, parsed }: { r: Reconciliation; parsed: ParsedStatement }) 
           </div>
         </Totals>
         {compared === 0 && <Note $tone="info">Nothing to compare in this period.</Note>}
+        {names.noNamesOnStatement && <Note $tone="info">The payout lines show no name, so names were not checked.</Note>}
       </Card>
+
+      <Section
+        title="Check the name"
+        sub="We can't match these to the account name. Hold their next payout until it is sorted."
+        tone="problem"
+        rows={names.toCheck}
+        cols={nameCols}
+      />
 
       <Section title="Money in, not in Kipita" sub="On the statement, but Kipita has no record." tone="problem" rows={r.receivedNoRecord} cols={lineCols} />
       <Section title="Money out, not in Kipita" sub="Left the account, but Kipita has no record." tone="problem" rows={r.paidOutNoRecord} cols={lineCols} />

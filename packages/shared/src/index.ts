@@ -15,3 +15,4 @@ export * from "./person-name";
 export * from "./kenya-time";
 export * from "./reconcile";
 export * from "./payout-file";
+export * from "./name-match";
