@@ -234,7 +234,7 @@ BEGIN
 
     UPDATE public.bookings b
        SET status = 'cancelled',
-           cancel_reason = 'You were not on board when the ride ended.',
+           cancel_reason = 'Not on board when the ride ended.',
            cancel_tier = 'free',
            expires_at = NULL,
            updated_at = NOW()
@@ -271,12 +271,12 @@ BEGIN
     m.passenger_id,
     'trip_completed',
     CASE WHEN m.arrived_by = 'passenger' THEN 'Ride ended' ELSE 'You have arrived' END,
-    v_trip.from_location || ' to ' || v_trip.to_location || ' is done. ' ||
+    v_trip.from_location || ' to ' || v_trip.to_location || '. ' ||
       CASE WHEN m.arrived_by = 'passenger'
            THEN ''
-           ELSE 'Anything wrong? Report it within ' || trim_scale(v_hours) || ' hours. '
+           ELSE 'Report a problem within ' || trim_scale(v_hours) || ' hours. '
       END ||
-      'Rate the trip to help the next passenger.',
+      'Rate your trip.',
     jsonb_build_object('booking_id', m.id, 'trip_id', p_trip_id)
   FROM moved m;
 
