@@ -5,7 +5,7 @@ import { enforce, LIMITS, retryMessage } from "@/lib/security/rate-limit";
 import { safeNextPath } from "@/lib/security/redirect";
 import { signInEmailSchema } from "@/lib/validators/auth";
 
-const GENERIC = "That email and password don't match an account.";
+const GENERIC = "Wrong email or password.";
 
 function reject(error: string, status: number) {
   return NextResponse.json({ ok: false, error }, { status });

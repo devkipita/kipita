@@ -103,10 +103,24 @@ export const alertSchema = z.object({
   lng: z.number().min(-180).max(180).nullable().optional(),
 });
 
-export const commentSchema = z.object({
-  alert_id: z.string().uuid(),
-  content: z.string().trim().min(1, "Write a comment").max(1000, "Too long"),
-});
+const ALERT_MEDIA_URL = /^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\/alert-media\//;
+
+export const commentSchema = z
+  .object({
+    alert_id: z.string().uuid(),
+    parent_id: z.string().uuid().nullable().optional(),
+    content: z.string().trim().max(1000, "Too long"),
+    image_url: z
+      .string()
+      .url()
+      .regex(ALERT_MEDIA_URL, "Add the photo from this page")
+      .nullable()
+      .optional(),
+  })
+  .refine((v) => v.content.length > 0 || Boolean(v.image_url), {
+    message: "Write a reply or add a photo",
+    path: ["content"],
+  });
 
 export const KYC_DOCUMENTS = {
   national_id: {

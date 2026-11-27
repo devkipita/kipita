@@ -1175,7 +1175,7 @@ export function PublishMobile({
     if (draft.carMode !== "new") return null;
     if (!draft.make.trim()) return "Add the car make.";
     if (!draft.model.trim()) return "Add the car model.";
-    if (!draft.plate.trim()) return "Add the number plate so passengers can find you.";
+    if (!draft.plate.trim()) return "Add your number plate.";
     if (!isPlate(draft.plate)) return PLATE_ERROR;
     if (draft.carSeats === null) return CAR_SEATS_MISSING;
     return null;
@@ -1209,11 +1209,11 @@ export function PublishMobile({
 
   function problem(): Block | null {
     if (draft.from.toLowerCase() === draft.to.toLowerCase())
-      return { kind: "towns", text: `You start and finish in ${draft.from}. Pick two different towns.` };
+      return { kind: "towns", text: "Pick two different towns." };
     if (hasDeparted(draft.date, draft.time))
       return draft.date < todayISO()
-        ? { kind: "day", text: "Passengers can't book a ride that already left. Choose today or a day ahead." }
-        : { kind: "time", text: `${prettyTime(draft.time)} today has already passed. Pick a later departure so passengers can still book.` };
+        ? { kind: "day", text: "That time has passed. Pick a later time." }
+        : { kind: "time", text: `${prettyTime(draft.time)} has passed. Pick a later time.` };
     const car = carProblem();
     if (car) return { kind: "car", text: car };
     const tooSmall = carCapacityBlock(quote, picked?.make ?? "", picked?.model ?? "", seats, others, picked?.seats);
@@ -1366,7 +1366,7 @@ export function PublishMobile({
   function pickTown(name: string) {
     if (choosingFrom) {
       if (sameTown(draft.to, name)) {
-        setError({ text: "That is where you are going. Pick a different town to leave from." });
+        setError({ text: "Pick a different start town." });
         return;
       }
       patch({ from: name });
@@ -1375,7 +1375,7 @@ export function PublishMobile({
       return;
     }
     if (sameTown(draft.from, name)) {
-      setError({ text: "That is where you are leaving from. Pick a different destination." });
+      setError({ text: "Pick a different destination." });
       return;
     }
     patch({ to: name });
@@ -1558,7 +1558,7 @@ export function PublishMobile({
                     ))}
                   </div>
                 </Calendar>
-                <Note>Rides can be posted up to three weeks ahead.</Note>
+                <Note>Post up to 3 weeks ahead.</Note>
               </>
             )}
 
@@ -1597,7 +1597,7 @@ export function PublishMobile({
                     </Pick>
                   ))}
                 </Grid>
-                <Note>Count passenger seats only. Keep one free if you need the space for luggage.</Note>
+                <Note>Passenger seats only.</Note>
               </>
             )}
 
@@ -1767,8 +1767,8 @@ export function PublishMobile({
                 {draft.carMode !== "new" && (
                   <Note>
                     {savedCars.length > 0
-                      ? "Passengers use the plate to find you at pickup."
-                      : "Optional. Passengers use the plate to find you at pickup."}
+                      ? "Helps passengers find you."
+                      : "Optional. Helps passengers find you."}
                   </Note>
                 )}
               </>

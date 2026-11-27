@@ -17,8 +17,8 @@ import { toE164 } from "@/lib/phone";
 
 export type AuthResult = { ok: true; next?: string } | { ok: false; error: string };
 
-const GENERIC_SIGN_IN_ERROR = "That email and password don't match an account.";
-const GENERIC_FAILURE = "Something went wrong. Try again in a moment.";
+const GENERIC_SIGN_IN_ERROR = "Wrong email or password.";
+const GENERIC_FAILURE = "Something went wrong. Try again.";
 
 function fail(error: string): AuthResult {
   return { ok: false, error };
@@ -146,11 +146,11 @@ export async function startPhoneVerificationAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Sign in again.");
+  if (!user) return fail("Session expired. Sign in again.");
 
   const e164 = toE164(parsed.data);
   if (user.phone && user.phone === e164.slice(1) && user.phone_confirmed_at) {
-    return fail("That number is already verified on your account.");
+    return fail("Already verified.");
   }
 
   const ip = await clientIp();
@@ -164,7 +164,7 @@ export async function startPhoneVerificationAction(
   const { error } = await supabase.auth.updateUser({ phone: e164 });
   if (error) {
     if ((error as { code?: string }).code === "phone_exists") {
-      return fail("That number is already on another Kipita account.");
+      return fail("Number already in use.");
     }
     return fail(GENERIC_FAILURE);
   }
@@ -185,7 +185,7 @@ export async function confirmPhoneVerificationAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Sign in again.");
+  if (!user) return fail("Session expired. Sign in again.");
 
   const blocked = await limited([
     [`phone-verify:user:${user.id}`, LIMITS.otpVerifyIdentity],
@@ -226,7 +226,7 @@ export async function updatePasswordAction(
 
   if (!(await hasStepUpTicketFor(intent, user.id))) {
     return fail(
-      "This link has expired. Request a new one and open it from your email.",
+      "Link expired. Request a new one.",
     );
   }
 
@@ -246,7 +246,7 @@ export async function requestPasswordChangeAction(): Promise<AuthResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return fail("Your session expired. Sign in again.");
+  if (!user) return fail("Session expired. Sign in again.");
 
   const blocked = await limited([
     [`reset:id:${user.id}`, LIMITS.passwordResetIdentity],
@@ -255,11 +255,11 @@ export async function requestPasswordChangeAction(): Promise<AuthResult> {
 
   if (!user.email) {
     return fail(
-      "Add an email address to your account before changing your password.",
+      "Add an email first.",
     );
   }
   if (!user.email_confirmed_at) {
-    return fail("Confirm your email address first, then change your password.");
+    return fail("Confirm your email first.");
   }
 
   const origin = await siteOrigin();

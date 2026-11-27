@@ -103,8 +103,8 @@ function designTokens({ group, role } = {}) {
   return all;
 }
 
-function checkDesignRules({ paths = [] } = {}) {
-  const run = spawnSync(process.execPath, [CHECKER, "--json", ...paths], { cwd: ROOT, encoding: "utf8" });
+function checkDesignRules({ paths = [], strict = false } = {}) {
+  const run = spawnSync(process.execPath, [CHECKER, "--json", ...(strict ? ["--strict"] : []), ...paths], { cwd: ROOT, encoding: "utf8" });
   if (!run.stdout) throw new Error(run.stderr || "design-check produced no output");
   return JSON.parse(run.stdout);
 }
@@ -156,10 +156,13 @@ const TOOLS = {
   },
   check_design_rules: {
     description:
-      "Run the Kipita design checker (hex/rgb literals, emoji, inline styles, raw <img>, layout animation, foreign icons, console.log, native dialogs, dynamic public routes) on apps/web files. Compares against the frozen baseline and returns only regressions as findings. Omit `paths` to check the whole app.",
+      "Run the Kipita design checker on apps/web files or directories: colour literals, emoji, inline styles, raw <img>, layout animation, foreign icons, native dialogs, plus the docs/DESIGN.md Guards (edge stripes, pill or oversized chips, ungated or moving hover, icon-tint hover, missing focus/press states, tiny icons and text, off-grid spacing, literal motion, ease-in, transition: all, scale(0), generic labels, skeleton source). Compares against the baseline; paths in tools/design-check/strict.json and `strict: true` allow zero. Omit `paths` to check the whole app.",
     inputSchema: {
       type: "object",
-      properties: { paths: { type: "array", items: { type: "string" }, description: "Repo-relative or absolute file paths" } },
+      properties: {
+        paths: { type: "array", items: { type: "string" }, description: "Repo-relative or absolute file or directory paths" },
+        strict: { type: "boolean", description: "Ignore the baseline; every finding fails" },
+      },
     },
     run: checkDesignRules,
   },

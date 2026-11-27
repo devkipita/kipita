@@ -6,7 +6,6 @@ import {
   formatKes,
   nextTier,
   REFEREE_REWARD,
-  REFERRAL_TIERS,
   referralLink,
   shareMessage,
   tierFor,
@@ -20,7 +19,7 @@ import {
   Copy,
   Envelope,
   Gift,
-  ShareNetwork,
+  ShareForward,
   Users,
 } from "@/components/icons";
 import { ContentWidth } from "@/components/nav/AppShell";
@@ -343,8 +342,7 @@ export function ReferralView({
         <Intro>
           <h1>Earn {formatKes(current.reward)} for each referral</h1>
           <p>
-            For each friend you invite who completes their first Kipita ride,
-            you both get wallet credit.
+            You both get credit when a friend completes their first ride.
           </p>
         </Intro>
 
@@ -357,8 +355,7 @@ export function ReferralView({
             <div>
               <b>{formatKes(current.reward)} in your Kipita wallet</b>
               <p>
-                Paid once your friend finishes their first ride. Spend it on
-                fares or withdraw it to M-Pesa.
+                Paid after their first ride. Spend it or withdraw it.
               </p>
             </div>
           </Perk>
@@ -373,8 +370,7 @@ export function ReferralView({
             <div>
               <b>{formatKes(REFEREE_REWARD)} off their first ride</b>
               <p>
-                Credited to their wallet as soon as that first trip is
-                complete.
+                Added after their first ride.
               </p>
             </div>
           </Perk>
@@ -400,7 +396,7 @@ export function ReferralView({
           <b>{formatKes(current.reward)}</b> per referral.{" "}
           {upcoming
             ? `${toGo(summary.joined)} more takes you to ${upcoming.label} at ${formatKes(upcoming.reward)} each.`
-            : `That's the top of the ${REFERRAL_TIERS.length}-tier ladder.`}
+            : `Top tier.`}
         </TierNote>
 
         <Faq>
@@ -426,7 +422,7 @@ export function ReferralView({
             </CodeRow>
 
             <Cta type="button" onClick={share}>
-              <ShareNetwork size={20} />
+              <ShareForward size={20} />
               Invite friends
             </Cta>
           </>
@@ -434,8 +430,7 @@ export function ReferralView({
           <Unavailable role="status">
             <b>Your code isn&apos;t ready yet</b>
             <p>
-              We couldn&apos;t reach the referral service. Refresh in a moment.
-              Your code is created automatically the first time this page loads.
+              Couldn&apos;t load your code. Refresh in a moment.
             </p>
           </Unavailable>
         )}
@@ -447,8 +442,7 @@ export function ReferralView({
               <Users size={28} />
               <b>No one yet</b>
               <p>
-                Send your code to someone who travels your route. Nothing is
-                paid until their first ride is done.
+                Send your code to a friend. Paid after their first ride.
               </p>
             </Empty>
           ) : (

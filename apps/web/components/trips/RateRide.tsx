@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import styled from "styled-components";
 import { m } from "motion/react";
-import { CheckCircle, Star } from "@/components/icons";
+import { Check, CheckCircle, Star } from "@/components/icons";
 import { Avatar } from "@/components/profile/Avatar";
 import { Collapse } from "@/components/anim/Collapse";
 import { Swap } from "@/components/anim/Swap";
@@ -27,20 +27,24 @@ const TAGS = {
 
 const Wrap = styled.div`
   display: grid;
-  gap: 16px;
+  gap: 12px;
+`;
+
+const More = styled.div`
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
 `;
 
 const Head = styled.div`
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 
   .face {
+    display: inline-flex;
     border-radius: 50%;
-    box-shadow:
-      0 0 0 3px ${nocturne.surface},
-      0 0 0 5px ${nocturne.lime};
   }
   h2 {
     margin: 0;
@@ -52,35 +56,47 @@ const Head = styled.div`
     color: ${nocturne.cream};
   }
   p {
-    margin: 3px 0 0;
-    font-size: 14px;
+    margin: 4px 0 0;
+    min-height: 20px;
+    font-size: 15px;
+    font-weight: 600;
     color: ${nocturne.muted};
+  }
+  p.word {
+    font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+    font-weight: 800;
+    color: ${nocturne.cream};
   }
 `;
 
 const Stars = styled.div`
   display: flex;
-  justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  margin-left: -8px;
 `;
 
 const StarBtn = styled.button<{ $on: boolean }>`
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
+  width: 56px;
+  height: 56px;
   padding: 0;
   border: 0;
-  border-radius: 16px;
-  background: ${({ $on }) => ($on ? `color-mix(in oklab, ${nocturne.star} 14%, ${nocturne.surface})` : nocturne.surface2)};
-  color: ${({ $on }) => ($on ? nocturne.star : nocturne.outline)};
+  border-radius: 50%;
+  background: transparent;
+  color: ${({ $on, theme }) => ($on ? nocturne.star : theme.color.surfaceContainerHighest)};
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
-    background 160ms ease,
-    color 160ms ease,
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      background: ${({ theme }) => theme.color.surfaceContainerHigh};
+    }
+  }
   &:active:not(:disabled) {
     transform: scale(0.94);
   }
@@ -93,45 +109,44 @@ const StarBtn = styled.button<{ $on: boolean }>`
   }
 `;
 
-const Word = styled.p`
-  margin: -4px 0 0;
-  min-height: 24px;
-  text-align: center;
-  font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-  font-size: 17px;
-  font-weight: 800;
-  color: ${nocturne.cream};
-`;
-
 const Tags = styled.div`
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 8px;
-  padding-top: 2px;
 `;
 
 const Tag = styled.button<{ $on: boolean }>`
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 6px 14px;
+  position: relative;
+  min-height: 32px;
+  padding: 4px 12px;
   border: 0;
-  border-radius: 12px;
-  background: ${({ $on }) => ($on ? nocturne.green : nocturne.surface2)};
+  border-radius: 8px;
+  gap: 4px;
+  background: ${({ $on, theme }) => ($on ? nocturne.green : theme.color.surfaceContainerHigh)};
   color: ${({ $on }) => ($on ? nocturne.onGreen : nocturne.cream)};
   font: inherit;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition:
-    background 160ms ease,
-    color 160ms ease,
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
+
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -6px 0;
+    }
+  }
 
   @media (hover: hover) and (pointer: fine) {
     &:hover {
-      background: ${({ $on }) => ($on ? nocturne.greenDeep : `color-mix(in oklab, ${nocturne.surface2} 80%, ${nocturne.green})`)};
+      background: ${({ $on, theme }) =>
+        $on ? nocturne.greenDeep : `color-mix(in oklab, ${theme.color.surfaceContainerHigh} 85%, ${nocturne.green})`};
     }
   }
   &:active {
@@ -147,7 +162,7 @@ const Note = styled.textarea`
   width: 100%;
   min-height: 72px;
   margin-top: 4px;
-  padding: 12px 14px;
+  padding: 12px 16px;
   border: 1.5px solid ${nocturne.outline};
   border-radius: 14px;
   background: ${nocturne.surface};
@@ -155,7 +170,8 @@ const Note = styled.textarea`
   font: inherit;
   font-size: 16px;
   line-height: 1.45;
-  resize: vertical;
+  resize: none;
+  field-sizing: content;
 
   &::placeholder {
     color: ${nocturne.muted2};
@@ -171,7 +187,7 @@ const Send = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   min-height: 52px;
   margin-top: 4px;
@@ -184,8 +200,8 @@ const Send = styled.button`
   font-weight: 800;
   cursor: pointer;
   transition:
-    background 160ms ease,
-    color 160ms ease,
+    background-color ${dur.state} ${ease.standard},
+    color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
   &:active:not(:disabled) {
@@ -203,24 +219,31 @@ const Send = styled.button`
 `;
 
 const Thanks = styled.div`
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  padding: 6px 0 2px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
 
   .icon {
-    color: ${nocturne.green};
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.color.successContainer};
+    color: ${({ theme }) => theme.color.onSuccessContainer};
+  }
+  .copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
   }
   b {
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 800;
     color: ${nocturne.cream};
-  }
-  span {
-    font-size: 14px;
-    color: ${nocturne.muted};
   }
 `;
 
@@ -288,16 +311,17 @@ export function RateRide({
     <Swap id={done ? "done" : "ask"}>
       {done ? (
         <Thanks role="status">
-          <m.span className="icon" initial={{ scale: 0.6, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={spring.success}>
-            <CheckCircle size={44} weight="fill" />
+          <m.span className="icon" initial={{ scale: 0.6 }} animate={{ scale: 1 }} transition={spring.success}>
+            <CheckCircle size={24} weight="fill" />
           </m.span>
-          <b>Thanks for rating {first}</b>
-          <Mini aria-label={`${score} out of 5 stars`}>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <Star key={n} size={18} weight={n <= score ? "fill" : "regular"} />
-            ))}
-          </Mini>
-          <span>{isDriver ? "It helps other drivers know who they're riding with." : "It helps the next passenger pick a good driver."}</span>
+          <span className="copy">
+            <b>You rated {first}</b>
+            <Mini aria-label={`${score} out of 5 stars`} role="img">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Star key={n} size={20} weight={n <= score ? "fill" : "regular"} aria-hidden />
+              ))}
+            </Mini>
+          </span>
         </Thanks>
       ) : (
         <Wrap>
@@ -307,7 +331,11 @@ export function RateRide({
             </span>
             <span>
               <h2>{isDriver ? `How was riding with ${first}?` : `How was your ride with ${first}?`}</h2>
-              <p>Tap the stars</p>
+              <Swap id={String(shown)}>
+                <p className={shown ? "word" : undefined} aria-live="polite">
+                  {shown ? WORDS[shown] : "Tap the stars"}
+                </p>
+              </Swap>
             </span>
           </Head>
 
@@ -330,39 +358,36 @@ export function RateRide({
                   animate={{ scale: 1 }}
                   transition={{ ...spring.success, delay: n <= score ? (n - 1) * 0.04 : 0 }}
                 >
-                  <Star size={28} weight={n <= shown ? "fill" : "regular"} />
+                  <Star size={40} weight="fill" />
                 </m.span>
               </StarBtn>
             ))}
           </Stars>
 
-          <Swap id={String(shown)}>
-            <Word aria-live="polite">{WORDS[shown]}</Word>
-          </Swap>
-
           <Collapse open={score > 0}>
-            <Tags aria-label={score >= 4 ? "What went well" : "What went wrong"}>
-              {pool.map((tag) => (
-                <Tag key={tag} type="button" aria-pressed={tags.includes(tag)} $on={tags.includes(tag)} onClick={() => toggle(tag)}>
-                  {tag}
-                </Tag>
-              ))}
-            </Tags>
-            <Note
-              aria-label={`Note for ${first}`}
-              placeholder={`Add a note for ${first} (optional)`}
-              maxLength={280}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
+            <More>
+              <Tags aria-label={score >= 4 ? "What went well" : "What went wrong"}>
+                {pool.map((tag) => (
+                  <Tag key={tag} type="button" aria-pressed={tags.includes(tag)} $on={tags.includes(tag)} onClick={() => toggle(tag)}>
+                    {tags.includes(tag) ? <Check size={16} weight="bold" aria-hidden /> : null}
+                    {tag}
+                  </Tag>
+                ))}
+              </Tags>
+              <Note
+                aria-label={`Note for ${first}`}
+                placeholder={`Add a note for ${first} (optional)`}
+                maxLength={280}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              {error ? <Error role="alert">{error}</Error> : null}
+              <Send type="button" onClick={send} disabled={!score || pending} aria-busy={pending}>
+                {pending ? <ButtonOrb job="committing" /> : null}
+                {pending ? "Sending your rating" : `Send ${score}-star rating`}
+              </Send>
+            </More>
           </Collapse>
-
-          {error ? <Error role="alert">{error}</Error> : null}
-
-          <Send type="button" onClick={send} disabled={!score || pending} aria-busy={pending}>
-            {pending ? <ButtonOrb job="committing" /> : null}
-            {pending ? "Sending your rating" : score ? `Send ${score}-star rating` : "Choose a star rating"}
-          </Send>
         </Wrap>
       )}
     </Swap>

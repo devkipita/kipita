@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -125,7 +125,7 @@ const Withdraw = styled.button`
   ${actionBase}
   background: ${nocturne.green};
   color: ${nocturne.onGreen};
-  ${pressable(nocturne.green)}
+  ${pressable()}
 `;
 
 export const Tiles = styled.div`
@@ -371,7 +371,7 @@ export function WalletView({
 
   return (
     <Page>
-      <WalletTitle>Wallet</WalletTitle>
+      <WalletTitle data-bar-title="">Wallet</WalletTitle>
 
       <Band>
         <Balance aria-labelledby="wallet-balance-cap">
@@ -428,7 +428,7 @@ export function WalletView({
               <span className="value">
                 {formatKes(summary.pending_earnings)}
               </span>
-              <span className="note">Lands in your balance when there is no dispute.</span>
+              <span className="note">Paid if no dispute.</span>
             </Tile>
           )}
 
@@ -454,7 +454,7 @@ export function WalletView({
           <Empty>
             <LedgerArt />
             <b>Nothing here yet</b>
-            <span>Holds, refunds and payouts show up here.</span>
+            <span>Activity appears here.</span>
           </Empty>
         ) : (
           <Ledger>

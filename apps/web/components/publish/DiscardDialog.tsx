@@ -187,8 +187,7 @@ export function DiscardDialog({
       <Box ref={boxRef} role="alertdialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={bodyId}>
         <h2 id={titleId}>Discard this ride draft?</h2>
         <p id={bodyId}>
-          Your route, day, time, seats, price and ride details will be cleared. Rides you have already published are not
-          affected.
+          Your draft will be cleared.
         </p>
         <Actions>
           <Keep ref={keepRef} type="button" onClick={cancel}>

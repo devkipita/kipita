@@ -13,9 +13,9 @@ const Banner = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px 14px;
+  gap: 12px 16px;
   padding: 12px 12px 12px 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   border-radius: ${({ theme }) => theme.radius.md};
   background: ${({ theme }) => theme.tone.green.bg};
   color: ${({ theme }) => theme.tone.green.on};
@@ -62,7 +62,7 @@ const Actions = styled.div`
 const Enable = styled.button`
   flex: none;
   min-height: 44px;
-  padding: 0 18px;
+  padding: 0 20px;
   border: none;
   border-radius: 999px;
   background: ${nocturne.green};
@@ -71,8 +71,15 @@ const Enable = styled.button`
   font-weight: 800;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: transform ${dur.press} ${ease.standard};
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      box-shadow: inset 0 0 0 100vmax color-mix(in oklab, ${nocturne.onGreen} 12%, transparent);
+    }
+  }
   &:active {
     transform: scale(0.97);
   }
@@ -99,12 +106,17 @@ const Dismiss = styled.button`
   background: transparent;
   color: inherit;
   cursor: pointer;
-  transition: background ${dur.state} ${ease.standard};
+  transition:
+    background ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
 
-  @media (hover: hover) {
+  @media (hover: hover) and (pointer: fine) {
     &:hover {
       background: color-mix(in oklab, currentColor 12%, transparent);
     }
+  }
+  &:active {
+    transform: scale(0.97);
   }
   &:focus-visible {
     outline: 3px solid ${nocturne.accent};
@@ -160,11 +172,11 @@ export function PushBanner() {
     <Collapse open={open}>
       <Banner role="region" aria-label="Browser alerts">
         <Lead>
-          <BellRing size={19} />
+          <BellRing size={20} />
         </Lead>
         <div className="copy">
           <b>Hear new requests and road alerts</b>
-          <span className="sub">A chime and a browser alert while Kipita is open.</span>
+          <span className="sub">Chime and alert while Kipita is open.</span>
         </div>
         <Actions>
           <Enable type="button" onClick={enable}>

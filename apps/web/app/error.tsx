@@ -19,7 +19,7 @@ export default function Error({
   return (
     <StatusPage
       title="We couldn't load that."
-      lead="This one is on us. Try again in a moment, or head back and pick up where you left off."
+      lead="Something went wrong. Try again."
       art={<BreakArt />}
       onRetry={reset}
     />

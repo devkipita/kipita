@@ -1,31 +1,26 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import styled from "styled-components";
-import { ArrowOut, Plus } from "@/components/icons";
+import { CaretRight } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
 import { TRIP_FAQS } from "@/lib/trips/copy";
-import { HelpPanel, Unfold, rowLook } from "./helpRows";
+import { HelpPanel, Unfold, rowPress } from "./helpRows";
 
 const Row = styled.button<{ $open: boolean }>`
-  ${rowLook}
+  ${rowPress}
 
   svg {
-    transform: rotate(${({ $open }) => ($open ? 45 : 0)}deg);
+    transform: rotate(${({ $open }) => ($open ? 90 : 0)}deg);
   }
-`;
-
-const More = styled(Link)`
-  ${rowLook}
-  color: ${nocturne.green};
 `;
 
 const Answer = styled(Unfold)`
   p {
     margin: 0;
-    font-size: 16px;
-    line-height: 1.6;
+    padding: 4px 12px 12px;
+    font-size: 14px;
+    line-height: 20px;
     color: ${nocturne.muted};
   }
 `;
@@ -35,26 +30,29 @@ export function TripFaqs() {
 
   return (
     <HelpPanel>
-      {TRIP_FAQS.map((f) => {
+      {TRIP_FAQS.map((f, i) => {
         const on = open === f.q;
+        const id = `trip-faq-${i}`;
         return (
           <div key={f.q}>
-            <Row type="button" $open={on} aria-expanded={on} onClick={() => setOpen(on ? null : f.q)}>
-              {f.q}
-              <Plus size={28} />
+            <Row
+              type="button"
+              $open={on}
+              aria-expanded={on}
+              aria-controls={id}
+              onClick={() => setOpen(on ? null : f.q)}
+            >
+              <span>{f.q}</span>
+              <CaretRight size={16} aria-hidden />
             </Row>
-            {on && (
-              <Answer>
+            <Answer $open={on} id={id}>
+              <div inert={!on} aria-hidden={!on}>
                 <p>{f.a}</p>
-              </Answer>
-            )}
+              </div>
+            </Answer>
           </div>
         );
       })}
-      <More href="/help#faq">
-        All help articles
-        <ArrowOut size={18} />
-      </More>
     </HelpPanel>
   );
 }

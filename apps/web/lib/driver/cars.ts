@@ -37,7 +37,7 @@ export async function saveCarAction(input: CarInput): Promise<CarResult> {
 
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
-  if (!userId) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!userId) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data: mine } = await supabase
     .from("vehicles")
@@ -69,7 +69,7 @@ export async function saveCarAction(input: CarInput): Promise<CarResult> {
       error:
         error?.code === "23505"
           ? "That plate is already registered to another account."
-          : "We couldn't save that car. Please try again.",
+          : "Couldn't save that car. Try again.",
     };
   }
 
@@ -87,7 +87,7 @@ export async function saveCarSeatsAction(input: {
 
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
-  if (!userId) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!userId) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data, error } = await supabase
     .from("vehicles")
@@ -97,7 +97,7 @@ export async function saveCarSeatsAction(input: {
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { ok: false, error: "We couldn't save that. Please try again." };
+  if (error || !data) return { ok: false, error: "Couldn't save that. Try again." };
 
   revalidatePath("/profile");
   revalidatePath("/publish");
@@ -107,7 +107,7 @@ export async function saveCarSeatsAction(input: {
 export async function deleteCarAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const supabase = await createClient();
   const userId = await currentUserId(supabase);
-  if (!userId) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!userId) return { ok: false, error: "Session expired. Sign in again." };
 
   const { error } = await supabase.from("vehicles").delete().eq("id", id).eq("driver_id", userId);
   if (error) {
@@ -115,8 +115,8 @@ export async function deleteCarAction(id: string): Promise<{ ok: true } | { ok: 
       ok: false,
       error:
         error.code === "23503"
-          ? "This car is on one of your rides, so it has to stay."
-          : "We couldn't remove that car. Please try again.",
+          ? "This car is on one of your rides."
+          : "Couldn't remove that car. Try again.",
     };
   }
 

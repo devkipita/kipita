@@ -23,7 +23,7 @@ export async function uploadKycDocument(
 
   const blob = await downscale(file);
   if (blob.size > MAX_BYTES) {
-    return { ok: false, error: "That photo is too large. Keep it under 5MB." };
+    return { ok: false, error: "Photo too large. Max 5MB." };
   }
 
   const ext = blob.type === "image/jpeg" ? "jpg" : blob.type.split("/")[1];
@@ -32,7 +32,7 @@ export async function uploadKycDocument(
   const { error } = await supabase.storage
     .from(KYC_BUCKET)
     .upload(path, blob, { contentType: blob.type, upsert: false });
-  if (error) return { ok: false, error: "Upload failed. Please try again." };
+  if (error) return { ok: false, error: "Upload failed. Try again." };
 
   return { ok: true, path };
 }

@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import styled from "styled-components";
 import { PaperPlaneTilt } from "@/components/icons";
+import { Avatar } from "@/components/profile/Avatar";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { createClient } from "@/lib/supabase/client";
 import { useRowStream } from "@/lib/trips/realtime";
@@ -26,28 +27,44 @@ const Feed = styled.ol`
   margin: 0;
   padding: 16px;
   list-style: none;
+  background: ${nocturne.surface};
   overflow-y: auto;
   overscroll-behavior: contain;
 `;
 
 const Day = styled.li`
   align-self: center;
-  margin: 8px 0 12px;
+  margin: 8px 0 4px;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: ${({ theme }) => theme.color.surfaceContainerHigh};
   font-size: 12px;
   font-weight: 700;
-  color: ${nocturne.muted2};
+  color: ${nocturne.cream};
+`;
+
+const Sender = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  margin: 16px 0 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: ${nocturne.cream};
 `;
 
 const Bubble = styled.li<{ $mine: boolean; $first: boolean; $last: boolean }>`
   align-self: ${({ $mine }) => ($mine ? "flex-end" : "flex-start")};
   max-width: 80%;
-  margin-top: ${({ $first }) => ($first ? "10px" : "2px")};
-  padding: 9px 14px;
+  margin-top: ${({ $first, $mine }) => ($first && $mine ? "16px" : "4px")};
+  padding: 8px 12px;
   border-radius: ${({ $mine, $last }) =>
-    $mine ? ($last ? "18px 18px 6px 18px" : "18px") : $last ? "18px 18px 18px 6px" : "18px"};
-  background: ${({ $mine }) => ($mine ? nocturne.green : nocturne.surface)};
-  color: ${({ $mine }) => ($mine ? nocturne.onGreen : nocturne.cream)};
-  font-size: 15px;
+    $mine ? ($last ? "20px 20px 4px 20px" : "20px") : $last ? "20px 20px 20px 4px" : "20px"};
+  background: ${({ $mine, theme }) => ($mine ? nocturne.green : theme.color.secondaryContainer)};
+  color: ${({ $mine, theme }) => ($mine ? nocturne.onGreen : theme.color.onSecondaryContainer)};
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.4;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
@@ -56,9 +73,10 @@ const Bubble = styled.li<{ $mine: boolean; $first: boolean; $last: boolean }>`
 const Stamp = styled.li<{ $mine: boolean }>`
   align-self: ${({ $mine }) => ($mine ? "flex-end" : "flex-start")};
   margin-top: 4px;
-  padding: 0 6px;
+  padding: 0 4px;
   font-size: 12px;
-  color: ${nocturne.muted2};
+  font-weight: 700;
+  color: ${nocturne.cream};
   font-variant-numeric: tabular-nums;
 `;
 
@@ -88,7 +106,7 @@ const Empty = styled.li`
 
 const Foot = styled.div`
   border-top: 1px solid ${nocturne.line};
-  background: ${nocturne.bg};
+  background: ${nocturne.surface};
 `;
 
 const Compose = styled.form`
@@ -159,19 +177,20 @@ const Send = styled.button`
 const Quick = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 12px 0;
+  gap: 8px;
+  padding: 12px 12px 0;
 `;
 
 const QuickBtn = styled.button`
+  position: relative;
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 32px;
+  padding: 4px 12px;
   border: 0;
-  border-radius: 999px;
-  background: color-mix(in srgb, ${nocturne.green} 12%, ${nocturne.surface});
-  color: ${nocturne.green};
+  border-radius: 8px;
+  background: ${({ theme }) => theme.tone.blue.bg};
+  color: ${({ theme }) => theme.tone.blue.on};
   font: inherit;
   font-size: 14px;
   font-weight: 700;
@@ -179,18 +198,21 @@ const QuickBtn = styled.button`
   cursor: pointer;
   transition:
     background-color ${dur.state} ${ease.standard},
-    color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
 
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -6px 0;
+    }
+  }
   @media (hover: hover) and (pointer: fine) {
     &:hover:not(:disabled) {
-      background: ${nocturne.ctaBg};
-      color: ${nocturne.ctaFg};
+      background: color-mix(in oklab, ${({ theme }) => theme.tone.blue.bg} 86%, ${({ theme }) => theme.tone.blue.on});
     }
   }
   &:active:not(:disabled) {
-    background: ${nocturne.ctaBg};
-    color: ${nocturne.ctaFg};
     transform: scale(0.97);
   }
   &:disabled {
@@ -237,6 +259,7 @@ export default function ChatPanel({
   bookingId,
   me,
   otherName,
+  otherAvatar,
   role,
   status,
 }: {
@@ -244,6 +267,7 @@ export default function ChatPanel({
   bookingId: string;
   me: string;
   otherName: string;
+  otherAvatar?: string | null;
   role: ChatRole;
   status: string;
 }) {
@@ -302,6 +326,39 @@ export default function ChatPanel({
     setItems((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row]));
   }, []);
 
+  const refresh = useCallback(async (id: string) => {
+    const { data, error: err } = await createClient()
+      .from("messages")
+      .select(COLUMNS)
+      .eq("conversation_id", id)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (err || !data) return;
+    setItems((prev) => {
+      const byId = new Map(prev.map((m) => [m.id, m]));
+      for (const m of data as Message[]) byId.set(m.id, m);
+      return [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open || !conv) return;
+    void refresh(conv);
+    const poll = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh(conv);
+    }, 8000);
+    const onShow = () => {
+      if (document.visibilityState === "visible") void refresh(conv);
+    };
+    document.addEventListener("visibilitychange", onShow);
+    window.addEventListener("focus", onShow);
+    return () => {
+      window.clearInterval(poll);
+      document.removeEventListener("visibilitychange", onShow);
+      window.removeEventListener("focus", onShow);
+    };
+  }, [open, conv, refresh]);
+
   useRowStream<Message>(`chat:${conv}`, "messages", conv ? `conversation_id=eq.${conv}` : null, receive);
 
   async function send(e: React.FormEvent, quick?: string) {
@@ -332,7 +389,7 @@ export default function ChatPanel({
           <Empty role={error ? "alert" : undefined}>
             {!error && <ChatHelloArt />}
             <b>{error ? "Messages didn't load" : conv ? `Say hello to ${otherName.split(" ")[0]}` : "Opening messages…"}</b>
-            <span>{error || "Pick a quick reply or type below"}</span>
+            <span>{error || "Type or pick a reply"}</span>
             {error && !conv && (
               <QuickBtn type="button" onClick={() => setAttempt((n) => n + 1)}>
                 Try again
@@ -350,6 +407,12 @@ export default function ChatPanel({
             return (
               <Fragment key={m.id}>
                 {newDay && <Day>{dayLabel(m.created_at)}</Day>}
+                {first && !mine && (
+                  <Sender>
+                    <Avatar name={otherName} src={otherAvatar ?? null} size={28} />
+                    {otherName.split(" ")[0]}
+                  </Sender>
+                )}
                 <Bubble $mine={mine} $first={first && !newDay} $last={last}>
                   {m.content}
                 </Bubble>

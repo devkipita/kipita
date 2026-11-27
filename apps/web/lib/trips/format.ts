@@ -55,6 +55,20 @@ export function dayLabel(iso: string): string {
   }).format(new Date(`${iso}T12:00:00Z`));
 }
 
+/** The time of day of a timestamp in Nairobi, like "10:42 am". */
+export function formatClock(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const hm = new Intl.DateTimeFormat("en-GB", {
+    timeZone: ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(d);
+  return formatTripTime(hm);
+}
+
 export function formatTripTime(value: string | null): string {
   if (!value) return "";
   const [h, m] = value.split(":");

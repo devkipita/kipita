@@ -1,354 +1,478 @@
 "use client";
 
-import { memo, useEffect, useState, type ReactNode } from "react";
+import { memo, useId, useState, type MouseEvent } from "react";
 import Link from "next/link";
-import styled, { css, keyframes } from "styled-components";
-import { m } from "motion/react";
-import { ArrowRight, Clock } from "@/components/icons";
+import styled, { css, keyframes, type DefaultTheme } from "styled-components";
+import { CheckCircle, Clock, XCircle } from "@/components/icons";
+import { Swap } from "@/components/anim/Swap";
+import { ButtonOrb } from "@/components/ui/ButtonOrb";
+import { useConfirm } from "@/components/ui/ConfirmPop";
+import { SrOnly } from "@/components/ui/Shimmer";
 import { dur, ease, nocturne } from "@/lib/nocturne";
-import { spring } from "@/lib/motion";
-import { activityOf, ordinal, type ActivityTone } from "@/lib/notifications/activity";
+import { activityOf, bookingOf, holdOpen, type ActivityRole } from "@/lib/notifications/activity";
 import { shortRelativeTime } from "@/lib/notifications/meta";
 import { markRead } from "@/lib/notifications/store";
 import type { AppNotification } from "@/lib/notifications/types";
+import { answerSeatRequestAction } from "@/lib/trips/request-actions";
+import { roleColors } from "./roles";
+import { settleSeatRequest, useSeatOutcome, type SeatOutcome } from "./useOpenSeatRequests";
 
-export const TONE: Record<ActivityTone, string> = {
-  urgent: `background: ${nocturne.ctaBg}; color: ${nocturne.ctaFg};`,
-  celebrate: `background: ${nocturne.lime}; color: ${nocturne.greenDeep};`,
-  opportunity: `background: color-mix(in oklab, ${nocturne.lime} 55%, ${nocturne.surface}); color: ${nocturne.greenDeep};`,
-  done: `background: ${nocturne.green}; color: ${nocturne.onGreen};`,
-  calm: `background: ${nocturne.surface2}; color: ${nocturne.accent};`,
-  caution: `background: color-mix(in oklab, ${nocturne.ctaBg} 16%, ${nocturne.surface}); color: ${nocturne.danger};`,
-  neutral: `background: ${nocturne.surface3}; color: ${nocturne.muted};`,
-  danger: `background: color-mix(in oklab, ${nocturne.danger} 14%, ${nocturne.surface}); color: ${nocturne.danger};`,
-};
-
-const LIVENS = new Set<ActivityTone>(["opportunity", "calm", "caution", "neutral"]);
-
-const STAGGER = [0, 40, 75, 105, 130, 150];
+const STAGGER = [0, 40, 70, 100, 120, 140];
 
 const rise = keyframes`
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
+  from { opacity: 0; transform: translateY(6px); }
 `;
 
-type RowProps = { $unread: boolean; $celebrate: boolean; $i: number };
+const layer = (pct: number) => `color-mix(in oklab, ${nocturne.cream} ${pct}%, transparent)`;
 
-const rowBase = css<RowProps>`
+const TINTED: ReadonlySet<ActivityRole> = new Set(["warning", "error", "success", "lime"]);
+
+function cardTone(theme: DefaultTheme, role: ActivityRole, unread: boolean): string {
+  const base = theme.color.surfaceContainerLowest;
+  if (!unread || !TINTED.has(role)) return base;
+  return `color-mix(in oklab, ${roleColors(theme, role).bg} 56%, ${base})`;
+}
+
+export const RowList = styled.ul`
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+`;
+
+const Row = styled.li<{ $role: ActivityRole; $unread: boolean; $i: number }>`
   position: relative;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
-  width: 100%;
-  padding: 14px 16px 14px 14px;
-  border: 0;
-  border-radius: 18px;
-  background: ${({ $unread, $celebrate }) =>
-    $celebrate
-      ? `color-mix(in oklab, ${nocturne.lime} 34%, ${nocturne.surface})`
-      : $unread
-        ? nocturne.surface
-        : "transparent"};
-  box-shadow: ${({ $unread }) => ($unread ? nocturne.cardShadow : "none")};
-  color: ${nocturne.cream};
-  font: inherit;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: ${({ theme, $role, $unread }) => cardTone(theme, $role, $unread)};
   transition:
-    background 160ms ease,
-    box-shadow 160ms ease,
+    background-color ${dur.state} ${ease.standard},
     transform ${dur.press} ${ease.standard};
   ${({ $i }) =>
     $i < STAGGER.length
       ? css`
-          animation: ${rise} 280ms ${ease.enter} ${STAGGER[$i]}ms backwards;
+          animation: ${rise} ${dur.enter} ${ease.enter} ${STAGGER[$i]}ms backwards;
         `
       : ""}
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 16px;
-    bottom: 16px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: ${nocturne.accent};
-    opacity: ${({ $unread, $celebrate }) => ($unread && !$celebrate ? 1 : 0)};
-    transition: opacity 160ms ease;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      background: ${({ $celebrate }) =>
-        $celebrate ? `color-mix(in oklab, ${nocturne.lime} 46%, ${nocturne.surface})` : nocturne.surface2};
-    }
-    &:hover [data-well][data-live="true"] {
-      background: ${nocturne.green};
-      color: ${nocturne.onGreen};
-    }
-    &:hover .go {
-      background: ${nocturne.green};
-      color: ${nocturne.onGreen};
-    }
-    &:hover .go[data-urgent="true"] {
-      background: ${nocturne.greenDeep};
-      color: ${nocturne.lime};
-    }
-    &:hover .go svg {
-      transform: translateX(2px);
-    }
-  }
-  &:active {
+  &:has(> [data-row-link]:active) {
     transform: scale(0.98);
-  }
-  &:focus-visible {
-    outline: 3px solid ${nocturne.accent};
-    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    &:active {
+    &:has(> [data-row-link]:active) {
       transform: none;
     }
   }
 `;
 
-const RowLink = styled(Link)<RowProps>`
-  ${rowBase}
+export const overlayInteractive = css`
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color ${dur.state} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: ${layer(6)};
+    }
+  }
+  &:active {
+    background-color: ${layer(10)};
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
 `;
 
-const RowButton = styled.button<RowProps>`
-  ${rowBase}
+const RowLink = styled(Link)`
+  ${overlayInteractive}
 `;
 
-const Well = styled(m.span)<{ $tone: ActivityTone }>`
+const RowButton = styled.button`
+  ${overlayInteractive}
+`;
+
+const Tile = styled.span<{ $role: ActivityRole }>`
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-  ${({ $tone }) => TONE[$tone]}
+  border-radius: 50%;
+  pointer-events: none;
+  background: ${({ theme, $role }) => roleColors(theme, $role).bg};
+  color: ${({ theme, $role }) => roleColors(theme, $role).ink};
+  --icon-knockout: ${({ theme, $role }) => roleColors(theme, $role).bg};
 `;
 
-const Body = styled.span`
+const Body = styled.div<{ $lines: number }>`
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+  pointer-events: none;
 
-  .kind {
+  .top {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.02em;
-    color: ${nocturne.muted2};
+    min-height: 24px;
   }
   .title {
+    flex: 1;
+    min-width: 0;
     font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
     font-size: 16px;
-    line-height: 1.3;
-    letter-spacing: -0.015em;
+    line-height: 24px;
+    letter-spacing: -0.01em;
     color: ${nocturne.cream};
     overflow-wrap: anywhere;
   }
   .text {
     display: -webkit-box;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: ${({ $lines }) => $lines};
     overflow: hidden;
     font-size: 14px;
-    line-height: 1.45;
+    line-height: 20px;
     color: ${nocturne.muted};
-  }
-  .foot {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
+    overflow-wrap: anywhere;
   }
 `;
 
 const Title = styled.span<{ $unread: boolean }>`
-  font-weight: ${({ $unread }) => ($unread ? 800 : 650)};
+  font-weight: ${({ $unread }) => ($unread ? 800 : 700)};
 `;
 
-const Meta = styled.span`
-  display: grid;
-  justify-items: end;
-  gap: 10px;
-  padding-top: 2px;
-  font-size: 12px;
-  font-weight: 700;
-  color: ${nocturne.muted2};
+const Meta = styled.span<{ $unread: boolean }>`
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 16px;
+  font-weight: ${({ $unread }) => ($unread ? 700 : 600)};
+  color: ${({ theme, $unread }) => ($unread ? theme.color.primary : nocturne.muted2)};
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-`;
 
-const Dot = styled.span`
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: ${nocturne.accent};
-`;
-
-const Go = styled.span`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: ${nocturne.surface2};
-  color: ${nocturne.greenDeep};
-  font-size: 13.5px;
-  font-weight: 800;
-  transition:
-    background 160ms ease,
-    color 160ms ease;
-
-  &[data-urgent="true"] {
-    background: ${nocturne.ctaBg};
-    color: ${nocturne.ctaFg};
-  }
-
-  svg {
-    transition: transform 160ms ${ease.enter};
+  &[data-unread="true"]::after {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
   }
 `;
 
 const Hold = styled.span<{ $live: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 32px;
-  padding: 0 10px;
-  border-radius: 10px;
+  gap: 4px;
+  margin-top: 2px;
   font-size: 13px;
-  font-weight: 800;
+  line-height: 16px;
+  font-weight: 700;
+  color: ${({ theme, $live }) => ($live ? theme.color.warning : nocturne.muted2)};
   font-variant-numeric: tabular-nums;
-  ${({ $live }) =>
-    $live
-      ? `background: color-mix(in oklab, ${nocturne.ctaBg} 16%, ${nocturne.surface}); color: ${nocturne.danger};`
-      : `background: ${nocturne.surface3}; color: ${nocturne.muted};`}
 `;
 
-function useMinutesLeft(iso: string | null): number | null {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    if (!iso) return;
-    const end = new Date(iso).getTime();
-    if (end <= Date.now()) return;
-    const id = window.setInterval(() => {
-      setNow(Date.now());
-      if (Date.now() >= end) window.clearInterval(id);
-    }, 15_000);
-    return () => window.clearInterval(id);
-  }, [iso]);
-  if (!iso) return null;
-  return Math.ceil((new Date(iso).getTime() - now) / 60_000);
+const Answer = styled.div`
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  pointer-events: auto;
+`;
+
+const Buttons = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+const answerInteractive = css`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover:not(:disabled) {
+      box-shadow: inset 0 0 0 100vmax ${layer(8)};
+    }
+  }
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.accent};
+    outline-offset: 2px;
+  }
+  &:disabled {
+    cursor: progress;
+  }
+  @media (pointer: coarse) {
+    min-height: 44px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled) {
+      transform: none;
+    }
+  }
+`;
+
+const AcceptButton = styled.button`
+  ${answerInteractive}
+  background: ${nocturne.green};
+  color: ${nocturne.onGreen};
+`;
+
+const DeclineButton = styled.button`
+  ${answerInteractive}
+  background: ${({ theme }) => theme.color.surfaceContainerHighest};
+  color: ${nocturne.cream};
+`;
+
+const Settled = styled.p<{ $tone: "success" | "quiet" }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  min-height: 40px;
+  font-size: 14px;
+  font-weight: 700;
+  color: ${({ theme, $tone }) => ($tone === "success" ? theme.color.success : nocturne.muted)};
+`;
+
+const Problem = styled.p`
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: ${({ theme }) => theme.color.error};
+`;
+
+type Step = "ask" | "accepting" | "declining" | "accepted" | "declined" | "gone";
+
+export function SeatAnswer({
+  item,
+  bookingId,
+  seats,
+  outcome,
+}: {
+  item: AppNotification;
+  bookingId: string;
+  seats: number;
+  outcome: SeatOutcome | null;
+}) {
+  const [pending, setPending] = useState<"ask" | "accepting" | "declining">("ask");
+  const step: Step = outcome ?? pending;
+  const [problem, setProblem] = useState<string | null>(null);
+  const { ask, confirmNode } = useConfirm();
+  const busy = step === "accepting" || step === "declining";
+  const seatWord = seats === 1 ? "1 seat" : `${seats} seats`;
+
+  async function answer(decision: "accept" | "decline") {
+    setProblem(null);
+    setPending(decision === "accept" ? "accepting" : "declining");
+    const result = await answerSeatRequestAction(bookingId, decision);
+    setPending("ask");
+    if (result.ok) {
+      void markRead(item.id);
+      settleSeatRequest(bookingId, decision === "accept" ? "accepted" : "declined");
+      return;
+    }
+    if (result.code === "P0002" || (result.code === "22023" && decision === "decline")) {
+      void markRead(item.id);
+      settleSeatRequest(bookingId, "gone");
+      return;
+    }
+    setProblem(result.error);
+  }
+
+  async function decline(e: MouseEvent<HTMLButtonElement>) {
+    const ok = await ask(e.currentTarget, {
+      title: "Decline this seat request?",
+      yes: "Decline request",
+      no: "Keep request",
+      danger: true,
+    });
+    if (ok) void answer("decline");
+  }
+
+  const settled = step === "accepted" || step === "declined" || step === "gone";
+
+  return (
+    <Answer>
+      <Swap id={settled ? step : "ask"}>
+        {step === "accepted" ? (
+          <Settled $tone="success" role="status">
+            <CheckCircle size={16} weight="fill" />
+            Accepted. Waiting for payment
+          </Settled>
+        ) : step === "declined" ? (
+          <Settled $tone="quiet" role="status">
+            <XCircle size={16} />
+            Request declined
+          </Settled>
+        ) : step === "gone" ? (
+          <Settled $tone="quiet" role="status">
+            <CheckCircle size={16} />
+            Already answered
+          </Settled>
+        ) : (
+          <Buttons>
+            <AcceptButton
+              type="button"
+              data-quick=""
+              disabled={busy}
+              aria-busy={step === "accepting"}
+              onClick={() => void answer("accept")}
+            >
+              {step === "accepting" ? (
+                <>
+                  <ButtonOrb job="committing" /> Accepting request
+                </>
+              ) : (
+                `Accept ${seatWord}`
+              )}
+            </AcceptButton>
+            <DeclineButton
+              type="button"
+              data-quick=""
+              disabled={busy}
+              aria-busy={step === "declining"}
+              onClick={(e) => void decline(e)}
+            >
+              {step === "declining" ? (
+                <>
+                  <ButtonOrb job="committing" on="surface" /> Declining request
+                </>
+              ) : (
+                "Decline request"
+              )}
+            </DeclineButton>
+          </Buttons>
+        )}
+      </Swap>
+      {problem ? <Problem role="alert">{problem}</Problem> : null}
+      {confirmNode}
+    </Answer>
+  );
 }
 
-function HoldChip({ iso }: { iso: string }) {
-  const left = useMinutesLeft(iso);
-  if (left == null) return null;
-  const live = left > 0;
-  return (
-    <Hold $live={live}>
-      <Clock size={14} weight="bold" />
-      {live ? `${left} min left to pay` : "Seat hold ran out"}
-    </Hold>
-  );
+function minutesLeft(iso: string, now: number): number {
+  return Math.ceil((new Date(iso).getTime() - now) / 60_000);
 }
 
 export const ActivityRow = memo(function ActivityRow({
   item,
+  now,
+  seatOpen = false,
+  settled = false,
   onNavigate,
-  inMenu = false,
   index = 99,
+  lines = 2,
 }: {
   item: AppNotification;
+  now: number;
+  seatOpen?: boolean;
+  settled?: boolean;
   onNavigate?: () => void;
-  inMenu?: boolean;
   index?: number;
+  lines?: number;
 }) {
+  const id = useId();
+  const clock = now || Date.now();
   const a = activityOf(item);
   const unread = !item.read;
-  const celebrate = a.kind === "milestone";
   const Icon = a.icon;
-  const role = inMenu ? "menuitem" : undefined;
-  const expired = a.expiresAt ? new Date(a.expiresAt).getTime() <= Date.now() : false;
-  const action = a.kind === "pay_due" && expired ? "View booking" : a.action;
+  const live = a.expiresAt ? holdOpen(a, clock) : false;
+  const bookingId = bookingOf(item);
+  const outcome = useSeatOutcome(a.kind === "seat_request" ? bookingId : null);
   const stamp = new Date(item.created_at).toLocaleString("en-KE", {
     dateStyle: "medium",
     timeStyle: "short",
   });
 
-  const content: ReactNode = (
-    <>
-      <Well
-        $tone={a.tone}
-        data-well=""
-        data-live={LIVENS.has(a.tone) ? "true" : "false"}
-        aria-hidden="true"
-        initial={celebrate && unread ? { scale: 0.7, rotate: -18 } : false}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={spring.success}
-      >
-        <Icon size={22} weight={unread ? "bold" : "regular"} />
-      </Well>
-      <Body>
-        <span className="kind">
-          {celebrate && a.milestone ? `${ordinal(a.milestone)} ride complete` : a.label}
-        </span>
-        <span className="title">
-          <Title $unread={unread}>{item.title}</Title>
-        </span>
-        {item.body ? <span className="text">{item.body}</span> : null}
-        {a.expiresAt || (action && a.href) ? (
-          <span className="foot">
-            {a.expiresAt ? <HoldChip iso={a.expiresAt} /> : null}
-            {action && a.href ? (
-              <Go className="go" data-urgent={a.tone === "urgent" && !expired ? "true" : "false"}>
-                {action}
-                <ArrowRight size={15} weight="bold" />
-              </Go>
-            ) : null}
-          </span>
-        ) : null}
-      </Body>
-      <Meta>
-        <time dateTime={item.created_at} title={stamp}>
-          {shortRelativeTime(item.created_at)}
-        </time>
-        {unread ? <Dot aria-label="Unread" role="img" /> : null}
-      </Meta>
-    </>
-  );
-
-  const onClick = () => {
+  const open = () => {
     if (unread) void markRead(item.id);
     onNavigate?.();
   };
 
-  const props = { $unread: unread, $celebrate: celebrate, $i: index, role, onClick };
+  const holding = Boolean(a.expiresAt && !settled);
+  const labelled = [`${id}-title`, item.body ? `${id}-text` : null, `${id}-meta`, holding ? `${id}-hold` : null]
+    .filter(Boolean)
+    .join(" ");
 
-  return a.href ? (
-    <RowLink href={a.href} {...props}>
-      {content}
-    </RowLink>
-  ) : (
-    <RowButton type="button" {...props}>
-      {content}
-    </RowButton>
+  return (
+    <Row $role={a.role} $unread={unread} $i={index}>
+      {a.href ? (
+        <RowLink href={a.href} data-row-link="" aria-labelledby={labelled} onClick={open} />
+      ) : (
+        <RowButton type="button" data-row-link="" aria-labelledby={labelled} onClick={open} />
+      )}
+      <Tile $role={a.role} aria-hidden="true">
+        <Icon size={24} />
+      </Tile>
+      <Body $lines={lines}>
+        <span className="top">
+          <span className="title" id={`${id}-title`}>
+            <Title $unread={unread}>{item.title}</Title>
+          </span>
+          <Meta id={`${id}-meta`} $unread={unread} data-unread={unread}>
+            <time dateTime={item.created_at} title={stamp}>
+              {shortRelativeTime(item.created_at, clock)}
+            </time>
+            {unread ? <SrOnly>Unread</SrOnly> : null}
+          </Meta>
+        </span>
+        {item.body ? (
+          <span className="text" id={`${id}-text`}>
+            {item.body}
+          </span>
+        ) : null}
+        {holding ? (
+          <Hold id={`${id}-hold`} $live={live}>
+            <Clock size={16} />
+            {live && a.expiresAt ? `${minutesLeft(a.expiresAt, clock)} min left to pay` : "Seat hold ran out"}
+          </Hold>
+        ) : null}
+        {(seatOpen || outcome) && bookingId ? (
+          <SeatAnswer item={item} bookingId={bookingId} seats={a.seats ?? 1} outcome={outcome} />
+        ) : null}
+      </Body>
+    </Row>
   );
 });

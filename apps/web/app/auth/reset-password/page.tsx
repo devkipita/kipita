@@ -14,7 +14,7 @@ export default async function ResetPasswordPage() {
     <NewPasswordForm
       intent="recovery"
       heading="Set a new password"
-      sub="Choose a fresh password for your Kipita account."
+      sub="Choose a new password."
       cta="Update password"
       redirectTo="/home"
     />

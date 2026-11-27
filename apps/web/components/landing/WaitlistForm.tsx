@@ -73,7 +73,7 @@ const WaitlistBtn = styled.button`
   font-weight: 700;
   font-family: inherit;
 
-  ${pressable(nocturne.green)}
+  ${pressable()}
 
   @media (hover: hover) {
     &:hover:not(:disabled) {

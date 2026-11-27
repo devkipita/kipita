@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { ProblemKind } from "./problems";
 
 /**
  * Boarding, pickup codes and "report a problem" (migration 070). Every rule lives in the database; these
@@ -10,7 +11,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export type BoardingRow = {
   bookingId: string;
+  passengerId: string | null;
   passengerName: string;
+  avatarUrl: string | null;
   seats: number;
   pickup: string | null;
   state: "waiting" | "boarded" | "no_show";
@@ -23,7 +26,7 @@ export type BoardingRow = {
 
 type Fail = { ok: false; error: string };
 
-const SESSION = "Your session expired. Sign in again.";
+const SESSION = "Session expired. Sign in again.";
 
 const BOARD_ERRORS: Record<string, string> = {
   "28000": SESSION,
@@ -56,10 +59,20 @@ export async function getBoardingStatusAction(
     return { ok: false, error: dbMessage(error.code, error.message, BOARD_ERRORS, "Couldn't load passengers.") };
   }
 
-  const rows = ((data ?? []) as Record<string, unknown>[]).map(
+  const raw = (data ?? []) as Record<string, unknown>[];
+  const ids = [...new Set(raw.map((r) => r.passenger_id as string | null).filter((id): id is string => !!id))];
+  const avatars = new Map<string, string | null>();
+  if (ids.length) {
+    const { data: people } = await supabase.from("users").select("id, avatar_url").in("id", ids);
+    for (const p of people ?? []) avatars.set(p.id as string, (p.avatar_url as string | null) ?? null);
+  }
+
+  const rows = raw.map(
     (r): BoardingRow => ({
       bookingId: r.booking_id as string,
+      passengerId: (r.passenger_id as string | null) ?? null,
       passengerName: (r.passenger_name as string) || "Passenger",
+      avatarUrl: avatars.get(r.passenger_id as string) ?? null,
       seats: Number(r.seats_booked ?? 1),
       pickup: (r.pickup_location as string | null) ?? null,
       state: r.state as BoardingRow["state"],
@@ -117,23 +130,11 @@ export async function boardByHandAction(
   return { ok: true };
 }
 
-// ── Passenger side ──────────────────────────────────────────────────────────────
-
-export const PROBLEM_KINDS = [
-  { value: "never_picked_up", label: "Never picked up" },
-  { value: "not_dropped_off", label: "Not taken to my stop" },
-  { value: "unsafe_driving", label: "Unsafe driving" },
-  { value: "asked_for_cash", label: "Asked for extra money" },
-  { value: "other", label: "Something else" },
-] as const;
-
-export type ProblemKind = (typeof PROBLEM_KINDS)[number]["value"];
-
 const REPORT_ERRORS: Record<string, string> = {
   "28000": SESSION,
   "42501": "That isn't your booking.",
   P0002: "Booking not found.",
-  KP006: "The time to report has passed. Contact support.",
+  KP006: "Time to report has passed. Contact support.",
 };
 
 export async function reportProblemAction(

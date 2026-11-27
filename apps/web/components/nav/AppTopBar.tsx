@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import styled, { keyframes } from "styled-components";
 import { m } from "motion/react";
-import { CaretDown, CircleNotch, SignOut, X } from "@/components/icons";
+import { ArrowLeft, CaretDown, X } from "@/components/icons";
+import { usePageTitle } from "@/lib/nav/page-title";
 import { spring } from "@/lib/motion";
-import { signOutAction } from "@/lib/auth/actions";
 import { Avatar } from "@/components/profile/Avatar";
 import { Brand } from "@/components/ui/Brand";
-import { MorphMenu } from "@/components/ui/MorphMenu";
-import { Drawer, DrawerBody, DrawerFooter, useIsSheet } from "@/components/ui/Drawer";
+import { MorphHeadBar, MorphMenu, morphHead } from "@/components/ui/MorphMenu";
+import { AccountMenu, AccountWho } from "./AccountMenu";
+import { Drawer, DrawerBody, useIsSheet } from "@/components/ui/Drawer";
 import { ActivityButton } from "./ActivityButton";
 import { NewDot } from "@/components/ui/NewDot";
 import { CountBadge } from "@/components/ui/CountBadge";
@@ -20,7 +20,7 @@ import { Z } from "@/lib/z";
 import { TOPBAR_H, TOPBAR_H_SM } from "@/lib/nav/rail";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { Profile } from "@/lib/auth/types";
-import { ACCOUNT_NAV, SHEET_LEAD_NAV, isNavItemActive, type NavCounts, type NavItem } from "./nav-items";
+import { SHEET_LEAD_NAV, isNavItemActive, type NavCounts, type NavItem } from "./nav-items";
 
 const onGreenAt = (pct: number) =>
   `color-mix(in oklab, ${nocturne.onGreen} ${pct}%, transparent)`;
@@ -53,10 +53,79 @@ const Bar = styled.header`
   }
 `;
 
-const BrandSlot = styled.div`
+const PhoneTitle = styled.div`
+  display: none;
+
+  @media (max-width: 960px) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+
+    .title {
+      overflow: hidden;
+      font-family: var(--font-manrope), ${({ theme }) => theme.fontHeading};
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 28px;
+      letter-spacing: -0.02em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: ${nocturne.sage};
+    }
+  }
+`;
+
+const BackLink = styled(Link)`
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: color-mix(in oklab, ${nocturne.sage} 18%, transparent);
+  color: ${nocturne.sage};
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color ${dur.state} ${ease.standard},
+    transform ${dur.press} ${ease.standard};
+
+  @media (pointer: coarse) {
+    &::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+    }
+  }
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: color-mix(in oklab, ${nocturne.sage} 28%, transparent);
+    }
+  }
+  &:active {
+    background: color-mix(in oklab, ${nocturne.sage} 34%, transparent);
+    transform: scale(0.97);
+  }
+  &:focus-visible {
+    outline: 3px solid ${nocturne.lime};
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const BrandSlot = styled.div<{ $hideOnPhone?: boolean }>`
   flex: none;
   display: flex;
   align-items: center;
+
+  @media (max-width: 960px) {
+    display: ${({ $hideOnPhone }) => ($hideOnPhone ? "none" : "flex")};
+  }
 
   a {
     display: flex;
@@ -202,20 +271,6 @@ const NavActive = styled(m.span)`
   pointer-events: none;
 `;
 
-const NavCount = styled.span`
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  margin-right: -4px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: ${nocturne.ctaBg};
-  color: ${nocturne.ctaFg};
-  font-size: 12.5px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-`;
 const LogIn = styled(Link)`
   display: inline-flex;
   align-items: center;
@@ -371,104 +426,14 @@ const Trigger = styled.button`
   }
 `;
 
+const AccountHead = styled(Trigger)`
+  position: relative;
+  ${morphHead(".face", ".who, .chev", 23)}
+`;
+
 const shimmer = keyframes`
   0%, 100% { opacity: 0.5; }
   50%      { opacity: 1; }
-`;
-
-const MenuA = styled(Link)`
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 12px 14px;
-  border-radius: 13px;
-  font-size: 16px;
-  font-weight: 600;
-  color: ${nocturne.cream};
-  transition:
-    background 0.16s ease,
-    color 0.16s ease;
-
-  svg {
-    flex: none;
-    color: ${nocturne.muted2};
-    transition: color 0.16s ease;
-  }
-
-  &:hover,
-  &:focus-visible {
-    background: ${nocturne.lime};
-    color: ${nocturne.greenDeep};
-  }
-  &:hover svg,
-  &:focus-visible svg {
-    color: ${nocturne.greenDeep};
-  }
-  &:hover ${Glyph} svg:first-child,
-  &:focus-visible ${Glyph} svg:first-child {
-    opacity: 0;
-  }
-  &:hover ${Glyph} svg:last-child,
-  &:focus-visible ${Glyph} svg:last-child {
-    opacity: 1;
-  }
-  &:focus-visible {
-    outline: 2px solid ${nocturne.accent};
-    outline-offset: -2px;
-  }
-`;
-
-const MenuRule = styled.hr`
-  margin: 6px 8px;
-  border: none;
-  border-top: 1px solid ${nocturne.line};
-`;
-
-const spinOnce = keyframes`to { transform: rotate(360deg); }`;
-
-const MenuSignOut = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  width: 100%;
-  min-height: 48px;
-  padding: 12px 14px;
-  border: none;
-  border-radius: 13px;
-  background: transparent;
-  font: inherit;
-  font-size: 16px;
-  font-weight: 700;
-  text-align: left;
-  color: ${nocturne.danger};
-  cursor: pointer;
-  transition: background ${dur.state} ${ease.standard};
-
-  svg {
-    flex: none;
-    color: ${nocturne.danger};
-  }
-  .spin {
-    animation: ${spinOnce} 0.9s linear infinite;
-  }
-
-  &:hover:not(:disabled),
-  &:focus-visible {
-    background: color-mix(in oklab, ${nocturne.danger} 12%, transparent);
-  }
-  &:focus-visible {
-    outline: 2px solid ${nocturne.danger};
-    outline-offset: -2px;
-  }
-  &:disabled {
-    cursor: progress;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-    .spin {
-      animation: none;
-    }
-  }
 `;
 
 const FaceSwap = styled.span`
@@ -500,7 +465,7 @@ const HIDDEN_X = { opacity: 0, scale: 0.5, rotate: -90 };
 function AccountFace({ profile, closing = false }: { profile: Profile; closing?: boolean }) {
   return (
     <>
-      <FaceSwap>
+      <FaceSwap className="face">
         <m.span initial={false} animate={closing ? HIDDEN_FACE : SHOWN} transition={spring.morph}>
           <Avatar name={profile.full_name} src={profile.avatar_url} size={36} />
         </m.span>
@@ -523,134 +488,17 @@ function AccountFace({ profile, closing = false }: { profile: Profile; closing?:
 const Identity = styled.div`
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin: 0 2px 8px;
-  padding: 4px 12px 18px;
-  border-bottom: 1px solid ${nocturne.line};
-
-  .name {
-    display: block;
-    font-size: 19px;
-    font-weight: 700;
-    line-height: 1.3;
-    color: ${nocturne.cream};
-    overflow-wrap: anywhere;
-  }
-  .contact {
-    display: block;
-    margin-top: 2px;
-    font-size: 15px;
-    color: ${nocturne.muted};
-    overflow-wrap: anywhere;
-  }
+  gap: 12px;
+  min-width: 0;
+  margin: 0 0 8px;
+  padding: 4px 8px 16px;
+  border-bottom: 1px solid ${nocturne.line2};
 `;
 
 const AccountBody = styled(DrawerBody)`
   gap: 2px;
   padding: 0 12px 12px;
 `;
-
-const SheetLink = styled(Link)`
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 56px;
-  padding: 8px 12px 8px 8px;
-  border-radius: 16px;
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  color: ${nocturne.cream};
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    background 160ms ease,
-    color 160ms ease,
-    transform ${dur.press} ${ease.standard};
-
-  .well {
-    --icon-knockout: ${nocturne.surface2};
-    flex: none;
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: ${nocturne.surface2};
-    color: ${nocturne.accent};
-    transition:
-      background 160ms ease,
-      color 160ms ease;
-  }
-  .label {
-    flex: 1;
-    min-width: 0;
-  }
-
-  &[aria-current="page"] {
-    background: ${nocturne.surface2};
-
-    .well {
-      --icon-knockout: ${nocturne.lime};
-      background: ${nocturne.lime};
-      color: ${nocturne.greenDeep};
-    }
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    &:hover {
-      background: ${nocturne.surface2};
-    }
-    &:hover .well {
-      --icon-knockout: ${nocturne.lime};
-      background: ${nocturne.lime};
-      color: ${nocturne.greenDeep};
-    }
-  }
-  &:active {
-    transform: scale(0.98);
-  }
-  &:focus-visible {
-    outline: 2px solid ${nocturne.accent};
-    outline-offset: -2px;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    &:active {
-      transform: none;
-    }
-  }
-`;
-
-const AccountFoot = styled(DrawerFooter)`
-  padding-inline: 12px;
-
-  > form {
-    flex: 1;
-  }
-  button {
-    min-height: 56px;
-    font-size: 17px;
-  }
-  button svg {
-    width: 24px;
-    height: 24px;
-  }
-`;
-
-function SignOutItem({ inMenu = true }: { inMenu?: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <MenuSignOut
-      type="submit"
-      role={inMenu ? "menuitem" : undefined}
-      disabled={pending}
-      aria-busy={pending}
-    >
-      {pending ? <CircleNotch className="spin" size={21} /> : <SignOut size={21} />}
-      {pending ? "Signing out…" : "Sign out"}
-    </MenuSignOut>
-  );
-}
 
 const AccountPending = styled.span`
   display: inline-flex;
@@ -703,57 +551,55 @@ export function AppTopBar({
   counts?: NavCounts;
 }) {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
+  const pageTitle = usePageTitle(pathname);
   const sheet = useIsSheet();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const visits = useRef(0);
 
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    visits.current += 1;
+    setOpen(false);
+  }, [pathname]);
 
-  const accountLinks = ACCOUNT_NAV.map((item) => (
-    <MenuA key={item.key} href={item.href} role="menuitem" onClick={() => setOpen(false)}>
-      <NavGlyph icon={item.icon} size={21} />
-      {item.label}
-    </MenuA>
-  ));
+  function goBack(event: React.MouseEvent<HTMLAnchorElement>) {
+    if (visits.current < 2 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    router.back();
+  }
 
-  const sheetLinks = [...SHEET_LEAD_NAV, ...ACCOUNT_NAV].map((item) => {
-    const active = isNavItemActive(item, pathname);
-    const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
-    return (
-      <SheetLink
-        key={item.key}
-        href={item.href}
-        aria-current={active ? "page" : undefined}
-        aria-label={count ? `${item.label}, ${count} new` : undefined}
-        onClick={() => setOpen(false)}
-      >
-        <span className="well" aria-hidden="true">
-          <NavGlyph icon={item.icon} size={26} on={active} />
-        </span>
-        <span className="label">{item.label}</span>
-        {count ? <NavCount aria-hidden="true">{count > 99 ? "99+" : count}</NavCount> : null}
-      </SheetLink>
-    );
-  });
+  const close = () => setOpen(false);
 
   return (
     <Bar data-chrome-bar="">
-      <BrandSlot>
+      <BrandSlot $hideOnPhone={Boolean(pageTitle)}>
         <Brand href="/" light priority />
       </BrandSlot>
+      {pageTitle && (
+        <PhoneTitle>
+          {pageTitle.back && (
+            <BackLink href={pageTitle.back} aria-label={pageTitle.backLabel ?? "Go back"} onClick={goBack}>
+              <ArrowLeft size={24} weight="bold" aria-hidden />
+            </BackLink>
+          )}
+          <span className="title">{pageTitle.title}</span>
+        </PhoneTitle>
+      )}
 
       <Links aria-label="Main">
         {items.map((item) => {
           const active = isNavItemActive(item, pathname);
           const count = item.badge ? (counts?.[item.badge] ?? 0) : 0;
-          const fresh = !active && item.dot ? (counts?.[item.dot] ?? 0) > 0 : false;
+          const freshCount = !active && item.dot ? (counts?.[item.dot] ?? 0) : 0;
+          const fresh = freshCount > 0;
           return (
             <NavA
               key={item.key}
               href={item.href}
               $active={active}
               aria-current={active ? "page" : undefined}
-              aria-label={count ? `${item.label}, ${count} new` : fresh ? `${item.label}, new since your last visit` : undefined}
+              aria-label={count ? `${item.label}, ${count} new` : fresh ? `${item.label}, ${freshCount} new since your last visit` : undefined}
             >
               {active ? <NavActive layoutId="topnav-active" transition={spring.morph} aria-hidden="true" /> : null}
               <span className="well" aria-hidden="true">
@@ -789,55 +635,45 @@ export function AppTopBar({
               </Trigger>
 
               {sheet ? (
-                <Drawer
-                  open={open}
-                  onClose={() => setOpen(false)}
-                  title="Account"
-                  fill
-                  footer={
-                    <AccountFoot>
-                      <form action={signOutAction}>
-                        <SignOutItem inMenu={false} />
-                      </form>
-                    </AccountFoot>
-                  }
-                >
+                <Drawer open={open} onClose={close} title="Account" fill>
                   <AccountBody>
                     <Identity>
                       <Avatar name={profile.full_name} src={profile.avatar_url} size={56} />
-                      <div>
-                        <span className="name">{profile.full_name || "Your account"}</span>
-                        {profile.email || profile.phone ? (
-                          <span className="contact">{profile.email || profile.phone}</span>
-                        ) : null}
-                      </div>
+                      <AccountWho profile={profile} />
                     </Identity>
-                    <nav aria-label="Account">{sheetLinks}</nav>
+                    <nav aria-label="Account">
+                      <AccountMenu counts={counts} size="sheet" lead={SHEET_LEAD_NAV} onNavigate={close} />
+                    </nav>
                   </AccountBody>
                 </Drawer>
               ) : (
                 <MorphMenu
                   open={open}
-                  onClose={() => setOpen(false)}
+                  onClose={close}
                   triggerRef={triggerRef}
                   label="Account"
-                  head={(close, isOpen) => (
-                    <Trigger
-                      type="button"
-                      aria-expanded="true"
-                      aria-label="Close account menu"
-                      tabIndex={-1}
-                      onClick={close}
-                    >
-                      <AccountFace profile={profile} closing={isOpen} />
-                    </Trigger>
+                  kind="dialog"
+                  width={340}
+                  head={(shut, isOpen) => (
+                    <>
+                      <MorphHeadBar data-open={isOpen ? "true" : "false"}>
+                        <AccountWho profile={profile} avatar />
+                      </MorphHeadBar>
+                      <AccountHead
+                        type="button"
+                        data-morph={isOpen ? "open" : "closed"}
+                        aria-expanded="true"
+                        aria-label="Close account menu"
+                        onClick={shut}
+                      >
+                        <AccountFace profile={profile} closing={isOpen} />
+                      </AccountHead>
+                    </>
                   )}
                 >
-                  {accountLinks}
-                  <MenuRule role="separator" />
-                  <form action={signOutAction}>
-                    <SignOutItem />
-                  </form>
+                  <nav aria-label="Account">
+                    <AccountMenu counts={counts} size="menu" onNavigate={close} />
+                  </nav>
                 </MorphMenu>
               )}
             </MenuWrap>

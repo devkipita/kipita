@@ -502,7 +502,7 @@ export function PayPanel({
       setError(result.error);
     } catch {
       setError(
-        "We couldn't reach your wallet. Check your connection and try again.",
+        "Couldn't reach your wallet. Try again.",
       );
     }
     setStage("form");
@@ -542,7 +542,7 @@ export function PayPanel({
     } catch {
       if (controller.signal.aborted) return;
       setError(
-        "We couldn't reach M-Pesa. Check your connection and try again.",
+        "Couldn't reach M-Pesa. Try again.",
       );
       setStage("form");
     }
@@ -569,8 +569,8 @@ export function PayPanel({
     },
     done: {
       art: <EscrowHeldArt />,
-      title: "Paid. Your seat is confirmed",
-      sub: `Kipita holds ${formatCurrency(amount)} until you arrive`,
+      title: "Seat confirmed",
+      sub: `${formatCurrency(amount)} held until you arrive`,
     },
     failed: {
       art: <PaymentFailedArt />,
@@ -580,7 +580,7 @@ export function PayPanel({
     timeout: {
       art: <PaymentWaitingArt />,
       title: "Still waiting on M-Pesa",
-      sub: "If you finish on your phone, this updates by itself",
+      sub: "Updates when you finish on your phone",
     },
   };
 
@@ -646,7 +646,7 @@ export function PayPanel({
                       {phoneBad && (
                         <FieldError>
                           {phone.length === 0
-                            ? "Enter your M-Pesa number to pay"
+                            ? "M-Pesa number"
                             : "Nine digits, starting with 7 or 1"}
                         </FieldError>
                       )}
@@ -702,10 +702,9 @@ export function PayPanel({
                 )}
               </Lines>
               <Safe>
-                <ShieldCheck size={18} /> Held in escrow by Kipita until you
-                arrive
+                <ShieldCheck size={18} /> Held until you arrive
               </Safe>
-              <Consent>Paying opens chat and calls with your driver, and shares your number with them for this ride.</Consent>
+              <Consent>Paying shares your number with your driver.</Consent>
               {ruleLines && ruleLines.length > 0 && (
                 <Terms aria-label="Cancellation rules">
                   <b>If plans change</b>
@@ -761,8 +760,8 @@ export function PayPanel({
         {busy ? (
           <Note>
             {method === "wallet"
-              ? "Keep this open while we confirm your seat."
-              : "Keep this open. Your seat updates the moment M-Pesa confirms."}
+              ? "Keep this open."
+              : "Keep this open."}
           </Note>
         ) : stage === "done" ? (
           <Btn type="button" onClick={onPaid}>
@@ -772,7 +771,7 @@ export function PayPanel({
           <Btn type="button" $main $full onClick={pay}>
             {method === "wallet"
               ? `Pay ${formatCurrency(amount)} from wallet`
-              : `Send M-Pesa request · ${formatCurrency(amount)}`}
+              : `Pay with M-Pesa · ${formatCurrency(amount)}`}
           </Btn>
         ) : (
           <>

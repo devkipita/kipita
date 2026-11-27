@@ -21,6 +21,7 @@ export interface AlertAuthor {
   full_name: string | null;
   avatar_url: string | null;
   trusted_reporter: boolean;
+  is_verified?: boolean;
 }
 
 export type ConfirmKind = "still_there" | "cleared";
@@ -55,6 +56,7 @@ export interface AlertComment {
   id: string;
   alert_id: string;
   user_id: string;
+  parent_id: string | null;
   content: string;
   image_url: string | null;
   likes_count: number;
@@ -67,7 +69,7 @@ export const ALERT_SELECT = `
   id, user_id, location, category, content, image_url, lat, lng,
   reactions_count, comments_count, confirms_count, cleared_count, views_count,
   created_at, updated_at,
-  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter, is_verified )
 `;
 
 /**
@@ -79,12 +81,17 @@ export const ALERT_SELECT_LEGACY = `
   id, user_id, location, category, content, image_url, lat, lng,
   reactions_count, comments_count, confirms_count, cleared_count,
   created_at, updated_at,
-  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter, is_verified )
 `;
 
 export const COMMENT_SELECT = `
   id, alert_id, user_id, content, image_url, likes_count, created_at,
-  user:users!user_id ( id, full_name, avatar_url, trusted_reporter )
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter, is_verified )
+`;
+
+export const COMMENT_SELECT_THREADED = `
+  id, alert_id, user_id, parent_id, content, image_url, likes_count, created_at,
+  user:users!user_id ( id, full_name, avatar_url, trusted_reporter, is_verified )
 `;
 
 /**

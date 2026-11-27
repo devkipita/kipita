@@ -26,7 +26,7 @@ export default function GlobalError({
           <ThemeProvider>
             <StatusPage
               title="Kipita hit a problem."
-              lead="We've been told about it. Try again, or come back in a minute."
+              lead="Something went wrong. Try again."
               art={<BreakArt />}
               onRetry={reset}
             />

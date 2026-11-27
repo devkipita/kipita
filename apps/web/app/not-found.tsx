@@ -12,7 +12,7 @@ export default function NotFound() {
     <StatusPage
       code="404"
       title="That road doesn't go anywhere."
-      lead="The page you were looking for has moved or never existed. Let's get you back to the rides."
+      lead="This page doesn't exist."
       art={<DeadEndArt />}
     />
   );

@@ -76,8 +76,8 @@ function statusText(phone: string | null, verified: boolean, via: Via): string {
   if (!phone) {
     return "Add your mobile number.";
   }
-  if (!verified) return "Not verified yet. We text you a code to confirm it.";
-  return via === "mpesa" ? "Confirmed by your M-Pesa payment." : "Confirmed by SMS code.";
+  if (!verified) return "Not verified. We’ll text a code.";
+  return via === "mpesa" ? "Verified by M-Pesa." : "Confirmed by SMS code.";
 }
 
 /**

@@ -25,7 +25,7 @@ const State = styled.span<{ $on: boolean }>`
 
 const DESCRIPTION: Record<NotificationPermission | "unsupported", string> = {
   default: "Requests and road alerts while Kipita is open",
-  granted: "On while Kipita is open. Turn off in your browser",
+  granted: "On while Kipita is open",
   denied: "Blocked in your browser settings",
   unsupported: "This browser can't show alerts",
 };
@@ -81,7 +81,7 @@ export function NotificationsCard() {
         icon={SpeakerHigh}
         tone="green"
         title="Alert sound"
-        description="A chime when a request or road alert comes in"
+        description="Chime for new requests and alerts"
         last
       >
         <Switch checked={sound} onChange={toggleSound} label="Alert sound" />

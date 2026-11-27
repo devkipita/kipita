@@ -319,12 +319,12 @@ export function RequestRideDrawer({
           </span>
           <h3>Drivers can see it now</h3>
           <p>
-            When a driver offers a seat to {to}, it shows up in your Kipita notifications.
+            We'll notify you when a driver offers a seat to {to}.
           </p>
         </DoneBox>
       ) : (
         <Body>
-          <Lead>Drivers heading that way see your request. You pay only once one accepts.</Lead>
+          <Lead>Drivers see your request. You pay only after one accepts.</Lead>
 
           <Card>
             <Route>

@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { useTheme } from "styled-components";
 import { Crosshair, Minus, Plus } from "@/components/icons";
 import { loadGoogleMaps, mapStyle, token } from "@/lib/maps/google";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import type { TripLocation } from "@/lib/trips/live";
+
+const INK_FALLBACK = "#14231d";
+const HALO_FALLBACK = "#ffffff";
 
 const Frame = styled.div`
   position: relative;
@@ -18,6 +21,16 @@ const Frame = styled.div`
   > .host {
     position: absolute;
     inset: 0;
+  }
+
+  &[data-bare] .kp-pin {
+    display: none;
+  }
+
+  .gm-style a[href*="maps.google"],
+  .gm-style .gm-style-cc,
+  .gm-style .gmnoprint {
+    display: none !important;
   }
 
   .kp-pin {
@@ -70,6 +83,37 @@ const Frame = styled.div`
     background: url(/map/car.svg) center / contain no-repeat;
     filter: drop-shadow(0 3px 4px color-mix(in oklab, ${nocturne.ink} 35%, transparent));
     transition: rotate 600ms ${ease.standard};
+  }
+  .kp-rider {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+  .kp-rider > i {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: ${nocturne.ctaBg};
+    border: 3px solid ${nocturne.surface};
+    box-shadow: 0 0 0 8px color-mix(in oklab, ${nocturne.ctaBg} 24%, transparent);
+  }
+  .kp-rider > span {
+    margin: -8px 0 0 4px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: ${nocturne.surface};
+    color: ${nocturne.cream};
+    font-family: var(--font-dm-sans), sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: ${nocturne.panelShadow};
   }
   .kp-me {
     position: absolute;
@@ -139,7 +183,14 @@ const Locate = styled(Ctl)`
   box-shadow: ${nocturne.panelShadow};
 `;
 
+export type MapPerson = { id: string; lat: number; lng: number; name: string };
+
 type Mover = { move: (p: google.maps.LatLngLiteral, heading: number | null) => void };
+type Crowd = { sync: (list: MapPerson[]) => void };
+
+function escapeHtml(s: string) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+}
 type Spot = { set: (p: google.maps.LatLngLiteral) => void };
 
 function bearing(a: google.maps.LatLng, b: google.maps.LatLng) {
@@ -167,6 +218,8 @@ export default function TripMap({
   padding,
   shift = 0,
   onboard = false,
+  bare = false,
+  people,
 }: {
   polyline: string;
   car?: TripLocation | null;
@@ -178,7 +231,10 @@ export default function TripMap({
   padding?: google.maps.Padding;
   shift?: number;
   onboard?: boolean;
+  bare?: boolean;
+  people?: MapPerson[];
 }) {
+  const crowdRef = useRef<Crowd | null>(null);
   const onboardRef = useRef(onboard);
   onboardRef.current = onboard;
   const driverSeen = useRef(false);
@@ -193,6 +249,16 @@ export default function TripMap({
   const [locating, setLocating] = useState(false);
   const padRef = useRef(padding);
   padRef.current = padding;
+  const dark = useTheme().mode === "dark";
+  const darkRef = useRef(dark);
+  darkRef.current = dark;
+  const paintRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    if (!ready) return;
+    const frame = requestAnimationFrame(() => paintRef.current?.());
+    return () => cancelAnimationFrame(frame);
+  }, [dark, ready]);
 
   const followRef = useRef(follow);
   followRef.current = follow;
@@ -226,11 +292,11 @@ export default function TripMap({
         const path = g.maps.geometry.encoding.decodePath(polyline);
         if (path.length < 2) return;
 
-        const ink = token("--n-ink", "#14231d");
-        const halo = token("--n-surface", "#ffffff");
+        const ink = token("--n-ink", INK_FALLBACK);
+        const halo = token("--n-surface", HALO_FALLBACK);
 
         const map = new g.maps.Map(hostRef.current, {
-          styles: mapStyle(),
+          styles: mapStyle(darkRef.current),
           disableDefaultUI: true,
           gestureHandling: "greedy",
           clickableIcons: false,
@@ -238,22 +304,46 @@ export default function TripMap({
         });
         mapRef.current = map;
 
-        new g.maps.Polyline({ map, path, strokeColor: halo, strokeWeight: 8, zIndex: 1 });
-        new g.maps.Polyline({ map, path, strokeColor: ink, strokeWeight: 4, zIndex: 2 });
-        new g.maps.Marker({
+        const haloLine = new g.maps.Polyline({ map, path, strokeColor: halo, strokeWeight: 8, zIndex: 1 });
+        const inkLine = new g.maps.Polyline({ map, path, strokeColor: ink, strokeWeight: 4, zIndex: 2 });
+        const startIcon = (fill: string, edge: string): google.maps.Symbol => ({
+          path: g.maps.SymbolPath.CIRCLE,
+          scale: 6,
+          fillColor: fill,
+          fillOpacity: 1,
+          strokeColor: edge,
+          strokeWeight: 4,
+        });
+        const endIcon = (fill: string, edge: string): google.maps.Symbol => ({
+          path: "M -6 -6 L 6 -6 L 6 6 L -6 6 Z",
+          fillColor: fill,
+          fillOpacity: 1,
+          strokeColor: edge,
+          strokeWeight: 3,
+        });
+        const startMark = new g.maps.Marker({
           map,
           position: path[0],
           zIndex: 3,
           clickable: false,
-          icon: { path: g.maps.SymbolPath.CIRCLE, scale: 6, fillColor: halo, fillOpacity: 1, strokeColor: ink, strokeWeight: 4 },
+          icon: startIcon(halo, ink),
         });
-        new g.maps.Marker({
+        const endMark = new g.maps.Marker({
           map,
           position: path[path.length - 1],
           zIndex: 3,
           clickable: false,
-          icon: { path: "M -6 -6 L 6 -6 L 6 6 L -6 6 Z", fillColor: ink, fillOpacity: 1, strokeColor: halo, strokeWeight: 3 },
+          icon: endIcon(ink, halo),
         });
+        paintRef.current = () => {
+          const nextInk = token("--n-ink", INK_FALLBACK);
+          const nextHalo = token("--n-surface", HALO_FALLBACK);
+          map.setOptions({ styles: mapStyle(darkRef.current) });
+          haloLine.setOptions({ strokeColor: nextHalo });
+          inkLine.setOptions({ strokeColor: nextInk });
+          startMark.setIcon(startIcon(nextHalo, nextInk));
+          endMark.setIcon(endIcon(nextInk, nextHalo));
+        };
 
         class Html extends g.maps.OverlayView {
           constructor(public el: HTMLElement, public pos: google.maps.LatLng | null, public pane: "floatPane" | "overlayMouseTarget") {
@@ -336,6 +426,33 @@ export default function TripMap({
           },
         };
 
+        const pins = new Map<string, { view: Html; el: HTMLDivElement }>();
+        crowdRef.current = {
+          sync(list) {
+            const seen = new Set<string>();
+            for (const p of list) {
+              seen.add(p.id);
+              let hit = pins.get(p.id);
+              if (!hit) {
+                const el = document.createElement("div");
+                el.className = "kp-rider";
+                const view = new Html(el, null, "floatPane");
+                view.setMap(map);
+                hit = { view, el };
+                pins.set(p.id, hit);
+              }
+              hit.el.innerHTML = `<i></i><span>${escapeHtml(p.name)}</span>`;
+              hit.view.pos = new g.maps.LatLng(p.lat, p.lng);
+              hit.view.draw();
+            }
+            for (const [id, hit] of pins) {
+              if (seen.has(id)) continue;
+              hit.view.setMap(null);
+              pins.delete(id);
+            }
+          },
+        };
+
         const bounds = new g.maps.LatLngBounds();
         path.forEach((p) => bounds.extend(p));
         const fit = () => map.fitBounds(bounds, padRef.current ?? { top: 72, right: 72, bottom: 72, left: 72 });
@@ -367,6 +484,7 @@ export default function TripMap({
       watchRef.current = null;
       carRef.current = null;
       meRef.current = null;
+      crowdRef.current = null;
       mapRef.current = null;
       setReady(false);
     };
@@ -377,6 +495,11 @@ export default function TripMap({
     if (fromPin.current) fromPin.current.innerHTML = pinHtml(fromLead ?? null, `From ${fromLabel}`);
     if (toPin.current) toPin.current.innerHTML = pinHtml(toLead ?? null, `To ${toLabel}`);
   }, [ready, fromLabel, toLabel, fromLead, toLead]);
+
+  useEffect(() => {
+    if (!ready) return;
+    crowdRef.current?.sync(people ?? []);
+  }, [ready, people]);
 
   useEffect(() => {
     if (!car || !ready) return;
@@ -424,9 +547,9 @@ export default function TripMap({
   };
 
   return (
-    <Frame role="region" aria-label={`Map of the route from ${fromLabel} to ${toLabel}`}>
+    <Frame role="region" aria-label={`Map of the route from ${fromLabel} to ${toLabel}`} data-bare={bare ? "" : undefined}>
       <div className="host" ref={hostRef} />
-      {ready && (
+      {ready && !bare && (
         <Controls>
           <Locate type="button" $on={locating} aria-pressed={locating} aria-label={locating ? "Hide my location" : "Show my location"} onClick={locate}>
             <Crosshair size={20} />

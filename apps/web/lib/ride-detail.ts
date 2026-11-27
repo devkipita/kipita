@@ -62,8 +62,6 @@ export type TripDetail = {
   preferences: RidePreferences;
   status: string;
   description: string | null;
-  pickup_point: string | null;
-  dropoff_point: string | null;
   driver: RidePerson | null;
   vehicle: RideVehicle | null;
 };

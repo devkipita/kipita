@@ -91,7 +91,7 @@ export function PhoneVerifyFlow({
         return;
       }
       setOtp("");
-      setInfo(`We sent a new code to +254 ${formatKeLocal(phone)}.`);
+      setInfo(`New code sent to +254 ${formatKeLocal(phone)}.`);
       setCooldown(COOLDOWN);
     });
   }
@@ -144,7 +144,7 @@ export function PhoneVerifyFlow({
             if (otp.length === 6) verify(otp);
           }}
         >
-          <CodeSent>We texted a 6-digit code to +254 {formatKeLocal(phone)}. Enter it below.</CodeSent>
+          <CodeSent>Code sent to +254 {formatKeLocal(phone)}. Enter it below.</CodeSent>
           <OtpInput value={otp} onChange={setOtp} onComplete={verify} />
           <PrimaryButton type="submit" disabled={busy || otp.length !== 6} aria-busy={busy}>
             {busy ? <>Verifying <ButtonOrb job="committing" /></> : "Verify number"}

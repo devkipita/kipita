@@ -19,7 +19,7 @@ export async function submitDriverKycAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data: me } = await supabase
     .from("users")
@@ -29,7 +29,7 @@ export async function submitDriverKycAction(
   if (!me) {
     return {
       ok: false,
-      error: "Your profile isn't ready yet. Sign out and back in, then try again.",
+      error: "Profile not ready. Sign out and back in.",
     };
   }
 
@@ -55,7 +55,7 @@ export async function submitDriverKycAction(
       error:
         error.code === "22023"
           ? error.message
-          : "We couldn't save that. Please try again.",
+          : "Couldn't save that. Try again.",
     };
   }
 

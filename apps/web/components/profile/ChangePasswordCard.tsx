@@ -96,7 +96,7 @@ export function ChangePasswordCard({ email }: { email: string | null }) {
           ) : sent ? (
             <>Confirmation link sent to {email}. Open it to set a new password.</>
           ) : (
-            <>We email a confirmation link before any password change.</>
+            <>We email a confirmation link.</>
           )}
         </span>
       </Body>

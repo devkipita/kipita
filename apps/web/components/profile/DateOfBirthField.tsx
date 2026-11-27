@@ -415,16 +415,16 @@ export function DateOfBirthField({
 
       {invalid ? (
         <Hint $error role="alert">
-          That date doesn&apos;t exist. Check the day and year.
+          Check the date.
         </Hint>
       ) : tooYoung ? (
         <Hint $error role="alert">
-          You need to be at least 16 to use Kipita.
+          Must be 16 or older.
         </Hint>
       ) : age !== null ? (
-        <Hint>{age} years old. Only your age is shown to other members.</Hint>
+        <Hint>{age} years old. Only your age is shown.</Hint>
       ) : (
-        <Hint>Used to confirm you&apos;re 16 or older.</Hint>
+        <Hint>Must be 16 or older.</Hint>
       )}
     </>
   );

@@ -11,8 +11,8 @@ export function WalletError() {
 
   return (
     <StatusPage
-      title="We couldn't load your wallet."
-      lead="Your balance didn't reach us. Try again in a moment."
+      title="Couldn't load your wallet."
+      lead="Try again in a moment."
       art={<BreakArt />}
       onRetry={() => startTransition(() => router.refresh())}
     />

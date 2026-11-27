@@ -9,13 +9,13 @@ export type RequestDecision = "accept" | "decline";
 
 export type DecisionResult =
   | { ok: true; status: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string; code?: string };
 
 const DECISION_ERRORS: Record<string, string> = {
-  "28000": "Your session expired. Sign in again.",
+  "28000": "Session expired. Sign in again.",
   "22023": "That request is no longer open.",
   "42501": "Only the driver can answer that request.",
-  "53400": "You no longer have enough seats for that request.",
+  "53400": "Not enough seats left.",
   P0002: "That request no longer exists.",
 };
 
@@ -29,7 +29,7 @@ export async function answerSeatRequestAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Your session expired. Sign in again." };
+  if (!user) return { ok: false, error: "Session expired. Sign in again." };
 
   const { data, error } =
     decision === "accept"
@@ -46,9 +46,10 @@ export async function answerSeatRequestAction(
   if (error) {
     return {
       ok: false,
+      code: error.code ?? undefined,
       error:
         DECISION_ERRORS[error.code ?? ""] ??
-        "We couldn't record that. Please try again.",
+        "Couldn't record that. Try again.",
     };
   }
 
@@ -63,6 +64,21 @@ export async function seatRequestAction(
   const booking = await fetchBooking(bookingId).catch(() => null);
   if (!booking || booking.status !== "requested") return null;
   return booking;
+}
+
+export async function openSeatRequestIdsAction(
+  bookingIds: string[],
+): Promise<string[] | null> {
+  const ids = Array.from(new Set(bookingIds.filter(Boolean))).slice(0, 60);
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bookings")
+    .select("id")
+    .in("id", ids)
+    .eq("status", "requested");
+  if (error) return null;
+  return (data ?? []).map((row: { id: string }) => row.id);
 }
 
 export async function seatRequestsAction(): Promise<Booking[]> {

@@ -25,7 +25,7 @@ export type PostResult =
   | { ok: false; error: string; fix?: "kyc" | "phone" };
 
 const PROFILE_NOT_READY =
-  "Your profile isn't ready yet. Sign out and back in, then try again.";
+  "Profile not ready. Sign out and back in.";
 
 /** Raised by the throttle triggers in migration 020. */
 const RATE_LIMIT_CODE = "54000";
@@ -38,7 +38,7 @@ async function resolveUser(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Your session expired. Sign in again." };
+  if (!user) return { error: "Session expired. Sign in again." };
 
   const { data } = await supabase
     .from("users")
@@ -52,7 +52,7 @@ async function resolveUser(
 
 function writeError(error: { code?: string } | null, fallback: string): string {
   if (error?.code === RATE_LIMIT_CODE) {
-    return "You've posted a few times in the last hour. Try again a little later.";
+    return "Too many posts. Try again later.";
   }
   return fallback;
 }
@@ -173,7 +173,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (kyc.status === "rejected") {
     return {
       ok: false,
-      error: "Verification unsuccessful. Submit your details again to publish.",
+      error: "Verification failed. Resubmit your details.",
       fix: "kyc",
     };
   }
@@ -181,7 +181,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   if (!(await isPhoneConfirmed(supabase))) {
     return {
       ok: false,
-      error: "Confirm your phone number to publish a ride.",
+      error: "Verify your number to publish.",
       fix: "phone",
     };
   }
@@ -196,7 +196,7 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
   const trip = parsed.data;
   const leaves = Date.parse(`${trip.departure_date}T${trip.departure_time}:00+03:00`);
   if (!Number.isFinite(leaves) || leaves <= Date.now()) {
-    return { ok: false, error: "That departure time has already passed. Pick a later one." };
+    return { ok: false, error: "That time has passed. Pick a later one." };
   }
 
   const car = await carSeatsFor(supabase, session.userId, trip.vehicle_plate);
@@ -242,8 +242,8 @@ export async function createTripAction(input: PostTripInput): Promise<PostResult
       error: writeError(
         error,
         error?.code === "42501"
-          ? "Your verification hasn't cleared yet, so this ride can't go live."
-          : "We couldn't post that ride. Please try again.",
+          ? "Waiting for verification."
+          : "Couldn't post that ride. Try again.",
       ),
     };
   }
@@ -293,7 +293,7 @@ export async function createRideRequestAction(
       ok: false,
       error: writeError(
         error,
-        "We couldn't post that request. Please try again.",
+        "Couldn't post that request. Try again.",
       ),
     };
   }
