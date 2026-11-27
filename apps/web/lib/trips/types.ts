@@ -141,6 +141,11 @@ export type JourneyState = {
   payout: number | null;
   problem: { kind: string; status: "open" | "resolved"; outcome: "clear" | "refund" | null } | null;
   contactOpen: boolean;
+  /** When this passenger's ride ended: their own tap, or the driver ending the ride. */
+  arrivedAt: string | null;
+  arrivedBy: "passenger" | "trip_end" | null;
+  /** The car's position at that moment, from the driver's phone. */
+  arrivedPlace: { lat: number; lng: number; approximate: boolean } | null;
 };
 
 export const NO_JOURNEY: JourneyState = {
@@ -152,4 +157,7 @@ export const NO_JOURNEY: JourneyState = {
   payout: null,
   problem: null,
   contactOpen: false,
+  arrivedAt: null,
+  arrivedBy: null,
+  arrivedPlace: null,
 };

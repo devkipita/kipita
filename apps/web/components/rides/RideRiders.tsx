@@ -12,7 +12,7 @@ import { RollingNumber } from "@/components/ui/Counter";
 import { Shimmer } from "@/components/ui/Shimmer";
 import { createClient } from "@/lib/supabase/client";
 import { useShareLocation } from "@/lib/trips/live";
-import { formatCurrency } from "@/lib/trips/format";
+import { formatClock, formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 
 const ChatPanel = dynamic(() => import("@/components/trips/ChatSheet"), { ssr: false });
@@ -26,6 +26,7 @@ type Rider = {
   fare: number;
   payout: number | null;
   myScore: number | null;
+  arrivedAt: string | null;
 };
 
 type Load = { state: "loading" } | { state: "error" } | { state: "ready"; riders: Rider[] };
@@ -297,7 +298,7 @@ async function loadRiders(tripId: string, viewerId: string, live: boolean): Prom
   const supabase = createClient();
   const { data: bookings, error } = await supabase
     .from("bookings")
-    .select("id, seats_booked, total_price, passenger:users!passenger_id ( full_name, avatar_url )")
+    .select("id, seats_booked, total_price, arrived_at, passenger:users!passenger_id ( full_name, avatar_url )")
     .eq("trip_id", tripId)
     .eq("status", live ? "in_progress" : "completed")
     .order("created_at", { ascending: true });
@@ -328,6 +329,7 @@ async function loadRiders(tripId: string, viewerId: string, live: boolean): Prom
       avatarUrl: person?.avatar_url ?? null,
       payout: paid.get(b.id as string) ?? null,
       myScore: scored.get(b.id as string) ?? null,
+      arrivedAt: (b.arrived_at as string | null) ?? null,
     };
   });
 }
@@ -414,7 +416,7 @@ export function RideRiders({ tripId, viewerId, live = false }: { tripId: string;
                   <span className="who">
                     <b>{r.name}</b>
                     <small>
-                      {r.seats} {r.seats === 1 ? "seat" : "seats"} · on board
+                      {r.seats} {r.seats === 1 ? "seat" : "seats"} · {r.arrivedAt ? `got off ${formatClock(r.arrivedAt)}` : "on board"}
                     </small>
                   </span>
                   <MessageButton

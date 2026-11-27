@@ -5,14 +5,13 @@ import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import styled, { css, keyframes } from "styled-components";
 import { ArrowLeft, CaretRight, ChatCircle, Check, CheckCircle, Clock, Flag, Lock, Phone, SealCheck, ShareForward, Star, X } from "@/components/icons";
-import { contactPhoneAction } from "@/lib/trips/journey-actions";
+import { contactPhoneAction, markArrivedAction } from "@/lib/trips/journey-actions";
 import { completeTripAction, startTripAction } from "@/lib/trips/trip-actions";
 import { reportProblemAction } from "@/lib/trips/boarding-actions";
 import type { ProblemKind } from "@/lib/trips/problems";
 import dynamic from "next/dynamic";
 import type { TripRoute } from "@/lib/maps/types";
-import { LiveStatus, useLiveEta } from "./LiveCard";
-import { placeKey } from "@/lib/maps/types";
+import { ArrivedStatus, LiveStatus, useLiveEta } from "./LiveCard";
 import { useTripLocation } from "@/lib/trips/live";
 import { RouteMap } from "./RouteMap";
 
@@ -969,7 +968,7 @@ export function TripDetail({
   const feePct = fee != null && subtotal > 0 ? Math.round((fee / subtotal) * 100) : null;
   const seatLine = perSeat > 0 && perSeat * booking.seats_booked === subtotal;
 
-  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | "noshow" | "dispute" | "problem" | null>(null);
+  const [busy, setBusy] = useState<"cancel" | "accept" | "decline" | "run" | "noshow" | "arrive" | "dispute" | "problem" | null>(null);
   const [error, setError] = useState("");
   const [hold, setHold] = useState<string | null>(() => holdLeft(booking.expires_at));
   const [, startTransition] = useTransition();
@@ -1078,8 +1077,9 @@ export function TripDetail({
   const split = wide && hasMap;
   const roomy = useRoomy();
   const [timelineOpen, setTimelineOpen] = useState(false);
-  const loc = useTripLocation(booking.trip_id, live && !isDriver);
-  const eta = useLiveEta(loc, booking.trip ? placeKey(booking.trip.to_location, booking.trip.to_lat, booking.trip.to_lng) : "");
+  const arrived = journey.arrivedAt != null;
+  const loc = useTripLocation(booking.trip_id, live && !isDriver && !arrived);
+  const eta = useLiveEta(booking.id, loc);
 
   const [snap, setSnap] = useState<Snap>("half");
   const [mapPad, setMapPad] = useState<google.maps.Padding | undefined>(undefined);
@@ -1190,6 +1190,23 @@ export function TripDetail({
     setError("");
     startTransition(async () => {
       const result = await markNoShowAction(booking.id);
+      setBusy(null);
+      if (!result.ok) setError(result.error);
+      router.refresh();
+    });
+  }
+
+  async function markArrived(anchor: Element) {
+    const ok = await ask(anchor, {
+      title: "You've arrived?",
+      yes: "I've arrived",
+      no: "Not yet",
+    });
+    if (!ok) return;
+    setBusy("arrive");
+    setError("");
+    startTransition(async () => {
+      const result = await markArrivedAction(booking.id);
       setBusy(null);
       if (!result.ok) setError(result.error);
       router.refresh();
@@ -1849,6 +1866,17 @@ export function TripDetail({
               )
             ) : (
               <>
+                {live && !isDriver && !arrived && (
+                  <Solid
+                    type="button"
+                    onClick={(e) => markArrived(e.currentTarget)}
+                    disabled={busy !== null}
+                    aria-busy={busy === "arrive"}
+                  >
+                    {busy === "arrive" ? <ButtonOrb job="committing" /> : null}
+                    I&rsquo;ve arrived
+                  </Solid>
+                )}
                 <Outline type="button" onClick={share}>
                   {copied ? <Check size={18} weight="bold" /> : <ShareForward size={18} />}
                   {copied ? "Link copied" : "Share ride"}
@@ -1928,6 +1956,7 @@ export function TripDetail({
               seats={booking.seats_booked}
               isDriver={isDriver}
               passengerName={isDriver ? firstName : undefined}
+              arrival={isDriver ? undefined : { at: journey.arrivedAt, place: journey.arrivedPlace }}
             />
           ) : (
             <RouteMap
@@ -1936,9 +1965,14 @@ export function TripDetail({
               etaSeconds={eta}
               fromLabel={origin}
               toLabel={destination}
-              follow={live}
+              follow={live && !arrived}
               padding={mapPad}
-              onboard={live && !isDriver}
+              onboard={live && !isDriver && !arrived}
+              people={
+                journey.arrivedPlace
+                  ? [{ id: "arrived", lat: journey.arrivedPlace.lat, lng: journey.arrivedPlace.lng, name: "Got off here" }]
+                  : undefined
+              }
             />
           )}
         </MapPane>
@@ -1986,7 +2020,16 @@ export function TripDetail({
 
       {live && !isDriver && (
         <LiveWrap>
-          <LiveStatus from={origin} to={destination} loc={loc} eta={eta} />
+          {journey.arrivedAt ? (
+            <ArrivedStatus
+              from={origin}
+              to={destination}
+              at={journey.arrivedAt}
+              approximate={journey.arrivedPlace?.approximate ?? false}
+            />
+          ) : (
+            <LiveStatus from={origin} to={destination} loc={loc} eta={eta} />
+          )}
         </LiveWrap>
       )}
 

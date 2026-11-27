@@ -4,7 +4,7 @@ import { TripDetail } from "@/components/trips/TripDetail";
 import { getProfile } from "@/lib/auth/session";
 import { routeBetween } from "@/lib/maps/routes.server";
 import { placeKey, type TripRoute } from "@/lib/maps/types";
-import { cancellationConfigFromSettings } from "@kipita/shared";
+import { cancellationConfigFromSettings, isApproxArrival } from "@kipita/shared";
 import { fetchPlatform } from "@/lib/platform.server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchBooking } from "@/lib/trips/server";
@@ -18,7 +18,11 @@ export const metadata: Metadata = {
 async function loadJourney(bookingId: string, viewerId: string): Promise<JourneyState> {
   const supabase = await createClient();
   const [boarded, payment, problem, contact, payout] = await Promise.all([
-    supabase.from("bookings").select("boarded_at, boarded_method, passenger_id, status").eq("id", bookingId).maybeSingle(),
+    supabase
+      .from("bookings")
+      .select("boarded_at, boarded_method, passenger_id, status, arrived_at, arrived_by, arrived_lat, arrived_lng, arrived_position_at")
+      .eq("id", bookingId)
+      .maybeSingle(),
     supabase
       .from("payments")
       .select("escrow_status, release_due_at")
@@ -55,9 +59,23 @@ async function loadJourney(bookingId: string, viewerId: string): Promise<Journey
         )
       : null;
 
+  const arrivedAt = (row?.arrived_at as string | null) ?? null;
+  const arrivedLat = row?.arrived_lat as number | null | undefined;
+  const arrivedLng = row?.arrived_lng as number | null | undefined;
+
   return {
     ...NO_JOURNEY,
     code,
+    arrivedAt,
+    arrivedBy: (row?.arrived_by as JourneyState["arrivedBy"]) ?? null,
+    arrivedPlace:
+      arrivedLat != null && arrivedLng != null
+        ? {
+            lat: arrivedLat,
+            lng: arrivedLng,
+            approximate: isApproxArrival(arrivedAt, (row?.arrived_position_at as string | null) ?? null),
+          }
+        : null,
     boardedAt: (row?.boarded_at as string | null) ?? null,
     boardedMethod: (row?.boarded_method as JourneyState["boardedMethod"]) ?? null,
     escrow: (payment.error ? null : ((payment.data?.escrow_status as string | null) ?? null)) ?? (paidOut != null ? "released" : null),

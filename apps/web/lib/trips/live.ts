@@ -81,7 +81,10 @@ export function useTripLocation(tripId: string | null, enabled: boolean) {
   const [loc, setLoc] = useState<TripLocation | null>(null);
 
   useEffect(() => {
-    if (!tripId || !enabled) return;
+    if (!tripId || !enabled) {
+      setLoc(null);
+      return;
+    }
     let live = true;
     void createClient()
       .from("trip_locations")

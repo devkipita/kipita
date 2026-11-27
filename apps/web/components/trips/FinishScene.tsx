@@ -1,7 +1,7 @@
 "use client";
 
 import styled, { keyframes } from "styled-components";
-import { formatCurrency } from "@/lib/trips/format";
+import { formatClock, formatCurrency } from "@/lib/trips/format";
 import { dur, ease, nocturne } from "@/lib/nocturne";
 import { FinishArt } from "./FinishArt";
 
@@ -100,6 +100,11 @@ const Copy = styled.div`
   .money b {
     color: ${nocturne.green};
   }
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 
   @media (max-width: 899px) {
     gap: 8px;
@@ -148,6 +153,7 @@ export function FinishScene({
   isDriver,
   passengers,
   passengerName,
+  arrival,
 }: {
   destination: string;
   startedAt: string | null;
@@ -157,6 +163,7 @@ export function FinishScene({
   isDriver: boolean;
   passengers?: number;
   passengerName?: string;
+  arrival?: { at: string | null; place: { lat: number; lng: number; approximate: boolean } | null };
 }) {
   const time = duration(startedAt, completedAt);
   const headline = !isDriver
@@ -181,6 +188,22 @@ export function FinishScene({
             <li>
               <b>{time}</b>
               on the road
+            </li>
+          ) : null}
+          {arrival?.at ? (
+            <li>
+              <b>{formatClock(arrival.at)}</b>
+              {arrival.place ? (
+                <a
+                  href={`https://www.google.com/maps?q=${arrival.place.lat},${arrival.place.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {arrival.place.approximate ? "got off near here" : "got off here"}
+                </a>
+              ) : (
+                "got off"
+              )}
             </li>
           ) : null}
           {seats > 0 ? (

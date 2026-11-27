@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
-import { NavigationArrow } from "@/components/icons";
+import { Check, NavigationArrow } from "@/components/icons";
 import { nocturne } from "@/lib/nocturne";
+import { formatClock } from "@/lib/trips/format";
 import { etaAction } from "@/lib/trips/journey-actions";
 import type { TripLocation } from "@/lib/trips/live";
 
@@ -42,18 +43,21 @@ const Tag = styled.span`
   font-weight: 800;
 `;
 
-export function useLiveEta(loc: TripLocation | null, destination: string) {
+export function useLiveEta(bookingId: string, car: TripLocation | null) {
   const [eta, setEta] = useState<number | null>(null);
   const asked = useRef(0);
   useEffect(() => {
-    if (!loc || !destination) return;
+    if (!car) {
+      setEta(null);
+      return;
+    }
     const t = Date.now();
     if (t - asked.current < 60000) return;
     asked.current = t;
-    void etaAction(loc.lat, loc.lng, destination).then((s) => {
+    void etaAction(bookingId).then((s) => {
       if (s != null) setEta(s);
     });
-  }, [loc, destination]);
+  }, [car, bookingId]);
   return eta;
 }
 
@@ -108,6 +112,31 @@ export function LiveStatus({
       <p>
         {from} to {to}
         {loc ? ` · updated ${since(loc.updated_at, now)}` : ""}
+      </p>
+    </Body>
+  );
+}
+
+export function ArrivedStatus({
+  from,
+  to,
+  at,
+  approximate,
+}: {
+  from: string;
+  to: string;
+  at: string;
+  approximate: boolean;
+}) {
+  return (
+    <Body aria-live="polite">
+      <Tag>
+        <Check size={16} weight="bold" /> Arrived
+      </Tag>
+      <h2>You arrived at {formatClock(at)}</h2>
+      <p>
+        {from} to {to}
+        {approximate ? " · place approximate" : ""}
       </p>
     </Body>
   );
