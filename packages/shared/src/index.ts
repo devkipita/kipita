@@ -16,4 +16,5 @@ export * from "./anon-avatar";
 export * from "./kenya-time";
 export * from "./reconcile";
 export * from "./payout-file";
+export * from "./name-match";
 export * from "./arrival";
